@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Messages — Fais Ton Show</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/css/fts-chat.css?v=8">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+
+<style>
+/* Actions messages/conversations */
+.btn-chat-del {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0;
+}
+.btn-chat-del:hover { border-color: var(--red); color: var(--red); background: rgba(212,32,26,.08); }
+.msg-actions {
+  display: none; gap: .25rem; margin-top: .25rem; padding: 0 .35rem;
+}
+.msg-wrap.own:hover .msg-actions { display: flex; }
+.msg-act {
+  border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03);
+  color: var(--muted); border-radius: 999px; padding: .15rem .45rem;
+  font-size: .62rem; cursor: pointer; font-family: "DM Sans", sans-serif;
+}
+.msg-act:hover { color: var(--white); border-color: rgba(255,255,255,.22); }
+.msg-act.danger:hover { color: var(--red); border-color: rgba(212,32,26,.45); }
+.msg-edited { font-size: .58rem; color: rgba(245,242,238,.32); margin-left: .25rem; }
+@media (max-width: 720px) { .msg-actions { display: flex; } }
+.notif-target .msg-bubble{outline:2px solid rgba(201,168,76,.75); box-shadow:0 0 0 6px rgba(201,168,76,.14);}
+</style>
+</head>
+</head>
+<body>
+
+<!-- ═══ AUTH LOADING ════════════════════════════════════════════ -->
+<div class="auth-loading" id="auth-loading">
+  <div class="auth-logo">FAIS TON <span>SHOW</span></div>
+  <div class="spinner"></div>
+</div>
+
+<!-- ═══ APP ══════════════════════════════════════════════════════ -->
+<div class="app" id="app" style="display:none">
+
+  <!-- ══ SIDEBAR ══ -->
+  <div class="sidebar">
+
+    <div class="sb-hdr">
+      <div class="sb-avatar" id="my-avatar">?</div>
+      <div class="sb-title">MESSAGES</div>
+      <button class="btn-compose" onclick="openModal()" title="Nouveau message">✏️</button>
+    </div>
+
+    <div class="sb-search">
+      <input class="search-inp" type="text" placeholder="Rechercher une conversation…"
+        oninput="searchConvs(this.value)">
+    </div>
+
+    <div class="conv-list" id="conv-list">
+      <div class="conv-empty">
+        <span class="conv-empty-icon">✉️</span>
+        <p>Aucune conversation.<br>Commence un message !</p>
+      </div>
+    </div>
+
+    <div class="notif-mini">
+      <button class="btn-notif" id="btn-notif" onclick="toggleNotifications()">🔕 Activer les notifs</button>
+    </div>
+
+    <nav class="sb-nav">
+      <a href="membres.html" class="snav"><span class="ico">👤</span><span>Membres</span></a>
+      <a href="forum.html"   class="snav"><span class="ico">💬</span><span>Forum</span></a>
+    </nav>
+
+  </div><!-- /sidebar -->
+
+  <!-- ══ MAIN ══ -->
+  <div class="main" id="main">
+
+    <!-- Vide (desktop uniquement) -->
+    <div class="chat-empty" id="chat-empty">
+      <div class="chat-empty-ring">✉️</div>
+      <div class="chat-empty-title">FAIS TON <span>SHOW</span></div>
+      <div class="chat-empty-sub">Sélectionne une conversation ou envoie un nouveau message privé.</div>
+      <button class="btn-start" onclick="openModal()">✏️ Nouveau message</button>
+    </div>
+
+    <!-- Zone chat -->
+    <div class="chat-zone" id="chat-zone">
+      <div class="chat-hdr">
+        <button class="btn-back" onclick="closeChat()">←</button>
+        <div class="chat-hdr-av" id="chat-av"></div>
+        <div class="chat-hdr-info">
+          <div class="chat-hdr-name" id="chat-name">…</div>
+          <div class="chat-hdr-sub"  id="chat-sub"></div>
+        </div>
+        <button class="btn-chat-del" id="btn-delete-conv" onclick="deleteCurrentConversation()" title="Supprimer la conversation">🗑</button>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="input-area">
+        <div class="input-pill">
+          <textarea class="msg-input" id="msg-input" placeholder="Message…" rows="1"
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        </div>
+        <button class="btn-send" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+</div><!-- /app -->
+
+<!-- ═══ MODAL NOUVEAU MESSAGE ════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-grip"></div>
+    <div class="modal-hdr">
+      <div class="modal-title">Nouveau message</div>
+      <button class="btn-modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="type-tabs">
+      <div class="type-tab on" id="tab-d" onclick="setType('direct')">👤 Message privé</div>
+      <div class="type-tab"    id="tab-g" onclick="setType('group')">👥 Groupe privé</div>
+    </div>
+
+    <div id="gname-wrap" style="display:none">
+      <label class="modal-lbl">Nom du groupe</label>
+      <input class="modal-field" id="gname" type="text" placeholder="Ex : Équipe Théâtre…">
+    </div>
+
+    <label class="modal-lbl" id="pick-lbl">Destinataire</label>
+    <input class="picker-search" id="picker-q" type="text" placeholder="Rechercher…" oninput="filterUsers()">
+    <div class="user-list" id="user-list"></div>
+    <div class="sel-info" id="sel-info"></div>
+    <div class="modal-err" id="modal-err"></div>
+
+    <div class="modal-btns">
+      <button class="btn-mcancel" onclick="closeModal()">Annuler</button>
+      <button class="btn-mstart"  onclick="startConv()">Démarrer →</button>
+    </div>
+  </div>
+</div>
+
+<script src="./assets/js/fts-utils.js"></script>
+<script src="./assets/js/fts-firebase.js"></script>
+<script src="./assets/js/fts-chat.js?v=8"></script>
+
+<script src="assets/js/fts-pwa.js"></script>
+
+<script src="assets/js/services/auth.service.js?v=1"></script>
+<script src="assets/js/services/users.service.js?v=1"></script>
+<script src="assets/js/services/resources.service.js?v=1"></script>
+<script src="assets/js/services/events.service.js?v=1"></script>
+<script src="assets/js/services/forum.service.js?v=1"></script>
+<script src="assets/js/services/messages.service.js?v=1"></script>
+<script src="assets/js/services/content.service.js?v=1"></script>
+<script src="assets/js/services/notifications.service.js?v=1"></script>
+<script src="assets/js/services/season.service.js?v=1"></script>
+<script src="assets/js/pages/messages.js?v=1"></script>
+</body>
+</html>

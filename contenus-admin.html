@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Contenus — Fais Ton Show</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/fts.css">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<style>
+.auth-loading{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}.spinner{width:24px;height:24px;border:2px solid #333;border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.admin-shell{display:none}.topbar{background:var(--grey2);border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}.logo{font-family:var(--font-display);font-size:1.5rem}.logo span{color:var(--red)}.sub{font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}.actions{display:flex;gap:.5rem;flex-wrap:wrap}.btn-sm{width:auto;font-family:var(--font-body);font-size:.76rem;letter-spacing:0;padding:.55rem .9rem}.btn-dark{background:#242424}.btn-dark:hover{background:#303030}.wrap-admin{max-width:1100px;margin:0 auto;padding:1.5rem}.tabs-row{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.2rem;overflow:auto}.tab-lnk{padding:.8rem 1rem;background:transparent;border:0;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--font-body);cursor:pointer;white-space:nowrap}.tab-lnk.active{color:var(--white);border-bottom-color:var(--red)}.tab-pane{display:none}.tab-pane.active{display:block}.grid{display:grid;grid-template-columns:330px 1fr;gap:1rem}.card-admin{background:var(--grey);border:1px solid var(--border);border-radius:var(--r-md);padding:1rem}.mini-title{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem}.list{display:flex;flex-direction:column;gap:.45rem;max-height:68vh;overflow:auto}.item{background:#141414;border:1px solid var(--border);border-radius:var(--r-sm);padding:.7rem .8rem;cursor:pointer}.item:hover,.item.sel{border-color:var(--red);background:rgba(212,32,26,.08)}.item-title{font-size:.86rem;color:var(--white)}.item-meta{font-size:.68rem;color:var(--muted);margin-top:.15rem}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}.full{grid-column:1/-1}.field{margin-bottom:.8rem}.field label{font-size:.62rem;letter-spacing:.08em;text-transform:uppercase}.field input,.field textarea,.field select{background:#0e0e0e}.field textarea{min-height:78px}.row-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}.msg{display:none;margin-top:.8rem;padding:.75rem 1rem;border-radius:var(--r-sm);font-size:.8rem}.msg.ok{display:block;background:rgba(50,120,50,.15);border:1px solid #2a5a2a;color:#6aba6a}.msg.err{display:block;background:rgba(212,32,26,.1);border:1px solid rgba(212,32,26,.3);color:#e07070}.danger{border-color:#5a2020;color:#aa6060;background:transparent}.danger:hover{background:rgba(212,32,26,.1);color:var(--red)}.hint{font-size:.72rem;color:var(--muted);line-height:1.5}.details-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+/* Correctif lisibilité champs — dark theme */
+input, textarea, select, button { font-family: var(--font-body); }
+input, textarea, select {
+  width: 100%;
+  background: #0e0e0e !important;
+  color: var(--white) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: .7rem .9rem;
+  outline: none;
+  -webkit-text-fill-color: var(--white);
+  caret-color: var(--gold);
+}
+textarea { line-height: 1.5; resize: vertical; }
+select { cursor: pointer; }
+input::placeholder, textarea::placeholder { color: #777 !important; -webkit-text-fill-color: #777; opacity: 1; }
+input:focus, textarea:focus, select:focus {
+  color: var(--white) !important;
+  -webkit-text-fill-color: var(--white);
+  border-color: rgba(212,32,26,.65);
+  box-shadow: 0 0 0 2px rgba(212,32,26,.12);
+}
+input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, textarea:-webkit-autofill {
+  -webkit-text-fill-color: var(--white) !important;
+  -webkit-box-shadow: 0 0 0 1000px #0e0e0e inset !important;
+  caret-color: var(--gold);
+}
+@media(max-width:820px){.topbar{align-items:flex-start;flex-direction:column}.grid,.form-grid{grid-template-columns:1fr}.list{max-height:none}.full{grid-column:auto}}
+</style>
+</head>
+<body class="has-glow">
+<div class="auth-loading" id="auth-loading"><div class="logo">ADMIN <span>CONTENUS</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div></div>
+<div class="admin-shell" id="admin-shell">
+  <div class="topbar"><div><div class="logo">ADMIN <span>CONTENUS</span></div><div class="sub">Annonces · questionnaire · ressources Firebase</div></div><div class="actions"><a class="btn btn-sm btn-dark" href="admin.html">Admin hub</a><a class="btn btn-sm btn-dark" href="membres.html">Membres</a><a class="btn btn-sm btn-dark" href="forum-admin.html">Admin forum</a><a class="btn btn-sm btn-dark" href="calendrier-admin.html">Admin calendrier</a><a class="btn btn-sm btn-dark" href="saison-admin.html">Admin saison</a><button class="btn-outline" onclick="doLogout()">Déconnexion</button></div></div>
+  <div class="wrap-admin">
+    <div class="tabs-row"><button class="tab-lnk active" onclick="showTab('annonces',this)">📣 Annonce</button><button class="tab-lnk" onclick="showTab('questionnaire',this)">🧭 Questionnaire</button><button class="tab-lnk" onclick="showTab('ressources',this)">📁 Ressources</button><button class="tab-lnk" onclick="showTab('categories',this)">🗂️ Catégories</button></div>
+
+    <section class="tab-pane active" id="tab-annonces">
+      <div class="card-admin"><div class="mini-title">Annonce affichée dans l’espace membres</div>
+        <div class="form-grid">
+          <div class="field"><label>Statut</label><select id="a-active"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+          <div class="field"><label>Titre</label><input id="a-title" placeholder="Info importante"></div>
+          <div class="field full"><label>Texte</label><textarea id="a-body" placeholder="Message affiché aux membres…"></textarea></div>
+          <div class="field"><label>Bouton</label><input id="a-btn" placeholder="Voir la saison"></div>
+          <div class="field"><label>Lien bouton</label><input id="a-url" placeholder="saison.html ou https://…"></div>
+        </div>
+        <button class="btn" onclick="saveAnnonce()">Enregistrer l’annonce</button><div id="msg-annonce" class="msg"></div>
+      </div>
+    </section>
+
+    <section class="tab-pane" id="tab-questionnaire">
+      <div class="grid"><div class="card-admin"><div class="mini-title">Options finales</div><div class="list" id="q-list"></div><button class="btn-gold" style="margin-top:.8rem" onclick="newQuestionnaire()">+ Ajouter</button></div>
+      <div class="card-admin"><div class="mini-title">Éditer une option</div><input type="hidden" id="q-key"><div class="form-grid">
+        <div class="field"><label>Type</label><select id="q-type"><option value="adhesion">Adhésion</option><option value="event">Événement</option><option value="goodie">Goodies</option><option value="renew">Renouvellement</option></select></div>
+        <div class="field"><label>Ordre</label><input id="q-order" type="number" value="10"></div>
+        <div class="field"><label>Icône</label><input id="q-icon" placeholder="🎭"></div>
+        <div class="field"><label>Actif</label><select id="q-active"><option value="true">Oui</option><option value="false">Non</option></select></div>
+        <div class="field full"><label>Titre</label><input id="q-title" placeholder="Inscription théâtre"></div>
+        <div class="field full"><label>Description</label><textarea id="q-desc"></textarea></div>
+        <div class="field full"><label>Lien final</label><input id="q-link" placeholder="https://helloasso.com/…"></div>
+        <div class="field"><label>Détail 1 — clé</label><input id="q-d1k" placeholder="Âge"></div><div class="field"><label>Détail 1 — valeur</label><input id="q-d1v" placeholder="7/9 ans"></div>
+        <div class="field"><label>Détail 2 — clé</label><input id="q-d2k" placeholder="Jour"></div><div class="field"><label>Détail 2 — valeur</label><input id="q-d2v" placeholder="Mercredi"></div>
+        <div class="field full"><label>Titre destination</label><input id="q-dtitle"></div><div class="field full"><label>Description destination</label><textarea id="q-ddesc"></textarea></div>
+      </div><div class="row-actions"><button class="btn btn-sm" onclick="saveQuestionnaire()">Enregistrer</button><button class="btn-outline danger" onclick="deleteQuestionnaire()">Supprimer</button></div><div class="hint">Ces données remplacent le CSV du questionnaire d’accueil.</div><div id="msg-q" class="msg"></div></div></div>
+    </section>
+
+    <section class="tab-pane" id="tab-ressources">
+      <div class="grid"><div class="card-admin"><div class="mini-title">Documents</div><div class="list" id="r-list"></div><button class="btn-gold" style="margin-top:.8rem" onclick="newResource()">+ Ajouter</button></div>
+      <div class="card-admin"><div class="mini-title">Éditer une ressource</div><input type="hidden" id="r-key"><div class="form-grid">
+        <div class="field"><label>Catégorie</label><select id="r-cat" onchange="updateResourceSubcats()"></select></div>
+        <div class="field"><label>Nouvelle catégorie (optionnel)</label><input id="r-cat-new" placeholder="Ex : Eveil musical"></div>
+        <div class="field"><label>Sous-catégorie</label><select id="r-subcat"></select></div>
+        <div class="field"><label>Nouvelle sous-catégorie (optionnel)</label><input id="r-subcat-new" placeholder="Ex : Groupe mercredi"></div>
+        <div class="field"><label>Type</label><select id="r-type"><option value="pdf">PDF</option><option value="mp3">Audio</option><option value="video">Vidéo</option><option value="image">Image</option><option value="texte">Texte</option><option value="doc">Autre lien</option></select></div>
+        <div class="field"><label>Actif</label><select id="r-active"><option value="true">Oui</option><option value="false">Non</option></select></div>
+        <div class="field full"><label>Nom</label><input id="r-name"></div>
+        <div class="field full"><label>Contenu ou lien</label><textarea id="r-url" placeholder="https://drive.google.com/... ou texte"></textarea></div>
+      </div><div class="row-actions"><button class="btn btn-sm" onclick="saveResource()">Enregistrer</button><button class="btn-outline danger" onclick="deleteResource()">Supprimer</button></div><div class="hint">Ces ressources remplacent le CSV Categorie / Sous-categorie / Nom / Contenu ou lien / Type.</div><div id="msg-r" class="msg"></div></div></div>
+    </section>
+
+    <section class="tab-pane" id="tab-categories">
+      <div class="grid">
+        <div class="card-admin">
+          <div class="mini-title">Catégories Firebase</div>
+          <div class="list" id="c-list"></div>
+          <button class="btn-gold" style="margin-top:.8rem" onclick="newCategory()">+ Ajouter une catégorie</button>
+          <p class="hint" style="margin-top:.8rem">Ces catégories alimentent les ressources, l’espace profs, l’espace membres et le forum.</p>
+        </div>
+        <div class="card-admin">
+          <div class="mini-title">Éditer une catégorie</div>
+          <input type="hidden" id="c-key">
+          <div class="form-grid">
+            <div class="field"><label>Nom</label><input id="c-name" placeholder="Ex : Éveil musical"></div>
+            <div class="field"><label>Icône</label><input id="c-icon" placeholder="🎵"></div>
+            <div class="field"><label>Ordre</label><input id="c-order" type="number" value="100"></div>
+            <div class="field"><label>Active</label><select id="c-active"><option value="true">Oui</option><option value="false">Non</option></select></div>
+            <div class="field full"><label>Sous-catégories — une par ligne</label><textarea id="c-subcats" placeholder="7/9 ans\n10/12 ans\nAdultes"></textarea></div>
+          </div>
+          <div class="row-actions">
+            <button class="btn btn-sm" onclick="saveCategory()">Enregistrer</button>
+            <button class="btn-outline danger" onclick="deleteCategory()">Supprimer catégorie + ressources liées</button>
+          </div>
+          <div class="hint">La suppression retire la catégorie dans Firebase et supprime aussi les ressources liées pour éviter qu’elle réapparaisse automatiquement.</div>
+          <div id="msg-c" class="msg"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+<script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-firebase.js"></script>
+
+
+<script src="assets/js/services/auth.service.js?v=1"></script>
+<script src="assets/js/services/users.service.js?v=1"></script>
+<script src="assets/js/services/resources.service.js?v=1"></script>
+<script src="assets/js/services/events.service.js?v=1"></script>
+<script src="assets/js/services/forum.service.js?v=1"></script>
+<script src="assets/js/services/messages.service.js?v=1"></script>
+<script src="assets/js/services/content.service.js?v=1"></script>
+<script src="assets/js/services/notifications.service.js?v=1"></script>
+<script src="assets/js/services/season.service.js?v=1"></script>
+<script src="assets/js/pages/contenus-admin.js?v=1"></script>
+</body>
+</html>
