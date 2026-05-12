@@ -532,7 +532,7 @@ async function loadAnnonce() {
     el.innerHTML = `
       ${title ? `<strong>${FTS.esc(title)}</strong><br>` : ''}
       ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
-      ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link" style="display:inline-block;margin-top:.6rem">${FTS.esc(btn)}</a>` : ''}
+      ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
     `;
     el.style.display = '';
   } catch(e) {
