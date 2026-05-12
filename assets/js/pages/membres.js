@@ -203,7 +203,7 @@ function renderDashboard(profile, email) {
           const label = cat ? cat.name : d;
           const icon = cat ? cat.icon : '🎭';
           if (idx < 0) return `<span class="profile-pill">${icon} ${FTS.esc(label)}</span>`;
-          return `<button type="button" class="profile-pill" onclick="openCat(${idx})" aria-label="Ouvrir les ressources ${FTS.esc(label)}">${icon} ${FTS.esc(label)}</button>`;
+          return `<button type="button" class="profile-pill" data-cat-index="${idx}" aria-label="Ouvrir les ressources ${FTS.esc(label)}">${icon} ${FTS.esc(label)}</button>`;
         }).join('')
       : '<span class="profile-pill">⏳ Disciplines à valider</span>';
 
@@ -339,16 +339,16 @@ async function showCat(i) {
   if (visibleSubcats.length) {
     h += `<div class="sub-label">Sections</div>
            <div class="subcat-group">
-             <button class="subcat-tag all-btn act" onclick="filtDocs(0,${i},this)">Tout</button>
+             <button class="subcat-tag all-btn act" data-subcat-index="0" data-cat-index="${i}">Tout</button>
              ${visibleSubcats.map((s,j) =>
-               `<button class="subcat-tag" onclick="filtDocs(${j+1},${i},this)">${FTS.esc(s)}</button>`
+               `<button class="subcat-tag" data-subcat-index="${j+1}" data-cat-index="${i}">${FTS.esc(s)}</button>`
              ).join('')}
            </div>`;
   }
 
-  h += `<input type="search" id="srch-${i}" class="search-input"
-               placeholder="🔍 Rechercher…"
-               oninput="searchDocs(${i}, this.value)">`;
+  h += `<input type="search" id="srch-${i}" class="search-input js-resource-search"
+               data-cat-index="${i}"
+               placeholder="🔍 Rechercher…">`;
 
   h += `<div class="doc-label">Documents</div>
          <div id="dc-${i}"><div class="list-loading">Chargement…</div></div>`;
@@ -833,6 +833,66 @@ if (accountModal) {
   accountModal.addEventListener('click', function(e) {
     if (e.target.id === 'account-modal') closeAccountModal();
   });
+}
+
+
+/* ── ÉVÉNEMENTS UI SANS JS INLINE ────────────────────────────── */
+function bindMembresUiEvents() {
+  const bindClick = (id, handler) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', handler);
+  };
+
+  bindClick('btn-open-account', openAccountModal);
+  bindClick('btn-notif', toggleNotifications);
+  bindClick('btg', toggleEvts);
+  bindClick('btn-save-profile', saveProfileInfo);
+  bindClick('btn-account-pwd', changeAccountPassword);
+  bindClick('btn-account-signout', doSignOut);
+  bindClick('btn-account-delete', deleteMyAccount);
+
+  document.addEventListener('click', function(e) {
+    const closeAccountBtn = e.target.closest('[data-action="close-account-modal"]');
+    if (closeAccountBtn) {
+      closeAccountModal();
+      return;
+    }
+
+    const closeResourceBtn = e.target.closest('[data-action="close-resource-modal"]');
+    if (closeResourceBtn) {
+      closeMo();
+      return;
+    }
+
+    const catBtn = e.target.closest('[data-cat-index].profile-pill');
+    if (catBtn) {
+      const idx = Number(catBtn.dataset.catIndex);
+      if (Number.isInteger(idx)) openCat(idx);
+      return;
+    }
+
+    const subcatBtn = e.target.closest('.subcat-tag[data-cat-index][data-subcat-index]');
+    if (subcatBtn) {
+      const catIndex = Number(subcatBtn.dataset.catIndex);
+      const subcatIndex = Number(subcatBtn.dataset.subcatIndex);
+      if (Number.isInteger(catIndex) && Number.isInteger(subcatIndex)) {
+        filtDocs(subcatIndex, catIndex, subcatBtn);
+      }
+    }
+  });
+
+  document.addEventListener('input', function(e) {
+    const input = e.target.closest('.js-resource-search[data-cat-index]');
+    if (!input) return;
+    const idx = Number(input.dataset.catIndex);
+    if (Number.isInteger(idx)) searchDocs(idx, input.value);
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bindMembresUiEvents);
+} else {
+  bindMembresUiEvents();
 }
 
 /* ── DÉCONNEXION ─────────────────────────────────────────────── */

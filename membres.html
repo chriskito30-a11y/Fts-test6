@@ -652,7 +652,7 @@ button.profile-pill:hover {
             <div class="welcome-title">Bonjour, <span id="user-display-name">…</span></div>
           </div>
           <div class="account-actions">
-            <button type="button" class="btn-account" onclick="openAccountModal()">⚙️ Gestion du compte</button>
+            <button type="button" class="btn-account" id="btn-open-account">⚙️ Gestion du compte</button>
           </div>
         </div>
         <div class="welcome-sub" id="welcome-sub">Retrouve ici tes ressources, tes événements et tes espaces d’échange.</div>
@@ -686,7 +686,7 @@ button.profile-pill:hover {
         <span class="quick-ico">💬</span>
         <span class="quick-title">Forum</span>
       </a>
-      <button type="button" class="quick-card btn-quick" id="btn-notif" onclick="toggleNotifications()">
+      <button type="button" class="quick-card btn-quick" id="btn-notif">
         <span class="quick-ico">🔕</span>
         <span class="quick-title">Activer les notifs</span>
       </button>
@@ -696,7 +696,7 @@ button.profile-pill:hover {
     <div class="evt-sec">
       <div class="sec-ttl">
         <span>Prochains événements</span>
-        <button class="btn-toggle" id="btg" onclick="toggleEvts()">Voir tous</button>
+        <button class="btn-toggle" id="btg">Voir tous</button>
       </div>
       <div class="evt-list" id="evts">
         <div class="list-loading">Chargement…</div>
@@ -723,7 +723,7 @@ button.profile-pill:hover {
   <div class="modal-box account-modal-box">
     <div class="modal-header">
       <span class="modal-title">⚙️ Gestion du compte</span>
-      <button class="modal-close" onclick="closeAccountModal()">✕</button>
+      <button class="modal-close" data-action="close-account-modal">✕</button>
     </div>
 
     <div class="account-section" id="account-profile-section">
@@ -735,7 +735,7 @@ button.profile-pill:hover {
         <div style="font-size:.62rem;color:var(--gold);text-transform:uppercase;letter-spacing:.1em;margin:.9rem 0 .5rem">Enfant(s)</div>
         <div id="profile-enfants-list"></div>
       </div>
-      <button class="account-btn" id="btn-save-profile" onclick="saveProfileInfo()">
+      <button class="account-btn" id="btn-save-profile">
         Enregistrer le profil
       </button>
       <div class="account-msg" id="profile-msg"></div>
@@ -745,21 +745,21 @@ button.profile-pill:hover {
       <p>Entre un nouveau mot de passe. Par sécurité Firebase, il peut être demandé de te reconnecter si ta session est trop ancienne.</p>
       <input class="account-field" id="account-new-pwd" type="password" autocomplete="new-password" placeholder="Nouveau mot de passe — 8 caractères minimum">
       <input class="account-field" id="account-new-pwd2" type="password" autocomplete="new-password" placeholder="Confirmer le mot de passe">
-      <button class="account-btn" id="btn-account-pwd" onclick="changeAccountPassword()">Changer le mot de passe</button>
+      <button class="account-btn" id="btn-account-pwd">Changer le mot de passe</button>
       <div class="account-msg" id="account-pwd-msg"></div>
     </div>
 
     <div class="account-section">
       <h3>Session</h3>
       <p>Déconnecte-toi de cet appareil et retourne à la page de connexion.</p>
-      <button class="account-btn" onclick="doSignOut()">Se déconnecter</button>
+      <button class="account-btn" id="btn-account-signout">Se déconnecter</button>
     </div>
 
     <div class="account-section">
       <h3>Supprimer mon compte</h3>
       <p>Action définitive : le profil membre, le profil forum, les accès messagerie et le compte Firebase Authentication seront supprimés. Si la suppression complète demande une reconnexion, reconnecte-toi puis recommence.</p>
       <div class="account-row">
-        <button class="account-btn danger" id="btn-account-delete" onclick="deleteMyAccount()">Supprimer définitivement mon compte</button>
+        <button class="account-btn danger" id="btn-account-delete">Supprimer définitivement mon compte</button>
       </div>
       <div class="account-msg" id="account-delete-msg"></div>
     </div>
@@ -771,7 +771,7 @@ button.profile-pill:hover {
   <div class="modal-box">
     <div class="modal-header">
       <span class="modal-title" id="mtit"></span>
-      <button class="modal-close" onclick="closeMo()">✕</button>
+      <button class="modal-close" data-action="close-resource-modal">✕</button>
     </div>
     <div id="catcnt"></div>
   </div>
