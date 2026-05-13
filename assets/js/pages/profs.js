@@ -118,13 +118,8 @@ window.addEventListener("DOMContentLoaded", function() {
 /* ── CATÉGORIES AUTORISÉES ────────────────────────────────────── */
 function allowedCats() {
   if (userProfile.role === "admin") return ALL_CATS;
-
-  // Les profils peuvent contenir des disciplines avec accents, espaces, emojis ou formats hérités.
-  // On compare donc en version normalisée, comme côté membres/forum.
-  const discs = splitAccessList(userProfile.disciplines && userProfile.disciplines.length ? userProfile.disciplines : userProfile.group)
-    .map(normAccess);
-
-  return ALL_CATS.filter(c => discs.includes(normAccess(c.value)));
+  const discs = userProfile.disciplines || [];
+  return ALL_CATS.filter(c => discs.includes(c.value));
 }
 
 function categoryOptionsFromStructureLocal(structure) {
@@ -468,19 +463,8 @@ async function doSubmit() {
 
     const ref = await db.ref("fts_ressources").push(data);
     data.key = ref.key;
-
-    // Les professeurs ont le droit d'écrire dans fts_ressources, mais pas dans fts_content.
-    // La synchronisation automatique des catégories est donc réservée aux admins,
-    // sinon la publication prof échoue après avoir créé la ressource.
-    if (userProfile.role === "admin" && FTS.ensureResourceCategory) {
-      try {
-        await FTS.ensureResourceCategory(db, data);
-        await buildCatSelectors();
-      } catch(syncErr) {
-        console.warn("[FTS Profs] Synchro catégorie non bloquante", syncErr);
-      }
-    }
-
+    await FTS.ensureResourceCategory(db, data);
+    await buildCatSelectors();
     await notifyNewResource(data);
 
     showMsg("✓ Publié avec succès !", "success");
@@ -532,14 +516,7 @@ function userCanReceiveResourceNotification(u, target) {
   if (!u || u.status !== "active") return false;
   if (u.role === "admin") return true;
 
-  // Même logique que membres.html : un parent doit recevoir les notifications
-  // des disciplines / sous-catégories de ses enfants.
-  const ownCats = splitAccessList(u.disciplines && u.disciplines.length ? u.disciplines : u.group);
-  const childCats = Array.isArray(u.enfants)
-    ? u.enfants.flatMap(e => splitAccessList(e.disciplines || e.group || []))
-    : [];
-  const cats = [...ownCats, ...childCats];
-
+  const cats = splitAccessList(u.disciplines && u.disciplines.length ? u.disciplines : u.group);
   const hasCat = cats.some(c => normAccess(c) === normAccess(target.category));
   if (!hasCat) return false;
 
@@ -550,13 +527,8 @@ function userCanReceiveResourceNotification(u, target) {
   const byCat = u.subgroupsByCat || {};
   const matchingCatKey = Object.keys(byCat).find(k => normAccess(k) === normAccess(target.category));
   const exactCatSubs = splitAccessList(matchingCatKey ? byCat[matchingCatKey] : []);
-  const ownSubs = splitAccessList(u.subgroups && u.subgroups.length ? u.subgroups : u.subgroup);
-  const childSubs = Array.isArray(u.enfants)
-    ? u.enfants.flatMap(e => splitAccessList(e.subgroups || e.subgroup || []))
-    : [];
-  const globalSubs = [...ownSubs, ...childSubs];
+  const globalSubs = splitAccessList(u.subgroups && u.subgroups.length ? u.subgroups : u.subgroup);
   const allowedSubs = exactCatSubs.length ? exactCatSubs : globalSubs;
-
   return allowedSubs.some(s => normAccess(s) === normAccess(target.subcategory));
 }
 
