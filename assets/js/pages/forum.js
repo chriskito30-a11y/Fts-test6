@@ -22,6 +22,10 @@ let openCats = {};
 let currentChannel = null, currentListener = null, lastMsgDate = null;
 let adminMode = false;
 let deepLinkHandled = false;
+let forumUnread = {};
+let forumReadAt = {};
+let forumUnreadListeners = {};
+let forumKnownChannels = new Set();
 
 function norm(s){ return FTS.norm(s); }
 function normList(arr){
@@ -68,6 +72,74 @@ function esc(s){ return FTS.esc(s); }
 function storageGet(k){ return localStorage.getItem(k); }
 function storageSet(k,v){ localStorage.setItem(k,v); }
 function catIcon(s){ return FTS.catIcon(s); }
+
+function forumReadStorageKey(channel){ return 'fts_forum_read_' + uid + '_' + channel; }
+function getForumReadAt(channel){
+  if(!uid || !channel) return 0;
+  if(forumReadAt[channel] == null) forumReadAt[channel] = Number(localStorage.getItem(forumReadStorageKey(channel)) || 0) || 0;
+  return forumReadAt[channel] || 0;
+}
+function setForumReadAt(channel, ts){
+  if(!uid || !channel) return;
+  const value = Number(ts || Date.now()) || Date.now();
+  forumReadAt[channel] = value;
+  localStorage.setItem(forumReadStorageKey(channel), String(value));
+}
+function unreadCount(channel){ return Number(forumUnread[channel] || 0) || 0; }
+function unreadBadgeHtml(channel){
+  const count = unreadCount(channel);
+  return count ? `<div class="conv-badge forum-unread-badge">${count > 99 ? '99+' : count}</div>` : '';
+}
+function itemUnreadTotal(item){
+  if(!item) return 0;
+  if(item.type === 'channel') return unreadCount(item.id);
+  return (item.channels || []).reduce((sum, ch) => sum + unreadCount(ch.id), 0);
+}
+function itemUnreadBadgeHtml(item){
+  const count = itemUnreadTotal(item);
+  return count ? `<div class="conv-badge forum-unread-badge">${count > 99 ? '99+' : count}</div>` : '';
+}
+function allAccessibleForumChannels(){
+  const channels = [];
+  (forumItems || []).forEach(item => {
+    if(item.type === 'channel') channels.push(item);
+    (item.channels || []).forEach(ch => channels.push(ch));
+  });
+  const seen = new Set();
+  return channels.filter(ch => ch && ch.id && !seen.has(ch.id) && seen.add(ch.id));
+}
+function setupForumUnreadListeners(){
+  if(!uid || !db || !forumItems.length) return;
+  allAccessibleForumChannels().forEach(ch => {
+    const channel = ch.id;
+    forumKnownChannels.add(channel);
+    if(forumUnread[channel] == null) forumUnread[channel] = 0;
+    if(forumUnreadListeners[channel]) return;
+    const ref = db.ref('fts_forum/messages/' + channel).limitToLast(50);
+    const handler = snap => {
+      const msg = snap.val() || {};
+      const ts = Number(msg.ts || 0);
+      if(!ts || msg.uid === uid) return;
+      if(currentChannel === channel){
+        markForumChannelRead(channel, ts, false);
+        return;
+      }
+      if(ts > getForumReadAt(channel)){
+        forumUnread[channel] = Math.min(999, unreadCount(channel) + 1);
+        renderForumList(document.getElementById('forum-search')?.value || '');
+      }
+    };
+    ref.on('child_added', handler);
+    forumUnreadListeners[channel] = () => ref.off('child_added', handler);
+  });
+}
+function markForumChannelRead(channel, ts, shouldRender=true){
+  if(!channel) return;
+  setForumReadAt(channel, ts || Date.now());
+  forumUnread[channel] = 0;
+  if(shouldRender) renderForumList(document.getElementById('forum-search')?.value || '');
+}
+
 
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -191,6 +263,7 @@ function buildForumItems(){
     }
   }
   forumItems = items;
+  setupForumUnreadListeners();
 }
 
 function renderForumList(q=''){
@@ -210,11 +283,11 @@ function renderForumList(q=''){
         <div class="conv-av conv-av-gold-soft">${item.icon}</div>
         <div class="conv-body">
           <div class="conv-row1"><div class="conv-name">${esc(item.name)}</div><div class="forum-chevron">›</div></div>
-          <div class="conv-row2"><div class="conv-preview">${esc(item.desc)}</div></div>
+          <div class="conv-row2"><div class="conv-preview">${esc(item.desc)}</div>${itemUnreadBadgeHtml(item)}</div>
         </div>
       </div>
       <div class="forum-subchannels">
-        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span></div>`).join('')}
+        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span>${unreadBadgeHtml(ch.id)}</div>`).join('')}
       </div>
     </div>`;
   }).join('');
@@ -225,7 +298,7 @@ function renderChannelBubble(ch){
     <div class="conv-av conv-av-red-soft">${ch.icon}</div>
     <div class="conv-body">
       <div class="conv-row1"><div class="conv-name">${esc(ch.name)}</div></div>
-      <div class="conv-row2"><div class="conv-preview">${esc(ch.preview || ch.desc || '')}</div></div>
+      <div class="conv-row2"><div class="conv-preview">${esc(ch.preview || ch.desc || '')}</div>${unreadBadgeHtml(ch.id)}</div>
     </div>
   </div>`;
 }
@@ -234,6 +307,7 @@ function toggleCategory(id){ openCats[id] = !openCats[id]; renderForumList(docum
 
 function selectForumChannel(id, name, icon, desc){
   currentChannel = id; lastMsgDate = null;
+  markForumChannelRead(id, Date.now(), false);
   FTSChat.setAvatar(document.getElementById('chat-av'), name, {type:'category', icon});
   document.getElementById('chat-name').textContent = name;
   document.getElementById('chat-sub').textContent = desc || '';
@@ -287,7 +361,9 @@ function addForumMsg(m, key){
   div.innerHTML = `${!own ? `<div class="msg-sender">${esc(m.name || 'Membre')}</div>` : ''}
     <div class="msg-bubble">${body}<div class="msg-foot"><span class="msg-time">${FTSChat.fmtFull(m.ts)}</span>${own ? '<span class="msg-check">✓✓</span>' : ''}</div></div>
     ${adminMode ? `<button class="btn-del-msg" data-fts-click="deleteMsg('${key}')">Supprimer</button>` : ''}`;
-  wrap.appendChild(div); FTSChat.scrollBottom();
+  wrap.appendChild(div);
+  if(currentChannel && m.uid !== uid && Number(m.ts || 0)) markForumChannelRead(currentChannel, m.ts, false);
+  FTSChat.scrollBottom();
 }
 
 function deleteMsg(k){ if(confirm('Supprimer ce message ?')) db.ref('fts_forum/messages/'+currentChannel+'/'+k).remove(); }
@@ -397,6 +473,45 @@ async function subscribePush(){
     updateNotifBtn(true);
   }catch(e){ alert('Erreur notifications : '+e.message); }
 }
+
+function userDisciplinesFromProfile(profile){
+  return uniqList([
+    ...normList(profile && (profile.disciplines || profile.groups || profile.group)),
+    ...((profile && profile.hasEnfant && Array.isArray(profile.enfants)) ? profile.enfants.flatMap(e => normList(e.disciplines || e.groups || e.group || [])) : [])
+  ]).map(norm);
+}
+function userSubgroupsFromProfile(profile){
+  return uniqList([
+    ...normList(profile && (profile.subgroups || profile.subcategories || profile.subgroup)),
+    ...((profile && profile.hasEnfant && Array.isArray(profile.enfants)) ? profile.enfants.flatMap(e => normList(e.subgroups || e.subcategories || e.subgroup || [])) : [])
+  ]).map(norm);
+}
+async function getForumRecipientUids(channel){
+  const info = channelInfoById(channel);
+  const groupNorm = norm(info.group);
+  const subgroupNorm = norm(info.subgroup);
+  const channelNorm = norm(channel);
+  const recipients = [];
+  try{
+    const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
+    if(!snap.exists()) return recipients;
+    snap.forEach(child => {
+      const id = child.key;
+      const profile = child.val() || {};
+      if(!id || id === uid) return;
+      if(profile.role === 'admin'){ recipients.push(id); return; }
+      if(channel === 'general'){ recipients.push(id); return; }
+      const disc = userDisciplinesFromProfile(profile);
+      const subs = userSubgroupsFromProfile(profile);
+      const matchGroup = groupNorm && disc.includes(groupNorm);
+      const matchSub = subgroupNorm && subs.includes(subgroupNorm);
+      const matchFallback = !groupNorm && !subgroupNorm && (disc.includes(channelNorm) || subs.includes(channelNorm));
+      if(matchGroup || matchSub || matchFallback) recipients.push(id);
+    });
+  }catch(e){ console.warn('[FTS Forum] Forum recipients', e); }
+  return Array.from(new Set(recipients));
+}
+
 async function getAdminRecipientUids(excludeUid){
   try{
     const snap = await db.ref('fts_users').orderByChild('role').equalTo('admin').once('value');
@@ -425,18 +540,34 @@ function notifyAdmins(payload, tagPrefix){
   });
 }
 function notifyChannel(channel, body, msgId){
+  if(!FTS.PUSH || !FTS.PUSH.workerUrl) return;
   const info = channelInfoById(channel);
   const url = './forum.html?channel=' + encodeURIComponent(channel) + (msgId ? '&msg=' + encodeURIComponent(msgId) : '');
-  const payload = {
+  const basePayload = {
     type:'forum', channel, group:info.group, subgroup:info.subgroup,
-    title:'FTS — Forum', body, url, senderUid:uid, msgId
+    title:'FTS — Forum', body, url, senderUid:uid, msgId,
+    notificationKey: 'forum-' + channel + '-' + (msgId || Date.now())
   };
 
-  // Notification normale : ciblage catégorie / sous-catégorie côté serveur push.
-  fetch(FTS.PUSH.workerUrl+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});
-
-  // Copie forcée admins : les admins reçoivent tout, même hors catégorie/sous-catégorie.
-  notifyAdmins(payload, 'admin-forum-' + channel + '-' + (msgId || Date.now()));
+  // Ciblage fiable côté client : on calcule les membres actifs ayant la catégorie/sous-catégorie,
+  // puis on force l'envoi par uid comme pour les messages privés.
+  getForumRecipientUids(channel).then(recipientUids => {
+    recipientUids.forEach(recipientUid => {
+      fetch(FTS.PUSH.workerUrl + '/notify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          ...basePayload,
+          uid: recipientUid,
+          uids: [recipientUid],
+          recipientUids: [recipientUid],
+          recipients: [recipientUid],
+          forceUid: true,
+          tag: 'forum-' + channel + '-' + (msgId || Date.now()) + '-' + recipientUid
+        })
+      }).catch(()=>{});
+    });
+  });
 }
 
 /* FTS_AUTO_EXTRACTED_HANDLERS:forum.html */
