@@ -1,4 +1,4 @@
-const CACHE = 'fts-v13-full-refactor';
+const CACHE = 'fts-v14-auth-subcats-fix';
 const FILES = [
   './manifest.json',
   './index.html',
