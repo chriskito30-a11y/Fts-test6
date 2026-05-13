@@ -605,6 +605,7 @@ async function notifyNewResource(data) {
       body: data.name || "Nouveau document",
       url,
       read: false,
+      skipLocalPush: true,
       createdAt: Date.now(),
       authorUid: currentUserUid
     };

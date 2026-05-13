@@ -599,6 +599,12 @@ function listenResourceNotificationFallback(uid){
     const n = snap.val() || {};
     if(!initialized) return;
     if(!['resource','event'].includes(n.type) || n.read === true) return;
+
+    // Évite les doublons : les ressources sont déjà envoyées par push ciblé
+    // depuis profs.js. Le nœud fts_user_notifications sert ici de trace / inbox,
+    // pas de second déclencheur visuel.
+    if(n.type === 'resource' && (n.skipLocalPush === true || (FTS.PUSH && FTS.PUSH.workerUrl))) return;
+
     if(Notification.permission !== 'granted') return;
     try{
       const reg = await navigator.serviceWorker.ready;
