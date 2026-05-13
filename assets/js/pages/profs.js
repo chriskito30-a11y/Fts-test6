@@ -593,28 +593,11 @@ async function notifyNewResource(data) {
       + "&cat=" + encodeURIComponent(target.category || "")
       + "&subcat=" + encodeURIComponent(target.subcategory || "");
 
-    // Trace interne utile pour audit / debug, sans bloquer la publication.
-    const notif = {
-      type: "resource",
-      resourceId: data.key || "",
-      cat: target.category,
-      category: target.category,
-      subcat: target.subcategory,
-      subcategory: target.subcategory,
-      title: "Nouveau document",
-      body: data.name || "Nouveau document",
-      url,
-      read: false,
-      skipLocalPush: true,
-      createdAt: Date.now(),
-      authorUid: currentUserUid
-    };
-    const fanout = {};
-    recipientUids.forEach(uid => {
-      const nref = db.ref("fts_user_notifications/" + uid).push();
-      fanout["fts_user_notifications/" + uid + "/" + nref.key] = notif;
-    });
-    await db.ref().update(fanout).catch(() => {});
+    // IMPORTANT : ne pas écrire de notification ressource dans fts_user_notifications ici.
+    // Le push serveur ci-dessous envoie déjà la notification réelle.
+    // Écrire aussi dans fts_user_notifications déclencheait le fallback local côté membres.js,
+    // ce qui produisait deux notifications :
+    // 1) "Nouveau document" local, 2) "FTS — Nouveau document" push.
 
     if (!FTS.PUSH || !FTS.PUSH.workerUrl) {
       await db.ref("fts_debug_notifications/resource_" + (data.key || Date.now())).set({
@@ -639,7 +622,8 @@ async function notifyNewResource(data) {
       title: "FTS — Nouveau document",
       body: (data.name || "Nouveau document") + (catLabel ? " · " + catLabel : ""),
       url,
-      senderUid: currentUserUid
+      senderUid: currentUserUid,
+      notificationKey: "resource-" + (data.key || Date.now())
     };
 
     await Promise.allSettled(recipientUids.map(uid =>
@@ -653,7 +637,9 @@ async function notifyNewResource(data) {
           recipientUids: [uid],
           recipients: [uid],
           forceUid: true,
-          tag: "resource-" + (data.key || Date.now()) + "-" + uid
+          tag: pushPayloadBase.notificationKey + "-" + uid,
+          notificationKey: pushPayloadBase.notificationKey + "-" + uid,
+          collapseKey: pushPayloadBase.notificationKey + "-" + uid
         })
       })
     ));

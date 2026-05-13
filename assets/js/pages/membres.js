@@ -598,7 +598,7 @@ function listenResourceNotificationFallback(uid){
   db.ref('fts_user_notifications/' + uid).limitToLast(20).on('child_added', async snap => {
     const n = snap.val() || {};
     if(!initialized) return;
-    if(!['resource','event'].includes(n.type) || n.read === true) return;
+    if(n.type !== 'event' || n.read === true) return;
 
     // Évite les doublons : les ressources sont déjà envoyées par push ciblé
     // depuis profs.js. Le nœud fts_user_notifications sert ici de trace / inbox,
@@ -608,11 +608,11 @@ function listenResourceNotificationFallback(uid){
     if(Notification.permission !== 'granted') return;
     try{
       const reg = await navigator.serviceWorker.ready;
-      const isEvent = n.type === 'event';
-      reg.showNotification(n.title || (isEvent ? 'Nouvel événement' : 'Nouveau document'), {
-        body: n.body || (isEvent ? 'Un nouvel événement est disponible.' : 'Un nouveau document est disponible.'),
+      const isEvent = true;
+      reg.showNotification(n.title || 'Nouvel événement', {
+        body: n.body || 'Un nouvel événement est disponible.',
         icon:'./assets/img/fts192.png', badge:'./assets/img/fts192.png',
-        tag:(isEvent ? 'event-local-' : 'resource-local-') + (n.eventId || n.resourceId || snap.key),
+        tag:'event-local-' + (n.eventId || snap.key),
         data:{ url:n.url || './membres.html' }
       });
     }catch(e){}
