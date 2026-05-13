@@ -16,3 +16,8 @@
 .conv-av-gold-soft { background: rgba(201,168,76,.18); }
 .conv-av-red-soft { background: rgba(212,32,26,.16); }
 .msg-audio { width: 100%; min-width: 200px; }
+
+/* Badges forum non lus */
+.forum-subchannel { position: relative; }
+.forum-subchannel .forum-unread-badge { margin-left: auto; }
+.conv-item .forum-unread-badge { margin-left: .35rem; }
