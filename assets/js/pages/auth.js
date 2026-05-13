@@ -20,6 +20,58 @@ let enfantCount     = 0;
 const enfantDiscs   = {};           // { idx: Set<catName> }
 const enfantSubcatsMap = {};        // { idx: { catName: Set<subName> } }
 
+
+/* ── CLICS DYNAMIQUES AUTH ───────────────────────────────────────
+   Les catégories/sous-catégories sont générées après chargement Firebase.
+   On évite data-fts-click ici pour ne pas casser les libellés avec espaces,
+   accents, apostrophes ou guillemets dans les attributs HTML.
+──────────────────────────────────────────────────────────────── */
+function bindAuthDynamicSelectionHandlers() {
+  if (window.__FTS_AUTH_DYNAMIC_SELECTION_BOUND__) return;
+  window.__FTS_AUTH_DYNAMIC_SELECTION_BOUND__ = true;
+
+  document.addEventListener('click', function(event) {
+    const el = event.target && event.target.closest
+      ? event.target.closest('[data-auth-action]')
+      : null;
+    if (!el || !document.documentElement.contains(el)) return;
+
+    const action = el.getAttribute('data-auth-action');
+    if (!action) return;
+
+    event.preventDefault();
+
+    if (action === 'toggle-disc') {
+      toggleDisc(el, el.getAttribute('data-id') || '');
+      return;
+    }
+
+    if (action === 'toggle-parent-subcat') {
+      toggleParentSubcat(el, el.getAttribute('data-cat') || '', el.getAttribute('data-sub') || '');
+      return;
+    }
+
+    if (action === 'remove-enfant') {
+      removeEnfant(parseInt(el.getAttribute('data-idx'), 10));
+      return;
+    }
+
+    if (action === 'toggle-enfant-disc') {
+      toggleEnfantDisc(el, el.getAttribute('data-id') || '', parseInt(el.getAttribute('data-idx'), 10));
+      return;
+    }
+
+    if (action === 'toggle-enfant-subcat') {
+      toggleEnfantSubcat(
+        el,
+        parseInt(el.getAttribute('data-idx'), 10),
+        el.getAttribute('data-cat') || '',
+        el.getAttribute('data-sub') || ''
+      );
+    }
+  });
+}
+
 /* ── INIT ──────────────────────────────────────────────────────── */
 window.addEventListener('DOMContentLoaded', async () => {
 
@@ -29,10 +81,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   /* Charger les disciplines depuis Firebase (admin les gère)
      → fallback automatique sur DEFAULT_CATEGORIES si hors ligne */
   loadedCategories = await FTS.getCategoryStructureAsync(db);
+  bindAuthDynamicSelectionHandlers();
 
   document.getElementById('disc-grid').innerHTML = loadedCategories.map(c =>
     `<div class="pill" data-id="${FTS.esc(c.name)}"
-       data-fts-click="toggleDisc(this,'${FTS.esc(c.name)}')">
+       data-auth-action="toggle-disc">
       ${c.icon || FTS.catIcon(c.name)} ${FTS.esc(c.name)}
     </div>`
   ).join('');
@@ -108,8 +161,8 @@ function updateParentSubcats() {
     html += '<div class="disc-grid">';
     subs.forEach(s => {
       const on = selectedSubcats[cat] && selectedSubcats[cat].has(s) ? 'active' : '';
-      html += '<div class="pill ' + on + '" data-fts-click="toggleParentSubcat(this,' +
-        JSON.stringify(cat) + ',' + JSON.stringify(s) + ')">' + FTS.esc(s) + '</div>';
+      html += '<div class="pill ' + on + '" data-auth-action="toggle-parent-subcat" data-cat="' +
+        FTS.esc(cat) + '" data-sub="' + FTS.esc(s) + '">' + FTS.esc(s) + '</div>';
     });
     html += '</div></div>';
   });
@@ -151,7 +204,7 @@ function addEnfantField() {
     <div class="enfant-header">
       <span class="enfant-title">🎩 Enfant ${idx}</span>
       ${idx > 1
-        ? `<button type="button" class="enfant-remove" data-fts-click="removeEnfant(${idx})">✕ Retirer</button>`
+        ? `<button type="button" class="enfant-remove" data-auth-action="remove-enfant" data-idx="${idx}">✕ Retirer</button>`
         : ''}
     </div>
     <div class="two-cols">
@@ -181,7 +234,7 @@ function addEnfantField() {
   // Pills disciplines enfant — mêmes catégories que le compte principal
   document.getElementById('enfant-disc-' + idx).innerHTML = loadedCategories.map(c =>
     `<div class="pill" data-id="${FTS.esc(c.name)}"
-       data-fts-click="toggleEnfantDisc(this,'${FTS.esc(c.name)}',${idx})">
+       data-auth-action="toggle-enfant-disc" data-idx="${idx}">
       ${c.icon || FTS.catIcon(c.name)} ${FTS.esc(c.name)}
     </div>`
   ).join('');
@@ -228,8 +281,8 @@ function updateEnfantSubcats(idx) {
     html += '<div class="disc-grid">';
     subs.forEach(s => {
       const on = enfantSubcatsMap[idx][cat] && enfantSubcatsMap[idx][cat].has(s) ? 'active' : '';
-      html += '<div class="pill ' + on + '" data-fts-click="toggleEnfantSubcat(this,' +
-        idx + ',' + JSON.stringify(cat) + ',' + JSON.stringify(s) + ')">' + FTS.esc(s) + '</div>';
+      html += '<div class="pill ' + on + '" data-auth-action="toggle-enfant-subcat" data-idx="' + idx + '" data-cat="' +
+        FTS.esc(cat) + '" data-sub="' + FTS.esc(s) + '">' + FTS.esc(s) + '</div>';
     });
     html += '</div></div>';
   });
