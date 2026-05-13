@@ -1,4 +1,4 @@
-const CACHE = 'fts-v14-auth-subcats-fix';
+const CACHE = 'fts-v14-forum-notifs-unread';
 const FILES = [
   './manifest.json',
   './index.html',
