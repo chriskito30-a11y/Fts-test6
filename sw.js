@@ -1,4 +1,4 @@
-const CACHE = 'fts-v14-dedupe-notifs';
+const CACHE = 'fts-v15-profs-restore-dedupe';
 const FILES = [
   './manifest.json',
   './index.html',
