@@ -98,7 +98,7 @@ function renderConvs(convs){
     const lett = isG ? "👥" : name.charAt(0).toUpperCase();
     const prev = data.lastMessage ? FTS.esc(data.lastMessage.substring(0,55)) : "Nouvelle conversation";
     const ts   = data.lastTs ? fmtTs(data.lastTs) : "";
-    return `<div class="conv-item${id===currentConvId?" active":""}" data-fts-click="selectConv('${id}')">
+    return `<div class="conv-item${id===currentConvId?" active":""}" data-conv-id="${FTS.esc(id)}" data-fts-click="selectConv('${id}')">
       <div class="conv-av" data-fts-bg="${col}">${lett}</div>
       <div class="conv-body">
         <div class="conv-row1">
@@ -134,9 +134,9 @@ function searchConvs(q){
 /* ── SÉLECTION ───────────────────────────────────────────────── */
 async function selectConv(id){
   currentConvId = id; lastMsgDate = null;
-  document.querySelectorAll(".conv-item").forEach(el =>
-    el.classList.toggle("active", el.onclick.toString().includes(`'${id}'`))
-  );
+  document.querySelectorAll(".conv-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.convId === id);
+  });
   const s    = await db.ref("fts_dm/conversations/"+id).once("value");
   const data = s.val(); if(!data) return;
 
