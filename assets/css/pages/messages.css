@@ -1,0 +1,32 @@
+/* === Styles extraits de messages.html === */
+/* Actions messages/conversations */
+.btn-chat-del {
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s; flex-shrink: 0;
+}
+.btn-chat-del:hover { border-color: var(--red); color: var(--red); background: rgba(212,32,26,.08); }
+.msg-actions {
+  display: none; gap: .25rem; margin-top: .25rem; padding: 0 .35rem;
+}
+.msg-wrap.own:hover .msg-actions { display: flex; }
+.msg-act {
+  border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.03);
+  color: var(--muted); border-radius: 999px; padding: .15rem .45rem;
+  font-size: .62rem; cursor: pointer; font-family: "DM Sans", sans-serif;
+}
+.msg-act:hover { color: var(--white); border-color: rgba(255,255,255,.22); }
+.msg-act.danger:hover { color: var(--red); border-color: rgba(212,32,26,.45); }
+.msg-edited { font-size: .58rem; color: rgba(245,242,238,.32); margin-left: .25rem; }
+@media (max-width: 720px) { .msg-actions { display: flex; } }
+.notif-target .msg-bubble{outline:2px solid rgba(201,168,76,.75); box-shadow:0 0 0 6px rgba(201,168,76,.14);}
+
+.u-messages-inline-1 { display:none }
+
+.u-messages-inline-2 { display:none }
+
+.messages-error-text { max-width: 420px; text-align: center; color: #888; font-size: .8rem; line-height: 1.6; padding: 0 1rem; }
+.messages-error-link { color: #c9a84c; }
+.picker-empty { padding: .8rem 1rem; font-size: .82rem; color: #555; }
+.user-main { flex: 1; min-width: 0; }

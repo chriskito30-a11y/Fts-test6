@@ -210,7 +210,7 @@ function renderDashboard(profile, email) {
     // Pills enfants si compte parent
     const enfantPills = (profile.hasEnfant && Array.isArray(profile.enfants) && profile.enfants.length)
       ? profile.enfants.map(e =>
-          `<span class="profile-pill" style="border-color:rgba(201,168,76,.3);color:var(--gold)">🎩 ${FTS.esc(e.prenom || '')}</span>`
+          `<span class="profile-pill profile-pill-child">🎩 ${FTS.esc(e.prenom || '')}</span>`
         ).join('')
       : '';
 
@@ -411,7 +411,7 @@ function showDocs(docs, idx) {
   if (!el) return;
 
   if (!docs.length) {
-    el.innerHTML = "<p style='color:var(--muted);font-size:.82rem;padding:.5rem 0'>Aucun document pour le moment.</p>";
+    el.innerHTML = "<p class='empty-documents'>Aucun document pour le moment.</p>";
     return;
   }
 
@@ -678,10 +678,10 @@ function renderProfileEnfants() {
       <div class="profile-enfant-card-title">🎩 Enfant ${i + 1}</div>
       <div class="profile-enfant-name">${FTS.esc((e.prenom || '') + ' ' + (e.nom || ''))}</div>
       ${e.dateNaissance ? `<div class="profile-enfant-dob">Né(e) le ${FTS.esc(e.dateNaissance)}</div>` : ''}
-      ${e.disciplines && e.disciplines.length ? `<div style="font-size:.72rem;color:var(--muted)">Disciplines : ${FTS.esc(e.disciplines.join(', '))}</div>` : ''}
+      ${e.disciplines && e.disciplines.length ? `<div class="child-disciplines">Disciplines : ${FTS.esc(e.disciplines.join(', '))}</div>` : ''}
       <input class="account-field" type="tel" placeholder="Téléphone — 06 12 34 56 78"
         data-enfant-idx="${i}" value="${FTS.esc(e.telephone || '')}"
-        style="margin-top:.5rem">
+        class="u-mt-sm">
     </div>`).join('');
 }
 

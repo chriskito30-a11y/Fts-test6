@@ -149,7 +149,7 @@ function renderQList(){
   const selected=$('q-key')?.value||'';
   el.innerHTML=questionnaire.length ? questionnaire.map(q=>{
     const legacyAttr=q._legacyPath ? ` data-legacy="${FTS.esc(q._legacyPath)}"` : '';
-    return `<div class="item${selected===q.key?' sel':''}" onclick="editQuestionnaire('${FTS.esc(q.key)}', this.dataset.legacy||'')"${legacyAttr}>
+    return `<div class="item${selected===q.key?' sel':''}" data-fts-click="editQuestionnaire('${FTS.esc(q.key)}', this.dataset.legacy||'')"${legacyAttr}>
       <div class="item-title">${FTS.esc(q.icon||'')} ${FTS.esc(q.title||q.titre||'Sans titre')}</div>
       <div class="item-meta">${FTS.esc(q.type||'')} · ordre ${q.order||0}${q.active===false?' · masqué':''}${q._legacyPath?' · ancien emplacement':''}</div>
     </div>`;
@@ -289,7 +289,7 @@ function updateResourceSubcats(){
 function renderCList(){
   const el=$('c-list'); if(!el) return;
   const selected=$('c-key')?.value||'';
-  el.innerHTML=categoriesRaw.length?categoriesRaw.map(c=>`<div class="item${selected===c.key?' sel':''}" onclick="editCategory('${FTS.esc(c.key)}')"><div class="item-title">${FTS.esc(c.icon||FTS.catIcon(c.name))} ${FTS.esc(c.name||c.category||'Sans nom')}</div><div class="item-meta">${(c.subcatsArray||[]).length} sous-catégorie${(c.subcatsArray||[]).length>1?'s':''} · ordre ${c.order||0}${c.active===false?' · masquée':''}</div></div>`).join(''):'<div class="hint">Aucune catégorie.</div>';
+  el.innerHTML=categoriesRaw.length?categoriesRaw.map(c=>`<div class="item${selected===c.key?' sel':''}" data-fts-click="editCategory('${FTS.esc(c.key)}')"><div class="item-title">${FTS.esc(c.icon||FTS.catIcon(c.name))} ${FTS.esc(c.name||c.category||'Sans nom')}</div><div class="item-meta">${(c.subcatsArray||[]).length} sous-catégorie${(c.subcatsArray||[]).length>1?'s':''} · ordre ${c.order||0}${c.active===false?' · masquée':''}</div></div>`).join(''):'<div class="hint">Aucune catégorie.</div>';
 }
 function newCategory(){
   ['c-key','c-name','c-icon','c-subcats'].forEach(id=>$(id).value='');
@@ -387,7 +387,7 @@ function listenResources(){
 function renderRList(){
   const el=$('r-list'); if(!el) return;
   const selected=$('r-key')?.value||'';
-  el.innerHTML=resources.length?resources.map(r=>`<div class="item${selected===r.key?' sel':''}" onclick="editResource('${FTS.esc(r.key)}')"><div class="item-title">${FTS.esc(r.name||'Sans titre')}</div><div class="item-meta">${FTS.esc(r.cat||r.category||'Sans catégorie')}${r.subcat?' · '+FTS.esc(r.subcat):''} · ${FTS.esc(r.type||'doc')}${r.active===false||r.status==='inactive'?' · masqué':''}</div></div>`).join(''):'<div class="hint">Aucune ressource.</div>';
+  el.innerHTML=resources.length?resources.map(r=>`<div class="item${selected===r.key?' sel':''}" data-fts-click="editResource('${FTS.esc(r.key)}')"><div class="item-title">${FTS.esc(r.name||'Sans titre')}</div><div class="item-meta">${FTS.esc(r.cat||r.category||'Sans catégorie')}${r.subcat?' · '+FTS.esc(r.subcat):''} · ${FTS.esc(r.type||'doc')}${r.active===false||r.status==='inactive'?' · masqué':''}</div></div>`).join(''):'<div class="hint">Aucune ressource.</div>';
 }
 function newResource(){
   ['r-key','r-name','r-url','r-cat-new','r-subcat-new'].forEach(id=>$(id).value='');
@@ -437,3 +437,25 @@ async function deleteResource(){
 }
 
 init();
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:contenus-admin.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doLogout()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "showTab('annonces',this)"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "showTab('questionnaire',this)"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "showTab('ressources',this)"}, {"selector": "[data-fts-handler-5]", "event": "click", "code": "showTab('categories',this)"}, {"selector": "[data-fts-handler-6]", "event": "click", "code": "saveAnnonce()"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "newQuestionnaire()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "saveQuestionnaire()"}, {"selector": "[data-fts-handler-9]", "event": "click", "code": "deleteQuestionnaire()"}, {"selector": "[data-fts-handler-10]", "event": "click", "code": "newResource()"}, {"selector": "[data-fts-handler-11]", "event": "change", "code": "updateResourceSubcats()"}, {"selector": "[data-fts-handler-12]", "event": "click", "code": "saveResource()"}, {"selector": "[data-fts-handler-13]", "event": "click", "code": "deleteResource()"}, {"selector": "[data-fts-handler-14]", "event": "click", "code": "newCategory()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "saveCategory()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "deleteCategory()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */

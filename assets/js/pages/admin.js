@@ -25,3 +25,25 @@ window.addEventListener('DOMContentLoaded',()=>{
     }catch(e){ console.warn('[FTS Admin Hub]',e); showError(e && e.message ? e.message : String(e)); }
   });
 });
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:admin.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doLogout()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */

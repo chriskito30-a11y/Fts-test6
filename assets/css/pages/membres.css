@@ -579,3 +579,8 @@ button.profile-pill:hover {
 .page-hdr-members { margin-bottom: 1.4rem; }
 .profile-enfants-label { font-size:.62rem; color:var(--gold); text-transform:uppercase; letter-spacing:.1em; margin:.9rem 0 .5rem; }
 .evt-action-link { display:inline-block; margin-top:.6rem; }
+
+.profile-pill-child { border-color: rgba(201,168,76,.3); color: var(--gold); }
+.empty-documents { color: var(--muted); font-size: .82rem; padding: .5rem 0; }
+.child-disciplines { font-size: .72rem; color: var(--muted); }
+.u-mt-sm { margin-top: .5rem; }

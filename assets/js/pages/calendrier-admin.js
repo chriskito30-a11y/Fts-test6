@@ -143,7 +143,7 @@ function renderList(){
     const d=e.dateTs?new Date(e.dateTs):null;
     const day=d?String(d.getDate()).padStart(2,'0'):'—';
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
-    return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" onclick="editEvent('${FTS.esc(e.key)}')">
+    return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
       <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div></div>
     </div>`;
@@ -404,3 +404,25 @@ async function deleteEvent(){
 }
 
 init();
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:calendrier-admin.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doLogout()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "newEvent()"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "saveEvent()"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "newEvent()"}, {"selector": "[data-fts-handler-5]", "event": "click", "code": "deleteEvent()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */

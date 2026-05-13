@@ -265,9 +265,9 @@ async function loadStudents() {
           <div class="student-child">
             🎩 <strong>${FTS.esc(e.prenom || "")} ${FTS.esc(e.nom || "")}</strong>
             ${e.disciplines && e.disciplines.length
-              ? `<span style="color:var(--gold)"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
+              ? `<span class="student-disciplines"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
               : ""}
-            ${e.telephone ? `<span style="color:#555"> · 📞 ${FTS.esc(e.telephone)}</span>` : ""}
+            ${e.telephone ? `<span class="student-phone"> · 📞 ${FTS.esc(e.telephone)}</span>` : ""}
           </div>`).join("");
       }
 
@@ -692,8 +692,8 @@ function renderDocs() {
         </div>
       </div>
       <div class="doc-item-actions">
-        <button class="btn-edit"   onclick="openEditModal('${FTS.esc(d.key)}')">✎ Éditer</button>
-        <button class="btn-delete" onclick="deleteDoc('${FTS.esc(d.key)}', '${FTS.esc(d.name)}')">🗑 Supprimer</button>
+        <button class="btn-edit"   data-fts-click="openEditModal('${FTS.esc(d.key)}')">✎ Éditer</button>
+        <button class="btn-delete" data-fts-click="deleteDoc('${FTS.esc(d.key)}', '${FTS.esc(d.name)}')">🗑 Supprimer</button>
       </div>
     </div>`;
   }).join("");
@@ -802,3 +802,25 @@ function clearMsg() { document.getElementById("msg").style.display = "none"; }
 function doSignOut() {
   auth.signOut().then(() => window.location.href = "auth.html");
 }
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:profs.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doSignOut()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "switchTab('publish')"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "switchTab('manage')"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "switchTab('students')"}, {"selector": "[data-fts-handler-5]", "event": "change", "code": "updateSubcats()"}, {"selector": "[data-fts-handler-6]", "event": "change", "code": "updateDanceVideoFolder()"}, {"selector": "[data-fts-handler-7]", "event": "change", "code": "updateType()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "document.getElementById('f-file').click()"}, {"selector": "[data-fts-handler-9]", "event": "click", "code": "doSubmit()"}, {"selector": "[data-fts-handler-10]", "event": "change", "code": "applyFilters()"}, {"selector": "[data-fts-handler-11]", "event": "change", "code": "applyFilters()"}, {"selector": "[data-fts-handler-12]", "event": "click", "code": "closeEditModal()"}, {"selector": "[data-fts-handler-13]", "event": "change", "code": "updateEditSubcats()"}, {"selector": "[data-fts-handler-14]", "event": "click", "code": "closeEditModal()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "saveEdit()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */

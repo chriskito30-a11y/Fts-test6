@@ -179,9 +179,9 @@ function renderPending() {
         ).join('') : ''}
       </div>
       <div class="user-actions">
-        <button class="btn-action btn-approve" onclick="approveUser('${id}')">✓ Valider</button>
-        <button class="btn-action btn-modify"  onclick="openModModal('${id}')">✎ Modifier</button>
-        <button class="btn-action btn-refuse"  onclick="refuseUser('${id}')">✕ Refuser</button>
+        <button class="btn-action btn-approve" data-fts-click="approveUser('${id}')">✓ Valider</button>
+        <button class="btn-action btn-modify"  data-fts-click="openModModal('${id}')">✎ Modifier</button>
+        <button class="btn-action btn-refuse"  data-fts-click="refuseUser('${id}')">✕ Refuser</button>
       </div>
     </div>`).join("");
 }
@@ -213,8 +213,8 @@ function renderMembers() {
         ).join('') : ''}
       </div>
       <div class="user-actions">
-        <button class="btn-action btn-modify" onclick="openModModal('${id}')">✎ Éditer</button>
-        <button class="btn-action btn-revoke" onclick="revokeUser('${id}')">✕ Révoquer</button>
+        <button class="btn-action btn-modify" data-fts-click="openModModal('${id}')">✎ Éditer</button>
+        <button class="btn-action btn-revoke" data-fts-click="revokeUser('${id}')">✕ Révoquer</button>
       </div>
     </div>`).join("");
 }
@@ -285,7 +285,7 @@ function getActivePillValues(selector) {
 }
 
 function pillHtml(label, active, type) {
-  return `<div class="pill ${active ? "active" : ""}" data-value="${FTS.esc(label)}" onclick="toggleModPill(this,'${type}')">${FTS.esc(label)}</div>`;
+  return `<div class="pill ${active ? "active" : ""}" data-value="${FTS.esc(label)}" data-fts-click="toggleModPill(this,'${type}')">${FTS.esc(label)}</div>`;
 }
 
 function openModModal(id) {
@@ -309,7 +309,7 @@ function openModModal(id) {
 
   // Disciplines du compte principal (parent ou adulte)
   const labelParent = u.hasEnfant && u.enfants.length
-    ? `Discipline(s) du parent — <span style="font-size:.65rem;color:var(--muted);text-transform:none;letter-spacing:0">${FTS.esc(u.name)}</span>`
+    ? `Discipline(s) du parent — <span class="mod-parent-name">${FTS.esc(u.name)}</span>`
     : "Discipline(s) — clique pour sélectionner";
   document.querySelector("label[for=''].modal-label, #mod-modal .modal-label")
     || document.querySelectorAll("#mod-modal .modal-label")[0];
@@ -337,7 +337,7 @@ function openModModal(id) {
           <div class="pill-container mod-enfant-pills" id="mod-enfant-pills-${i}">
             ${cats.map(c => `<div class="pill ${eCats.includes(c) ? 'active' : ''}"
               data-value="${FTS.esc(c)}" data-enfant="${i}"
-              onclick="toggleEnfantPill(this, ${i})">${FTS.esc(c)}</div>`).join('')}
+              data-fts-click="toggleEnfantPill(this, ${i})">${FTS.esc(c)}</div>`).join('')}
           </div>
           <div id="mod-enfant-subcats-${i}"></div>
         </div>`;
@@ -394,7 +394,7 @@ function updateModEnfantSubcats(enfantIdx, selectedSubs = []) {
       <div class="pill-container">
         ${subs.map(s => `<div class="pill ${selectedSubs.includes(s) ? 'active' : ''}"
           data-value="${FTS.esc(s)}"
-          onclick="toggleEnfantSubPill(this)">${FTS.esc(s)}</div>`).join('')}
+          data-fts-click="toggleEnfantSubPill(this)">${FTS.esc(s)}</div>`).join('')}
       </div>
     </div>`;
   }).join("");
@@ -535,7 +535,7 @@ function buildChannelSelector() {
       .filter((v, i, a) => a.indexOf(v) === i);
 
     document.getElementById("ch-selector").innerHTML = channels.map(c =>
-      `<div class="ch-tag ${c === currentMsgChannel ? "active" : ""}" onclick="loadMsgChannel('${c}')">${c}</div>`
+      `<div class="ch-tag ${c === currentMsgChannel ? "active" : ""}" data-fts-click="loadMsgChannel('${c}')">${c}</div>`
     ).join("");
 
     loadMsgChannel(currentMsgChannel);
@@ -561,7 +561,7 @@ function loadMsgChannel(ch) {
           <div class="msg-text">${FTS.esc(m.text)}</div>
           <div class="msg-time">${fmtDate(m.ts)}</div>
         </div>
-        <button class="btn-del" onclick="delMsg('${ch}', '${mid}')">🗑</button>
+        <button class="btn-del" data-fts-click="delMsg('${ch}', '${mid}')">🗑</button>
       </div>`).join("");
   });
 }
@@ -588,3 +588,25 @@ function fmtDate(ts) {
     hour: "2-digit", minute: "2-digit",
   });
 }
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:forum-admin.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doLogout()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "showTab('pending', this)"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "showTab('members', this)"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "showTab('messages', this)"}, {"selector": "[data-fts-handler-5]", "event": "click", "code": "selectRole(this)"}, {"selector": "[data-fts-handler-6]", "event": "click", "code": "selectRole(this)"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "selectRole(this)"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "closeModModal()"}, {"selector": "[data-fts-handler-9]", "event": "click", "code": "saveModification()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */

@@ -1,98 +1,84 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
 <title>Forum — Fais Ton Show</title>
-<link rel="manifest" href="./manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="./assets/css/fts-chat.css?v=8">
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
+<link href="./assets/css/fts-chat.css?v=8" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<style>.notif-target .msg-bubble{outline:2px solid rgba(201,168,76,.75); box-shadow:0 0 0 6px rgba(201,168,76,.14);}</style>
-</head>
+<link href="assets/css/pages/forum.css?v=1" rel="stylesheet"/></head>
 <body>
 <div class="auth-loading" id="auth-loading">
-  <div class="auth-logo">FAIS TON <span>SHOW</span></div>
-  <div class="spinner"></div>
-  <div style="font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase">Chargement du forum…</div>
+<div class="auth-logo">FAIS TON <span>SHOW</span></div>
+<div class="spinner"></div>
+<div class="u-forum-inline-1">Chargement du forum…</div>
 </div>
-
-<div class="app" id="app" style="display:none">
-  <div class="sidebar">
-    <div class="sb-hdr">
-      <div class="sb-avatar" id="my-avatar">?</div>
-      <div class="sb-title">FORUM</div>
-      <button class="btn-compose" id="btn-admin-gear" onclick="toggleAdminMode()" title="Mode admin" style="display:none">⚙️</button>
-    </div>
-
-    <div class="sb-search">
-      <input class="search-inp" id="forum-search" type="text" placeholder="Rechercher un canal…" oninput="renderForumList(this.value)">
-    </div>
-
-    <div class="conv-list" id="forum-list">
-      <div class="conv-empty"><span class="conv-empty-icon">💬</span><p>Chargement des catégories…</p></div>
-    </div>
-
-    <div class="notif-mini">
-      <button class="btn-notif" id="btn-notif" onclick="toggleNotifications()">🔕 Activer les notifs</button>
-    </div>
-
-    <nav class="sb-nav">
-      <a href="membres.html" class="snav"><span class="ico">👤</span><span>Membres</span></a>
-      <a href="messages.html" class="snav"><span class="ico">✉️</span><span>Messages</span><span class="conv-badge" id="msg-badge" style="display:none"></span></a>
-    </nav>
-  </div>
-
-  <div class="main" id="main">
-    <div class="chat-empty" id="chat-empty">
-      <div class="chat-empty-ring">💬</div>
-      <div class="chat-empty-title">FORUM <span>FTS</span></div>
-      <div class="chat-empty-sub">Choisis une bulle de catégorie, puis ouvre le canal qui te concerne.</div>
-    </div>
-
-    <div class="chat-zone" id="chat-zone">
-      <div class="pending-bar" id="pending-bar">⏳ Ton accès au forum est en attente de validation</div>
-      <div class="admin-bar" id="admin-bar">⚠️ Mode administration actif <button class="btn-admin-small" onclick="exitAdmin()">Quitter</button></div>
-
-      <div class="chat-hdr">
-        <button class="btn-back" onclick="closeChat()">←</button>
-        <div class="chat-hdr-av" id="chat-av">💬</div>
-        <div class="chat-hdr-info">
-          <div class="chat-hdr-name" id="chat-name">…</div>
-          <div class="chat-hdr-sub" id="chat-sub"></div>
-        </div>
-      </div>
-
-      <div class="messages" id="messages"></div>
-
-      <div class="upload-bar" id="upload-bar">
-        <span id="upload-txt">Upload…</span>
-        <div class="upload-track"><div class="upload-fill" id="upload-fill"></div></div>
-      </div>
-
-      <div class="input-area">
-        <input type="file" id="file-input" accept="image/*,video/*,.pdf,.mp3" style="display:none" onchange="uploadMedia(this.files[0])">
-        <button class="btn-attach" onclick="document.getElementById('file-input').click()" title="Joindre un fichier">📎</button>
-        <div class="input-pill">
-          <textarea class="msg-input" id="msg-input" placeholder="Message…" rows="1" onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
-        </div>
-        <button class="btn-send" onclick="sendMessage()">➤</button>
-      </div>
-    </div>
-  </div>
+<div class="app u-forum-inline-2" id="app">
+<div class="sidebar">
+<div class="sb-hdr">
+<div class="sb-avatar" id="my-avatar">?</div>
+<div class="sb-title">FORUM</div>
+<button class="btn-compose u-forum-inline-3" data-fts-handler-1="" id="btn-admin-gear" title="Mode admin">⚙️</button>
 </div>
-
+<div class="sb-search">
+<input class="search-inp" data-fts-handler-2="" id="forum-search" placeholder="Rechercher un canal…" type="text"/>
+</div>
+<div class="conv-list" id="forum-list">
+<div class="conv-empty"><span class="conv-empty-icon">💬</span><p>Chargement des catégories…</p></div>
+</div>
+<div class="notif-mini">
+<button class="btn-notif" data-fts-handler-3="" id="btn-notif">🔕 Activer les notifs</button>
+</div>
+<nav class="sb-nav">
+<a class="snav" href="membres.html"><span class="ico">👤</span><span>Membres</span></a>
+<a class="snav" href="messages.html"><span class="ico">✉️</span><span>Messages</span><span class="conv-badge u-forum-inline-4" id="msg-badge"></span></a>
+</nav>
+</div>
+<div class="main" id="main">
+<div class="chat-empty" id="chat-empty">
+<div class="chat-empty-ring">💬</div>
+<div class="chat-empty-title">FORUM <span>FTS</span></div>
+<div class="chat-empty-sub">Choisis une bulle de catégorie, puis ouvre le canal qui te concerne.</div>
+</div>
+<div class="chat-zone" id="chat-zone">
+<div class="pending-bar" id="pending-bar">⏳ Ton accès au forum est en attente de validation</div>
+<div class="admin-bar" id="admin-bar">⚠️ Mode administration actif <button class="btn-admin-small" data-fts-handler-4="">Quitter</button></div>
+<div class="chat-hdr">
+<button class="btn-back" data-fts-handler-5="">←</button>
+<div class="chat-hdr-av" id="chat-av">💬</div>
+<div class="chat-hdr-info">
+<div class="chat-hdr-name" id="chat-name">…</div>
+<div class="chat-hdr-sub" id="chat-sub"></div>
+</div>
+</div>
+<div class="messages" id="messages"></div>
+<div class="upload-bar" id="upload-bar">
+<span id="upload-txt">Upload…</span>
+<div class="upload-track"><div class="upload-fill" id="upload-fill"></div></div>
+</div>
+<div class="input-area">
+<input accept="image/*,video/*,.pdf,.mp3" class="u-forum-inline-5" data-fts-handler-6="" id="file-input" type="file"/>
+<button class="btn-attach" data-fts-handler-7="" title="Joindre un fichier">📎</button>
+<div class="input-pill">
+<textarea class="msg-input" data-fts-handler-8="" data-fts-handler-9="" id="msg-input" placeholder="Message…" rows="1"></textarea>
+</div>
+<button class="btn-send" data-fts-handler-10="">➤</button>
+</div>
+</div>
+</div>
+</div>
 <script src="./assets/js/fts-utils.js"></script>
 <script src="./assets/js/fts-firebase.js"></script>
 <script src="./assets/js/fts-chat.js?v=8"></script>
-
 <script src="assets/js/fts-pwa.js"></script>
-
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/resources.service.js?v=1"></script>

@@ -317,3 +317,74 @@ FTS.ensureResourceCategory = async function(db, resource) {
   }
   await ref.update(updates);
 };
+
+/* FTS_DATA_ACTION_DELEGATION */
+(function(){
+  'use strict';
+  if (window.__FTS_DATA_ACTION_DELEGATION__) return;
+  window.__FTS_DATA_ACTION_DELEGATION__ = true;
+
+  var eventMap = {
+    click: 'data-fts-click',
+    input: 'data-fts-input',
+    change: 'data-fts-change',
+    keydown: 'data-fts-keydown'
+  };
+
+  function runDataAction(el, attr, event){
+    if (!el) return;
+    var code = el.getAttribute(attr);
+    if (!code) return;
+    try {
+      (new Function('event', code)).call(el, event);
+    } catch (err) {
+      console.error('[FTS] Action data extraite en erreur:', code, err);
+    }
+  }
+
+  Object.keys(eventMap).forEach(function(eventName){
+    document.addEventListener(eventName, function(event){
+      var attr = eventMap[eventName];
+      var target = event.target;
+      var el = target && target.closest ? target.closest('[' + attr + ']') : null;
+      if (!el || !document.documentElement.contains(el)) return;
+      runDataAction(el, attr, event);
+    }, true);
+  });
+})();
+/* END_FTS_DATA_ACTION_DELEGATION */
+
+
+/* FTS_DYNAMIC_STYLE_HYDRATION */
+(function(){
+  'use strict';
+  if (window.__FTS_DYNAMIC_STYLE_HYDRATION__) return;
+  window.__FTS_DYNAMIC_STYLE_HYDRATION__ = true;
+
+  function applyDynamicStyles(root){
+    var scope = root && root.querySelectorAll ? root : document;
+    scope.querySelectorAll('[data-fts-bg]').forEach(function(el){
+      var bg = el.getAttribute('data-fts-bg');
+      if (bg) el.style.background = bg;
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){ applyDynamicStyles(document); });
+  } else {
+    applyDynamicStyles(document);
+  }
+
+  if ('MutationObserver' in window) {
+    new MutationObserver(function(mutations){
+      mutations.forEach(function(m){
+        m.addedNodes && m.addedNodes.forEach(function(node){
+          if (node.nodeType !== 1) return;
+          if (node.matches && node.matches('[data-fts-bg]')) applyDynamicStyles({ querySelectorAll: function(){ return [node]; } });
+          applyDynamicStyles(node);
+        });
+      });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+})();
+/* END_FTS_DYNAMIC_STYLE_HYDRATION */

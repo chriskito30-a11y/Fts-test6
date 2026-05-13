@@ -61,7 +61,7 @@ window.addEventListener("DOMContentLoaded", () => {
 function showBootError(e){
   const box = document.getElementById('auth-loading');
   if(!box) return;
-  box.innerHTML = `<div class="auth-logo">FAIS TON <span>SHOW</span></div><p style="max-width:420px;text-align:center;color:#888;font-size:.8rem;line-height:1.6;padding:0 1rem">Erreur chargement messages : ${FTS.esc(e && e.message ? e.message : String(e))}<br><br><a href="membres.html" style="color:#c9a84c">Retour membres</a></p>`;
+  box.innerHTML = `<div class="auth-logo">FAIS TON <span>SHOW</span></div><p class="messages-error-text">Erreur chargement messages : ${FTS.esc(e && e.message ? e.message : String(e))}<br><br><a href="membres.html" class="messages-error-link">Retour membres</a></p>`;
 }
 
 /* ── MEMBRES ─────────────────────────────────────────────────── */
@@ -98,8 +98,8 @@ function renderConvs(convs){
     const lett = isG ? "👥" : name.charAt(0).toUpperCase();
     const prev = data.lastMessage ? FTS.esc(data.lastMessage.substring(0,55)) : "Nouvelle conversation";
     const ts   = data.lastTs ? fmtTs(data.lastTs) : "";
-    return `<div class="conv-item${id===currentConvId?" active":""}" onclick="selectConv('${id}')">
-      <div class="conv-av" style="background:${col}">${lett}</div>
+    return `<div class="conv-item${id===currentConvId?" active":""}" data-fts-click="selectConv('${id}')">
+      <div class="conv-av" data-fts-bg="${col}">${lett}</div>
       <div class="conv-body">
         <div class="conv-row1">
           <div class="conv-name">${FTS.esc(name)}</div>
@@ -259,8 +259,8 @@ function addMsg(key, m, own){
       </div>
     </div>
     ${own ? `<div class="msg-actions">
-      <button class="msg-act" onclick="editMessage('${key}')">Modifier</button>
-      <button class="msg-act danger" onclick="deleteMessage('${key}')">Supprimer</button>
+      <button class="msg-act" data-fts-click="editMessage('${key}')">Modifier</button>
+      <button class="msg-act danger" data-fts-click="deleteMessage('${key}')">Supprimer</button>
     </div>` : ""}`;
   wrap.appendChild(div);
   wrap.scrollTop = wrap.scrollHeight;
@@ -349,13 +349,13 @@ function filterUsers(){
 
 function renderUsers(users){
   const el = document.getElementById("user-list");
-  if(!users.length){ el.innerHTML='<div style="padding:.8rem 1rem;font-size:.82rem;color:#555">Aucun membre trouvé</div>'; return; }
+  if(!users.length){ el.innerHTML='<div class="picker-empty">Aucun membre trouvé</div>'; return; }
   el.innerHTML = users.map(([uid, u]) => {
     const sel  = selectedUids.has(uid);
     const role = u.role==="admin" ? "🛡 Admin" : u.role==="prof" ? "🎓 Prof" : "";
-    return `<div class="user-row${sel?" sel":""}" onclick="toggleUser('${uid}')">
-      <div class="user-av" style="background:${avColor(u.name||uid)}">${(u.name||u.email||"?").charAt(0).toUpperCase()}</div>
-      <div style="flex:1;min-width:0">
+    return `<div class="user-row${sel?" sel":""}" data-fts-click="toggleUser('${uid}')">
+      <div class="user-av" data-fts-bg="${avColor(u.name||uid)}">${(u.name||u.email||"?").charAt(0).toUpperCase()}</div>
+      <div class="user-main">
         <div class="user-name">${FTS.esc(u.name||u.email)}</div>
         ${role ? `<div class="user-role">${role}</div>` : ""}
       </div>
@@ -462,3 +462,25 @@ function fmtFull(ts){ return FTSChat.fmtFull(ts); }
 function fmtDay(ts){ return FTSChat.fmtDay(ts); }
 function handleKey(e){ FTSChat.handleEnter(e, sendMessage); }
 function autoResize(el){ FTSChat.autoResize(el); }
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:messages.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "openModal()"}, {"selector": "[data-fts-handler-2]", "event": "input", "code": "searchConvs(this.value)"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "toggleNotifications()"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "openModal()"}, {"selector": "[data-fts-handler-5]", "event": "click", "code": "closeChat()"}, {"selector": "[data-fts-handler-6]", "event": "click", "code": "deleteCurrentConversation()"}, {"selector": "[data-fts-handler-7]", "event": "keydown", "code": "handleKey(event)"}, {"selector": "[data-fts-handler-8]", "event": "input", "code": "autoResize(this)"}, {"selector": "[data-fts-handler-9]", "event": "click", "code": "sendMessage()"}, {"selector": "[data-fts-handler-10]", "event": "click", "code": "closeModal()"}, {"selector": "[data-fts-handler-11]", "event": "click", "code": "setType('direct')"}, {"selector": "[data-fts-handler-12]", "event": "click", "code": "setType('group')"}, {"selector": "[data-fts-handler-13]", "event": "input", "code": "filterUsers()"}, {"selector": "[data-fts-handler-14]", "event": "click", "code": "closeModal()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "startConv()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */

@@ -1,461 +1,130 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
-<meta name="application-name" content="Fais Ton Show">
-<meta name="apple-mobile-web-app-title" content="Fais Ton Show">
-<meta name="theme-color" content="#000000">
-  
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="Fais Ton Show" name="application-name"/>
+<meta content="Fais Ton Show" name="apple-mobile-web-app-title"/>
+<meta content="#000000" name="theme-color"/>
 <title>Connexion — Fais Ton Show</title>
-<meta name="description" content="Connecte-toi à l'espace membres de Fais Ton Show.">
-<link rel="manifest" href="/manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/css/fts.css?v=16">
+<meta content="Connecte-toi à l'espace membres de Fais Ton Show." name="description"/>
+<link href="/manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css?v=16" rel="stylesheet"/><link href="assets/css/pages/auth.css?v=1" rel="stylesheet"/>
 
-<style>
-html, body { height: 100%; }
 
-.auth-wrap {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 1.5rem;
-}
-
-/* ── LOGO ── */
-.auth-logo {
-  text-align: center;
-  margin-bottom: 2rem;
-  animation: fadeUp .5s ease both;
-}
-.auth-logo-title {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 8vw, 4rem);
-  letter-spacing: .04em;
-  line-height: .95;
-}
-.auth-logo-title span { color: var(--red); }
-.auth-logo-sub {
-  font-size: .65rem;
-  letter-spacing: .22em;
-  text-transform: uppercase;
-  color: var(--gold);
-  margin-top: .5rem;
-}
-
-/* ── CARD ── */
-.auth-card {
-  width: 100%;
-  max-width: 420px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: var(--r-lg);
-  backdrop-filter: blur(8px);
-  overflow: hidden;
-  animation: fadeUp .5s .1s ease both;
-}
-
-/* ── ONGLETS ── */
-.auth-tabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-bottom: 1px solid rgba(255,255,255,.08);
-}
-.auth-tab {
-  padding: .9rem;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--muted);
-  font-family: var(--font-body);
-  font-size: .82rem;
-  cursor: pointer;
-  transition: all .2s;
-}
-.auth-tab.active    { color: var(--white); border-bottom-color: var(--red); }
-.auth-tab:hover:not(.active) { color: var(--white); background: rgba(255,255,255,.02); }
-
-/* ── CORPS ── */
-.auth-body { padding: 1.8rem; }
-
-.auth-form         { display: none; }
-.auth-form.active  { display: block; animation: fadeUp .3s ease both; }
-
-.f-label {
-  display: block;
-  font-size: .65rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: .35rem;
-  margin-top: 1rem;
-}
-.f-label:first-child { margin-top: 0; }
-
-.two-cols {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: .8rem;
-}
-
-/* ── MOT DE PASSE OUBLIÉ ── */
-.forgot-link {
-  font-size: .72rem;
-  color: var(--muted);
-  text-align: right;
-  margin-top: .35rem;
-  cursor: pointer;
-  transition: color .2s;
-  user-select: none;
-}
-.forgot-link:hover { color: var(--gold); }
-
-/* ── PILLS DISCIPLINES ── */
-.disc-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .4rem;
-  margin-top: .4rem;
-}
-
-/* ── ÉCRAN EN ATTENTE ── */
-.pending-screen {
-  display: none;
-  text-align: center;
-  padding: 2.5rem 1.8rem;
-  animation: fadeUp .4s ease both;
-}
-.pending-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  animation: fadeIn .4s ease both;
-}
-.pending-title {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  letter-spacing: .03em;
-  margin-bottom: .6rem;
-}
-.pending-desc {
-  font-size: .82rem;
-  color: var(--muted);
-  line-height: 1.7;
-  margin-bottom: 1.5rem;
-}
-.pending-email {
-  display: inline-block;
-  font-size: .75rem;
-  color: var(--gold);
-  background: rgba(201,168,76,.08);
-  border: 1px solid rgba(201,168,76,.2);
-  border-radius: var(--r-sm);
-  padding: .3rem .8rem;
-  margin-bottom: 1rem;
-}
-
-/* ── SUBMIT ── */
-.auth-submit { margin-top: 1.4rem; }
-
-/* ── FOOTER ── */
-.auth-footer {
-  text-align: center;
-  font-size: .65rem;
-  color: #333;
-  margin-top: 1.5rem;
-}
-.auth-footer a { color: #444; text-decoration: none; transition: color .2s; }
-.auth-footer a:hover { color: var(--muted); }
-
-/* ── LOADING STATE ── */
-.btn.loading { opacity: .6; cursor: not-allowed; }
-/* Correctif PWA Android — clavier sur auth */
-html, body {
-  min-height: 100%;
-  height: auto;
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-body {
-  -webkit-user-select: auto;
-  user-select: auto;
-}
-.auth-wrap {
-  min-height: 100dvh;
-  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
-}
-.auth-card, .auth-body, .auth-form {
-  touch-action: manipulation;
-}
-.auth-card input,
-.auth-card textarea,
-.auth-card select {
-  position: relative;
-  z-index: 2;
-  font-size: 16px !important;
-  -webkit-user-select: text;
-  user-select: text;
-  touch-action: manipulation;
-  caret-color: var(--gold);
-}
-.auth-card input:focus,
-.auth-card textarea:focus,
-.auth-card select:focus {
-  outline: none;
-  border-color: var(--red);
-  box-shadow: 0 0 0 2px rgba(212,32,26,.12);
-}
-@media (max-width: 560px) {
-  .auth-wrap {
-    justify-content: flex-start;
-    padding-top: max(1.2rem, env(safe-area-inset-top));
-  }
-  .auth-logo { margin-bottom: 1.2rem; }
-}
-
-/* ══════════════════════════════════════════════
-   NOUVEAU v16 — Section enfant(s)
-══════════════════════════════════════════════ */
-.form-divider {
-  border: none;
-  border-top: 1px solid rgba(255,255,255,.06);
-  margin: 1.4rem 0;
-}
-.enfant-section-label {
-  font-size: .72rem;
-  color: var(--muted);
-  line-height: 1.5;
-  margin-top: .2rem;
-}
-#enfant-section {
-  margin-top: 1rem;
-  animation: fadeUp .25s ease both;
-}
-.enfant-block {
-  background: rgba(201,168,76,.04);
-  border: 1px solid rgba(201,168,76,.15);
-  border-left: 3px solid var(--gold);
-  border-radius: var(--r-lg);
-  padding: 1rem;
-  margin-bottom: .8rem;
-}
-.enfant-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: .8rem;
-}
-.enfant-title {
-  font-size: .65rem;
-  letter-spacing: .12em;
-  text-transform: uppercase;
-  color: var(--gold);
-  font-weight: 500;
-}
-.enfant-remove {
-  background: none;
-  border: none;
-  color: var(--muted);
-  font-size: .75rem;
-  cursor: pointer;
-  padding: .1rem .4rem;
-  border-radius: var(--r-sm);
-  transition: all .2s;
-  line-height: 1;
-}
-.enfant-remove:hover { color: var(--red); background: rgba(212,32,26,.08); }
-.enfant-block .f-label { margin-top: .7rem; }
-.enfant-block .f-label:first-of-type { margin-top: 0; }
-.btn-add-enfant {
-  width: 100%;
-  justify-content: center;
-  margin-top: .4rem;
-  font-size: .78rem;
-  border-style: dashed;
-  opacity: .7;
-  transition: opacity .2s;
-}
-.btn-add-enfant:hover { opacity: 1; }
-
-/* ── SOUS-CATÉGORIES DANS LE FORMULAIRE ────────────────────── */
-.form-subcats { margin-top: .5rem; }
-.form-subcat-group { margin-bottom: .7rem; }
-.form-subcat-lbl {
-  font-size: .58rem; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: .35rem;
-  display: flex; align-items: center; gap: .4rem;
-}
-.form-subcat-lbl::after {
-  content: ''; flex: 1; height: 1px; background: rgba(201,168,76,.2);
-}
-
-</style>
 </head>
-
 <body class="has-noise has-glow">
 <div class="auth-wrap">
-
-  <!-- LOGO -->
-  <div class="auth-logo">
-    <div class="auth-logo-title">FAIS TON <span>SHOW</span></div>
-    <div class="auth-logo-sub">École des arts de la scène</div>
-  </div>
-
-  <!-- CARD -->
-  <div class="auth-card" id="auth-card">
-
-    <!-- ÉCRAN EN ATTENTE DE VALIDATION -->
-    <div class="pending-screen" id="pending-screen">
-      <div class="pending-icon">⏳</div>
-      <div class="pending-title">Demande envoyée !</div>
-      <div class="pending-desc">
-        Ton compte est en cours de validation par l'équipe FTS.<br>
+<!-- LOGO -->
+<div class="auth-logo">
+<div class="auth-logo-title">FAIS TON <span>SHOW</span></div>
+<div class="auth-logo-sub">École des arts de la scène</div>
+</div>
+<!-- CARD -->
+<div class="auth-card" id="auth-card">
+<!-- ÉCRAN EN ATTENTE DE VALIDATION -->
+<div class="pending-screen" id="pending-screen">
+<div class="pending-icon">⏳</div>
+<div class="pending-title">Demande envoyée !</div>
+<div class="pending-desc">
+        Ton compte est en cours de validation par l'équipe FTS.<br/>
         Tu recevras un e-mail dès que ton accès sera activé.
       </div>
-      <div class="pending-email" id="pending-email-display"></div>
-      <button class="btn-outline" style="width:100%;justify-content:center"
-        onclick="doSignOut()">← Déconnexion</button>
-    </div>
-
-    <!-- ONGLETS -->
-    <div class="auth-tabs" id="auth-tabs">
-      <button class="auth-tab active" id="tab-login"    onclick="switchTab('login')">Connexion</button>
-      <button class="auth-tab"        id="tab-register" onclick="switchTab('register')">S'inscrire</button>
-    </div>
-
-    <div class="auth-body" id="auth-body">
-
-      <!-- ── CONNEXION ── -->
-      <div class="auth-form active" id="form-login">
-
-        <label class="f-label">Adresse e-mail</label>
-        <input type="email" id="l-email" placeholder="ton@email.fr"
-          autocomplete="email" oninput="clearErr('l')">
-
-        <label class="f-label">Mot de passe</label>
-        <input type="password" id="l-pwd" placeholder="••••••••"
-          autocomplete="current-password"
-          onkeydown="if(event.key==='Enter') doLogin()"
-          oninput="clearErr('l')">
-
-        <div class="forgot-link" onclick="doResetPwd()">Mot de passe oublié ?</div>
-
-        <label class="remember-row" for="l-remember" style="justify-content:flex-start;margin-top:.8rem">
-          <input type="checkbox" id="l-remember">
-          <div class="remember-box"></div>
-          <span class="remember-label">Se souvenir de moi</span>
-        </label>
-
-        <div class="inline-error" id="l-err"></div>
-        <div class="msg-success" id="l-ok" style="display:none"></div>
-
-        <button class="btn auth-submit" id="btn-login" onclick="doLogin()">
+<div class="pending-email" id="pending-email-display"></div>
+<button class="btn-outline u-auth-inline-1" data-fts-handler-1="">← Déconnexion</button>
+</div>
+<!-- ONGLETS -->
+<div class="auth-tabs" id="auth-tabs">
+<button class="auth-tab active" data-fts-handler-2="" id="tab-login">Connexion</button>
+<button class="auth-tab" data-fts-handler-3="" id="tab-register">S'inscrire</button>
+</div>
+<div class="auth-body" id="auth-body">
+<!-- ── CONNEXION ── -->
+<div class="auth-form active" id="form-login">
+<label class="f-label">Adresse e-mail</label>
+<input autocomplete="email" data-fts-handler-4="" id="l-email" placeholder="ton@email.fr" type="email"/>
+<label class="f-label">Mot de passe</label>
+<input autocomplete="current-password" data-fts-handler-5="" data-fts-handler-6="" id="l-pwd" placeholder="••••••••" type="password"/>
+<div class="forgot-link" data-fts-handler-7="">Mot de passe oublié ?</div>
+<label class="remember-row u-auth-inline-2" for="l-remember">
+<input id="l-remember" type="checkbox"/>
+<div class="remember-box"></div>
+<span class="remember-label">Se souvenir de moi</span>
+</label>
+<div class="inline-error" id="l-err"></div>
+<div class="msg-success u-auth-inline-3" id="l-ok"></div>
+<button class="btn auth-submit" data-fts-handler-8="" id="btn-login">
           Se connecter
         </button>
-
-      </div><!-- /form-login -->
-
-      <!-- ── INSCRIPTION ── -->
-      <div class="auth-form" id="form-register">
-
-        <div class="two-cols">
-          <div>
-            <label class="f-label" style="margin-top:0">Prénom</label>
-            <input type="text" id="r-first" placeholder="Léa"
-              autocomplete="given-name" oninput="clearErr('r')">
-          </div>
-          <div>
-            <label class="f-label" style="margin-top:0">Nom</label>
-            <input type="text" id="r-last" placeholder="Martin"
-              autocomplete="family-name" oninput="clearErr('r')">
-          </div>
-        </div>
-
-        <label class="f-label">Adresse e-mail</label>
-        <input type="email" id="r-email" placeholder="ton@email.fr"
-          autocomplete="email" oninput="clearErr('r')">
-
-        <label class="f-label">Mot de passe</label>
-        <input type="password" id="r-pwd" placeholder="8 caractères minimum"
-          autocomplete="new-password"
-          onkeydown="if(event.key==='Enter') doRegister()"
-          oninput="clearErr('r')">
-
-        <label class="f-label">Discipline(s) pratiquée(s) <span style="color:#555;text-transform:none;letter-spacing:0">(optionnel)</span></label>
-        <div class="disc-grid" id="disc-grid"></div>
-        <div id="disc-subcats"></div>
-
-        <!-- Téléphone — NOUVEAU v16 -->
-        <label class="f-label">Téléphone</label>
-        <input type="tel" id="r-tel" placeholder="06 12 34 56 78" autocomplete="tel">
-
-        <!-- Séparateur — NOUVEAU v16 -->
-        <hr class="form-divider">
-
-        <!-- Toggle enfant — NOUVEAU v16 -->
-        <label class="remember-row" for="r-has-enfant"
-          style="justify-content:flex-start;align-items:flex-start;gap:.6rem">
-          <input type="checkbox" id="r-has-enfant" onchange="toggleEnfantSection()">
-          <div class="remember-box" style="margin-top:.1rem;flex-shrink:0"></div>
-          <div>
-            <span class="remember-label">J'inscris un enfant (moins de 15 ans)</span>
-            <p class="enfant-section-label">Ados et adultes créent leur propre compte directement.</p>
-          </div>
-        </label>
-
-        <!-- Section enfant(s) — NOUVEAU v16 -->
-        <div id="enfant-section" style="display:none">
-          <div id="enfants-list"></div>
-          <button type="button" class="btn-outline btn-add-enfant" onclick="addEnfantField()">
+</div><!-- /form-login -->
+<!-- ── INSCRIPTION ── -->
+<div class="auth-form" id="form-register">
+<div class="two-cols">
+<div>
+<label class="f-label u-auth-inline-4">Prénom</label>
+<input autocomplete="given-name" data-fts-handler-9="" id="r-first" placeholder="Léa" type="text"/>
+</div>
+<div>
+<label class="f-label u-auth-inline-5">Nom</label>
+<input autocomplete="family-name" data-fts-handler-10="" id="r-last" placeholder="Martin" type="text"/>
+</div>
+</div>
+<label class="f-label">Adresse e-mail</label>
+<input autocomplete="email" data-fts-handler-11="" id="r-email" placeholder="ton@email.fr" type="email"/>
+<label class="f-label">Mot de passe</label>
+<input autocomplete="new-password" data-fts-handler-12="" data-fts-handler-13="" id="r-pwd" placeholder="8 caractères minimum" type="password"/>
+<label class="f-label">Discipline(s) pratiquée(s) <span class="u-auth-inline-6">(optionnel)</span></label>
+<div class="disc-grid" id="disc-grid"></div>
+<div id="disc-subcats"></div>
+<!-- Téléphone — NOUVEAU v16 -->
+<label class="f-label">Téléphone</label>
+<input autocomplete="tel" id="r-tel" placeholder="06 12 34 56 78" type="tel"/>
+<!-- Séparateur — NOUVEAU v16 -->
+<hr class="form-divider"/>
+<!-- Toggle enfant — NOUVEAU v16 -->
+<label class="remember-row u-auth-inline-7" for="r-has-enfant">
+<input data-fts-handler-14="" id="r-has-enfant" type="checkbox"/>
+<div class="remember-box u-auth-inline-8"></div>
+<div>
+<span class="remember-label">J'inscris un enfant (moins de 15 ans)</span>
+<p class="enfant-section-label">Ados et adultes créent leur propre compte directement.</p>
+</div>
+</label>
+<!-- Section enfant(s) — NOUVEAU v16 -->
+<div class="u-auth-inline-9" id="enfant-section">
+<div id="enfants-list"></div>
+<button class="btn-outline btn-add-enfant" data-fts-handler-15="" type="button">
             + Ajouter un autre enfant
           </button>
-        </div>
-
-        <div class="inline-error" id="r-err"></div>
-
-        <button class="btn auth-submit" id="btn-register" onclick="doRegister()">
+</div>
+<div class="inline-error" id="r-err"></div>
+<button class="btn auth-submit" data-fts-handler-16="" id="btn-register">
           Créer mon compte
         </button>
-
-      </div><!-- /form-register -->
-
-    </div><!-- /auth-body -->
-  </div><!-- /auth-card -->
-
-  <div class="auth-footer">
+</div><!-- /form-register -->
+</div><!-- /auth-body -->
+</div><!-- /auth-card -->
+<div class="auth-footer">
     Fais Ton Show · <a href="index.html">Retour à l'accueil</a>
-  </div>
-
+</div>
 </div><!-- /auth-wrap -->
-
-
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
 <!-- Utilitaires FTS -->
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
-
-
-
 <script src="assets/js/fts-pwa.js?v=16"></script>
 <div class="install-bar" id="install-bar">
-  <p id="install-msg"></p>
-  <button class="btn-install" id="btn-install">Installer</button>
-  <button class="btn-close-bar" id="btn-close-bar">✕</button>
+<p id="install-msg"></p>
+<button class="btn-install" id="btn-install">Installer</button>
+<button class="btn-close-bar" id="btn-close-bar">✕</button>
 </div>
-
-
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/resources.service.js?v=1"></script>

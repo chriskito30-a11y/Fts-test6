@@ -1,12 +1,38 @@
-const CACHE = 'fts-v12-messages-fix';
+const CACHE = 'fts-v13-full-refactor';
 const FILES = [
   './manifest.json',
-  './assets/img/assets/img/fts192.png',
-  './assets/img/assets/img/fts512.png',
+  './index.html',
+  './auth.html',
   './membres.html',
   './forum.html',
   './messages.html',
-  './profs.html'
+  './profs.html',
+  './admin.html',
+  './contenus-admin.html',
+  './calendrier-admin.html',
+  './forum-admin.html',
+  './saison.html',
+  './saison-admin.html',
+  './assets/css/fts.css',
+  './assets/css/fts-chat.css',
+  './assets/css/pages/index.css',
+  './assets/css/pages/auth.css',
+  './assets/css/pages/membres.css',
+  './assets/css/pages/forum.css',
+  './assets/css/pages/messages.css',
+  './assets/css/pages/profs.css',
+  './assets/css/pages/admin.css',
+  './assets/css/pages/contenus-admin.css',
+  './assets/css/pages/calendrier-admin.css',
+  './assets/css/pages/forum-admin.css',
+  './assets/css/pages/saison.css',
+  './assets/css/pages/saison-admin.css',
+  './assets/js/fts-utils.js',
+  './assets/js/fts-firebase.js',
+  './assets/js/fts-pwa.js',
+  './assets/js/fts-chat.js',
+  './assets/img/fts192.png',
+  './assets/img/fts512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -88,8 +114,8 @@ async function handlePushNotification(event){
 
   await self.registration.showNotification(data.title || 'Fais Ton Show', {
     body: data.body || 'Nouvelle notification',
-    icon: './assets/img/assets/img/fts192.png',
-    badge: './assets/img/assets/img/fts192.png',
+    icon: './assets/img/fts192.png',
+    badge: './assets/img/fts192.png',
     vibrate: [200, 100, 200],
     tag,
     // Si une notification identique arrive plusieurs fois, elle est remplacée sans revibrer.

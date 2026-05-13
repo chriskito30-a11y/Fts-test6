@@ -1,0 +1,18 @@
+/* === Styles extraits de forum.html === */
+.notif-target .msg-bubble{outline:2px solid rgba(201,168,76,.75); box-shadow:0 0 0 6px rgba(201,168,76,.14);}
+
+.u-forum-inline-1 { font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase }
+
+.u-forum-inline-2 { display:none }
+
+.u-forum-inline-3 { display:none }
+
+.u-forum-inline-4 { display:none }
+
+.u-forum-inline-5 { display:none }
+
+.forum-error-text { max-width: 420px; text-align: center; color: #888; font-size: .8rem; line-height: 1.6; padding: 0 1rem; }
+.forum-error-link { color: #c9a84c; }
+.conv-av-gold-soft { background: rgba(201,168,76,.18); }
+.conv-av-red-soft { background: rgba(212,32,26,.16); }
+.msg-audio { width: 100%; min-width: 200px; }

@@ -104,7 +104,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 function showBootError(e){
   const box = document.getElementById('auth-loading');
   if(!box) return;
-  box.innerHTML = `<div class="auth-logo">FAIS TON <span>SHOW</span></div><div class="auth-sub">Erreur chargement forum</div><p style="max-width:420px;text-align:center;color:#888;font-size:.8rem;line-height:1.6;padding:0 1rem">${FTS.esc(e && e.message ? e.message : String(e))}<br><br><a href="membres.html" style="color:#c9a84c">Retour membres</a></p>`;
+  box.innerHTML = `<div class="auth-logo">FAIS TON <span>SHOW</span></div><div class="auth-sub">Erreur chargement forum</div><p class="forum-error-text">${FTS.esc(e && e.message ? e.message : String(e))}<br><br><a href="membres.html" class="forum-error-link">Retour membres</a></p>`;
 }
 
 async function loadUserData(){
@@ -206,23 +206,23 @@ function renderForumList(q=''){
     if(item.type === 'info') return `<div class="conv-empty"><span class="conv-empty-icon">⏳</span><p>${esc(item.desc)}</p></div>`;
     const open = openCats[item.id] || term;
     return `<div class="forum-category-group${open?' open':''}" id="grp-${esc(item.id)}">
-      <div class="conv-item" onclick="toggleCategory('${esc(item.id)}')">
-        <div class="conv-av" style="background:rgba(201,168,76,.18)">${item.icon}</div>
+      <div class="conv-item" data-fts-click="toggleCategory('${esc(item.id)}')">
+        <div class="conv-av conv-av-gold-soft">${item.icon}</div>
         <div class="conv-body">
           <div class="conv-row1"><div class="conv-name">${esc(item.name)}</div><div class="forum-chevron">›</div></div>
           <div class="conv-row2"><div class="conv-preview">${esc(item.desc)}</div></div>
         </div>
       </div>
       <div class="forum-subchannels">
-        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" onclick="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span></div>`).join('')}
+        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span></div>`).join('')}
       </div>
     </div>`;
   }).join('');
 }
 
 function renderChannelBubble(ch){
-  return `<div class="conv-item${ch.id===currentChannel?' active':''}" onclick="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')">
-    <div class="conv-av" style="background:rgba(212,32,26,.16)">${ch.icon}</div>
+  return `<div class="conv-item${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')">
+    <div class="conv-av conv-av-red-soft">${ch.icon}</div>
     <div class="conv-body">
       <div class="conv-row1"><div class="conv-name">${esc(ch.name)}</div></div>
       <div class="conv-row2"><div class="conv-preview">${esc(ch.preview || ch.desc || '')}</div></div>
@@ -286,7 +286,7 @@ function addForumMsg(m, key){
   const body = isMedia ? renderMedia(m.text.slice(7)) : esc(m.text || '').replace(/\n/g,'<br>');
   div.innerHTML = `${!own ? `<div class="msg-sender">${esc(m.name || 'Membre')}</div>` : ''}
     <div class="msg-bubble">${body}<div class="msg-foot"><span class="msg-time">${FTSChat.fmtFull(m.ts)}</span>${own ? '<span class="msg-check">✓✓</span>' : ''}</div></div>
-    ${adminMode ? `<button class="btn-del-msg" onclick="deleteMsg('${key}')">Supprimer</button>` : ''}`;
+    ${adminMode ? `<button class="btn-del-msg" data-fts-click="deleteMsg('${key}')">Supprimer</button>` : ''}`;
   wrap.appendChild(div); FTSChat.scrollBottom();
 }
 
@@ -318,9 +318,9 @@ function renderMedia(url){
   const isVideo = (url.includes('/video/upload/') && !['mp3','wav','ogg','aac','m4a'].includes(ext)) || ['mp4','mov','webm'].includes(ext);
   const isAudio = ['mp3','wav','ogg','aac','m4a'].includes(ext);
   const isPdf = ext === 'pdf';
-  if(isImg) return `<img class="msg-img" src="${esc(url)}" onclick="window.open('${esc(url)}')">`;
+  if(isImg) return `<img class="msg-img" src="${esc(url)}" data-fts-click="window.open('${esc(url)}')">`;
   if(isVideo) return `<video class="msg-video" src="${esc(url)}" controls playsinline></video>`;
-  if(isAudio) return `<audio controls preload="none" style="width:100%;min-width:200px"><source src="${esc(url)}"></audio>`;
+  if(isAudio) return `<audio class="msg-audio" controls preload="none"><source src="${esc(url)}"></audio>`;
   if(isPdf) return `<a class="msg-pdf" href="${esc(url)}" target="_blank">📄 Ouvrir le PDF</a>`;
   return `<a class="msg-pdf" href="${esc(url)}" target="_blank">📎 Fichier joint</a>`;
 }
@@ -438,3 +438,25 @@ function notifyChannel(channel, body, msgId){
   // Copie forcée admins : les admins reçoivent tout, même hors catégorie/sous-catégorie.
   notifyAdmins(payload, 'admin-forum-' + channel + '-' + (msgId || Date.now()));
 }
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:forum.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "toggleAdminMode()"}, {"selector": "[data-fts-handler-2]", "event": "input", "code": "renderForumList(this.value)"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "toggleNotifications()"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "exitAdmin()"}, {"selector": "[data-fts-handler-5]", "event": "click", "code": "closeChat()"}, {"selector": "[data-fts-handler-6]", "event": "change", "code": "uploadMedia(this.files[0])"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "document.getElementById('file-input').click()"}, {"selector": "[data-fts-handler-8]", "event": "keydown", "code": "handleKey(event)"}, {"selector": "[data-fts-handler-9]", "event": "input", "code": "autoResize(this)"}, {"selector": "[data-fts-handler-10]", "event": "click", "code": "sendMessage()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */

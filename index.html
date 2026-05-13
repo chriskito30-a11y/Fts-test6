@@ -1,295 +1,56 @@
 <!DOCTYPE html>
+
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Fais Ton Show — Rejoins-nous</title>
-<meta name="description" content="Fais Ton Show — École des arts de la scène. Théâtre, danse, musique, chant, comédie musicale.">
-<link rel="manifest" href="/manifest.json">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
-
+<meta content="Fais Ton Show — École des arts de la scène. Théâtre, danse, musique, chant, comédie musicale." name="description"/>
+<link href="/manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&amp;display=swap" rel="stylesheet"/>
 <!-- Design system partagé -->
-<link rel="stylesheet" href="assets/css/fts.css">
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/index.css?v=1" rel="stylesheet"/>
 
 <!-- Styles spécifiques à cette page -->
-<style>
-/* Layout centré vertical (spécifique à l'accueil) */
-html, body { height: 100%; }
 
-.wrapper {
-  position: relative;
-  z-index: 1;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 1.5rem;
-}
-
-/* Header d'accueil */
-.site-header {
-  text-align: center;
-  margin-bottom: 2.5rem;
-  animation: fadeUp .6s ease both;
-}
-
-.site-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(3rem, 10vw, 5.5rem);
-  letter-spacing: .04em;
-  color: var(--white);
-  line-height: .95;
-}
-
-.site-title span { color: var(--red); }
-
-.site-slogan {
-  font-size: .85rem;
-  color: var(--muted);
-  margin-top: .7rem;
-}
-
-.header-link {
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  margin-top: 1rem;
-  font-size: .75rem;
-  padding: .4rem .9rem;
-  border-radius: 2px;
-  text-decoration: none;
-  transition: all .2s;
-}
-
-.header-link-gold {
-  color: var(--gold);
-  border: 1px solid rgba(201,168,76,.3);
-}
-
-.header-link-gold:hover { background: rgba(201,168,76,.08); }
-
-.header-link-muted {
-  color: var(--muted);
-  border: 1px solid rgba(255,255,255,.1);
-}
-
-.header-link-muted:hover { background: rgba(255,255,255,.04); color: var(--white); }
-
-/* Carte questionnaire */
-.questionnaire-card {
-  width: 100%;
-  max-width: 480px;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.08);
-  border-radius: var(--r-lg);
-  backdrop-filter: blur(8px);
-  padding: 2rem;
-  animation: fadeUp .6s .1s ease both;
-}
-
-/* Étapes */
-.step-label {
-  font-size: .6rem;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 1rem;
-}
-
-.step-question {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.6rem;
-  letter-spacing: .03em;
-  margin-bottom: .4rem;
-  line-height: 1.1;
-}
-
-.step-desc {
-  font-size: .8rem;
-  color: var(--muted);
-  margin-bottom: 1.4rem;
-}
-
-/* Options de sélection */
-.options { display: flex; flex-direction: column; gap: .6rem; }
-
-.option {
-  display: flex;
-  align-items: center;
-  gap: .9rem;
-  padding: .9rem 1rem;
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.07);
-  border-radius: var(--r-md);
-  cursor: pointer;
-  transition: all .18s;
-  user-select: none;
-}
-
-.option:hover    { background: rgba(212,32,26,.07); border-color: rgba(212,32,26,.3); }
-.option.selected { background: rgba(212,32,26,.1);  border-color: var(--red); }
-
-.opt-icon  { font-size: 1.4rem; line-height: 1; flex-shrink: 0; }
-.opt-title { font-size: .88rem; font-weight: 500; }
-.opt-desc  { font-size: .72rem; color: var(--muted); margin-top: .15rem; }
-
-/* Boutons d'action */
-.step-actions {
-  display: flex;
-  gap: .7rem;
-  margin-top: 1.4rem;
-}
-
-.btn-step-back {
-  padding: .65rem 1rem;
-  background: transparent;
-  border: 1px solid rgba(255,255,255,.1);
-  border-radius: var(--r-sm);
-  color: var(--muted);
-  font-size: .78rem;
-  cursor: pointer;
-  transition: all .2s;
-  font-family: var(--font-body);
-}
-
-.btn-step-back:hover { border-color: rgba(255,255,255,.3); color: var(--white); }
-
-.btn-step-next {
-  flex: 1;
-  padding: .65rem 1.2rem;
-  background: var(--red);
-  border: none;
-  border-radius: var(--r-sm);
-  color: var(--white);
-  font-size: .82rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background .2s;
-  font-family: var(--font-body);
-}
-
-.btn-step-next:disabled { background: rgba(212,32,26,.3); cursor: not-allowed; }
-.btn-step-next:not(:disabled):hover { background: var(--red-dark); }
-
-/* Destination finale */
-.destination { text-align: center; animation: fadeUp .4s ease both; }
-
-.dest-badge {
-  display: inline-block;
-  background: rgba(201,168,76,.1);
-  border: 1px solid rgba(201,168,76,.3);
-  color: var(--gold);
-  font-size: .65rem;
-  letter-spacing: .15em;
-  text-transform: uppercase;
-  padding: .3rem .8rem;
-  border-radius: 2px;
-  margin-bottom: 1.2rem;
-}
-
-.dest-icon   { font-size: 3rem; margin-bottom: .8rem; }
-
-.dest-title  {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 2rem;
-  letter-spacing: .03em;
-  margin-bottom: .5rem;
-}
-
-.dest-desc {
-  font-size: .82rem;
-  color: var(--muted);
-  line-height: 1.6;
-  margin-bottom: 1.2rem;
-}
-
-.dest-details { display: flex; flex-direction: column; gap: .35rem; margin-bottom: 1.5rem; }
-
-.dest-detail {
-  display: flex;
-  justify-content: space-between;
-  font-size: .75rem;
-  padding: .4rem .7rem;
-  background: rgba(255,255,255,.03);
-  border-radius: var(--r-sm);
-}
-
-.dest-detail-key { color: var(--muted); }
-.dest-detail-val { color: var(--white); font-weight: 500; }
-
-.btn-helloasso {
-  display: block;
-  padding: .9rem 1.5rem;
-  background: var(--red);
-  color: var(--white);
-  text-decoration: none;
-  border-radius: var(--r-sm);
-  font-size: .85rem;
-  font-weight: 600;
-  letter-spacing: .03em;
-  text-align: center;
-  transition: background .2s;
-  margin-bottom: .8rem;
-}
-
-.btn-helloasso:hover { background: var(--red-dark); }
-
-/* Erreur */
-.error-wrap { text-align: center; padding: 1.5rem 0; }
-.error-icon { font-size: 2rem; margin-bottom: .6rem; }
-.error-msg  { font-size: .8rem; color: #aa5a5a; line-height: 1.5; }
-</style>
 </head>
-
 <body class="has-noise has-glow">
 <div class="wrapper">
-
-  <header class="site-header">
-    <div class="eyebrow" id="h-eyebrow"></div>
-    <div class="site-title" id="h-title"></div>
-    <div class="site-slogan" id="h-slogan"></div>
-    <a id="h-membres" class="header-link header-link-gold" href="./membres.html">
+<header class="site-header">
+<div class="eyebrow" id="h-eyebrow"></div>
+<div class="site-title" id="h-title"></div>
+<div class="site-slogan" id="h-slogan"></div>
+<a class="header-link header-link-gold" href="./membres.html" id="h-membres">
       🎭 Déjà adhérent·e ? → Accéder à mon espace
     </a>
-    <br>
-    <a class="header-link header-link-muted" href="saison.html">
+<br/>
+<a class="header-link header-link-muted" href="saison.html">
       📅 Découvrir la saison 2026/2027 →
     </a>
-  </header>
-
-  <div class="questionnaire-card" id="card">
-    <div class="loading-wrap" id="loading">
-      <div class="loading-spinner"></div>
-      <div class="loading-text">Chargement en cours…</div>
-    </div>
-  </div>
-
-  <footer class="page-footer" id="footer"></footer>
-
+</header>
+<div class="questionnaire-card" id="card">
+<div class="loading-wrap" id="loading">
+<div class="loading-spinner"></div>
+<div class="loading-text">Chargement en cours…</div>
 </div>
-
+</div>
+<footer class="page-footer" id="footer"></footer>
+</div>
 <!-- Firebase + utilitaires partagés -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
-
-
-
 <!-- PWA partagé -->
 <script src="assets/js/fts-pwa.js"></script>
-
 <!-- Install bar (HTML minimal requis par fts-pwa.js) -->
 <div class="install-bar" id="install-bar">
-  <p id="install-msg"></p>
-  <button class="btn-install" id="btn-install">Installer</button>
-  <button class="btn-close-bar" id="btn-close-bar">✕</button>
+<p id="install-msg"></p>
+<button class="btn-install" id="btn-install">Installer</button>
+<button class="btn-close-bar" id="btn-close-bar">✕</button>
 </div>
-
-
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/resources.service.js?v=1"></script>

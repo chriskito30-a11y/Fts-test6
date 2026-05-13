@@ -221,14 +221,14 @@ function renderStep1() {
     <div class="step-question">${CFG.step1.question}</div>
     <div class="step-desc">${CFG.step1.desc}</div>
     <div class="options" id="s1-opts">
-      <div class="option" data-id="new" onclick="selectStep1(this)">
+      <div class="option" data-id="new" data-fts-click="selectStep1(this)">
         <div class="opt-icon">✨</div>
         <div class="opt-text">
           <div class="opt-title">Je découvre l'association</div>
           <div class="opt-desc">Première fois que j'entends parler de vous</div>
         </div>
       </div>
-      <div class="option" data-id="member" onclick="selectStep1(this)">
+      <div class="option" data-id="member" data-fts-click="selectStep1(this)">
         <div class="opt-icon">🎭</div>
         <div class="opt-text">
           <div class="opt-title">Je suis déjà adhérent·e</div>
@@ -237,7 +237,7 @@ function renderStep1() {
       </div>
     </div>
     <div class="step-actions">
-      <button class="btn-step-next" id="btn1" disabled onclick="goStep2()">Continuer →</button>
+      <button class="btn-step-next" id="btn1" disabled data-fts-click="goStep2()">Continuer →</button>
     </div>`;
 }
 
@@ -257,7 +257,7 @@ function goStep2() {
     <div class="step-desc">${CFG.step2.desc}</div>
     <div class="options" id="s2-opts">
       ${cats.map(c => `
-        <div class="option" data-id="${c.id}" onclick="selectStep2(this)">
+        <div class="option" data-id="${c.id}" data-fts-click="selectStep2(this)">
           <div class="opt-icon">${c.icon}</div>
           <div class="opt-text">
             <div class="opt-title">${c.title}</div>
@@ -266,8 +266,8 @@ function goStep2() {
         </div>`).join('')}
     </div>
     <div class="step-actions">
-      <button class="btn-step-back" onclick="renderStep1()">← Retour</button>
-      <button class="btn-step-next" id="btn2" disabled onclick="goStep3()">Continuer →</button>
+      <button class="btn-step-back" data-fts-click="renderStep1()">← Retour</button>
+      <button class="btn-step-next" id="btn2" disabled data-fts-click="goStep3()">Continuer →</button>
     </div>`;
 }
 
@@ -295,7 +295,7 @@ function goStep3() {
     <div class="step-desc">${q3.desc}</div>
     <div class="options" id="s3-opts">
       ${q3.options.map(o => `
-        <div class="option" data-id="${o.id}" onclick="selectStep3(this)">
+        <div class="option" data-id="${o.id}" data-fts-click="selectStep3(this)">
           <div class="opt-icon">${o.icon}</div>
           <div class="opt-text">
             <div class="opt-title">${o.title}</div>
@@ -304,8 +304,8 @@ function goStep3() {
         </div>`).join('')}
     </div>
     <div class="step-actions">
-      <button class="btn-step-back" onclick="goStep2()">← Retour</button>
-      <button class="btn-step-next" id="btn3" disabled onclick="showDest()">Voir où s'inscrire →</button>
+      <button class="btn-step-back" data-fts-click="goStep2()">← Retour</button>
+      <button class="btn-step-next" id="btn3" disabled data-fts-click="showDest()">Voir où s'inscrire →</button>
     </div>`;
 }
 
@@ -339,7 +339,7 @@ function showDest() {
       <a href="${opt.link}" class="btn-helloasso" target="_blank" rel="noopener">
         S'inscrire sur HelloAsso →
       </a>
-      <button class="btn-ghost" onclick="restart()">Recommencer depuis le début</button>
+      <button class="btn-ghost" data-fts-click="restart()">Recommencer depuis le début</button>
     </div>`;
 }
 

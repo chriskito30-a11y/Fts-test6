@@ -32,7 +32,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('disc-grid').innerHTML = loadedCategories.map(c =>
     `<div class="pill" data-id="${FTS.esc(c.name)}"
-       onclick="toggleDisc(this,'${FTS.esc(c.name)}')">
+       data-fts-click="toggleDisc(this,'${FTS.esc(c.name)}')">
       ${c.icon || FTS.catIcon(c.name)} ${FTS.esc(c.name)}
     </div>`
   ).join('');
@@ -108,7 +108,7 @@ function updateParentSubcats() {
     html += '<div class="disc-grid">';
     subs.forEach(s => {
       const on = selectedSubcats[cat] && selectedSubcats[cat].has(s) ? 'active' : '';
-      html += '<div class="pill ' + on + '" onclick="toggleParentSubcat(this,' +
+      html += '<div class="pill ' + on + '" data-fts-click="toggleParentSubcat(this,' +
         JSON.stringify(cat) + ',' + JSON.stringify(s) + ')">' + FTS.esc(s) + '</div>';
     });
     html += '</div></div>';
@@ -151,27 +151,27 @@ function addEnfantField() {
     <div class="enfant-header">
       <span class="enfant-title">🎩 Enfant ${idx}</span>
       ${idx > 1
-        ? `<button type="button" class="enfant-remove" onclick="removeEnfant(${idx})">✕ Retirer</button>`
+        ? `<button type="button" class="enfant-remove" data-fts-click="removeEnfant(${idx})">✕ Retirer</button>`
         : ''}
     </div>
     <div class="two-cols">
       <div>
-        <label class="f-label" style="margin-top:0">Prénom</label>
+        <label class="f-label u-mt-0">Prénom</label>
         <input type="text" class="e-first" placeholder="Emma" autocomplete="off">
       </div>
       <div>
-        <label class="f-label" style="margin-top:0">Nom</label>
+        <label class="f-label u-mt-0">Nom</label>
         <input type="text" class="e-last" placeholder="Martin" autocomplete="off">
       </div>
     </div>
     <label class="f-label">Date de naissance</label>
     <input type="date" class="e-dob" max="${new Date().toISOString().split('T')[0]}">
     <label class="f-label">Téléphone
-      <span style="color:#555;text-transform:none;letter-spacing:0">(optionnel)</span>
+      <span class="u-muted-normal">(optionnel)</span>
     </label>
     <input type="tel" class="e-tel" placeholder="06 12 34 56 78" autocomplete="off">
     <label class="f-label">Discipline(s) de l'enfant
-      <span style="color:#555;text-transform:none;letter-spacing:0">(optionnel)</span>
+      <span class="u-muted-normal">(optionnel)</span>
     </label>
     <div class="disc-grid" id="enfant-disc-${idx}"></div>
     <div id="enfant-subcats-${idx}"></div>
@@ -181,7 +181,7 @@ function addEnfantField() {
   // Pills disciplines enfant — mêmes catégories que le compte principal
   document.getElementById('enfant-disc-' + idx).innerHTML = loadedCategories.map(c =>
     `<div class="pill" data-id="${FTS.esc(c.name)}"
-       onclick="toggleEnfantDisc(this,'${FTS.esc(c.name)}',${idx})">
+       data-fts-click="toggleEnfantDisc(this,'${FTS.esc(c.name)}',${idx})">
       ${c.icon || FTS.catIcon(c.name)} ${FTS.esc(c.name)}
     </div>`
   ).join('');
@@ -228,7 +228,7 @@ function updateEnfantSubcats(idx) {
     html += '<div class="disc-grid">';
     subs.forEach(s => {
       const on = enfantSubcatsMap[idx][cat] && enfantSubcatsMap[idx][cat].has(s) ? 'active' : '';
-      html += '<div class="pill ' + on + '" onclick="toggleEnfantSubcat(this,' +
+      html += '<div class="pill ' + on + '" data-fts-click="toggleEnfantSubcat(this,' +
         idx + ',' + JSON.stringify(cat) + ',' + JSON.stringify(s) + ')">' + FTS.esc(s) + '</div>';
     });
     html += '</div></div>';
@@ -451,3 +451,25 @@ function friendlyError(code) {
   };
   return map[code] || 'Une erreur est survenue. Réessaie.';
 }
+
+/* FTS_AUTO_EXTRACTED_HANDLERS:auth.html */
+(function(){
+  'use strict';
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doSignOut()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "switchTab('login')"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "switchTab('register')"}, {"selector": "[data-fts-handler-4]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-5]", "event": "keydown", "code": "if(event.key==='Enter') doLogin()"}, {"selector": "[data-fts-handler-6]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "doResetPwd()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "doLogin()"}, {"selector": "[data-fts-handler-9]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-10]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-11]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-12]", "event": "keydown", "code": "if(event.key==='Enter') doRegister()"}, {"selector": "[data-fts-handler-13]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-14]", "event": "change", "code": "toggleEnfantSection()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "addEnfantField()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "doRegister()"}];
+  function bindExtractedHandlers(){
+    handlers.forEach(function(h){
+      document.querySelectorAll(h.selector).forEach(function(el){
+        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
+        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
+        el.__ftsExtractedHandlers[h.event + h.code] = true;
+        el.addEventListener(h.event, function(event){
+          try { (new Function('event', h.code)).call(el, event); }
+          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
+        });
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
+  else bindExtractedHandlers();
+})();
+/* END_FTS_AUTO_EXTRACTED_HANDLERS */
