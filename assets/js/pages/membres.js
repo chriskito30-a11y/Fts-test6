@@ -142,6 +142,9 @@ function canSeeDocInCategory(doc, cat) {
       document.getElementById('auth-loading').style.display  = 'none';
       document.getElementById('page-content').style.display  = 'block';
 
+      // Guide installation PWA : affiché uniquement sur navigateur mobile, jamais en mode app installée.
+      initPwaInstallCoach();
+
       // Nom d'affichage
       document.getElementById('user-display-name').textContent =
         userProfile.firstName || userProfile.name || user.email;
@@ -941,6 +944,90 @@ if (accountModal) {
 }
 
 
+
+/* ── GUIDE INSTALLATION PWA MOBILE ───────────────────────────── */
+let deferredInstallPrompt = null;
+
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
+
+function isPwaStandaloneMode() {
+  return window.matchMedia('(display-mode: standalone)').matches
+    || window.matchMedia('(display-mode: fullscreen)').matches
+    || window.navigator.standalone === true;
+}
+
+function isMobileViewportOrDevice() {
+  return window.matchMedia('(max-width: 820px)').matches
+    || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+}
+
+function getPwaDeviceType() {
+  const ua = navigator.userAgent || '';
+  if (/iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'android';
+}
+
+function switchPwaTab(type) {
+  const next = type === 'ios' ? 'ios' : 'android';
+  document.querySelectorAll('[data-pwa-tab]').forEach(function(btn) {
+    const active = btn.dataset.pwaTab === next;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  const ios = document.getElementById('pwa-panel-ios');
+  const android = document.getElementById('pwa-panel-android');
+  if (ios) ios.classList.toggle('active', next === 'ios');
+  if (android) android.classList.toggle('active', next === 'android');
+}
+
+function closePwaInstallCoach() {
+  const modal = document.getElementById('pwa-coach');
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('pwa-coach-open');
+  // On ne mémorise que la session : au prochain passage navigateur mobile, le rappel revient.
+  sessionStorage.setItem('fts-pwa-coach-closed-session', '1');
+}
+
+function openPwaInstallCoach() {
+  const modal = document.getElementById('pwa-coach');
+  if (!modal) return;
+  switchPwaTab(getPwaDeviceType());
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('pwa-coach-open');
+}
+
+function initPwaInstallCoach() {
+  if (isPwaStandaloneMode()) return;
+  if (!isMobileViewportOrDevice()) return;
+  if (sessionStorage.getItem('fts-pwa-coach-closed-session') === '1') return;
+
+  // Petit délai volontaire : laisse le dashboard apparaître, puis guide l'installation.
+  setTimeout(openPwaInstallCoach, 650);
+}
+
+async function triggerAndroidInstallPrompt() {
+  if (!deferredInstallPrompt) {
+    switchPwaTab('android');
+    return;
+  }
+  try {
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+  } catch(e) {
+    console.warn('[FTS] Installation PWA Android non déclenchée :', e);
+  } finally {
+    deferredInstallPrompt = null;
+    closePwaInstallCoach();
+  }
+}
+
 /* ── ÉVÉNEMENTS UI SANS JS INLINE ────────────────────────────── */
 function bindMembresUiEvents() {
   const bindClick = (id, handler) => {
@@ -955,8 +1042,22 @@ function bindMembresUiEvents() {
   bindClick('btn-account-pwd', changeAccountPassword);
   bindClick('btn-account-signout', doSignOut);
   bindClick('btn-account-delete', deleteMyAccount);
+  bindClick('pwa-coach-close', closePwaInstallCoach);
+  bindClick('pwa-coach-later', closePwaInstallCoach);
+  bindClick('pwa-install-main', triggerAndroidInstallPrompt);
 
   document.addEventListener('click', function(e) {
+
+    const pwaTab = e.target.closest('[data-pwa-tab]');
+    if (pwaTab) {
+      switchPwaTab(pwaTab.dataset.pwaTab);
+      return;
+    }
+
+    if (e.target && e.target.id === 'pwa-coach') {
+      closePwaInstallCoach();
+      return;
+    }
     const closeAccountBtn = e.target.closest('[data-action="close-account-modal"]');
     if (closeAccountBtn) {
       closeAccountModal();
