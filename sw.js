@@ -1,4 +1,4 @@
-const CACHE = 'fts-v22-pwa-popup-responsive';
+const CACHE = 'fts-v23-pwa-popup-mobile-fit';
 const FILES = [
   './manifest.json',
   './index.html',
