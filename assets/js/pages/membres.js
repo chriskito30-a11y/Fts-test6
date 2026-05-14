@@ -950,22 +950,19 @@ let deferredInstallPrompt = null;
 
 function refreshAndroidInstallButton() {
   const btn = document.getElementById('pwa-install-main');
-  const autoBox = document.getElementById('pwa-android-auto');
-  const manualBox = document.getElementById('pwa-android-manual');
+  const note = document.getElementById('pwa-android-auto-note');
   if (!btn) return;
 
   if (deferredInstallPrompt) {
     btn.disabled = false;
     btn.classList.remove('is-waiting');
     btn.textContent = 'Installer l’application';
-    if (autoBox) autoBox.classList.remove('pwa-coach-hidden');
-    if (manualBox) manualBox.classList.add('pwa-coach-hidden');
+    if (note) note.textContent = 'Ton téléphone propose l’installation automatique. Appuie sur le bouton ci-dessus.';
   } else {
     btn.disabled = true;
     btn.classList.add('is-waiting');
-    btn.textContent = 'Installer l’application';
-    if (autoBox) autoBox.classList.add('pwa-coach-hidden');
-    if (manualBox) manualBox.classList.remove('pwa-coach-hidden');
+    btn.textContent = 'Installation automatique indisponible';
+    if (note) note.textContent = 'Utilise la méthode sûre avec le menu ⋮ de Chrome ci-dessous.';
   }
 }
 
@@ -975,10 +972,17 @@ window.addEventListener('beforeinstallprompt', function(e) {
   refreshAndroidInstallButton();
 });
 
+window.addEventListener('appinstalled', function() {
+  try { localStorage.setItem('fts-pwa-installed', '1'); } catch(e) {}
+  closePwaInstallCoach();
+});
+
 function isPwaStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches
     || window.matchMedia('(display-mode: fullscreen)').matches
-    || window.navigator.standalone === true;
+    || window.matchMedia('(display-mode: minimal-ui)').matches
+    || window.navigator.standalone === true
+    || String(document.referrer || '').startsWith('android-app://');
 }
 
 function isMobileViewportOrDevice() {
@@ -1011,6 +1015,7 @@ function closePwaInstallCoach() {
   if (!modal) return;
   modal.classList.add('hidden');
   modal.setAttribute('aria-hidden', 'true');
+  modal.style.display = 'none';
   document.body.classList.remove('pwa-coach-open');
   // On ne mémorise que la session : au prochain passage navigateur mobile, le rappel revient.
   sessionStorage.setItem('fts-pwa-coach-closed-session', '1');
@@ -1021,6 +1026,7 @@ function openPwaInstallCoach() {
   if (!modal) return;
   switchPwaTab(getPwaDeviceType());
   refreshAndroidInstallButton();
+  modal.style.display = '';
   modal.classList.remove('hidden');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('pwa-coach-open');
