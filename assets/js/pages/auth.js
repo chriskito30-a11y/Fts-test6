@@ -12,6 +12,28 @@
 
 const ADMIN_EMAIL = "contact@faistonshow.fr";
 
+
+/* ── EMAILS AUTOMATIQUES MAKE/BREVO ────────────────────────────
+   Envoi volontairement non bloquant : si Make/Brevo est indisponible,
+   l'action principale continue normalement. */
+const FTS_MAKE_EMAIL_WEBHOOK = "https://hook.eu1.make.com/gvber3n4pomyxy6af5z8rzndxyja9arz";
+function sendFtsEmailAutomation(type, payload) {
+  try {
+    const params = new URLSearchParams({ type });
+    Object.entries(payload || {}).forEach(([key, value]) => {
+      if (value === undefined || value === null) return;
+      params.set(key, Array.isArray(value) ? value.filter(Boolean).join(', ') : String(value));
+    });
+    fetch(FTS_MAKE_EMAIL_WEBHOOK + '?' + params.toString(), {
+      method: 'GET',
+      mode: 'no-cors',
+      keepalive: true,
+    }).catch(() => {});
+  } catch (err) {
+    console.warn('[FTS Email] Automatisation ignorée :', err);
+  }
+}
+
 let db, auth;
 let selectedDisc    = new Set();
 let selectedSubcats  = {};          // { catName: Set<subName> }
@@ -429,6 +451,21 @@ async function doRegister() {
     };
 
     await db.ref('fts_users/' + uid).set(profile);
+
+
+    // Mail admin : nouvelle demande d'inscription (sauf compte admin interne)
+    if (!isAdmin) {
+      const childDiscsForMail = enfants.flatMap(e => Array.isArray(e.disciplines) ? e.disciplines : []);
+      const childSubsForMail  = enfants.flatMap(e => Array.isArray(e.subgroups)   ? e.subgroups   : []);
+      sendFtsEmailAutomation('new_signup', {
+        uid,
+        name: profile.name,
+        email: profile.email,
+        role: profile.role,
+        categories: [...new Set([...selectedDisc, ...childDiscsForMail])].join(', '),
+        subcategories: [...new Set([...parentSubgroups, ...childSubsForMail])].join(', '),
+      });
+    }
 
     // Sync forum — groupe = union parent + enfants
     try {
