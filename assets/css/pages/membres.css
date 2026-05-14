@@ -1310,3 +1310,79 @@ body.pwa-coach-open { overflow: hidden; }
   }
   .pwa-coach-lead { display: none !important; }
 }
+
+/* === FTS v24 — Popup PWA mobile : bottom-sheet scrollable sans hors champ === */
+@media (max-width: 520px) {
+  .pwa-coach-overlay {
+    display: block !important;
+    align-items: initial !important;
+    justify-content: initial !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: .65rem .55rem calc(.65rem + env(safe-area-inset-bottom, 0px)) !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .pwa-coach-modal {
+    width: min(100%, calc(100vw - 1.1rem)) !important;
+    max-width: calc(100vw - 1.1rem) !important;
+    max-height: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: .25rem auto 0 !important;
+    overflow: visible !important;
+    padding: .82rem !important;
+    border-radius: 24px !important;
+    transform: none !important;
+  }
+
+  .pwa-coach-modal h2 {
+    font-size: clamp(1.15rem, 6.2vw, 1.45rem) !important;
+    line-height: 1.02 !important;
+  }
+
+  .pwa-coach-lead {
+    display: block !important;
+    margin: .48rem 0 .58rem !important;
+    font-size: .78rem !important;
+    line-height: 1.32 !important;
+  }
+
+  .pwa-benefits {
+    display: none !important;
+  }
+
+  .pwa-os-switch {
+    position: sticky !important;
+    top: .35rem !important;
+    z-index: 3 !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+  }
+}
+
+@media (max-width: 520px) and (max-height: 760px) {
+  .pwa-coach-overlay {
+    padding-top: .45rem !important;
+    padding-bottom: calc(.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .pwa-coach-modal {
+    margin-top: 0 !important;
+    padding: .72rem !important;
+    border-radius: 22px !important;
+  }
+
+  .pwa-coach-badge,
+  .pwa-coach-lead {
+    display: none !important;
+  }
+
+  .pwa-coach-modal h2 {
+    font-size: clamp(1.05rem, 5.8vw, 1.28rem) !important;
+  }
+
+  .pwa-os-switch {
+    margin: .5rem 0 .5rem !important;
+  }
+}
