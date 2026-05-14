@@ -1,4 +1,4 @@
-const CACHE = 'fts-v17-email-automation-fix';
+const CACHE = 'fts-v19-pwa-install-coach';
 const FILES = [
   './manifest.json',
   './index.html',
