@@ -1105,11 +1105,63 @@ button.profile-pill:hover {
 body.pwa-coach-open { overflow: hidden; }
 
 @media (max-width: 520px) {
-  .pwa-coach-overlay { align-items: flex-end; padding: .7rem; }
-  .pwa-coach-modal { border-radius: 30px 30px 24px 24px; padding: 1rem; max-height: calc(100vh - 1.15rem); }
-  .pwa-coach-hero { align-items: flex-start; gap: .7rem; }
-  .pwa-coach-icon { width: 52px; height: 52px; flex-basis: 52px; border-radius: 19px; font-size: 1.45rem; }
-  .pwa-coach-modal h2 { font-size: clamp(1.55rem, 8vw, 2.2rem); }
-  .pwa-benefits span { font-size: .74rem; padding: .42rem .55rem; }
+  .pwa-coach-overlay {
+    align-items: flex-end;
+    justify-content: center;
+    padding: max(.5rem, env(safe-area-inset-top)) .5rem max(.5rem, env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+
+  .pwa-coach-modal {
+    box-sizing: border-box;
+    width: min(100%, calc(100vw - 1rem));
+    max-width: calc(100vw - 1rem);
+    border-radius: 28px 28px 22px 22px;
+    padding: .92rem;
+    max-height: min(88dvh, calc(100vh - 1rem));
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pwa-coach-modal * { box-sizing: border-box; }
+
+  .pwa-coach-close {
+    top: .72rem;
+    right: .72rem;
+    width: 34px;
+    height: 34px;
+  }
+
+  .pwa-coach-hero { align-items: flex-start; gap: .62rem; padding-right: 2rem; }
+  .pwa-coach-icon { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 18px; font-size: 1.35rem; }
+  .pwa-coach-badge { font-size: .58rem; padding: .24rem .5rem; margin-bottom: .25rem; }
+  .pwa-coach-modal h2 { font-size: clamp(1.34rem, 7vw, 1.9rem); line-height: 1; }
+  .pwa-coach-lead { font-size: .86rem; line-height: 1.38; margin: .72rem 0 .78rem; }
+  .pwa-benefits { gap: .35rem; margin-bottom: .75rem; }
+  .pwa-benefits span { font-size: .68rem; padding: .34rem .46rem; }
+  .pwa-os-switch { gap: .35rem; padding: .32rem; border-radius: 18px; margin-bottom: .75rem; }
+  .pwa-os-tab { padding: .66rem .42rem; border-radius: 14px; font-size: .86rem; }
+  .pwa-steps.active { gap: .42rem; }
+  .pwa-step-card { grid-template-columns: 28px 1fr; gap: .52rem; padding: .58rem .62rem; border-radius: 16px; }
+  .pwa-step-number { width: 28px; height: 28px; border-radius: 10px; font-size: .82rem; }
+  .pwa-step-card p { font-size: .82rem; line-height: 1.28; }
+  .pwa-android-auto,
+  .pwa-manual-box { padding: .66rem; border-radius: 16px; }
+  .pwa-mini-title { margin-bottom: .45rem; font-size: .9rem; }
+  .pwa-install-main { padding: .78rem .8rem; border-radius: 15px; font-size: .96rem; }
+  .pwa-note { margin-top: .52rem; padding: .58rem .62rem; border-radius: 15px; font-size: .72rem; line-height: 1.28; }
+  .pwa-coach-actions { margin-top: .7rem; }
+  .pwa-secondary { padding: .6rem .9rem; font-size: .84rem; }
+}
+
+@media (max-width: 370px) {
+  .pwa-coach-overlay { padding-inline: .38rem; }
+  .pwa-coach-modal { width: calc(100vw - .76rem); max-width: calc(100vw - .76rem); padding: .78rem; border-radius: 24px 24px 20px 20px; }
+  .pwa-coach-icon { display: none; }
+  .pwa-coach-hero { padding-right: 2rem; }
+  .pwa-benefits { display: none; }
+  .pwa-coach-modal h2 { font-size: clamp(1.18rem, 7.2vw, 1.58rem); }
+  .pwa-os-tab { font-size: .8rem; padding: .58rem .32rem; }
 }
 
