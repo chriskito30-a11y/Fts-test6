@@ -1165,3 +1165,148 @@ body.pwa-coach-open { overflow: hidden; }
   .pwa-os-tab { font-size: .8rem; padding: .58rem .32rem; }
 }
 
+
+
+/* === FTS v23 — Popup installation PWA : correction petits écrans Android/iPhone === */
+@media (max-width: 520px) {
+  .pwa-coach-overlay {
+    align-items: center !important;
+    justify-content: center !important;
+    padding: .55rem !important;
+    overflow: hidden !important;
+  }
+
+  .pwa-coach-modal {
+    width: calc(100vw - 1.1rem) !important;
+    max-width: calc(100vw - 1.1rem) !important;
+    max-height: 74svh !important;
+    max-height: min(74svh, calc(100dvh - 1.2rem)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: .82rem !important;
+    border-radius: 24px !important;
+  }
+
+  .pwa-coach-modal::before { opacity: .45; }
+
+  .pwa-coach-close {
+    top: .55rem !important;
+    right: .55rem !important;
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .pwa-coach-hero {
+    display: block !important;
+    padding-right: 2.1rem !important;
+  }
+
+  .pwa-coach-icon,
+  .pwa-benefits {
+    display: none !important;
+  }
+
+  .pwa-coach-badge {
+    font-size: .54rem !important;
+    padding: .22rem .48rem !important;
+    margin-bottom: .34rem !important;
+  }
+
+  .pwa-coach-modal h2 {
+    font-size: clamp(1.18rem, 6.6vw, 1.48rem) !important;
+    line-height: .98 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .pwa-coach-lead {
+    margin: .55rem 0 .62rem !important;
+    font-size: .78rem !important;
+    line-height: 1.34 !important;
+  }
+
+  .pwa-os-switch {
+    margin-bottom: .62rem !important;
+    padding: .25rem !important;
+    gap: .25rem !important;
+    border-radius: 16px !important;
+  }
+
+  .pwa-os-tab {
+    padding: .55rem .28rem !important;
+    border-radius: 13px !important;
+    font-size: .78rem !important;
+    min-width: 0 !important;
+  }
+
+  .pwa-steps.active {
+    gap: .38rem !important;
+  }
+
+  .pwa-android-auto,
+  .pwa-manual-box {
+    padding: .58rem !important;
+    border-radius: 16px !important;
+  }
+
+  .pwa-mini-title {
+    font-size: .82rem !important;
+    margin: 0 0 .4rem !important;
+  }
+
+  .pwa-install-main {
+    padding: .66rem .72rem !important;
+    border-radius: 14px !important;
+    font-size: .84rem !important;
+    letter-spacing: .025em !important;
+  }
+
+  .pwa-step-card {
+    grid-template-columns: 26px 1fr !important;
+    gap: .46rem !important;
+    padding: .5rem .54rem !important;
+    border-radius: 14px !important;
+  }
+
+  .pwa-step-number {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 9px !important;
+    font-size: .74rem !important;
+  }
+
+  .pwa-step-card p {
+    font-size: .76rem !important;
+    line-height: 1.22 !important;
+  }
+
+  .pwa-note {
+    margin-top: .42rem !important;
+    padding: .5rem .55rem !important;
+    border-radius: 13px !important;
+    font-size: .68rem !important;
+    line-height: 1.22 !important;
+  }
+
+  .pwa-manual-box .pwa-note {
+    display: none !important;
+  }
+
+  .pwa-coach-actions {
+    margin-top: .5rem !important;
+    padding-bottom: .1rem !important;
+  }
+
+  .pwa-secondary {
+    padding: .52rem .82rem !important;
+    font-size: .78rem !important;
+  }
+}
+
+@media (max-height: 720px) and (max-width: 520px) {
+  .pwa-coach-modal {
+    max-height: 68svh !important;
+    max-height: min(68svh, calc(100dvh - 1rem)) !important;
+  }
+  .pwa-coach-lead { display: none !important; }
+}
