@@ -245,41 +245,66 @@
 <div class="pwa-coach-overlay hidden" id="pwa-coach" aria-hidden="true">
   <div class="pwa-coach-modal" role="dialog" aria-modal="true" aria-labelledby="pwa-coach-title">
     <button type="button" class="pwa-coach-close" id="pwa-coach-close" aria-label="Fermer le guide d’installation">✕</button>
-    <div class="pwa-coach-badge">Application mobile</div>
-    <h2 id="pwa-coach-title">Installe Fais Ton Show</h2>
-    <p class="pwa-coach-lead">Pour recevoir les notifications et garder toutes les infos importantes à portée de clic.</p>
+
+    <div class="pwa-coach-hero">
+      <div class="pwa-coach-icon" aria-hidden="true">📲</div>
+      <div>
+        <div class="pwa-coach-badge">Application Fais Ton Show</div>
+        <h2 id="pwa-coach-title">Installe l’app sur ton téléphone</h2>
+      </div>
+    </div>
+
+    <p class="pwa-coach-lead">Ajoute Fais Ton Show à ton écran d’accueil pour retrouver les infos importantes, les documents et les notifications en un clic.</p>
+
+    <div class="pwa-benefits" aria-label="Avantages de l’installation">
+      <span>🔔 Notifications</span>
+      <span>⚡ Accès rapide</span>
+      <span>📄 Documents</span>
+    </div>
 
     <div class="pwa-os-switch" role="tablist" aria-label="Choisir le téléphone">
-      <button type="button" class="pwa-os-tab active" id="pwa-tab-ios" data-pwa-tab="ios" role="tab" aria-selected="true"> iPhone</button>
-      <button type="button" class="pwa-os-tab" id="pwa-tab-android" data-pwa-tab="android" role="tab" aria-selected="false">🤖 Android</button>
+      <button type="button" class="pwa-os-tab active" id="pwa-tab-ios" data-pwa-tab="ios" role="tab" aria-selected="true"><span aria-hidden="true"></span> iPhone</button>
+      <button type="button" class="pwa-os-tab" id="pwa-tab-android" data-pwa-tab="android" role="tab" aria-selected="false"><span aria-hidden="true">🤖</span> Android</button>
     </div>
 
     <div class="pwa-steps active" id="pwa-panel-ios" role="tabpanel" aria-labelledby="pwa-tab-ios">
-      <ol>
-        <li>Appuie sur le bouton <strong>Partager</strong> <span aria-hidden="true">⬆️</span> en bas de Safari.</li>
-        <li>Choisis <strong>Sur l’écran d’accueil</strong>.</li>
-        <li>Appuie sur <strong>Ajouter</strong>.</li>
-        <li>Ouvre ensuite l’app depuis ton écran d’accueil.</li>
-      </ol>
-      <p class="pwa-note">Sur iPhone, l’installation se fait depuis Safari. C’est normal si aucun bouton automatique n’apparaît.</p>
+      <div class="pwa-step-card">
+        <span class="pwa-step-number">1</span>
+        <p>Dans Safari, appuie sur <strong>Partager</strong> <span aria-hidden="true">⬆️</span>.</p>
+      </div>
+      <div class="pwa-step-card">
+        <span class="pwa-step-number">2</span>
+        <p>Choisis <strong>Sur l’écran d’accueil</strong>.</p>
+      </div>
+      <div class="pwa-step-card">
+        <span class="pwa-step-number">3</span>
+        <p>Appuie sur <strong>Ajouter</strong>, puis ouvre l’app depuis l’icône Fais Ton Show.</p>
+      </div>
+      <p class="pwa-note">Sur iPhone, c’est normal : l’installation passe par le bouton Partager de Safari.</p>
     </div>
 
     <div class="pwa-steps" id="pwa-panel-android" role="tabpanel" aria-labelledby="pwa-tab-android">
       <div class="pwa-android-auto" id="pwa-android-auto">
         <p class="pwa-mini-title">Installation rapide</p>
         <button type="button" class="pwa-install-main is-waiting" id="pwa-install-main" disabled>Installation automatique indisponible</button>
-        <p class="pwa-note" id="pwa-android-auto-note">Si ton téléphone le permet, le bouton s’activera automatiquement.</p>
+        <p class="pwa-note" id="pwa-android-auto-note">Si Chrome propose l’installation automatique, ce bouton s’activera.</p>
       </div>
       <div class="pwa-manual-box">
         <p class="pwa-mini-title">Méthode sûre sur Android</p>
-        <ol>
-          <li>Ouvre cette page avec <strong>Chrome</strong>.</li>
-          <li>Appuie sur le menu <strong>⋮</strong> en haut à droite.</li>
-          <li>Choisis <strong>Installer l’application</strong> ou <strong>Ajouter à l’écran d’accueil</strong>.</li>
-          <li>Ouvre ensuite Fais Ton Show depuis ton écran d’accueil.</li>
-        </ol>
+        <div class="pwa-step-card">
+          <span class="pwa-step-number">1</span>
+          <p>Ouvre cette page avec <strong>Chrome</strong>.</p>
+        </div>
+        <div class="pwa-step-card">
+          <span class="pwa-step-number">2</span>
+          <p>Appuie sur le menu <strong>⋮</strong> en haut à droite.</p>
+        </div>
+        <div class="pwa-step-card">
+          <span class="pwa-step-number">3</span>
+          <p>Choisis <strong>Installer l’application</strong> ou <strong>Ajouter à l’écran d’accueil</strong>.</p>
+        </div>
       </div>
-      <p class="pwa-note">Selon Android, Chrome affiche parfois son propre bouton. Sinon, la méthode avec le menu ⋮ fonctionne.</p>
+      <p class="pwa-note">Selon le téléphone, Chrome peut afficher son propre bouton. Sinon, le menu ⋮ fonctionne.</p>
     </div>
 
     <div class="pwa-coach-actions">

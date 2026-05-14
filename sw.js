@@ -1,4 +1,4 @@
-const CACHE = 'fts-v19-pwa-install-coach';
+const CACHE = 'fts-v21-pwa-install-coach-ui';
 const FILES = [
   './manifest.json',
   './index.html',
