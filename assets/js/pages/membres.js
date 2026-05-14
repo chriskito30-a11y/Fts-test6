@@ -168,6 +168,7 @@ function canSeeDocInCategory(doc, cat) {
       // Chargement des données
       loadEvts();
       loadAnnonce();
+      loadRecentDocs();
       handleResourceDeepLink();
 
     } catch(e) {
@@ -405,6 +406,100 @@ async function loadDocs(name, idx) {
   showDocs(allowedDocs, idx);
 }
 
+
+/* ── DOCUMENTS RÉCENTS DU DASHBOARD ─────────────────────────────
+   Source conservée : fts_ressources, avec le même filtrage que les modales.
+   Objectif : rendre les derniers documents visibles sans changer la logique. */
+async function loadRecentDocs() {
+  const el = document.getElementById('recent-docs');
+  if (!el) return;
+
+  try {
+    const snap = await db.ref('fts_ressources').once('value');
+    const rows = [];
+
+    if (snap.exists()) {
+      snap.forEach(child => {
+        const d = child.val() || {};
+        if (d.active === false || d.status === 'inactive') return;
+
+        const catName = d.cat || d.category || '';
+        const idx = C.categories.findIndex(c => FTS.norm(c.name) === FTS.norm(catName));
+        if (idx < 0) return;
+
+        const cat = C.categories[idx];
+        const item = {
+          cat: catName,
+          catIndex: idx,
+          sub: d.subcat || d.subcategory || '',
+          name: d.name || d.nom || d.title || d.titre || '',
+          url: d.url || d.content || d.contenu || d.link || d.lien || '',
+          type: (d.type || 'doc').toLowerCase().trim(),
+          key: child.key,
+          ts: d.createdAt || d.updatedAt || 0,
+        };
+
+        if (!item.name) return;
+        if (!canSeeDocInCategory(item, cat)) return;
+        rows.push(item);
+      });
+    }
+
+    const docs = rows
+      .sort((a, b) => Number(b.ts || 0) - Number(a.ts || 0))
+      .slice(0, 4);
+
+    renderRecentDocs(docs);
+  } catch(e) {
+    console.warn('[FTS] Documents récents indisponibles :', e);
+    el.innerHTML = '<div class="list-loading">Impossible de charger les documents.</div>';
+  }
+}
+
+function renderRecentDocs(docs) {
+  const el = document.getElementById('recent-docs');
+  if (!el) return;
+
+  if (!docs.length) {
+    el.innerHTML = `
+      <div class="empty-state-card">
+        <strong>Aucun document pour le moment.</strong>
+        <span>Les ressources publiées par les professeurs apparaîtront ici automatiquement.</span>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = docs.map(d => {
+    const t = (d.type || 'doc').toLowerCase().trim();
+    const icon = ICONS[t] || '📄';
+    const label = d.sub ? `${d.cat} · ${d.sub}` : d.cat;
+    return `
+      <button type="button" class="smart-item dashboard-resource-item"
+        data-cat-index="${d.catIndex}"
+        data-resource-key="${FTS.esc(d.key || '')}"
+        data-resource-cat="${FTS.esc(d.cat || '')}"
+        data-resource-sub="${FTS.esc(d.sub || '')}">
+        <span class="smart-item-icon">${icon}</span>
+        <span class="smart-item-main">
+          <strong>${FTS.esc(d.name)}</strong>
+          <small>${FTS.esc(label)}</small>
+        </span>
+        <span class="smart-item-action">Ouvrir</span>
+      </button>`;
+  }).join('');
+}
+
+function openDashboardResource(btn) {
+  const idx = Number(btn.dataset.catIndex);
+  if (!Number.isInteger(idx)) return;
+  pendingResourceOpen = {
+    resource: btn.dataset.resourceKey || '',
+    catName: btn.dataset.resourceCat || (C.categories[idx] && C.categories[idx].name) || '',
+    subcat: btn.dataset.resourceSub || ''
+  };
+  openCat(idx);
+}
+
 /* ── AFFICHAGE DOCUMENTS ─────────────────────────────────────── */
 function showDocs(docs, idx) {
   const el = document.getElementById('dc-' + idx);
@@ -534,7 +629,11 @@ async function loadAnnonce() {
       ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
       ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
     `;
-    el.style.display = '';
+    const panel = document.getElementById('priority-panel');
+    if (panel) {
+      panel.classList.remove('u-initial-hidden');
+      panel.style.display = 'block';
+    }
   } catch(e) {
     console.warn('[FTS] Annonce Firebase indisponible :', e);
   }
@@ -867,6 +966,12 @@ function bindMembresUiEvents() {
     const closeResourceBtn = e.target.closest('[data-action="close-resource-modal"]');
     if (closeResourceBtn) {
       closeMo();
+      return;
+    }
+
+    const dashResourceBtn = e.target.closest('.dashboard-resource-item[data-cat-index]');
+    if (dashResourceBtn) {
+      openDashboardResource(dashResourceBtn);
       return;
     }
 
