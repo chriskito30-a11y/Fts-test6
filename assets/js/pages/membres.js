@@ -950,19 +950,22 @@ let deferredInstallPrompt = null;
 
 function refreshAndroidInstallButton() {
   const btn = document.getElementById('pwa-install-main');
-  const note = document.getElementById('pwa-android-auto-note');
+  const autoBox = document.getElementById('pwa-android-auto');
+  const manualBox = document.getElementById('pwa-android-manual');
   if (!btn) return;
 
   if (deferredInstallPrompt) {
     btn.disabled = false;
     btn.classList.remove('is-waiting');
     btn.textContent = 'Installer l’application';
-    if (note) note.textContent = 'Ton téléphone propose l’installation automatique. Appuie sur le bouton ci-dessus.';
+    if (autoBox) autoBox.classList.remove('pwa-coach-hidden');
+    if (manualBox) manualBox.classList.add('pwa-coach-hidden');
   } else {
     btn.disabled = true;
     btn.classList.add('is-waiting');
-    btn.textContent = 'Installation automatique indisponible';
-    if (note) note.textContent = 'Utilise la méthode sûre avec le menu ⋮ de Chrome ci-dessous.';
+    btn.textContent = 'Installer l’application';
+    if (autoBox) autoBox.classList.add('pwa-coach-hidden');
+    if (manualBox) manualBox.classList.remove('pwa-coach-hidden');
   }
 }
 
