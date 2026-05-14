@@ -1386,3 +1386,77 @@ body.pwa-coach-open { overflow: hidden; }
     margin: .5rem 0 .5rem !important;
   }
 }
+
+
+/* === FTS v25 — Popup PWA : densité Chrome Android / tablettes sans changer le style ===
+   Problème réel observé : Chrome Android peut avoir un viewport CSS large (>520px)
+   mais une hauteur utile faible à cause des barres navigateur/système. Les anciennes
+   règles mobile ne s'appliquaient donc pas toujours. */
+@media (hover: none) and (pointer: coarse) {
+  .pwa-coach-overlay:not(.hidden) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: max(.45rem, env(safe-area-inset-top, 0px)) .55rem max(.45rem, env(safe-area-inset-bottom, 0px)) !important;
+    overflow: hidden !important;
+  }
+
+  .pwa-coach-modal {
+    width: min(94vw, 500px) !important;
+    max-width: min(94vw, 500px) !important;
+    max-height: calc(100dvh - 1rem) !important;
+    max-height: calc(100svh - 1rem) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    margin: 0 auto !important;
+    padding: .9rem !important;
+    border-radius: 26px !important;
+    transform: none !important;
+    overscroll-behavior: contain;
+  }
+
+  .pwa-coach-modal * { box-sizing: border-box; }
+  .pwa-coach-close { top: .6rem !important; right: .6rem !important; width: 34px !important; height: 34px !important; }
+  .pwa-coach-hero { gap: .62rem !important; padding-right: 2.15rem !important; }
+  .pwa-coach-icon { width: 48px !important; height: 48px !important; flex-basis: 48px !important; border-radius: 18px !important; font-size: 1.28rem !important; }
+  .pwa-coach-badge { font-size: .56rem !important; padding: .22rem .5rem !important; margin-bottom: .28rem !important; }
+  .pwa-coach-modal h2 { font-size: clamp(1.25rem, 4.8vw, 1.75rem) !important; line-height: .98 !important; }
+  .pwa-coach-lead { margin: .55rem 0 .65rem !important; font-size: .8rem !important; line-height: 1.32 !important; }
+  .pwa-benefits { gap: .34rem !important; margin-bottom: .66rem !important; }
+  .pwa-benefits span { font-size: .68rem !important; padding: .34rem .48rem !important; }
+  .pwa-os-switch { position: static !important; margin-bottom: .62rem !important; padding: .28rem !important; gap: .28rem !important; border-radius: 17px !important; }
+  .pwa-os-tab { padding: .58rem .42rem !important; border-radius: 14px !important; font-size: .82rem !important; }
+  .pwa-steps.active { gap: .42rem !important; }
+  .pwa-android-auto, .pwa-manual-box { padding: .62rem !important; border-radius: 16px !important; }
+  .pwa-mini-title { margin: 0 0 .42rem !important; font-size: .88rem !important; }
+  .pwa-install-main { padding: .72rem .78rem !important; border-radius: 14px !important; font-size: .88rem !important; }
+  .pwa-step-card { grid-template-columns: 28px 1fr !important; gap: .48rem !important; padding: .52rem .58rem !important; border-radius: 14px !important; }
+  .pwa-step-number { width: 28px !important; height: 28px !important; border-radius: 10px !important; font-size: .78rem !important; }
+  .pwa-step-card p { font-size: .78rem !important; line-height: 1.24 !important; }
+  .pwa-note { margin-top: .42rem !important; padding: .52rem .58rem !important; border-radius: 13px !important; font-size: .7rem !important; line-height: 1.23 !important; }
+  .pwa-coach-actions { margin-top: .58rem !important; }
+  .pwa-secondary { padding: .54rem .86rem !important; font-size: .78rem !important; }
+}
+
+/* Très petites hauteurs Chrome Android : on garde le style, mais on retire le décor non essentiel. */
+@media (hover: none) and (pointer: coarse) and (max-height: 760px) {
+  .pwa-coach-modal { max-height: calc(100dvh - .7rem) !important; max-height: calc(100svh - .7rem) !important; padding: .72rem !important; border-radius: 22px !important; }
+  .pwa-coach-icon, .pwa-benefits { display: none !important; }
+  .pwa-coach-hero { display: block !important; padding-right: 2.1rem !important; }
+  .pwa-coach-badge { display: none !important; }
+  .pwa-coach-modal h2 { font-size: clamp(1.04rem, 4.5vw, 1.36rem) !important; line-height: 1.02 !important; }
+  .pwa-coach-lead { display: none !important; }
+  .pwa-os-switch { margin: .5rem 0 !important; }
+  .pwa-android-auto, .pwa-manual-box { padding: .54rem !important; }
+  .pwa-mini-title { font-size: .8rem !important; margin-bottom: .34rem !important; }
+  .pwa-install-main { padding: .62rem .7rem !important; font-size: .78rem !important; }
+  .pwa-step-card { padding: .46rem .52rem !important; }
+  .pwa-step-card p { font-size: .72rem !important; line-height: 1.2 !important; }
+  .pwa-note { display: none !important; }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-width: 390px) {
+  .pwa-coach-modal { width: calc(100vw - .8rem) !important; max-width: calc(100vw - .8rem) !important; padding: .68rem !important; }
+  .pwa-os-tab { font-size: .76rem !important; padding: .52rem .24rem !important; }
+}
