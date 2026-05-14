@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v18-dm-uid-privacy';
+  const RELOAD_KEY = 'fts-sw-reload-v19-dm-url-recipient-guard';
   let refreshing = false;
 
 
