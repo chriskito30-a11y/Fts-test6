@@ -265,13 +265,21 @@
     </div>
 
     <div class="pwa-steps" id="pwa-panel-android" role="tabpanel" aria-labelledby="pwa-tab-android">
-      <ol>
-        <li>Appuie sur <strong>Installer l’application</strong>.</li>
-        <li>Valide l’installation proposée par ton téléphone.</li>
-        <li>Ouvre Fais Ton Show depuis ton écran d’accueil.</li>
-      </ol>
-      <button type="button" class="pwa-install-main" id="pwa-install-main">Installer l’application</button>
-      <p class="pwa-note">Si le bouton ne s’ouvre pas, utilise le menu ⋮ de Chrome puis <strong>Installer l’application</strong>.</p>
+      <div class="pwa-android-auto" id="pwa-android-auto">
+        <p class="pwa-mini-title">Installation rapide</p>
+        <button type="button" class="pwa-install-main is-waiting" id="pwa-install-main" disabled>Installation automatique indisponible</button>
+        <p class="pwa-note" id="pwa-android-auto-note">Si ton téléphone le permet, le bouton s’activera automatiquement.</p>
+      </div>
+      <div class="pwa-manual-box">
+        <p class="pwa-mini-title">Méthode sûre sur Android</p>
+        <ol>
+          <li>Ouvre cette page avec <strong>Chrome</strong>.</li>
+          <li>Appuie sur le menu <strong>⋮</strong> en haut à droite.</li>
+          <li>Choisis <strong>Installer l’application</strong> ou <strong>Ajouter à l’écran d’accueil</strong>.</li>
+          <li>Ouvre ensuite Fais Ton Show depuis ton écran d’accueil.</li>
+        </ol>
+      </div>
+      <p class="pwa-note">Selon Android, Chrome affiche parfois son propre bouton. Sinon, la méthode avec le menu ⋮ fonctionne.</p>
     </div>
 
     <div class="pwa-coach-actions">
