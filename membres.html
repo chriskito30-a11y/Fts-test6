@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
 
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=1">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=2">
 </head>
 
 <body class="has-glow">
@@ -62,44 +62,81 @@
       <div class="eyebrow">École des arts de la scène</div>
       <h1>ESPACE<br><span>MEMBRES</span></h1>
       <div class="title-line"></div>
-      <p class="page-slogan">Ton tableau de bord Fais Ton Show</p>
+      <p class="page-slogan">Tout est à portée de clic.</p>
     </div>
 
     <!-- Tableau de bord -->
     <section class="member-dashboard" aria-label="Tableau de bord membre">
-      <div class="welcome-card">
+      <div class="welcome-card smart-hero">
         <div class="welcome-head">
           <div>
-            <div class="welcome-kicker">Bienvenue</div>
+            <div class="welcome-kicker">Mon espace Fais Ton Show</div>
             <div class="welcome-title">Bonjour, <span id="user-display-name">…</span></div>
           </div>
           <div class="account-actions">
-            <button type="button" class="btn-account" id="btn-open-account">⚙️ Gestion du compte</button>
+            <button type="button" class="btn-account" id="btn-open-account">⚙️ Mon compte</button>
           </div>
         </div>
-        <div class="welcome-sub" id="welcome-sub">Retrouve ici tes ressources, tes événements et tes espaces d’échange.</div>
+        <div class="welcome-sub" id="welcome-sub">Retrouve ici tes informations importantes, tes documents et tes prochains rendez-vous.</div>
         <div class="profile-pills" id="profile-pills"></div>
       </div>
 
-      <div class="dash-grid">
-        <div class="dash-card">
-          <div class="dash-label">Prochain événement</div>
-          <div class="dash-value small" id="dash-next-event">Chargement…</div>
-          <div class="dash-note" id="dash-next-event-date"></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-label">Messages non lus</div>
-          <div class="dash-value" id="dash-msg-count">0</div>
-          <div class="dash-note">Messages privés</div>
-        </div>
+      <div class="focus-grid" aria-label="Résumé rapide">
+        <a href="#membres-events" class="focus-card focus-card-event">
+          <span class="focus-icon">📅</span>
+          <span class="focus-content">
+            <span class="focus-label">Prochain événement</span>
+            <strong id="dash-next-event">Chargement…</strong>
+            <small id="dash-next-event-date"></small>
+          </span>
+        </a>
+        <a href="messages.html" class="focus-card focus-card-message">
+          <span class="focus-icon">💬</span>
+          <span class="focus-content">
+            <span class="focus-label">Messages non lus</span>
+            <strong id="dash-msg-count">0</strong>
+            <small>Ouvrir mes messages</small>
+          </span>
+        </a>
       </div>
     </section>
 
-    <!-- Annonce dynamique -->
-    <div class="annonce u-initial-hidden" id="annonce-dyn"></div>
+    <!-- Info importante : source actuelle = annonce générale administrée -->
+    <section class="priority-panel u-initial-hidden" id="priority-panel" aria-label="Information importante">
+      <div class="priority-head">
+        <span class="priority-icon">⚠️</span>
+        <div>
+          <div class="priority-kicker">Information importante</div>
+          <div class="priority-title">À lire maintenant</div>
+        </div>
+      </div>
+      <div class="annonce" id="annonce-dyn"></div>
+    </section>
+
+    <!-- Nouveaux documents : source actuelle = ressources Firebase déjà filtrées -->
+    <section class="smart-section" id="membres-documents" aria-label="Documents récents">
+      <div class="smart-section-head">
+        <div>
+          <div class="smart-kicker">Documents</div>
+          <h2>Dernières ressources</h2>
+        </div>
+        <span class="smart-hint">Selon tes cours</span>
+      </div>
+      <div class="smart-list" id="recent-docs">
+        <div class="list-loading">Chargement…</div>
+      </div>
+    </section>
 
     <!-- Accès rapides -->
     <div class="quick-actions" aria-label="Accès rapides">
+      <a href="#membres-documents" class="quick-card">
+        <span class="quick-ico">📄</span>
+        <span class="quick-title">Documents</span>
+      </a>
+      <a href="#membres-events" class="quick-card">
+        <span class="quick-ico">📅</span>
+        <span class="quick-title">Événements</span>
+      </a>
       <a href="messages.html" class="quick-card">
         <span class="quick-ico">✉️</span>
         <span class="quick-title">Messages</span>
@@ -108,6 +145,10 @@
         <span class="quick-ico">💬</span>
         <span class="quick-title">Forum</span>
       </a>
+      <a href="saison.html" class="quick-card">
+        <span class="quick-ico">🎬</span>
+        <span class="quick-title">Saison</span>
+      </a>
       <button type="button" class="quick-card btn-quick" id="btn-notif">
         <span class="quick-ico">🔕</span>
         <span class="quick-title">Activer les notifs</span>
@@ -115,7 +156,7 @@
     </div>
 
     <!-- Section événements -->
-    <div class="evt-sec">
+    <div class="evt-sec" id="membres-events">
       <div class="sec-ttl">
         <span>Prochains événements</span>
         <button class="btn-toggle" id="btg">Voir tous</button>
@@ -125,7 +166,7 @@
       </div>
     </div>
 
-    <!-- Les accès ressources sont désormais les badges de disciplines dans le bloc Bienvenue. -->
+    <!-- Les accès ressources restent les badges de disciplines dans le bloc Bienvenue. -->
 
     <div class="bnav-spacer"></div>
 
@@ -228,6 +269,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/membres.js?v=3"></script>
+<script src="assets/js/pages/membres.js?v=4"></script>
 </body>
 </html>
