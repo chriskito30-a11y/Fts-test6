@@ -1,4 +1,4 @@
-const CACHE = 'fts-v26-pwa-popup-header-portrait';
+const CACHE = 'fts-v28-pwa-popup-stable-rollback';
 const FILES = [
   './manifest.json',
   './index.html',
