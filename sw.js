@@ -1,4 +1,4 @@
-const CACHE = 'fts-v17-email-automation-fix';
+const CACHE = 'fts-v18-dm-uid-privacy-fix';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -75,6 +75,64 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+
+// ═══ UID ACTIF POUR SÉCURISER LES NOTIFICATIONS MP ═══════════════
+// Le service worker ne peut pas lire directement l'utilisateur Firebase.
+// Les pages lui transmettent l'UID connecté ; il le stocke en IndexedDB.
+// Ainsi, si un téléphone/navigateur a gardé un ancien abonnement push,
+// une notification MP destinée à un autre UID est bloquée avant affichage.
+
+const FTS_SW_DB = 'fts-sw-state-v1';
+const FTS_SW_STORE = 'state';
+
+function openSwStateDb(){
+  return new Promise(function(resolve, reject){
+    const req = indexedDB.open(FTS_SW_DB, 1);
+    req.onupgradeneeded = function(){
+      req.result.createObjectStore(FTS_SW_STORE);
+    };
+    req.onsuccess = function(){ resolve(req.result); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+
+async function setSwState(key, value){
+  try{
+    const db = await openSwStateDb();
+    await new Promise(function(resolve, reject){
+      const tx = db.transaction(FTS_SW_STORE, 'readwrite');
+      tx.objectStore(FTS_SW_STORE).put(value, key);
+      tx.oncomplete = resolve;
+      tx.onerror = function(){ reject(tx.error); };
+    });
+    db.close();
+  }catch(e){}
+}
+
+async function getSwState(key){
+  try{
+    const db = await openSwStateDb();
+    const value = await new Promise(function(resolve, reject){
+      const tx = db.transaction(FTS_SW_STORE, 'readonly');
+      const req = tx.objectStore(FTS_SW_STORE).get(key);
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    db.close();
+    return value;
+  }catch(e){ return null; }
+}
+
+self.addEventListener('message', function(event){
+  if(event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+  if(event.data && event.data.type === 'FTS_SET_ACTIVE_UID') {
+    event.waitUntil(setSwState('activeUid', event.data.uid || null));
+  }
+});
+
 self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET') return;
   e.respondWith(
@@ -126,6 +184,15 @@ async function wasRecentlyShownNotification(key){
 async function handlePushNotification(event){
   let data = { title: 'Fais Ton Show', body: 'Nouvelle notification', url: './membres.html' };
   try { if (event.data) data = event.data.json(); } catch(e) {}
+
+  const expectedUid = data.expectedUid || data.uid || data.recipientUid || null;
+  const isPrivateMessage = data.requiresUidMatch === true || data.type === 'dm_direct' || data.type === 'dm_group';
+  if(isPrivateMessage && expectedUid){
+    const activeUid = await getSwState('activeUid');
+    // Priorité confidentialité : si le navigateur est connecté à un autre compte
+    // ou si aucun compte actif n'est connu, on n'affiche pas le contenu du MP.
+    if(activeUid !== expectedUid) return;
+  }
 
   const url = normalizeNotificationUrl(data.url);
   const dedupeKey = notificationDedupeKey(data);
