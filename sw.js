@@ -1,4 +1,4 @@
-const CACHE = 'fts-v21-pwa-install-coach-ui';
+const CACHE = 'fts-v22-pwa-popup-responsive';
 const FILES = [
   './manifest.json',
   './index.html',
