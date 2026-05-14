@@ -1,4 +1,4 @@
-const CACHE = 'fts-v18-dm-uid-privacy-fix';
+const CACHE = 'fts-v17-email-automation-fix';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -76,26 +76,18 @@ self.addEventListener('activate', e => {
 });
 
 
-// ═══ UID ACTIF POUR SÉCURISER LES NOTIFICATIONS MP ═══════════════
-// Le service worker ne peut pas lire directement l'utilisateur Firebase.
-// Les pages lui transmettent l'UID connecté ; il le stocke en IndexedDB.
-// Ainsi, si un téléphone/navigateur a gardé un ancien abonnement push,
-// une notification MP destinée à un autre UID est bloquée avant affichage.
-
+// Stocke l'UID actif côté Service Worker pour bloquer les notifications MP destinées à un autre compte.
 const FTS_SW_DB = 'fts-sw-state-v1';
 const FTS_SW_STORE = 'state';
 
 function openSwStateDb(){
   return new Promise(function(resolve, reject){
     const req = indexedDB.open(FTS_SW_DB, 1);
-    req.onupgradeneeded = function(){
-      req.result.createObjectStore(FTS_SW_STORE);
-    };
+    req.onupgradeneeded = function(){ req.result.createObjectStore(FTS_SW_STORE); };
     req.onsuccess = function(){ resolve(req.result); };
     req.onerror = function(){ reject(req.error); };
   });
 }
-
 async function setSwState(key, value){
   try{
     const db = await openSwStateDb();
@@ -108,7 +100,6 @@ async function setSwState(key, value){
     db.close();
   }catch(e){}
 }
-
 async function getSwState(key){
   try{
     const db = await openSwStateDb();
@@ -124,10 +115,7 @@ async function getSwState(key){
 }
 
 self.addEventListener('message', function(event){
-  if(event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-    return;
-  }
+  if(event.data && event.data.type === 'SKIP_WAITING') { self.skipWaiting(); return; }
   if(event.data && event.data.type === 'FTS_SET_ACTIVE_UID') {
     event.waitUntil(setSwState('activeUid', event.data.uid || null));
   }
@@ -185,16 +173,19 @@ async function handlePushNotification(event){
   let data = { title: 'Fais Ton Show', body: 'Nouvelle notification', url: './membres.html' };
   try { if (event.data) data = event.data.json(); } catch(e) {}
 
-  const expectedUid = data.expectedUid || data.uid || data.recipientUid || null;
-  const isPrivateMessage = data.requiresUidMatch === true || data.type === 'dm_direct' || data.type === 'dm_group';
+  const url = normalizeNotificationUrl(data.url);
+
+  // Verrou confidentialité MP : le destinataire peut venir du payload OU de l'URL.
+  // Utile si le worker Cloudflare ne transmet pas tous les champs custom du payload.
+  let urlRecipientUid = null;
+  try { urlRecipientUid = new URL(url).searchParams.get('recipientUid'); } catch(e) {}
+  const expectedUid = data.expectedUid || data.recipientUid || data.uid || urlRecipientUid || null;
+  const isPrivateMessage = data.requiresUidMatch === true || data.type === 'dm_direct' || data.type === 'dm_group' || !!urlRecipientUid;
   if(isPrivateMessage && expectedUid){
     const activeUid = await getSwState('activeUid');
-    // Priorité confidentialité : si le navigateur est connecté à un autre compte
-    // ou si aucun compte actif n'est connu, on n'affiche pas le contenu du MP.
     if(activeUid !== expectedUid) return;
   }
 
-  const url = normalizeNotificationUrl(data.url);
   const dedupeKey = notificationDedupeKey(data);
   if(dedupeKey && await wasRecentlyShownNotification(dedupeKey)) return;
 
