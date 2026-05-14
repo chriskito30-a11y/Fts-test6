@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
 
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=2">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=3">
 </head>
 
 <body class="has-glow">
@@ -241,8 +241,47 @@
 </div>
 
 
-<!-- ── INSTALL BAR PWA ───────────────────────────────────────── -->
-<div class="install-bar" id="install-bar">
+<!-- ── MODAL INSTALLATION PWA ───────────────────────────────── -->
+<div class="pwa-coach-overlay hidden" id="pwa-coach" aria-hidden="true">
+  <div class="pwa-coach-modal" role="dialog" aria-modal="true" aria-labelledby="pwa-coach-title">
+    <button type="button" class="pwa-coach-close" id="pwa-coach-close" aria-label="Fermer le guide d’installation">✕</button>
+    <div class="pwa-coach-badge">Application mobile</div>
+    <h2 id="pwa-coach-title">Installe Fais Ton Show</h2>
+    <p class="pwa-coach-lead">Pour recevoir les notifications et garder toutes les infos importantes à portée de clic.</p>
+
+    <div class="pwa-os-switch" role="tablist" aria-label="Choisir le téléphone">
+      <button type="button" class="pwa-os-tab active" id="pwa-tab-ios" data-pwa-tab="ios" role="tab" aria-selected="true"> iPhone</button>
+      <button type="button" class="pwa-os-tab" id="pwa-tab-android" data-pwa-tab="android" role="tab" aria-selected="false">🤖 Android</button>
+    </div>
+
+    <div class="pwa-steps active" id="pwa-panel-ios" role="tabpanel" aria-labelledby="pwa-tab-ios">
+      <ol>
+        <li>Appuie sur le bouton <strong>Partager</strong> <span aria-hidden="true">⬆️</span> en bas de Safari.</li>
+        <li>Choisis <strong>Sur l’écran d’accueil</strong>.</li>
+        <li>Appuie sur <strong>Ajouter</strong>.</li>
+        <li>Ouvre ensuite l’app depuis ton écran d’accueil.</li>
+      </ol>
+      <p class="pwa-note">Sur iPhone, l’installation se fait depuis Safari. C’est normal si aucun bouton automatique n’apparaît.</p>
+    </div>
+
+    <div class="pwa-steps" id="pwa-panel-android" role="tabpanel" aria-labelledby="pwa-tab-android">
+      <ol>
+        <li>Appuie sur <strong>Installer l’application</strong>.</li>
+        <li>Valide l’installation proposée par ton téléphone.</li>
+        <li>Ouvre Fais Ton Show depuis ton écran d’accueil.</li>
+      </ol>
+      <button type="button" class="pwa-install-main" id="pwa-install-main">Installer l’application</button>
+      <p class="pwa-note">Si le bouton ne s’ouvre pas, utilise le menu ⋮ de Chrome puis <strong>Installer l’application</strong>.</p>
+    </div>
+
+    <div class="pwa-coach-actions">
+      <button type="button" class="pwa-secondary" id="pwa-coach-later">Plus tard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── INSTALL BAR PWA HISTORIQUE — conservée pour compatibilité ── -->
+<div class="install-bar" id="install-bar" aria-hidden="true">
   <p id="install-msg"></p>
   <button class="btn-install" id="btn-install">Installer</button>
   <button class="btn-close-bar" id="btn-close-bar">✕</button>
@@ -269,6 +308,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/membres.js?v=4"></script>
+<script src="assets/js/pages/membres.js?v=5"></script>
 </body>
 </html>
