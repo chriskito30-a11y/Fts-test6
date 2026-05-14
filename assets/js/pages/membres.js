@@ -948,9 +948,28 @@ if (accountModal) {
 /* ── GUIDE INSTALLATION PWA MOBILE ───────────────────────────── */
 let deferredInstallPrompt = null;
 
+function refreshAndroidInstallButton() {
+  const btn = document.getElementById('pwa-install-main');
+  const note = document.getElementById('pwa-android-auto-note');
+  if (!btn) return;
+
+  if (deferredInstallPrompt) {
+    btn.disabled = false;
+    btn.classList.remove('is-waiting');
+    btn.textContent = 'Installer l’application';
+    if (note) note.textContent = 'Ton téléphone propose l’installation automatique. Appuie sur le bouton ci-dessus.';
+  } else {
+    btn.disabled = true;
+    btn.classList.add('is-waiting');
+    btn.textContent = 'Installation automatique indisponible';
+    if (note) note.textContent = 'Utilise la méthode sûre avec le menu ⋮ de Chrome ci-dessous.';
+  }
+}
+
 window.addEventListener('beforeinstallprompt', function(e) {
   e.preventDefault();
   deferredInstallPrompt = e;
+  refreshAndroidInstallButton();
 });
 
 function isPwaStandaloneMode() {
@@ -998,6 +1017,7 @@ function openPwaInstallCoach() {
   const modal = document.getElementById('pwa-coach');
   if (!modal) return;
   switchPwaTab(getPwaDeviceType());
+  refreshAndroidInstallButton();
   modal.classList.remove('hidden');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('pwa-coach-open');
@@ -1015,6 +1035,7 @@ function initPwaInstallCoach() {
 async function triggerAndroidInstallPrompt() {
   if (!deferredInstallPrompt) {
     switchPwaTab('android');
+    refreshAndroidInstallButton();
     return;
   }
   try {
@@ -1024,6 +1045,7 @@ async function triggerAndroidInstallPrompt() {
     console.warn('[FTS] Installation PWA Android non déclenchée :', e);
   } finally {
     deferredInstallPrompt = null;
+    refreshAndroidInstallButton();
     closePwaInstallCoach();
   }
 }
