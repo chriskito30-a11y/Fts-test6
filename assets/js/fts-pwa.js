@@ -8,8 +8,34 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v15-event-notif-dedupe';
+  const RELOAD_KEY = 'fts-sw-reload-v18-dm-uid-privacy';
   let refreshing = false;
+
+
+  function notifyServiceWorkerActiveUid(uid){
+    if (!('serviceWorker' in navigator)) return;
+    const msg = { type: 'FTS_SET_ACTIVE_UID', uid: uid || null };
+    navigator.serviceWorker.ready.then(function(reg){
+      if (reg.active) reg.active.postMessage(msg);
+      if (reg.waiting) reg.waiting.postMessage(msg);
+      if (reg.installing) reg.installing.postMessage(msg);
+    }).catch(function(){});
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage(msg);
+    }
+  }
+
+  function bindFirebaseAuthToServiceWorker(){
+    if (typeof firebase === 'undefined' || !firebase.auth) return;
+    try {
+      if (window.FTS && typeof window.FTS.initFirebase === 'function') window.FTS.initFirebase();
+      firebase.auth().onAuthStateChanged(function(user){
+        notifyServiceWorkerActiveUid(user && user.uid ? user.uid : null);
+      });
+    } catch(e) {
+      console.warn('[FTS PWA] Synchronisation UID/SW impossible', e);
+    }
+  }
 
   function safeReloadOnce(){
     if (refreshing) return;
@@ -31,8 +57,10 @@
   });
 
   window.addEventListener('load', function(){
+    bindFirebaseAuthToServiceWorker();
     navigator.serviceWorker.register(SW_URL, { scope: './', updateViaCache: 'none' })
       .then(function(reg){
+        notifyServiceWorkerActiveUid((typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) ? firebase.auth().currentUser.uid : null);
         function activateWaitingWorker(){
           if (reg.waiting) {
             reg.waiting.postMessage({ type: 'SKIP_WAITING' });
