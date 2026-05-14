@@ -1442,12 +1442,17 @@ body.pwa-coach-open { overflow: hidden; }
 /* Très petites hauteurs Chrome Android : on garde le style, mais on retire le décor non essentiel. */
 @media (hover: none) and (pointer: coarse) and (max-height: 760px) {
   .pwa-coach-modal { max-height: calc(100dvh - .7rem) !important; max-height: calc(100svh - .7rem) !important; padding: .72rem !important; border-radius: 22px !important; }
-  .pwa-coach-icon, .pwa-benefits { display: none !important; }
-  .pwa-coach-hero { display: block !important; padding-right: 2.1rem !important; }
-  .pwa-coach-badge { display: none !important; }
-  .pwa-coach-modal h2 { font-size: clamp(1.04rem, 4.5vw, 1.36rem) !important; line-height: 1.02 !important; }
-  .pwa-coach-lead { display: none !important; }
-  .pwa-os-switch { margin: .5rem 0 !important; }
+
+  /* v26 : on garde le header visuel même en portrait Chrome Android.
+     On compacte au lieu de supprimer l'identité graphique. */
+  .pwa-coach-hero { display: flex !important; align-items: center !important; gap: .55rem !important; padding-right: 2.15rem !important; }
+  .pwa-coach-icon { display: grid !important; width: 42px !important; height: 42px !important; flex: 0 0 42px !important; border-radius: 16px !important; font-size: 1.12rem !important; }
+  .pwa-coach-badge { display: inline-flex !important; font-size: .5rem !important; padding: .18rem .42rem !important; margin-bottom: .22rem !important; letter-spacing: .06em !important; }
+  .pwa-coach-modal h2 { font-size: clamp(1.08rem, 4.7vw, 1.42rem) !important; line-height: .98 !important; }
+  .pwa-coach-lead { display: block !important; margin: .42rem 0 .5rem !important; font-size: .72rem !important; line-height: 1.25 !important; }
+  .pwa-benefits { display: none !important; }
+
+  .pwa-os-switch { margin: .46rem 0 .5rem !important; }
   .pwa-android-auto, .pwa-manual-box { padding: .54rem !important; }
   .pwa-mini-title { font-size: .8rem !important; margin-bottom: .34rem !important; }
   .pwa-install-main { padding: .62rem .7rem !important; font-size: .78rem !important; }
@@ -1459,4 +1464,167 @@ body.pwa-coach-open { overflow: hidden; }
 @media (hover: none) and (pointer: coarse) and (max-width: 390px) {
   .pwa-coach-modal { width: calc(100vw - .8rem) !important; max-width: calc(100vw - .8rem) !important; padding: .68rem !important; }
   .pwa-os-tab { font-size: .76rem !important; padding: .52rem .24rem !important; }
+}
+
+/* === FTS v27 — Popup PWA : header conservé + contenu vraiment compact === */
+.pwa-coach-hidden { display: none !important; }
+
+@media (hover: none) and (pointer: coarse), (max-width: 520px) {
+  .pwa-coach-overlay:not(.hidden) {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: max(.45rem, env(safe-area-inset-top, 0px)) .48rem max(.45rem, env(safe-area-inset-bottom, 0px)) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .pwa-coach-modal {
+    box-sizing: border-box !important;
+    width: min(96vw, 500px) !important;
+    max-width: min(96vw, 500px) !important;
+    max-height: calc(100dvh - .9rem) !important;
+    max-height: calc(100svh - .9rem) !important;
+    margin: 0 auto !important;
+    padding: .72rem !important;
+    border-radius: 24px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior: contain !important;
+  }
+
+  .pwa-coach-modal * { box-sizing: border-box !important; }
+
+  .pwa-coach-close {
+    top: .55rem !important;
+    right: .55rem !important;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 1rem !important;
+  }
+
+  .pwa-coach-hero {
+    display: flex !important;
+    align-items: center !important;
+    gap: .58rem !important;
+    padding-right: 2.35rem !important;
+    margin-bottom: .34rem !important;
+  }
+
+  .pwa-coach-icon {
+    display: grid !important;
+    width: 42px !important;
+    height: 42px !important;
+    flex: 0 0 42px !important;
+    border-radius: 15px !important;
+    font-size: 1.15rem !important;
+  }
+
+  .pwa-coach-badge {
+    display: inline-flex !important;
+    font-size: .48rem !important;
+    padding: .16rem .38rem !important;
+    margin: 0 0 .18rem !important;
+    letter-spacing: .055em !important;
+    white-space: nowrap !important;
+  }
+
+  .pwa-coach-modal h2 {
+    font-size: clamp(1.06rem, 5.2vw, 1.38rem) !important;
+    line-height: .98 !important;
+    letter-spacing: 0 !important;
+  }
+
+  .pwa-coach-lead {
+    display: block !important;
+    margin: .36rem 0 .48rem !important;
+    font-size: .72rem !important;
+    line-height: 1.25 !important;
+    color: rgba(255,255,255,.74) !important;
+  }
+
+  .pwa-benefits { display: none !important; }
+
+  .pwa-os-switch {
+    position: static !important;
+    margin: .42rem 0 .48rem !important;
+    padding: .28rem !important;
+    gap: .28rem !important;
+    border-radius: 17px !important;
+  }
+
+  .pwa-os-tab {
+    padding: .56rem .3rem !important;
+    border-radius: 14px !important;
+    font-size: .78rem !important;
+    min-width: 0 !important;
+  }
+
+  .pwa-steps.active { gap: .38rem !important; }
+
+  .pwa-step-card {
+    grid-template-columns: 26px 1fr !important;
+    gap: .46rem !important;
+    padding: .48rem .54rem !important;
+    border-radius: 14px !important;
+  }
+
+  .pwa-step-number {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 9px !important;
+    font-size: .74rem !important;
+  }
+
+  .pwa-step-card p {
+    font-size: .74rem !important;
+    line-height: 1.21 !important;
+  }
+
+  .pwa-android-auto,
+  .pwa-manual-box {
+    padding: .54rem !important;
+    border-radius: 16px !important;
+  }
+
+  .pwa-mini-title {
+    font-size: .8rem !important;
+    margin: 0 0 .34rem !important;
+  }
+
+  .pwa-install-main {
+    padding: .62rem .7rem !important;
+    border-radius: 14px !important;
+    font-size: .78rem !important;
+    letter-spacing: .025em !important;
+  }
+
+  .pwa-note { display: none !important; }
+
+  .pwa-coach-actions {
+    margin-top: .48rem !important;
+    padding-bottom: .05rem !important;
+  }
+
+  .pwa-secondary {
+    padding: .52rem .82rem !important;
+    font-size: .78rem !important;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) and (max-height: 740px), (max-width: 520px) and (max-height: 740px) {
+  .pwa-coach-modal { padding: .62rem !important; border-radius: 22px !important; }
+  .pwa-coach-hero { gap: .48rem !important; margin-bottom: .24rem !important; }
+  .pwa-coach-icon { width: 36px !important; height: 36px !important; flex-basis: 36px !important; border-radius: 13px !important; font-size: 1rem !important; }
+  .pwa-coach-badge { font-size: .44rem !important; padding: .14rem .34rem !important; }
+  .pwa-coach-modal h2 { font-size: clamp(1rem, 4.8vw, 1.24rem) !important; }
+  .pwa-coach-lead { font-size: .68rem !important; margin: .28rem 0 .38rem !important; }
+  .pwa-os-switch { margin: .34rem 0 .38rem !important; }
+  .pwa-os-tab { padding: .48rem .22rem !important; }
+  .pwa-step-card { padding: .42rem .48rem !important; }
+  .pwa-step-card p { font-size: .69rem !important; }
+  .pwa-android-auto, .pwa-manual-box { padding: .48rem !important; }
+  .pwa-coach-actions { margin-top: .4rem !important; }
 }
