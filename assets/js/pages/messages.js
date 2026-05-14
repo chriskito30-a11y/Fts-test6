@@ -222,8 +222,10 @@ async function sendMessage(){
     }
   }
   await db.ref().update(upd);
-  const adminRecipients = await getAdminRecipientUids(myUid);
-  notifyDirectMessage(currentConvId, convData, uniqueUids(recipients.concat(adminRecipients)), text, msgRef.key);
+
+  // Confidentialité MP : on ne notifie JAMAIS des comptes hors participants.
+  // Ancienne logique supprimée : pas de copie admin, pas de destinataire ajouté automatiquement.
+  notifyDirectMessage(currentConvId, convData, uniqueUids(recipients), text, msgRef.key);
 }
 
 /* ── BULLE ───────────────────────────────────────────────────── */
@@ -400,44 +402,66 @@ async function startConv(){
 
 function urlBase64ToUint8Array(b64){ const pad='='.repeat((4-b64.length%4)%4); const raw=atob((b64+pad).replace(/-/g,'+').replace(/_/g,'/')); const arr=new Uint8Array(raw.length); for(let i=0;i<raw.length;i++) arr[i]=raw.charCodeAt(i); return arr; }
 async function getSubscription(){ if(!('serviceWorker' in navigator)) return null; const reg=await navigator.serviceWorker.ready; return reg.pushManager.getSubscription(); }
-async function checkNotifStatus(){ const sub=await getSubscription(); updateNotifBtn(!!sub); }
+async function checkNotifStatus(){
+  const sub=await getSubscription();
+  updateNotifBtn(!!sub);
+  // Si le navigateur avait déjà un abonnement push avec un autre compte,
+  // on le rattache immédiatement au compte connecté actuel côté worker.
+  if(sub && myUid) syncPushSubscriptionForCurrentUser(sub).catch(()=>{});
+}
 function updateNotifBtn(on){ const btn=document.getElementById('btn-notif'); if(!btn) return; btn.textContent = on ? '🔔 Notifs activées' : '🔕 Activer les notifs'; btn.classList.toggle('on', on); }
 async function toggleNotifications(){ const sub=await getSubscription(); if(sub){ await sub.unsubscribe(); fetch(FTS.PUSH.workerUrl+'/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:myUid})}).catch(()=>{}); updateNotifBtn(false); } else await subscribePush(); }
+async function syncPushSubscriptionForCurrentUser(sub){
+  if(!sub || !myUid || !FTS.PUSH || !FTS.PUSH.workerUrl) return;
+  const groups = (me?.group || me?.disciplines?.join(', ') || '').split(',').map(x=>x.trim()).filter(Boolean);
+  const subgroups = (me?.subgroup || '').split(',').map(x=>x.trim()).filter(Boolean);
+  await fetch(FTS.PUSH.workerUrl+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    uid:myUid,
+    activeUid:myUid,
+    subscription:sub.toJSON(),
+    group:groups.join(', '),
+    subgroup:subgroups.join(', '),
+    groups,
+    subgroups
+  })});
+}
+
 async function subscribePush(){
   try{
     const perm=await Notification.requestPermission();
     if(perm!=='granted'){ alert('Autorise les notifications pour continuer.'); return; }
     const reg=await navigator.serviceWorker.ready;
-    const sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlBase64ToUint8Array(FTS.PUSH.vapidPublicKey)});
-    const groups = (me?.group || me?.disciplines?.join(', ') || '').split(',').map(x=>x.trim()).filter(Boolean);
-    const subgroups = (me?.subgroup || '').split(',').map(x=>x.trim()).filter(Boolean);
-    await fetch(FTS.PUSH.workerUrl+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:myUid, subscription:sub.toJSON(), group:groups.join(', '), subgroup:subgroups.join(', '), groups, subgroups})});
+    const existing = await reg.pushManager.getSubscription();
+    const sub = existing || await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlBase64ToUint8Array(FTS.PUSH.vapidPublicKey)});
+    await syncPushSubscriptionForCurrentUser(sub);
     updateNotifBtn(true);
   }catch(e){ alert('Erreur notifications : '+e.message); }
 }
 function uniqueUids(list){ return Array.from(new Set((list || []).filter(Boolean))); }
-async function getAdminRecipientUids(excludeUid){
-  try{
-    const snap = await db.ref('fts_users').orderByChild('role').equalTo('admin').once('value');
-    const ids = [];
-    if(snap.exists()) snap.forEach(child => {
-      const u = child.val() || {};
-      if(child.key !== excludeUid && u.status === 'active') ids.push(child.key);
-    });
-    return ids;
-  }catch(e){ console.warn('[FTS Messages] Admin recipients', e); return []; }
-}
 function notifyDirectMessage(convId, convData, recipients, text, msgId){
   if(!recipients || !recipients.length || !FTS.PUSH) return;
+
+  const participants = (convData && convData.participants) || {};
   const isGroup = convData && convData.type === 'group';
   const title = isGroup ? ('FTS — ' + (convData.name || 'Groupe privé')) : 'FTS — Message privé';
   const body = (me.name || me.email || 'Membre') + ' : ' + text.substring(0, 90);
   const url = './messages.html?conv=' + encodeURIComponent(convId) + (msgId ? '&msg=' + encodeURIComponent(msgId) : '');
-  recipients.forEach(uid => {
+
+  uniqueUids(recipients).forEach(uid => {
+    // Double sécurité : impossible d'envoyer un MP à un UID qui n'est pas participant.
+    if(uid === myUid || participants[uid] !== true) return;
+
     fetch(FTS.PUSH.workerUrl+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      type:isGroup ? 'dm_group' : 'dm_direct', uid,
-      conversationId:convId, msgId, title, body, url, senderUid:myUid,
-      adminCopy: convData && convData.participants && !convData.participants[uid],
+      type:isGroup ? 'dm_group' : 'dm_direct',
+      uid,
+      expectedUid: uid,
+      requiresUidMatch: true,
+      conversationId:convId,
+      msgId,
+      title,
+      body,
+      url,
+      senderUid:myUid,
       forceUid: true,
       tag: 'dm-' + convId + '-' + (msgId || Date.now()) + '-' + uid
     })}).catch(()=>{});
