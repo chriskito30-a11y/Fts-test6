@@ -1008,3 +1008,29 @@ body.pwa-coach-open { overflow: hidden; }
   .pwa-coach-modal { border-radius: 26px; padding: 1.05rem; }
   .pwa-coach-lead { margin-right: 1.6rem; }
 }
+
+.pwa-android-auto,
+.pwa-manual-box {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.06);
+  border-radius: 18px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.pwa-mini-title {
+  margin: 0 0 8px;
+  font-weight: 900;
+  color: #fff;
+}
+
+.pwa-install-main.is-waiting,
+.pwa-install-main:disabled {
+  opacity: .72;
+  cursor: not-allowed;
+  filter: grayscale(.15);
+}
+
+.pwa-manual-box ol {
+  margin-bottom: 0;
+}
