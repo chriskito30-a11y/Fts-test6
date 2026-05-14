@@ -845,36 +845,76 @@ button.profile-pill:hover {
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: radial-gradient(circle at top, rgba(201,168,76,.18), transparent 34%), rgba(0,0,0,.78);
-  backdrop-filter: blur(10px);
+  background:
+    radial-gradient(circle at 18% 12%, rgba(201,168,76,.28), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(191,22,34,.28), transparent 30%),
+    rgba(7,7,10,.78);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
 }
 
 .pwa-coach-overlay.hidden { display: none; }
 
 .pwa-coach-modal {
   position: relative;
-  width: min(100%, 460px);
+  width: min(100%, 500px);
   max-height: calc(100vh - 2rem);
   overflow: auto;
-  border-radius: 28px;
-  border: 1px solid rgba(201,168,76,.34);
-  background: linear-gradient(145deg, #171717, #0b0b0b 62%);
-  box-shadow: 0 24px 70px rgba(0,0,0,.7);
-  padding: 1.25rem;
+  border-radius: 34px;
+  border: 1px solid rgba(255,255,255,.14);
+  background:
+    linear-gradient(145deg, rgba(38,38,42,.96), rgba(9,9,12,.98) 58%),
+    radial-gradient(circle at top left, rgba(201,168,76,.22), transparent 34%);
+  box-shadow: 0 30px 90px rgba(0,0,0,.68), inset 0 1px 0 rgba(255,255,255,.08);
+  padding: 1.2rem;
   color: var(--white);
 }
 
+.pwa-coach-modal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255,255,255,.12), transparent 28%, rgba(201,168,76,.10));
+  opacity: .75;
+}
+
+.pwa-coach-modal > * { position: relative; z-index: 1; }
+
 .pwa-coach-close {
   position: absolute;
-  top: .85rem;
-  right: .85rem;
-  width: 34px;
-  height: 34px;
+  top: .9rem;
+  right: .9rem;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
   border-radius: 999px;
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.08);
   color: var(--white);
   cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 10px 26px rgba(0,0,0,.25);
+}
+
+.pwa-coach-hero {
+  display: flex;
+  align-items: center;
+  gap: .85rem;
+  padding-right: 2.2rem;
+}
+
+.pwa-coach-icon {
+  width: 62px;
+  height: 62px;
+  flex: 0 0 62px;
+  display: grid;
+  place-items: center;
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(201,168,76,.95), rgba(191,22,34,.9));
+  box-shadow: 0 16px 34px rgba(191,22,34,.28);
+  font-size: 1.75rem;
 }
 
 .pwa-coach-badge {
@@ -883,76 +923,112 @@ button.profile-pill:hover {
   gap: .35rem;
   padding: .28rem .62rem;
   border-radius: 999px;
-  background: rgba(201,168,76,.12);
-  border: 1px solid rgba(201,168,76,.22);
+  background: rgba(201,168,76,.14);
+  border: 1px solid rgba(201,168,76,.26);
   color: var(--gold);
-  font-size: .7rem;
+  font-size: .68rem;
   letter-spacing: .08em;
   text-transform: uppercase;
-  font-weight: 800;
-  margin-bottom: .75rem;
+  font-weight: 900;
+  margin-bottom: .38rem;
 }
 
 .pwa-coach-modal h2 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(2rem, 8vw, 3.1rem);
-  line-height: .92;
-  letter-spacing: .02em;
+  font-size: clamp(1.72rem, 7vw, 2.75rem);
+  line-height: .96;
+  letter-spacing: .01em;
 }
 
 .pwa-coach-lead {
-  margin: .65rem 2rem 1rem 0;
-  color: var(--muted);
-  line-height: 1.45;
-  font-size: .95rem;
+  margin: .9rem 0 1rem;
+  color: rgba(255,255,255,.78);
+  line-height: 1.48;
+  font-size: .98rem;
+}
+
+.pwa-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+  margin-bottom: 1rem;
+}
+
+.pwa-benefits span {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .48rem .65rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.075);
+  border: 1px solid rgba(255,255,255,.10);
+  color: rgba(255,255,255,.88);
+  font-size: .78rem;
+  font-weight: 800;
 }
 
 .pwa-os-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: .55rem;
-  padding: .35rem;
-  border-radius: 18px;
-  background: rgba(255,255,255,.045);
-  border: 1px solid rgba(255,255,255,.08);
+  padding: .42rem;
+  border-radius: 22px;
+  background: rgba(255,255,255,.065);
+  border: 1px solid rgba(255,255,255,.10);
   margin-bottom: 1rem;
 }
 
 .pwa-os-tab {
   border: 0;
-  border-radius: 14px;
-  padding: .75rem .65rem;
-  color: var(--muted);
+  border-radius: 17px;
+  padding: .82rem .65rem;
+  color: rgba(255,255,255,.68);
   background: transparent;
-  font-weight: 800;
+  font-weight: 950;
   cursor: pointer;
 }
 
 .pwa-os-tab.active {
   color: var(--white);
   background: linear-gradient(135deg, var(--red), #8d1118);
-  box-shadow: 0 10px 28px rgba(191,22,34,.28);
+  box-shadow: 0 12px 30px rgba(191,22,34,.30);
 }
 
-.pwa-steps {
-  display: none;
-  border-radius: 22px;
-  background: rgba(255,255,255,.045);
-  border: 1px solid rgba(255,255,255,.08);
-  padding: .95rem;
+.pwa-steps { display: none; }
+.pwa-steps.active { display: grid; gap: .55rem; }
+
+.pwa-step-card,
+.pwa-android-auto,
+.pwa-manual-box {
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(255,255,255,.065);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
 }
 
-.pwa-steps.active { display: block; }
-
-.pwa-steps ol {
-  margin: 0;
-  padding-left: 1.25rem;
+.pwa-step-card {
   display: grid;
-  gap: .7rem;
+  grid-template-columns: 34px 1fr;
+  align-items: center;
+  gap: .68rem;
+  padding: .72rem .78rem;
 }
 
-.pwa-steps li {
+.pwa-step-number {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  background: rgba(201,168,76,.15);
+  border: 1px solid rgba(201,168,76,.24);
+  color: var(--gold);
+  font-weight: 950;
+}
+
+.pwa-step-card p {
+  margin: 0;
   color: rgba(255,255,255,.88);
   line-height: 1.35;
   font-size: .93rem;
@@ -960,77 +1036,80 @@ button.profile-pill:hover {
 
 .pwa-steps strong { color: var(--gold); }
 
+.pwa-android-auto,
+.pwa-manual-box {
+  padding: .86rem;
+}
+
+.pwa-manual-box {
+  display: grid;
+  gap: .55rem;
+}
+
+.pwa-mini-title {
+  margin: 0 0 .65rem;
+  font-weight: 950;
+  color: #fff;
+  letter-spacing: .01em;
+}
+
 .pwa-install-main {
   width: 100%;
-  margin-top: 1rem;
   border: 0;
-  border-radius: 16px;
-  padding: .95rem 1rem;
+  border-radius: 18px;
+  padding: .98rem 1rem;
   background: linear-gradient(135deg, var(--red), #8d1118);
   color: var(--white);
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.08rem;
   letter-spacing: .04em;
   cursor: pointer;
-  box-shadow: 0 12px 28px rgba(191,22,34,.25);
+  box-shadow: 0 14px 32px rgba(191,22,34,.28);
+}
+
+.pwa-install-main.is-waiting,
+.pwa-install-main:disabled {
+  opacity: .68;
+  cursor: not-allowed;
+  filter: saturate(.75);
+  box-shadow: none;
 }
 
 .pwa-note {
-  margin: .8rem 0 0;
-  padding: .75rem;
-  border-radius: 14px;
-  background: rgba(201,168,76,.08);
-  border: 1px solid rgba(201,168,76,.16);
-  color: var(--muted);
-  font-size: .78rem;
-  line-height: 1.35;
+  margin: .72rem 0 0;
+  padding: .72rem .82rem;
+  border-radius: 18px;
+  background: rgba(201,168,76,.09);
+  border: 1px solid rgba(201,168,76,.18);
+  color: rgba(255,255,255,.72);
+  font-size: .8rem;
+  line-height: 1.38;
 }
 
 .pwa-coach-actions {
   display: flex;
   justify-content: center;
-  margin-top: .9rem;
+  margin-top: .95rem;
 }
 
 .pwa-secondary {
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  text-decoration: underline;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  color: rgba(255,255,255,.72);
   cursor: pointer;
-  padding: .6rem;
+  padding: .72rem 1rem;
+  font-weight: 900;
 }
 
 body.pwa-coach-open { overflow: hidden; }
 
 @media (max-width: 520px) {
-  .pwa-coach-overlay { align-items: flex-end; padding: .75rem; }
-  .pwa-coach-modal { border-radius: 26px; padding: 1.05rem; }
-  .pwa-coach-lead { margin-right: 1.6rem; }
+  .pwa-coach-overlay { align-items: flex-end; padding: .7rem; }
+  .pwa-coach-modal { border-radius: 30px 30px 24px 24px; padding: 1rem; max-height: calc(100vh - 1.15rem); }
+  .pwa-coach-hero { align-items: flex-start; gap: .7rem; }
+  .pwa-coach-icon { width: 52px; height: 52px; flex-basis: 52px; border-radius: 19px; font-size: 1.45rem; }
+  .pwa-coach-modal h2 { font-size: clamp(1.55rem, 8vw, 2.2rem); }
+  .pwa-benefits span { font-size: .74rem; padding: .42rem .55rem; }
 }
 
-.pwa-android-auto,
-.pwa-manual-box {
-  border: 1px solid rgba(255,255,255,.12);
-  background: rgba(255,255,255,.06);
-  border-radius: 18px;
-  padding: 12px;
-  margin-top: 10px;
-}
-
-.pwa-mini-title {
-  margin: 0 0 8px;
-  font-weight: 900;
-  color: #fff;
-}
-
-.pwa-install-main.is-waiting,
-.pwa-install-main:disabled {
-  opacity: .72;
-  cursor: not-allowed;
-  filter: grayscale(.15);
-}
-
-.pwa-manual-box ol {
-  margin-bottom: 0;
-}
