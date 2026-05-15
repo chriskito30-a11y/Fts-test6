@@ -52,3 +52,7 @@
 .saison-modern .act-row{border-radius:18px;padding:.75rem;background:rgba(0,0,0,.22);}
 .saison-modern .act-row.sel{box-shadow:0 0 0 3px rgba(212,32,26,.10);}
 @media(max-width:820px){.saison-modern{padding:.9rem}.season-admin-hero{align-items:flex-start;flex-direction:column;border-radius:24px}.hero-checklist{justify-content:flex-start}.side-card{position:relative;top:auto}.section-head,.offers-head{flex-direction:column}.soft-badge{white-space:normal}.preview-status{position:absolute;right:.75rem;top:.75rem}.public-tile-preview{align-items:flex-start;padding-right:5.8rem}}
+
+/* V2 — aperçu de toutes les formules */
+.preview-offers-list{display:grid;gap:.7rem;margin-top:.75rem;}
+.preview-price-note{margin-top:.25rem;font-size:.72rem;color:var(--muted);line-height:1.35;}
