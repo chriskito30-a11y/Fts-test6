@@ -50,8 +50,5 @@
   document.addEventListener('DOMContentLoaded', function(){
     updateActiveNav();
     updateBadges();
-    document.querySelectorAll('.fts-nav-item[data-nav="calendar"]').forEach(function(a){
-      a.addEventListener('click', function(e){ e.preventDefault(); });
-    });
   });
 })();
