@@ -947,6 +947,27 @@ if (accountModal) {
 
 /* ── GUIDE INSTALLATION PWA MOBILE ───────────────────────────── */
 let deferredInstallPrompt = null;
+let pwaCoachOpenTimer = null;
+
+function forceHidePwaInstallCoach(rememberSession) {
+  if (pwaCoachOpenTimer) {
+    clearTimeout(pwaCoachOpenTimer);
+    pwaCoachOpenTimer = null;
+  }
+  const modal = document.getElementById('pwa-coach');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.style.display = 'none';
+    modal.style.visibility = 'hidden';
+    modal.style.pointerEvents = 'none';
+  }
+  document.body.classList.remove('pwa-coach-open');
+  document.documentElement.classList.remove('pwa-coach-open');
+  if (rememberSession) {
+    try { sessionStorage.setItem('fts-pwa-coach-closed-session', '1'); } catch(e) {}
+  }
+}
 
 function refreshAndroidInstallButton() {
   const btn = document.getElementById('pwa-install-main');
@@ -978,11 +999,19 @@ window.addEventListener('appinstalled', function() {
 });
 
 function isPwaStandaloneMode() {
-  return window.matchMedia('(display-mode: standalone)').matches
-    || window.matchMedia('(display-mode: fullscreen)').matches
-    || window.matchMedia('(display-mode: minimal-ui)').matches
-    || window.navigator.standalone === true
-    || String(document.referrer || '').startsWith('android-app://');
+  const standaloneQueries = [
+    '(display-mode: standalone)',
+    '(display-mode: fullscreen)',
+    '(display-mode: minimal-ui)',
+    '(display-mode: window-controls-overlay)',
+    '(display-mode: tabbed)'
+  ];
+  const displayModeStandalone = standaloneQueries.some(function(query) {
+    try { return window.matchMedia(query).matches; } catch(e) { return false; }
+  });
+  const iosStandalone = window.navigator.standalone === true;
+  const androidWebApkReferrer = String(document.referrer || '').startsWith('android-app://');
+  return displayModeStandalone || iosStandalone || androidWebApkReferrer;
 }
 
 function isMobileViewportOrDevice() {
@@ -1010,38 +1039,52 @@ function switchPwaTab(type) {
   if (android) android.classList.toggle('active', next === 'android');
 }
 
-function closePwaInstallCoach() {
-  const modal = document.getElementById('pwa-coach');
-  if (!modal) return;
-  modal.classList.add('hidden');
-  modal.setAttribute('aria-hidden', 'true');
-  modal.style.display = 'none';
-  document.body.classList.remove('pwa-coach-open');
-  // On ne mémorise que la session : au prochain passage navigateur mobile, le rappel revient.
-  sessionStorage.setItem('fts-pwa-coach-closed-session', '1');
+function closePwaInstallCoach(event) {
+  if (event && typeof event.preventDefault === 'function') event.preventDefault();
+  if (event && typeof event.stopPropagation === 'function') event.stopPropagation();
+  forceHidePwaInstallCoach(true);
 }
+window.closePwaInstallCoach = closePwaInstallCoach;
+window.FTSClosePwaCoach = closePwaInstallCoach;
 
 function openPwaInstallCoach() {
+  if (isPwaStandaloneMode()) {
+    forceHidePwaInstallCoach(false);
+    return;
+  }
   const modal = document.getElementById('pwa-coach');
   if (!modal) return;
   switchPwaTab(getPwaDeviceType());
   refreshAndroidInstallButton();
-  modal.style.display = '';
+  modal.style.display = 'flex';
+  modal.style.visibility = '';
+  modal.style.pointerEvents = '';
   modal.classList.remove('hidden');
   modal.setAttribute('aria-hidden', 'false');
   document.body.classList.add('pwa-coach-open');
+  document.documentElement.classList.add('pwa-coach-open');
 }
 
 function initPwaInstallCoach() {
-  if (isPwaStandaloneMode()) return;
+  if (isPwaStandaloneMode()) {
+    forceHidePwaInstallCoach(false);
+    return;
+  }
   if (!isMobileViewportOrDevice()) return;
-  if (sessionStorage.getItem('fts-pwa-coach-closed-session') === '1') return;
+  try {
+    if (sessionStorage.getItem('fts-pwa-coach-closed-session') === '1') return;
+  } catch(e) {}
 
+  if (pwaCoachOpenTimer) clearTimeout(pwaCoachOpenTimer);
   // Petit délai volontaire : laisse le dashboard apparaître, puis guide l'installation.
-  setTimeout(openPwaInstallCoach, 650);
+  pwaCoachOpenTimer = setTimeout(function() {
+    pwaCoachOpenTimer = null;
+    openPwaInstallCoach();
+  }, 650);
 }
 
-async function triggerAndroidInstallPrompt() {
+async function triggerAndroidInstallPrompt(event) {
+  if (event && typeof event.preventDefault === 'function') event.preventDefault();
   if (!deferredInstallPrompt) {
     switchPwaTab('android');
     refreshAndroidInstallButton();
@@ -1058,6 +1101,44 @@ async function triggerAndroidInstallPrompt() {
     closePwaInstallCoach();
   }
 }
+
+function bindPwaCoachSafetyEvents() {
+  // Filet de sécurité : la fermeture fonctionne même si un autre listener échoue.
+  const handler = function(e) {
+    const target = e.target;
+    if (!target || !target.closest) return;
+    if (target.closest('#pwa-coach-close') || target.closest('#pwa-coach-later')) {
+      closePwaInstallCoach(e);
+      return;
+    }
+    if (target.id === 'pwa-coach') {
+      closePwaInstallCoach(e);
+    }
+  };
+  document.addEventListener('click', handler, true);
+  document.addEventListener('pointerup', handler, true);
+}
+
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      if (isPwaStandaloneMode()) forceHidePwaInstallCoach(false);
+      bindPwaCoachSafetyEvents();
+    }, { once: true });
+  } else {
+    if (isPwaStandaloneMode()) forceHidePwaInstallCoach(false);
+    bindPwaCoachSafetyEvents();
+  }
+  ['(display-mode: standalone)','(display-mode: fullscreen)','(display-mode: minimal-ui)','(display-mode: window-controls-overlay)','(display-mode: tabbed)'].forEach(function(query) {
+    try {
+      const mq = window.matchMedia(query);
+      const onChange = function() { if (isPwaStandaloneMode()) forceHidePwaInstallCoach(false); };
+      if (mq.addEventListener) mq.addEventListener('change', onChange);
+      else if (mq.addListener) mq.addListener(onChange);
+    } catch(e) {}
+  });
+} catch(e) {}
+
 
 /* ── ÉVÉNEMENTS UI SANS JS INLINE ────────────────────────────── */
 function bindMembresUiEvents() {
