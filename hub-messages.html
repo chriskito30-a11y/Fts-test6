@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="application-name" content="Fais Ton Show">
+<meta name="apple-mobile-web-app-title" content="Fais Ton Show">
+<meta name="theme-color" content="#000000">
+<title>Messages — Fais Ton Show</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/fts.css">
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=1">
+<link rel="stylesheet" href="assets/css/pages/hub-messages.css?v=1">
+</head>
+<body class="has-glow">
+<div class="auth-loading" id="auth-loading">
+  <div class="auth-loading-logo">FAIS TON <span>SHOW</span></div>
+  <div class="spinner"></div>
+  <div class="auth-loading-sub">Chargement des messages…</div>
+</div>
+
+<div id="page-content" class="u-initial-hidden">
+  <nav class="bottom-nav" aria-label="Navigation principale">
+    <a href="membres.html" class="bnav-item">
+      <span class="bnav-icon">👤</span><span class="bnav-label">Membres</span>
+    </a>
+    <a href="membres.html#member-news-panel" class="bnav-item">
+      <span class="bnav-icon-wrap">
+        <span class="bnav-icon">📬</span>
+        <span class="bnav-badge" id="news-badge">0</span>
+      </span>
+      <span class="bnav-label">Non lus</span>
+    </a>
+    <a href="hub-messages.html" class="bnav-item active" aria-current="page">
+      <span class="bnav-icon">💬</span><span class="bnav-label">Messages</span>
+    </a>
+  </nav>
+
+  <main class="wrap wrap-md hub-shell">
+    <section class="hub-hero" aria-label="Hub messages Fais Ton Show">
+      <div class="hub-kicker">Fais Ton Show</div>
+      <h1 class="hub-title">MESSAGES<br><span>FTS</span></h1>
+      <p class="hub-sub">Un seul endroit pour contacter quelqu’un, suivre les groupes et remplacer progressivement les échanges dispersés.</p>
+    </section>
+
+    <section class="hub-grid" aria-label="Choisir un espace de discussion">
+      <a class="hub-card" href="messages.html">
+        <span class="hub-ico">👤</span>
+        <span class="hub-card-main">
+          <strong>Discussions privées</strong>
+          <small>Envoyer un message direct ou créer un petit groupe privé.</small>
+        </span>
+        <span class="hub-pill">MP</span>
+      </a>
+      <a class="hub-card" href="forum.html">
+        <span class="hub-ico">👥</span>
+        <span class="hub-card-main">
+          <strong>Groupes Fais Ton Show</strong>
+          <small>Discussions par activité, catégories et sous-catégories accessibles.</small>
+        </span>
+        <span class="hub-pill">Forum</span>
+      </a>
+      <a class="hub-card" href="membres.html#member-news-panel">
+        <span class="hub-ico">📬</span>
+        <span class="hub-card-main">
+          <strong>Non lus</strong>
+          <small>Documents, annonces et événements non consultés depuis ton espace membre.</small>
+        </span>
+        <span class="hub-pill" id="hub-news-count">0</span>
+      </a>
+    </section>
+
+    <div class="hub-info">Les messages privés et les groupes restent séparés techniquement pour garder l’application fiable. Le hub sert de porte d’entrée simple, comme une messagerie moderne.</div>
+    <div class="bnav-spacer"></div>
+  </main>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-firebase.js"></script>
+<script src="assets/js/fts-nav.js?v=1"></script>
+<script src="assets/js/pages/hub-messages.js?v=1"></script>
+</body>
+</html>

@@ -14,8 +14,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=1">
 
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=10">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=11">
 </head>
 
 <body class="has-glow">
@@ -35,23 +36,27 @@
   <!-- BOTTOM NAV -->
   <nav class="bottom-nav" aria-label="Navigation principale">
     <a href="membres.html" class="bnav-item active" aria-current="page">
-      <span class="bnav-icon">👤</span><span>Membres</span>
+      <span class="bnav-icon">👤</span><span class="bnav-label">Membres</span>
     </a>
-    <a href="messages.html" class="bnav-item">
+    <a href="membres.html#member-news-panel" class="bnav-item" id="bnav-news-link">
       <span class="bnav-icon-wrap">
-        <span class="bnav-icon">✉️</span>
+        <span class="bnav-icon">📬</span>
+        <span class="bnav-badge" id="news-badge">0</span>
+      </span>
+      <span class="bnav-label">Non lus</span>
+    </a>
+    <a href="hub-messages.html" class="bnav-item">
+      <span class="bnav-icon-wrap">
+        <span class="bnav-icon">💬</span>
         <span class="bnav-badge" id="msg-badge">0</span>
       </span>
-      <span>Messages</span>
-    </a>
-    <a href="forum.html" class="bnav-item">
-      <span class="bnav-icon">💬</span><span>Forum</span>
+      <span class="bnav-label">Messages</span>
     </a>
     <a href="profs.html" class="bnav-item u-initial-hidden" id="bnav-profs">
-      <span class="bnav-icon">🎓</span><span>Profs</span>
+      <span class="bnav-icon">🎓</span><span class="bnav-label">Profs</span>
     </a>
     <a href="admin.html" class="bnav-item u-initial-hidden" id="bnav-admin">
-      <span class="bnav-icon">🛡</span><span>Admin</span>
+      <span class="bnav-icon">🛡</span><span class="bnav-label">Admin</span>
     </a>
   </nav>
 
@@ -90,12 +95,12 @@
             <small id="dash-next-event-date"></small>
           </span>
         </a>
-        <a href="messages.html" class="focus-card focus-card-message">
+        <a href="hub-messages.html" class="focus-card focus-card-message">
           <span class="focus-icon">💬</span>
           <span class="focus-content">
             <span class="focus-label">Messages non lus</span>
             <strong id="dash-msg-count">0</strong>
-            <small>Ouvrir mes messages</small>
+            <small>Ouvrir le hub messages</small>
           </span>
         </a>
       </div>
@@ -150,13 +155,9 @@
         <span class="quick-ico">📅</span>
         <span class="quick-title">Événements</span>
       </a>
-      <a href="messages.html" class="quick-card">
-        <span class="quick-ico">✉️</span>
-        <span class="quick-title">Messages</span>
-      </a>
-      <a href="forum.html" class="quick-card">
+      <a href="hub-messages.html" class="quick-card">
         <span class="quick-ico">💬</span>
-        <span class="quick-title">Forum</span>
+        <span class="quick-title">Messages</span>
       </a>
       <a href="saison.html" class="quick-card">
         <span class="quick-ico">🎬</span>
@@ -387,6 +388,7 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/membres.js?v=10"></script>
+<script src="assets/js/fts-nav.js?v=1"></script>
+<script src="assets/js/pages/membres.js?v=11"></script>
 </body>
 </html>

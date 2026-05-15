@@ -10,13 +10,15 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="./assets/css/fts-chat.css?v=8" rel="stylesheet"/>
+<link href="assets/css/fts-nav.css?v=1" rel="stylesheet"/>
+<link href="assets/css/pages/hub-messages.css?v=1" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <link href="assets/css/pages/messages.css?v=1" rel="stylesheet"/></head>
 
-<body>
+<body class="chat-modern">
 <!-- ═══ AUTH LOADING ════════════════════════════════════════════ -->
 <div class="auth-loading" id="auth-loading">
 <div class="auth-logo">FAIS TON <span>SHOW</span></div>
@@ -28,7 +30,7 @@
 <div class="sidebar">
 <div class="sb-hdr">
 <div class="sb-avatar" id="my-avatar">?</div>
-<div class="sb-title">MESSAGES</div>
+<div class="sb-title">DISCUSSIONS</div>
 <button class="btn-compose" data-fts-handler-1="" title="Nouveau message">✏️</button>
 </div>
 <div class="sb-search">
@@ -45,7 +47,9 @@
 </div>
 <nav class="sb-nav">
 <a class="snav" href="membres.html"><span class="ico">👤</span><span>Membres</span></a>
-<a class="snav" href="forum.html"><span class="ico">💬</span><span>Forum</span></a>
+<a class="snav" href="membres.html#member-news-panel"><span class="ico">📬</span><span>Non lus</span><span class="conv-badge" id="news-badge"></span></a>
+<a class="snav active" href="hub-messages.html"><span class="ico">💬</span><span>Messages</span></a>
+<a class="snav" href="forum.html"><span class="ico">👥</span><span>Groupes</span></a>
 </nav>
 </div><!-- /sidebar -->
 <!-- ══ MAIN ══ -->
@@ -118,6 +122,7 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/messages.js?v=1"></script>
+<script src="assets/js/fts-nav.js?v=1"></script>
+<script src="assets/js/pages/messages.js?v=2"></script>
 </body>
 </html>
