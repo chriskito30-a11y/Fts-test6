@@ -1,27 +1,57 @@
-/* FTS-NAV.JS — petits compteurs navigation sans écriture Firebase */
+/* FTS-NAV.JS — badge nouveautés localStorage + active nav */
 (function(){
-  function fmt(n){ n = Number(n || 0) || 0; return n > 20 ? '20+' : String(n); }
-  function showBadge(id, count){
+  'use strict';
+
+  function setBadge(id, count){
     var el = document.getElementById(id);
-    if(!el) return;
-    count = Number(count || 0) || 0;
-    if(count > 0){ el.textContent = fmt(count); el.style.display = 'inline-block'; }
-    else { el.style.display = 'none'; }
-  }
-  function readNewsCount(uid){
-    if(!uid) return 0;
-    try { return Number(localStorage.getItem('fts_member_news_count_' + uid) || 0) || 0; }
-    catch(e){ return 0; }
-  }
-  function updateNewsBadges(uid){ showBadge('news-badge', readNewsCount(uid)); }
-  function bindAuthWhenReady(tries){
-    tries = tries || 0;
-    if(window.firebase && firebase.apps && firebase.apps.length && firebase.auth){
-      try { firebase.auth().onAuthStateChanged(function(user){ updateNewsBadges(user && user.uid); }); } catch(e) {}
+    if (!el) return;
+    var n = Math.max(0, Number(count || 0));
+    if (!n) {
+      el.textContent = '';
+      el.classList.remove('is-on');
+      el.style.display = 'none';
       return;
     }
-    if(tries < 25) setTimeout(function(){ bindAuthWhenReady(tries + 1); }, 120);
+    el.textContent = n > 20 ? '20+' : String(n);
+    el.classList.add('is-on');
+    el.style.display = 'inline-flex';
   }
-  window.FTSNav = { showBadge: showBadge, updateNewsBadges: updateNewsBadges, readNewsCount: readNewsCount };
-  document.addEventListener('DOMContentLoaded', function(){ bindAuthWhenReady(0); });
+
+  function getStoredNewsCount(uid){
+    if (!uid) return 0;
+    try { return Number(localStorage.getItem('fts_member_news_count_' + uid) || 0); }
+    catch(e){ return 0; }
+  }
+
+  function updateActiveNav(){
+    var page = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+    document.querySelectorAll('.fts-nav-item[data-nav]').forEach(function(a){
+      var nav = a.getAttribute('data-nav');
+      var active = false;
+      if (nav === 'membres' && page === 'membres.html') active = true;
+      if (nav === 'messages' && (page === 'hub-messages.html' || page === 'messages.html' || page === 'forum.html')) active = true;
+      a.classList.toggle('active', active);
+      if (active) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+    });
+  }
+
+  function updateBadges(){
+    var done = function(uid){ setBadge('fts-news-badge', getStoredNewsCount(uid)); };
+    try {
+      if (window.firebase && firebase.auth) {
+        var user = firebase.auth().currentUser;
+        if (user) return done(user.uid);
+        firebase.auth().onAuthStateChanged(function(u){ done(u && u.uid); });
+      }
+    } catch(e) {}
+  }
+
+  window.FTSNav = { setBadge: setBadge, updateBadges: updateBadges };
+  document.addEventListener('DOMContentLoaded', function(){
+    updateActiveNav();
+    updateBadges();
+    document.querySelectorAll('.fts-nav-item[data-nav="calendar"]').forEach(function(a){
+      a.addEventListener('click', function(e){ e.preventDefault(); });
+    });
+  });
 })();
