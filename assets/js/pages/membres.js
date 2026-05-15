@@ -157,12 +157,14 @@ function canSeeDocInCategory(doc, cat) {
       await loadCategories();
       renderDashboard(userProfile, user.email);
 
-      // Liens nav selon rôle
+      // Liens nav selon rôle — tolérant si les boutons n'existent plus dans la nouvelle bottom nav
+      const bnavProfs = document.getElementById('bnav-profs');
+      const bnavAdmin = document.getElementById('bnav-admin');
       if (userProfile.role === 'admin') {
-        document.getElementById('bnav-profs').style.display = 'flex';
-        document.getElementById('bnav-admin').style.display = 'flex';
+        if (bnavProfs) bnavProfs.style.display = 'flex';
+        if (bnavAdmin) bnavAdmin.style.display = 'flex';
       } else if (userProfile.role === 'prof') {
-        document.getElementById('bnav-profs').style.display = 'flex';
+        if (bnavProfs) bnavProfs.style.display = 'flex';
       }
 
       // Filtrage des catégories selon les disciplines
@@ -181,14 +183,21 @@ function canSeeDocInCategory(doc, cat) {
       handleResourceDeepLink();
 
     } catch(e) {
-      console.warn('[FTS] Erreur chargement profil :', e);
+      console.warn('[FTS] Erreur chargement espace membres :', e);
 
-      // Sécurité anti-boucle : si la lecture du profil échoue (droits RTDB,
-      // cache, réseau, profil absent temporairement), ne pas renvoyer vers
-      // auth.html en gardant une session Firebase active. Sinon auth.html voit
-      // l'utilisateur connecté et renvoie vers membres.html → boucle infinie.
-      try { await auth.signOut(); } catch(_) {}
-      window.location.replace('auth.html?err=profile');
+      // Anti-boucle auth <-> membres : une erreur d'affichage/dashboard ne doit pas
+      // renvoyer vers auth.html tant que Firebase confirme que l'utilisateur est connecté.
+      const loading = document.getElementById('auth-loading');
+      const content = document.getElementById('page-content');
+      if (loading) {
+        loading.style.display = 'block';
+        loading.innerHTML = `<div class="auth-loading-logo">FAIS TON <span>SHOW</span></div>
+          <div class="auth-loading-sub">Une erreur empêche l’ouverture de l’espace membres.</div>
+          <p style="max-width:520px;margin:16px auto;color:#f8f8f2;line-height:1.5">Recharge la page une fois. Si le problème continue, envoie une capture de la console.</p>
+          <button onclick="location.reload()" style="border:0;border-radius:999px;padding:12px 18px;font-weight:900;background:#f8e702;color:#000">Recharger</button>
+          <button onclick="firebase.auth().signOut().then(function(){ location.href='auth.html'; })" style="border:1px solid rgba(248,231,2,.35);border-radius:999px;padding:12px 18px;font-weight:900;background:#111;color:#f8e702">Me reconnecter</button>`;
+      }
+      if (content) content.style.display = 'none';
     }
   });
 })();
