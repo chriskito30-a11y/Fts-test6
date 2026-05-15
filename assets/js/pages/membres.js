@@ -658,11 +658,13 @@ async function getSubscription(){
 }
 function updateNotifBtn(on){
   const btn = document.getElementById('btn-notif');
-  if(!btn) return;
-  btn.classList.toggle('on', !!on);
-  btn.innerHTML = on
-    ? '<span class="quick-ico">🔔</span><span class="quick-title">Notifs activées</span>'
-    : '<span class="quick-ico">🔕</span><span class="quick-title">Activer les notifs</span>';
+  if(btn) {
+    btn.classList.toggle('on', !!on);
+    btn.innerHTML = on
+      ? '<span class="quick-ico">🔔</span><span class="quick-title">Notifs activées</span>'
+      : '<span class="quick-ico">🔕</span><span class="quick-title">Activer les notifs</span>';
+  }
+  updateAccountNotifStatus(!!on);
 }
 async function checkNotifStatus(){
   try { updateNotifBtn(!!(await getSubscription())); }
@@ -752,12 +754,50 @@ function updateMsgBadge(count) {
 
 
 /* ── GESTION DU COMPTE ───────────────────────────────────────── */
+function getAccountDisplayName() {
+  const user = firebase.auth().currentUser;
+  if (!userProfile && !user) return 'Membre';
+  return (userProfile && (userProfile.name || [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ')))
+    || (user && user.email)
+    || 'Membre';
+}
+
+function fillAccountIdentity() {
+  const user = firebase.auth().currentUser;
+  const email = (userProfile && userProfile.email) || (user && user.email) || '—';
+  const firstName = (userProfile && userProfile.firstName) || '—';
+  const lastName = (userProfile && userProfile.lastName) || '—';
+  const displayName = getAccountDisplayName();
+
+  const identity = document.getElementById('account-identity-line');
+  const emailEl = document.getElementById('account-email');
+  const firstEl = document.getElementById('account-firstname');
+  const lastEl = document.getElementById('account-lastname');
+  const avatar = document.getElementById('account-avatar');
+
+  if (identity) identity.textContent = displayName;
+  if (emailEl) emailEl.textContent = email;
+  if (firstEl) firstEl.textContent = firstName;
+  if (lastEl) lastEl.textContent = lastName;
+  if (avatar) avatar.textContent = displayName && displayName !== 'Membre' ? displayName.trim().charAt(0).toUpperCase() : '👤';
+}
+
+function updateAccountNotifStatus(on) {
+  const status = document.getElementById('account-notif-status');
+  const icon = document.getElementById('account-notif-icon');
+  const action = document.getElementById('account-notif-action-label');
+  if (status) status.textContent = on ? 'Activées' : 'Désactivées';
+  if (icon) icon.textContent = on ? '🔔' : '🔕';
+  if (action) action.textContent = on ? 'Désactiver les notifications' : 'Activer les notifications';
+}
+
 function openAccountModal() {
   const m = document.getElementById('account-modal');
   if (!m) return;
   clearAccountMsg('account-pwd-msg');
-  clearAccountMsg('account-delete-msg');
   clearAccountMsg('profile-msg');
+  fillAccountIdentity();
+  checkNotifStatus();
   const p1 = document.getElementById('account-new-pwd');
   const p2 = document.getElementById('account-new-pwd2');
   if (p1) p1.value = '';
@@ -769,6 +809,7 @@ function openAccountModal() {
   renderProfileEnfants();
 
   m.classList.remove('hidden');
+  m.setAttribute('aria-hidden', 'false');
 }
 
 function renderProfileEnfants() {
@@ -823,7 +864,10 @@ async function saveProfileInfo() {
 
 function closeAccountModal() {
   const m = document.getElementById('account-modal');
-  if (m) m.classList.add('hidden');
+  if (m) {
+    m.classList.add('hidden');
+    m.setAttribute('aria-hidden', 'true');
+  }
 }
 
 function setAccountMsg(id, text, type) {
@@ -934,6 +978,15 @@ async function deleteMyAccount() {
     setAccountMsg('account-delete-msg', accountFriendlyError(e.code || e.message), 'err');
     if (btn) btn.disabled = false;
   }
+}
+
+function openAccountPwaHelp() {
+  if (isPwaStandaloneMode()) {
+    setAccountMsg('profile-msg', '✓ L’application est déjà ouverte en mode installé.', 'ok');
+    return;
+  }
+  closeAccountModal();
+  openPwaInstallCoach();
 }
 
 const accountModal = document.getElementById('account-modal');
@@ -1153,7 +1206,8 @@ function bindMembresUiEvents() {
   bindClick('btn-save-profile', saveProfileInfo);
   bindClick('btn-account-pwd', changeAccountPassword);
   bindClick('btn-account-signout', doSignOut);
-  bindClick('btn-account-delete', deleteMyAccount);
+  bindClick('btn-account-notifs', toggleNotifications);
+  bindClick('btn-account-pwa-help', openAccountPwaHelp);
   bindClick('pwa-coach-close', closePwaInstallCoach);
   bindClick('pwa-coach-later', closePwaInstallCoach);
   bindClick('pwa-install-main', triggerAndroidInstallPrompt);
