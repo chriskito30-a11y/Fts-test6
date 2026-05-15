@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=3" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=5" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -36,7 +36,14 @@
 </div>
 </section>
 <section class="tab-pane" id="tab-questionnaire">
-<div class="admin-info-banner"><strong>📅 Événements et spectacles</strong><span>Ils se créent uniquement depuis <a href="calendrier-admin.html">Calendrier admin</a>. Cette page sert aux parcours, contenus et ressources hors calendrier.</span></div>
+<div class="calendar-source-card" role="note" aria-label="Gestion des événements et spectacles">
+  <div class="calendar-source-icon">📅</div>
+  <div class="calendar-source-content">
+    <strong>Événements et spectacles</strong>
+    <span>Ils se créent uniquement depuis <b>Calendrier admin</b>. Ici, on gère seulement les parcours, contenus et ressources hors calendrier.</span>
+  </div>
+  <a class="btn btn-sm calendar-source-btn" href="calendrier-admin.html">Ouvrir calendrier</a>
+</div>
 <div class="grid"><div class="card-admin list-panel"><div class="mini-title">Parcours disponibles</div><p class="field-help top-help">Liste des réponses affichées dans le questionnaire d’accueil, hors événements du calendrier.</p><div class="list" id="q-list"></div><button class="btn-gold u-contenus-admin-inline-1" data-fts-handler-7="">+ Ajouter un parcours</button></div>
 <div class="card-admin form-panel"><div class="mini-title">Éditer une option du questionnaire</div><p class="field-help top-help">Ces informations apparaissent dans le parcours “Que souhaitez-vous faire ?”.</p><input id="q-key" type="hidden"/><div class="form-grid">
 <div class="field"><label>Famille du parcours</label><select id="q-type"><option value="adhesion">Inscription / adhésion</option><option value="goodie">Boutique / goodies</option><option value="renew">Renouvellement</option></select><small>Les spectacles et événements sont gérés uniquement dans Calendrier admin pour éviter les doublons.</small></div>
