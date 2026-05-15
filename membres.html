@@ -15,7 +15,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
 
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=3">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=4">
 </head>
 
 <body class="has-glow">
@@ -181,50 +181,86 @@
 
 
 
-<!-- ── MODAL GESTION DU COMPTE ───────────────────────────────── -->
-<div class="modal-overlay hidden" id="account-modal">
-  <div class="modal-box account-modal-box">
-    <div class="modal-header">
-      <span class="modal-title">⚙️ Gestion du compte</span>
-      <button class="modal-close" data-action="close-account-modal">✕</button>
+<!-- ── MODAL MON COMPTE ─────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="account-modal" aria-hidden="true">
+  <div class="modal-box account-modal-box" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
+    <div class="account-hero">
+      <div class="account-avatar" id="account-avatar">👤</div>
+      <div class="account-hero-text">
+        <div class="account-kicker">Espace personnel</div>
+        <h2 id="account-modal-title">Mon compte</h2>
+        <p id="account-identity-line">Chargement du profil…</p>
+      </div>
+      <button class="modal-close account-close" data-action="close-account-modal" aria-label="Fermer mon compte">✕</button>
     </div>
 
-    <div class="account-section" id="account-profile-section">
-      <h3>Mon profil</h3>
-      <p>Ces informations sont visibles par les professeurs et l'administration.</p>
-      <input class="account-field" id="profile-tel" type="tel"
-        placeholder="Téléphone — 06 12 34 56 78" autocomplete="tel">
+    <div class="account-status-grid" aria-label="Résumé du compte">
+      <div class="account-status-card">
+        <span class="account-status-icon">📧</span>
+        <div>
+          <small>Email</small>
+          <strong id="account-email">—</strong>
+        </div>
+      </div>
+      <div class="account-status-card">
+        <span class="account-status-icon" id="account-notif-icon">🔕</span>
+        <div>
+          <small>Notifications</small>
+          <strong id="account-notif-status">Vérification…</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="account-section account-section-main" id="account-profile-section">
+      <div class="account-section-title">
+        <span>👤</span>
+        <div>
+          <h3>Informations</h3>
+          <p>Les informations utiles pour l’administration et les professeurs.</p>
+        </div>
+      </div>
+      <div class="account-readonly-grid">
+        <div class="account-readonly-field">
+          <small>Prénom</small>
+          <strong id="account-firstname">—</strong>
+        </div>
+        <div class="account-readonly-field">
+          <small>Nom</small>
+          <strong id="account-lastname">—</strong>
+        </div>
+      </div>
+      <label class="account-label" for="profile-tel">Téléphone</label>
+      <input class="account-field" id="profile-tel" type="tel" placeholder="06 12 34 56 78" autocomplete="tel">
       <div id="profile-enfants-wrap" class="u-initial-hidden">
-        <div class="profile-enfants-label">Enfant(s)</div>
+        <div class="profile-enfants-label">Enfant(s) associé(s)</div>
         <div id="profile-enfants-list"></div>
       </div>
-      <button class="account-btn" id="btn-save-profile">
-        Enregistrer le profil
-      </button>
+      <button class="account-btn account-btn-primary" id="btn-save-profile">Enregistrer</button>
       <div class="account-msg" id="profile-msg"></div>
     </div>
 
-    <div class="account-section">
-      <p>Entre un nouveau mot de passe. Par sécurité Firebase, il peut être demandé de te reconnecter si ta session est trop ancienne.</p>
+    <div class="account-actions-list" aria-label="Actions du compte">
+      <button type="button" class="account-action-card" id="btn-account-notifs">
+        <span class="account-action-ico">🔔</span>
+        <span><strong>Notifications</strong><small id="account-notif-action-label">Activer ou désactiver</small></span>
+      </button>
+      <button type="button" class="account-action-card" id="btn-account-pwa-help">
+        <span class="account-action-ico">📲</span>
+        <span><strong>Installer l’app</strong><small>Aide iPhone / Android</small></span>
+      </button>
+    </div>
+
+    <details class="account-details">
+      <summary>Changer mon mot de passe</summary>
+      <p>Par sécurité Firebase, une reconnexion peut être demandée si ta session est trop ancienne.</p>
       <input class="account-field" id="account-new-pwd" type="password" autocomplete="new-password" placeholder="Nouveau mot de passe — 8 caractères minimum">
       <input class="account-field" id="account-new-pwd2" type="password" autocomplete="new-password" placeholder="Confirmer le mot de passe">
       <button class="account-btn" id="btn-account-pwd">Changer le mot de passe</button>
       <div class="account-msg" id="account-pwd-msg"></div>
-    </div>
+    </details>
 
-    <div class="account-section">
-      <h3>Session</h3>
-      <p>Déconnecte-toi de cet appareil et retourne à la page de connexion.</p>
-      <button class="account-btn" id="btn-account-signout">Se déconnecter</button>
-    </div>
-
-    <div class="account-section">
-      <h3>Supprimer mon compte</h3>
-      <p>Action définitive : le profil membre, le profil forum, les accès messagerie et le compte Firebase Authentication seront supprimés. Si la suppression complète demande une reconnexion, reconnecte-toi puis recommence.</p>
-      <div class="account-row">
-        <button class="account-btn danger" id="btn-account-delete">Supprimer définitivement mon compte</button>
-      </div>
-      <div class="account-msg" id="account-delete-msg"></div>
+    <div class="account-footer-actions">
+      <button class="account-btn account-btn-ghost" id="btn-account-signout">Se déconnecter</button>
     </div>
   </div>
 </div>
@@ -338,6 +374,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/membres.js?v=5"></script>
+<script src="assets/js/pages/membres.js?v=6"></script>
 </body>
 </html>
