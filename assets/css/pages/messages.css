@@ -6,7 +6,7 @@
   cursor: pointer; display: flex; align-items: center; justify-content: center;
   transition: all .2s; flex-shrink: 0;
 }
-.btn-chat-del:hover { border-color: var(--red); color: var(--red); background: rgba(212,32,26,.08); }
+.btn-chat-del:hover { border-color: var(--red); color: var(--red); background: rgba(248,231,2,.08); }
 .msg-actions {
   display: none; gap: .25rem; margin-top: .25rem; padding: 0 .35rem;
 }
@@ -17,17 +17,17 @@
   font-size: .62rem; cursor: pointer; font-family: "DM Sans", sans-serif;
 }
 .msg-act:hover { color: var(--white); border-color: rgba(255,255,255,.22); }
-.msg-act.danger:hover { color: var(--red); border-color: rgba(212,32,26,.45); }
+.msg-act.danger:hover { color: var(--red); border-color: rgba(248,231,2,.45); }
 .msg-edited { font-size: .58rem; color: rgba(245,242,238,.32); margin-left: .25rem; }
 @media (max-width: 720px) { .msg-actions { display: flex; } }
-.notif-target .msg-bubble{outline:2px solid rgba(201,168,76,.75); box-shadow:0 0 0 6px rgba(201,168,76,.14);}
+.notif-target .msg-bubble{outline:2px solid rgba(248,231,2,.75); box-shadow:0 0 0 6px rgba(248,231,2,.14);}
 
 .u-messages-inline-1 { display:none }
 
 .u-messages-inline-2 { display:none }
 
 .messages-error-text { max-width: 420px; text-align: center; color: #888; font-size: .8rem; line-height: 1.6; padding: 0 1rem; }
-.messages-error-link { color: #c9a84c; }
+.messages-error-link { color: #f8e702; }
 .picker-empty { padding: .8rem 1rem; font-size: .82rem; color: #555; }
 .user-main { flex: 1; min-width: 0; }
 

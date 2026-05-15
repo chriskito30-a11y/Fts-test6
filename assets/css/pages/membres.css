@@ -49,7 +49,7 @@
 .bnav-icon-wrap { position: relative; display: inline-block; line-height: 1; }
 .bnav-badge {
   position: absolute; top: -5px; right: -8px;
-  background: var(--red); color: #fff;
+  background: var(--red); color: var(--brand-ink, #050505);
   font-size: .5rem; font-weight: 700;
   min-width: 14px; height: 14px; padding: 0 3px;
   border-radius: 7px; text-align: center; line-height: 14px;
@@ -99,7 +99,7 @@
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--gold);
-  background: rgba(201,168,76,.1);
+  background: rgba(248,231,2,.1);
   padding: .2rem .5rem;
   border-radius: 2px;
 }
@@ -124,8 +124,8 @@
 
 /* ── BANDEAU ANNONCE ─────────────────────────────────────────── */
 .annonce {
-  background: rgba(201,168,76,.06);
-  border: 1px solid rgba(201,168,76,.2);
+  background: rgba(248,231,2,.06);
+  border: 1px solid rgba(248,231,2,.2);
   border-radius: var(--r-md);
   padding: 1.2rem 1.5rem;
   margin-bottom: 1.5rem;
@@ -202,8 +202,8 @@
   transition: all .2s;
   font-family: var(--font-body);
 }
-.subcat-tag:hover, .subcat-tag.act { border-color: var(--red); color: var(--white); background: rgba(212,32,26,.08); }
-.subcat-tag.all-btn.act { border-color: var(--gold); color: var(--gold); background: rgba(201,168,76,.08); }
+.subcat-tag:hover, .subcat-tag.act { border-color: var(--red); color: var(--white); background: rgba(248,231,2,.08); }
+.subcat-tag.all-btn.act { border-color: var(--gold); color: var(--gold); background: rgba(248,231,2,.08); }
 
 .doc-label {
   font-size: .62rem;
@@ -299,7 +299,7 @@
 }
 
 .welcome-card {
-  background: linear-gradient(135deg, rgba(212,32,26,.12), rgba(201,168,76,.07));
+  background: linear-gradient(135deg, rgba(248,231,2,.12), rgba(248,231,2,.07));
   border: 1px solid rgba(255,255,255,.08);
   border-radius: var(--r-lg);
   padding: 1.4rem;
@@ -365,15 +365,15 @@ button.profile-pill {
 }
 
 button.profile-pill:hover {
-  border-color: rgba(212,32,26,.45);
-  background: rgba(212,32,26,.10);
+  border-color: rgba(248,231,2,.45);
+  background: rgba(248,231,2,.10);
   transform: translateY(-1px);
 }
 
 .profile-pill.role {
   color: var(--gold);
-  border-color: rgba(201,168,76,.25);
-  background: rgba(201,168,76,.08);
+  border-color: rgba(248,231,2,.25);
+  background: rgba(248,231,2,.08);
   cursor: default;
 }
 
@@ -440,7 +440,7 @@ button.profile-pill:hover {
 }
 
 .quick-card:hover {
-  border-color: rgba(212,32,26,.45);
+  border-color: rgba(248,231,2,.45);
   transform: translateY(-1px);
 }
 
@@ -483,8 +483,8 @@ button.profile-pill:hover {
   flex-wrap: wrap;
 }
 .btn-account {
-  background: rgba(201,168,76,.08);
-  border: 1px solid rgba(201,168,76,.28);
+  background: rgba(248,231,2,.08);
+  border: 1px solid rgba(248,231,2,.28);
   color: var(--gold);
   padding: .38rem .75rem;
   border-radius: var(--r-sm);
@@ -493,7 +493,7 @@ button.profile-pill:hover {
   font-family: var(--font-body);
   transition: all .2s;
 }
-.btn-account:hover { border-color: var(--gold); background: rgba(201,168,76,.13); color: var(--white); }
+.btn-account:hover { border-color: var(--gold); background: rgba(248,231,2,.13); color: var(--white); }
 .welcome-head {
   display: flex;
   align-items: flex-start;
@@ -533,7 +533,7 @@ button.profile-pill:hover {
   margin-bottom: .55rem;
   box-sizing: border-box;
 }
-.account-field:focus { outline: none; border-color: rgba(201,168,76,.55); }
+.account-field:focus { outline: none; border-color: rgba(248,231,2,.55); }
 .account-row { display: flex; gap: .55rem; flex-wrap: wrap; }
 .account-btn {
   border: 1px solid #333;
@@ -547,8 +547,8 @@ button.profile-pill:hover {
   transition: all .2s;
 }
 .account-btn:hover { border-color: var(--gold); color: var(--gold); }
-.account-btn.danger { border-color: rgba(212,32,26,.35); color: var(--red); background: rgba(212,32,26,.06); }
-.account-btn.danger:hover { background: rgba(212,32,26,.12); border-color: var(--red); }
+.account-btn.danger { border-color: rgba(248,231,2,.35); color: var(--red); background: rgba(248,231,2,.06); }
+.account-btn.danger:hover { background: rgba(248,231,2,.12); border-color: var(--red); }
 .account-btn:disabled { opacity: .55; cursor: wait; }
 .account-msg { min-height: 1rem; font-size: .76rem; color: var(--muted); margin-top: .45rem; line-height: 1.45; }
 .account-msg.ok { color: var(--gold); }
@@ -556,8 +556,8 @@ button.profile-pill:hover {
 
 /* ── SECTION PROFIL ENFANTS ──────────────────────────────────── */
 .profile-enfant-card {
-  background: rgba(201,168,76,.04);
-  border: 1px solid rgba(201,168,76,.15);
+  background: rgba(248,231,2,.04);
+  border: 1px solid rgba(248,231,2,.15);
   border-left: 3px solid var(--gold);
   border-radius: var(--r-sm);
   padding: .75rem .9rem;
@@ -580,7 +580,7 @@ button.profile-pill:hover {
 .profile-enfants-label { font-size:.62rem; color:var(--gold); text-transform:uppercase; letter-spacing:.1em; margin:.9rem 0 .5rem; }
 .evt-action-link { display:inline-block; margin-top:.6rem; }
 
-.profile-pill-child { border-color: rgba(201,168,76,.3); color: var(--gold); }
+.profile-pill-child { border-color: rgba(248,231,2,.3); color: var(--gold); }
 .empty-documents { color: var(--muted); font-size: .82rem; padding: .5rem 0; }
 .child-disciplines { font-size: .72rem; color: var(--muted); }
 .u-mt-sm { margin-top: .5rem; }
@@ -612,7 +612,7 @@ button.profile-pill:hover {
 
 .focus-card:hover {
   transform: translateY(-1px);
-  border-color: rgba(201,168,76,.38);
+  border-color: rgba(248,231,2,.38);
   background: linear-gradient(145deg, #181818, #101010);
 }
 
@@ -624,8 +624,8 @@ button.profile-pill:hover {
   justify-content: center;
   flex: 0 0 auto;
   border-radius: 15px;
-  background: rgba(201,168,76,.10);
-  border: 1px solid rgba(201,168,76,.20);
+  background: rgba(248,231,2,.10);
+  border: 1px solid rgba(248,231,2,.20);
   font-size: 1.35rem;
 }
 
@@ -665,8 +665,8 @@ button.profile-pill:hover {
 }
 
 .priority-panel {
-  background: linear-gradient(135deg, rgba(212,32,26,.13), rgba(201,168,76,.08));
-  border: 1px solid rgba(212,32,26,.26);
+  background: linear-gradient(135deg, rgba(248,231,2,.13), rgba(248,231,2,.08));
+  border: 1px solid rgba(248,231,2,.26);
   border-radius: var(--r-lg);
   padding: 1rem;
   margin-bottom: 1.2rem;
@@ -687,8 +687,8 @@ button.profile-pill:hover {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
-  background: rgba(212,32,26,.14);
-  border: 1px solid rgba(212,32,26,.28);
+  background: rgba(248,231,2,.14);
+  border: 1px solid rgba(248,231,2,.28);
   font-size: 1.25rem;
 }
 
@@ -765,7 +765,7 @@ button.profile-pill:hover {
 
 .smart-item:hover {
   transform: translateY(-1px);
-  border-color: rgba(201,168,76,.35);
+  border-color: rgba(248,231,2,.35);
   background: #181818;
 }
 
@@ -846,7 +846,7 @@ button.profile-pill:hover {
   justify-content: center;
   padding: 1rem;
   background:
-    radial-gradient(circle at 18% 12%, rgba(201,168,76,.28), transparent 28%),
+    radial-gradient(circle at 18% 12%, rgba(248,231,2,.28), transparent 28%),
     radial-gradient(circle at 82% 18%, rgba(191,22,34,.28), transparent 30%),
     rgba(7,7,10,.78);
   backdrop-filter: blur(18px) saturate(1.15);
@@ -864,7 +864,7 @@ button.profile-pill:hover {
   border: 1px solid rgba(255,255,255,.14);
   background:
     linear-gradient(145deg, rgba(38,38,42,.96), rgba(9,9,12,.98) 58%),
-    radial-gradient(circle at top left, rgba(201,168,76,.22), transparent 34%);
+    radial-gradient(circle at top left, rgba(248,231,2,.22), transparent 34%);
   box-shadow: 0 30px 90px rgba(0,0,0,.68), inset 0 1px 0 rgba(255,255,255,.08);
   padding: 1.2rem;
   color: var(--white);
@@ -876,7 +876,7 @@ button.profile-pill:hover {
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: linear-gradient(135deg, rgba(255,255,255,.12), transparent 28%, rgba(201,168,76,.10));
+  background: linear-gradient(135deg, rgba(255,255,255,.12), transparent 28%, rgba(248,231,2,.10));
   opacity: .75;
 }
 
@@ -912,7 +912,7 @@ button.profile-pill:hover {
   display: grid;
   place-items: center;
   border-radius: 22px;
-  background: linear-gradient(135deg, rgba(201,168,76,.95), rgba(191,22,34,.9));
+  background: linear-gradient(135deg, rgba(248,231,2,.95), rgba(191,22,34,.9));
   box-shadow: 0 16px 34px rgba(191,22,34,.28);
   font-size: 1.75rem;
 }
@@ -923,8 +923,8 @@ button.profile-pill:hover {
   gap: .35rem;
   padding: .28rem .62rem;
   border-radius: 999px;
-  background: rgba(201,168,76,.14);
-  border: 1px solid rgba(201,168,76,.26);
+  background: rgba(248,231,2,.14);
+  border: 1px solid rgba(248,231,2,.26);
   color: var(--gold);
   font-size: .68rem;
   letter-spacing: .08em;
@@ -1021,8 +1021,8 @@ button.profile-pill:hover {
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: rgba(201,168,76,.15);
-  border: 1px solid rgba(201,168,76,.24);
+  background: rgba(248,231,2,.15);
+  border: 1px solid rgba(248,231,2,.24);
   color: var(--gold);
   font-weight: 950;
 }
@@ -1079,8 +1079,8 @@ button.profile-pill:hover {
   margin: .72rem 0 0;
   padding: .72rem .82rem;
   border-radius: 18px;
-  background: rgba(201,168,76,.09);
-  border: 1px solid rgba(201,168,76,.18);
+  background: rgba(248,231,2,.09);
+  border: 1px solid rgba(248,231,2,.18);
   color: rgba(255,255,255,.72);
   font-size: .8rem;
   line-height: 1.38;
@@ -1514,9 +1514,9 @@ body.pwa-coach-open { overflow: hidden; }
   border-radius: 28px !important;
   overflow: hidden !important;
   background:
-    radial-gradient(circle at top left, rgba(201,168,76,.16), transparent 42%),
+    radial-gradient(circle at top left, rgba(248,231,2,.16), transparent 42%),
     linear-gradient(180deg, #181818, #101010) !important;
-  border: 1px solid rgba(201,168,76,.18) !important;
+  border: 1px solid rgba(248,231,2,.18) !important;
   box-shadow: 0 24px 80px rgba(0,0,0,.55);
 }
 .account-hero {
@@ -1539,8 +1539,8 @@ body.pwa-coach-open { overflow: hidden; }
   display: grid;
   place-items: center;
   border-radius: 20px;
-  background: linear-gradient(135deg, rgba(201,168,76,.22), rgba(212,32,26,.14));
-  border: 1px solid rgba(201,168,76,.28);
+  background: linear-gradient(135deg, rgba(248,231,2,.22), rgba(248,231,2,.14));
+  border: 1px solid rgba(248,231,2,.28);
   font-size: 1.45rem;
 }
 .account-kicker {
@@ -1605,7 +1605,7 @@ body.pwa-coach-open { overflow: hidden; }
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: rgba(201,168,76,.12);
+  background: rgba(248,231,2,.12);
   flex: 0 0 auto;
 }
 .account-status-card small,
@@ -1644,7 +1644,7 @@ body.pwa-coach-open { overflow: hidden; }
   display: grid;
   place-items: center;
   border-radius: 13px;
-  background: rgba(201,168,76,.11);
+  background: rgba(248,231,2,.11);
 }
 .account-section-title h3 { margin: 0 0 .1rem !important; }
 .account-section-title p { margin: 0 !important; }
@@ -1668,7 +1668,7 @@ body.pwa-coach-open { overflow: hidden; }
   border-color: rgba(255,255,255,.09) !important;
   border-radius: 16px !important;
 }
-.account-field:focus { border-color: rgba(201,168,76,.65) !important; box-shadow: 0 0 0 3px rgba(201,168,76,.08); }
+.account-field:focus { border-color: rgba(248,231,2,.65) !important; box-shadow: 0 0 0 3px rgba(248,231,2,.08); }
 .account-btn {
   min-height: 42px;
   border-radius: 16px !important;
@@ -1676,9 +1676,9 @@ body.pwa-coach-open { overflow: hidden; }
 }
 .account-btn-primary {
   width: 100%;
-  background: linear-gradient(135deg, rgba(201,168,76,.96), rgba(176,124,32,.96)) !important;
+  background: linear-gradient(135deg, rgba(248,231,2,.96), rgba(176,124,32,.96)) !important;
   color: #111 !important;
-  border-color: rgba(201,168,76,.9) !important;
+  border-color: rgba(248,231,2,.9) !important;
   font-weight: 700;
 }
 .account-actions-list {
@@ -1699,7 +1699,7 @@ body.pwa-coach-open { overflow: hidden; }
   cursor: pointer;
 }
 .account-action-card strong { display: block; font-size: .82rem; margin-bottom: .12rem; }
-.account-action-card:hover { border-color: rgba(201,168,76,.38); }
+.account-action-card:hover { border-color: rgba(248,231,2,.38); }
 .account-details {
   margin-top: .7rem;
   background: rgba(255,255,255,.035);
@@ -1726,13 +1726,13 @@ body.pwa-coach-open { overflow: hidden; }
 }
 .account-btn-ghost {
   width: 100%;
-  background: rgba(212,32,26,.07) !important;
-  border-color: rgba(212,32,26,.22) !important;
+  background: rgba(248,231,2,.07) !important;
+  border-color: rgba(248,231,2,.22) !important;
   color: #ff8a8a !important;
 }
 .profile-enfant-card {
-  background: rgba(201,168,76,.055) !important;
-  border-color: rgba(201,168,76,.18) !important;
+  background: rgba(248,231,2,.055) !important;
+  border-color: rgba(248,231,2,.18) !important;
   border-radius: 18px !important;
   border-left-width: 0 !important;
 }
@@ -1760,8 +1760,8 @@ body.pwa-coach-open { overflow: hidden; }
 
 /* ── NOUVEAUTÉS MEMBRE ───────────────────────────────────────── */
 .member-news-panel {
-  background: linear-gradient(145deg, rgba(201,168,76,.10), rgba(255,255,255,.035));
-  border-color: rgba(201,168,76,.22);
+  background: linear-gradient(145deg, rgba(248,231,2,.10), rgba(255,255,255,.035));
+  border-color: rgba(248,231,2,.22);
   box-shadow: 0 18px 44px rgba(0,0,0,.24);
 }
 .member-news-list .smart-item {
@@ -1780,16 +1780,16 @@ body.pwa-coach-open { overflow: hidden; }
   opacity: .85;
 }
 .member-news-icon {
-  background: rgba(201,168,76,.12);
-  border: 1px solid rgba(201,168,76,.22);
+  background: rgba(248,231,2,.12);
+  border: 1px solid rgba(248,231,2,.22);
 }
 .member-news-messages { color: #8fd3ff; }
 .member-news-event { color: var(--gold); }
 .member-news-resource { color: #a7f3d0; }
-.member-news-announcement { color: #ffb4b4; }
+.member-news-announcement { color: #f8e702; }
 .news-highlight {
-  outline: 2px solid rgba(201,168,76,.85);
-  box-shadow: 0 0 0 5px rgba(201,168,76,.14), 0 18px 38px rgba(0,0,0,.28);
+  outline: 2px solid rgba(248,231,2,.85);
+  box-shadow: 0 0 0 5px rgba(248,231,2,.14), 0 18px 38px rgba(0,0,0,.28);
 }
 @media (max-width: 720px) {
   .member-news-panel { padding: 1rem; }

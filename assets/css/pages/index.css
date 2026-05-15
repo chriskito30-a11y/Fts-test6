@@ -7,8 +7,8 @@ html, body { min-height: 100%; }
 
 .index-page {
   background:
-    radial-gradient(circle at top left, rgba(212,32,26,.18), transparent 34rem),
-    radial-gradient(circle at bottom right, rgba(201,168,76,.12), transparent 28rem),
+    radial-gradient(circle at top left, rgba(248,231,2,.18), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(248,231,2,.12), transparent 28rem),
     var(--black);
 }
 
@@ -62,7 +62,7 @@ html, body { min-height: 100%; }
   width: 13rem;
   height: 13rem;
   border-radius: 50%;
-  background: rgba(212,32,26,.18);
+  background: rgba(248,231,2,.18);
   filter: blur(1px);
   pointer-events: none;
 }
@@ -128,7 +128,7 @@ html, body { min-height: 100%; }
 .header-link-gold {
   color: #15110a;
   background: var(--gold);
-  border: 1px solid rgba(201,168,76,.72);
+  border: 1px solid rgba(248,231,2,.72);
 }
 
 .header-link-muted {
@@ -178,9 +178,9 @@ html, body { min-height: 100%; }
   margin-bottom: .8rem;
   padding: .35rem .7rem;
   border-radius: 999px;
-  background: rgba(212,32,26,.13);
-  color: #ffcfcc;
-  border: 1px solid rgba(212,32,26,.26);
+  background: rgba(248,231,2,.13);
+  color: #f8e702;
+  border: 1px solid rgba(248,231,2,.26);
   font-size: .68rem;
   font-weight: 800;
   letter-spacing: .12em;
@@ -243,13 +243,13 @@ html, body { min-height: 100%; }
 
 .option:hover {
   transform: translateY(-1px);
-  background: rgba(212,32,26,.08);
-  border-color: rgba(212,32,26,.34);
+  background: rgba(248,231,2,.08);
+  border-color: rgba(248,231,2,.34);
 }
 
 .option.selected {
-  background: linear-gradient(135deg, rgba(212,32,26,.2), rgba(201,168,76,.08));
-  border-color: rgba(212,32,26,.75);
+  background: linear-gradient(135deg, rgba(248,231,2,.2), rgba(248,231,2,.08));
+  border-color: rgba(248,231,2,.75);
 }
 
 .opt-icon  {
@@ -301,7 +301,7 @@ html, body { min-height: 100%; }
   padding: .72rem 1.15rem;
   background: var(--red);
   border: none;
-  color: var(--white);
+  color: var(--brand-ink, #050505);
   font-size: .84rem;
   font-weight: 900;
 }
@@ -322,8 +322,8 @@ html, body { min-height: 100%; }
 
 .dest-badge {
   display: inline-flex;
-  background: rgba(201,168,76,.12);
-  border: 1px solid rgba(201,168,76,.32);
+  background: rgba(248,231,2,.12);
+  border: 1px solid rgba(248,231,2,.32);
   color: var(--gold);
   font-size: .64rem;
   letter-spacing: .15em;
@@ -374,7 +374,7 @@ html, body { min-height: 100%; }
   min-height: 48px;
   padding: .9rem 1.25rem;
   background: var(--red);
-  color: var(--white);
+  color: var(--brand-ink, #050505);
   text-decoration: none;
   border-radius: 999px;
   font-size: .88rem;

@@ -44,8 +44,8 @@
 
 .dash-actions { display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; justify-content:flex-end; }
 .btn-admin-link {
-  background: rgba(201,168,76,.08);
-  border: 1px solid rgba(201,168,76,.35);
+  background: rgba(248,231,2,.08);
+  border: 1px solid rgba(248,231,2,.35);
   color: var(--gold);
   padding: .4rem .9rem;
   border-radius: var(--r-sm);
@@ -55,7 +55,7 @@
   font-family: var(--font-body);
   transition: all .2s;
 }
-.btn-admin-link:hover { background: rgba(201,168,76,.14); border-color: var(--gold); color: var(--white); }
+.btn-admin-link:hover { background: rgba(248,231,2,.14); border-color: var(--gold); color: var(--white); }
 .btn-logout {
   background: transparent;
   border: 1px solid #333;
@@ -96,7 +96,7 @@
 
 .badge {
   background: var(--red);
-  color: var(--white);
+  color: var(--brand-ink, #050505);
   font-size: .55rem;
   padding: .1rem .35rem;
   border-radius: 8px;
@@ -149,7 +149,7 @@
 .user-meta   { font-size: .72rem; color: var(--muted); }
 .user-group  {
   display: inline-block; font-size: .65rem;
-  background: rgba(201,168,76,.1); border: 1px solid rgba(201,168,76,.2);
+  background: rgba(248,231,2,.1); border: 1px solid rgba(248,231,2,.2);
   color: var(--gold); padding: .15rem .5rem; border-radius: 2px; margin-top: .2rem;
 }
 .user-actions { display: flex; gap: .4rem; flex-wrap: wrap; align-items: center; }
@@ -192,8 +192,8 @@
   cursor: pointer; font-family: var(--font-body); font-size: .8rem;
   border: none; transition: background .2s;
 }
-.btn-confirm       { background: var(--red);  color: var(--white); }
-.btn-confirm:hover { background: #b71815; }
+.btn-confirm       { background: var(--red);  color: var(--brand-ink, #050505); }
+.btn-confirm:hover { background: var(--red-dark); }
 .btn-cancel        { background: #2a2a2a; color: var(--muted); }
 .btn-cancel:hover  { background: #333; color: var(--white); }
 
@@ -205,7 +205,7 @@
   cursor: pointer; font-size: .78rem; color: var(--muted);
   transition: all .2s; font-family: var(--font-body);
 }
-.ch-tag.active { border-color: var(--red); color: var(--white); background: rgba(212,32,26,.08); }
+.ch-tag.active { border-color: var(--red); color: var(--white); background: rgba(248,231,2,.08); }
 .msg-item {
   background: var(--grey); border: 1px solid var(--border);
   border-radius: var(--r-sm); padding: .8rem 1rem; margin-bottom: .5rem;
@@ -220,7 +220,7 @@
   padding: .3rem .6rem; border-radius: 2px; cursor: pointer;
   font-size: .7rem; flex-shrink: 0; transition: all .2s; font-family: var(--font-body);
 }
-.btn-del:hover { background: rgba(212,32,26,.15); border-color: var(--red); }
+.btn-del:hover { background: rgba(248,231,2,.15); border-color: var(--red); }
 
 /* ── BADGES RÔLES ────────────────────────────────────────────── */
 .role-badge {
@@ -228,8 +228,8 @@
   padding: .15rem .5rem; border-radius: 2px; margin-left: .4rem;
   text-transform: uppercase; letter-spacing: .06em;
 }
-.role-admin { background: rgba(212,32,26,.15); border: 1px solid rgba(212,32,26,.3); color: var(--red); }
-.role-prof  { background: rgba(201,168,76,.1);  border: 1px solid rgba(201,168,76,.2); color: var(--gold); }
+.role-admin { background: rgba(248,231,2,.15); border: 1px solid rgba(248,231,2,.3); color: var(--red); }
+.role-prof  { background: rgba(248,231,2,.1);  border: 1px solid rgba(248,231,2,.2); color: var(--gold); }
 .role-member{ background: rgba(255,255,255,.04); border: 1px solid #2a2a2a; color: #555; }
 
 /* ── SÉLECTEUR DE RÔLE ───────────────────────────────────────── */
@@ -242,21 +242,21 @@
 }
 .role-pill:hover { border-color: #444; color: var(--white); }
 .role-pill.active-member { border-color: #555;          color: var(--white); background: rgba(255,255,255,.06); }
-.role-pill.active-prof   { border-color: var(--gold);   color: var(--gold);  background: rgba(201,168,76,.1); }
-.role-pill.active-admin  { border-color: var(--red);    color: var(--red);   background: rgba(212,32,26,.12); }
+.role-pill.active-prof   { border-color: var(--gold);   color: var(--gold);  background: rgba(248,231,2,.1); }
+.role-pill.active-admin  { border-color: var(--red);    color: var(--red);   background: rgba(248,231,2,.12); }
 
 .empty-msg { color: var(--muted); font-size: .82rem; padding: 1rem 0; font-style: italic; }
 
 /* ── INFOS ENFANT dans les cartes et la modale ──────────────── */
 .enfant-tag {
   display: inline-block; font-size: .68rem;
-  background: rgba(201,168,76,.06); border: 1px solid rgba(201,168,76,.18);
+  background: rgba(248,231,2,.06); border: 1px solid rgba(248,231,2,.18);
   border-left: 2px solid var(--gold); color: var(--gold);
   padding: .2rem .55rem; border-radius: 2px; margin-top: .3rem; margin-right: .3rem;
 }
 .modal-enfant-block {
-  background: rgba(201,168,76,.04);
-  border: 1px solid rgba(201,168,76,.15);
+  background: rgba(248,231,2,.04);
+  border: 1px solid rgba(248,231,2,.15);
   border-left: 3px solid var(--gold);
   border-radius: var(--r-sm);
   padding: .8rem 1rem;
@@ -267,7 +267,7 @@
   color: var(--gold); margin-bottom: .6rem;
   display: flex; align-items: center; gap: .4rem;
 }
-.modal-enfant-title::after { content:""; flex:1; height:1px; background:rgba(201,168,76,.2); }
+.modal-enfant-title::after { content:""; flex:1; height:1px; background:rgba(248,231,2,.2); }
 
 @media (max-width: 600px) {
   .tabs-bar  { padding: 0 1rem; }
@@ -290,8 +290,8 @@
 body { overflow-x: hidden; }
 .dashboard {
   background:
-    radial-gradient(circle at top left, rgba(212,32,26,.12), transparent 28rem),
-    radial-gradient(circle at top right, rgba(201,168,76,.10), transparent 24rem),
+    radial-gradient(circle at top left, rgba(248,231,2,.12), transparent 28rem),
+    radial-gradient(circle at top right, rgba(248,231,2,.10), transparent 24rem),
     #070707;
 }
 .dash-hdr {
@@ -346,8 +346,8 @@ body { overflow-x: hidden; }
 }
 .summary-total {
   flex-shrink: 0;
-  border: 1px solid rgba(201,168,76,.35);
-  background: rgba(201,168,76,.10);
+  border: 1px solid rgba(248,231,2,.35);
+  background: rgba(248,231,2,.10);
   color: var(--gold);
   border-radius: 999px;
   padding: .45rem .75rem;

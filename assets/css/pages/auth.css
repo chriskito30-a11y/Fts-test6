@@ -137,8 +137,8 @@ html, body { height: 100%; }
   display: inline-block;
   font-size: .75rem;
   color: var(--gold);
-  background: rgba(201,168,76,.08);
-  border: 1px solid rgba(201,168,76,.2);
+  background: rgba(248,231,2,.08);
+  border: 1px solid rgba(248,231,2,.2);
   border-radius: var(--r-sm);
   padding: .3rem .8rem;
   margin-bottom: 1rem;
@@ -193,7 +193,7 @@ body {
 .auth-card select:focus {
   outline: none;
   border-color: var(--red);
-  box-shadow: 0 0 0 2px rgba(212,32,26,.12);
+  box-shadow: 0 0 0 2px rgba(248,231,2,.12);
 }
 @media (max-width: 560px) {
   .auth-wrap {
@@ -222,8 +222,8 @@ body {
   animation: fadeUp .25s ease both;
 }
 .enfant-block {
-  background: rgba(201,168,76,.04);
-  border: 1px solid rgba(201,168,76,.15);
+  background: rgba(248,231,2,.04);
+  border: 1px solid rgba(248,231,2,.15);
   border-left: 3px solid var(--gold);
   border-radius: var(--r-lg);
   padding: 1rem;
@@ -253,7 +253,7 @@ body {
   transition: all .2s;
   line-height: 1;
 }
-.enfant-remove:hover { color: var(--red); background: rgba(212,32,26,.08); }
+.enfant-remove:hover { color: var(--red); background: rgba(248,231,2,.08); }
 .enfant-block .f-label { margin-top: .7rem; }
 .enfant-block .f-label:first-of-type { margin-top: 0; }
 .btn-add-enfant {
@@ -276,7 +276,7 @@ body {
   display: flex; align-items: center; gap: .4rem;
 }
 .form-subcat-lbl::after {
-  content: ''; flex: 1; height: 1px; background: rgba(201,168,76,.2);
+  content: ''; flex: 1; height: 1px; background: rgba(248,231,2,.2);
 }
 
 .u-auth-inline-1 { width:100%;justify-content:center }
