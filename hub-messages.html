@@ -14,75 +14,75 @@
 <link rel="stylesheet" href="assets/css/fts.css">
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=1">
 <link rel="stylesheet" href="assets/css/pages/hub-messages.css?v=1">
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body class="has-glow">
 <div class="auth-loading" id="auth-loading">
   <div class="auth-loading-logo">FAIS TON <span>SHOW</span></div>
-  <div class="spinner"></div>
-  <div class="auth-loading-sub">Chargement des messages…</div>
+  <div class="loading-spinner"></div>
+  <div class="auth-loading-sub">Ouverture des messages…</div>
 </div>
 
 <div id="page-content" class="u-initial-hidden">
-  <nav class="bottom-nav" aria-label="Navigation principale">
-    <a href="membres.html" class="bnav-item">
-      <span class="bnav-icon">👤</span><span class="bnav-label">Membres</span>
+  <nav class="fts-bottom-nav" aria-label="Navigation principale">
+    <a href="membres.html" class="fts-nav-item" data-nav="membres">
+      <span class="fts-nav-icon">👤</span><span class="fts-nav-label">Membres</span>
     </a>
-    <a href="membres.html#member-news-panel" class="bnav-item">
-      <span class="bnav-icon-wrap">
-        <span class="bnav-icon">📬</span>
-        <span class="bnav-badge" id="news-badge">0</span>
-      </span>
-      <span class="bnav-label">Non lus</span>
+    <a href="membres.html#member-news-panel" class="fts-nav-item" data-nav="unread">
+      <span class="fts-nav-icon-wrap"><span class="fts-nav-icon">📬</span><span class="fts-nav-badge" id="fts-news-badge"></span></span>
+      <span class="fts-nav-label">Non lus</span>
     </a>
-    <a href="hub-messages.html" class="bnav-item active" aria-current="page">
-      <span class="bnav-icon">💬</span><span class="bnav-label">Messages</span>
+    <a href="hub-messages.html" class="fts-nav-item active" data-nav="messages" aria-current="page">
+      <span class="fts-nav-icon">💬</span><span class="fts-nav-label">Messages</span>
+    </a>
+    <a href="#" class="fts-nav-item" data-nav="calendar" aria-disabled="true">
+      <span class="fts-nav-icon">📅</span><span class="fts-nav-label">Agenda</span>
     </a>
   </nav>
 
-  <main class="wrap wrap-md hub-shell">
-    <section class="hub-hero" aria-label="Hub messages Fais Ton Show">
-      <div class="hub-kicker">Fais Ton Show</div>
-      <h1 class="hub-title">MESSAGES<br><span>FTS</span></h1>
-      <p class="hub-sub">Un seul endroit pour contacter quelqu’un, suivre les groupes et remplacer progressivement les échanges dispersés.</p>
-    </section>
+  <main class="hub-wrap">
+    <header class="hub-hero">
+      <div class="hub-kicker">Espace échanges</div>
+      <h1>💬 Messages <span>Fais Ton Show</span></h1>
+      <p>Discutez facilement avec les membres, les professeurs et vos groupes Fais Ton Show.</p>
+    </header>
 
     <section class="hub-grid" aria-label="Choisir un espace de discussion">
-      <a class="hub-card" href="messages.html">
-        <span class="hub-ico">👤</span>
-        <span class="hub-card-main">
+      <a class="hub-card hub-card-main" href="messages.html">
+        <span class="hub-card-icon">👤</span>
+        <span class="hub-card-content">
           <strong>Discussions privées</strong>
-          <small>Envoyer un message direct ou créer un petit groupe privé.</small>
+          <small>Contactez directement un membre, un parent ou un professeur.</small>
         </span>
-        <span class="hub-pill">MP</span>
+        <span class="hub-card-action">Ouvrir</span>
       </a>
       <a class="hub-card" href="forum.html">
-        <span class="hub-ico">👥</span>
-        <span class="hub-card-main">
+        <span class="hub-card-icon">👥</span>
+        <span class="hub-card-content">
           <strong>Groupes Fais Ton Show</strong>
-          <small>Discussions par activité, catégories et sous-catégories accessibles.</small>
+          <small>Suivez les échanges par activité, groupe ou projet.</small>
         </span>
-        <span class="hub-pill">Forum</span>
-      </a>
-      <a class="hub-card" href="membres.html#member-news-panel">
-        <span class="hub-ico">📬</span>
-        <span class="hub-card-main">
-          <strong>Non lus</strong>
-          <small>Documents, annonces et événements non consultés depuis ton espace membre.</small>
-        </span>
-        <span class="hub-pill" id="hub-news-count">0</span>
+        <span class="hub-card-action">Ouvrir</span>
       </a>
     </section>
 
-    <div class="hub-info">Les messages privés et les groupes restent séparés techniquement pour garder l’application fiable. Le hub sert de porte d’entrée simple, comme une messagerie moderne.</div>
-    <div class="bnav-spacer"></div>
+    <section class="hub-tip">
+      <div class="hub-tip-icon">✨</div>
+      <div>
+        <strong>Un réflexe simple</strong>
+        <p>Pour contacter quelqu’un ou suivre les infos d’un groupe, passez par les Messages Fais Ton Show.</p>
+      </div>
+    </section>
+
+    <div class="fts-bottom-spacer"></div>
   </main>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="assets/js/fts-utils.js"></script>
-<script src="assets/js/fts-firebase.js"></script>
+<script src="./assets/js/fts-utils.js"></script>
+<script src="./assets/js/fts-firebase.js"></script>
+<script src="assets/js/fts-pwa.js"></script>
 <script src="assets/js/fts-nav.js?v=1"></script>
 <script src="assets/js/pages/hub-messages.js?v=1"></script>
 </body>

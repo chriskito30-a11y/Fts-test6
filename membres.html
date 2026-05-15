@@ -14,8 +14,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
-<link rel="stylesheet" href="assets/css/fts-nav.css?v=1">
 
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=1">
 <link rel="stylesheet" href="assets/css/pages/membres.css?v=11">
 </head>
 
@@ -34,29 +34,19 @@
 <div id="page-content" class="u-initial-hidden">
 
   <!-- BOTTOM NAV -->
-  <nav class="bottom-nav" aria-label="Navigation principale">
-    <a href="membres.html" class="bnav-item active" aria-current="page">
-      <span class="bnav-icon">👤</span><span class="bnav-label">Membres</span>
+  <nav class="fts-bottom-nav" aria-label="Navigation principale">
+    <a href="membres.html" class="fts-nav-item" data-nav="membres">
+      <span class="fts-nav-icon">👤</span><span class="fts-nav-label">Membres</span>
     </a>
-    <a href="membres.html#member-news-panel" class="bnav-item" id="bnav-news-link">
-      <span class="bnav-icon-wrap">
-        <span class="bnav-icon">📬</span>
-        <span class="bnav-badge" id="news-badge">0</span>
-      </span>
-      <span class="bnav-label">Non lus</span>
+    <a href="membres.html#member-news-panel" class="fts-nav-item" data-nav="unread">
+      <span class="fts-nav-icon-wrap"><span class="fts-nav-icon">📬</span><span class="fts-nav-badge" id="fts-news-badge"></span></span>
+      <span class="fts-nav-label">Non lus</span>
     </a>
-    <a href="hub-messages.html" class="bnav-item">
-      <span class="bnav-icon-wrap">
-        <span class="bnav-icon">💬</span>
-        <span class="bnav-badge" id="msg-badge">0</span>
-      </span>
-      <span class="bnav-label">Messages</span>
+    <a href="hub-messages.html" class="fts-nav-item" data-nav="messages">
+      <span class="fts-nav-icon">💬</span><span class="fts-nav-label">Messages</span>
     </a>
-    <a href="profs.html" class="bnav-item u-initial-hidden" id="bnav-profs">
-      <span class="bnav-icon">🎓</span><span class="bnav-label">Profs</span>
-    </a>
-    <a href="admin.html" class="bnav-item u-initial-hidden" id="bnav-admin">
-      <span class="bnav-icon">🛡</span><span class="bnav-label">Admin</span>
+    <a href="#" class="fts-nav-item" data-nav="calendar" aria-disabled="true">
+      <span class="fts-nav-icon">📅</span><span class="fts-nav-label">Agenda</span>
     </a>
   </nav>
 
@@ -156,8 +146,12 @@
         <span class="quick-title">Événements</span>
       </a>
       <a href="hub-messages.html" class="quick-card">
-        <span class="quick-ico">💬</span>
+        <span class="quick-ico">✉️</span>
         <span class="quick-title">Messages</span>
+      </a>
+      <a href="hub-messages.html" class="quick-card">
+        <span class="quick-ico">💬</span>
+        <span class="quick-title">Groupes</span>
       </a>
       <a href="saison.html" class="quick-card">
         <span class="quick-ico">🎬</span>

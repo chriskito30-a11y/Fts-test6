@@ -9,15 +9,14 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="./assets/css/fts-chat.css?v=8" rel="stylesheet"/>
-<link href="assets/css/fts-nav.css?v=1" rel="stylesheet"/>
-<link href="assets/css/pages/hub-messages.css?v=1" rel="stylesheet"/>
+<link href="./assets/css/fts-chat.css?v=9" rel="stylesheet"/>
+<link href="./assets/css/fts-nav.css?v=1" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<link href="assets/css/pages/forum.css?v=1" rel="stylesheet"/></head>
-<body class="chat-modern">
+<link href="assets/css/pages/forum.css?v=2" rel="stylesheet"/></head>
+<body class="fts-chat-modern">
 <div class="auth-loading" id="auth-loading">
 <div class="auth-logo">FAIS TON <span>SHOW</span></div>
 <div class="spinner"></div>
@@ -27,7 +26,7 @@
 <div class="sidebar">
 <div class="sb-hdr">
 <div class="sb-avatar" id="my-avatar">?</div>
-<div class="sb-title">GROUPES</div>
+<div class="sb-title" data-subtitle="Forum par activité">GROUPES</div>
 <button class="btn-compose u-forum-inline-3" data-fts-handler-1="" id="btn-admin-gear" title="Mode admin">⚙️</button>
 </div>
 <div class="sb-search">
@@ -39,11 +38,7 @@
 <div class="notif-mini">
 <button class="btn-notif" data-fts-handler-3="" id="btn-notif">🔕 Activer les notifs</button>
 </div>
-<nav class="sb-nav">
-<a class="snav" href="membres.html"><span class="ico">👤</span><span>Membres</span></a>
-<a class="snav" href="membres.html#member-news-panel"><span class="ico">📬</span><span>Non lus</span><span class="conv-badge" id="news-badge"></span></a>
-<a class="snav active" href="hub-messages.html"><span class="ico">💬</span><span>Messages</span><span class="conv-badge u-forum-inline-4" id="msg-badge"></span></a>
-</nav>
+<nav class="sb-nav"><a class="snav" href="membres.html"><span class="ico">👤</span><span>Membres</span></a><a class="snav" href="hub-messages.html"><span class="ico">💬</span><span>Messages</span></a></nav>
 </div>
 <div class="main" id="main">
 <div class="chat-empty" id="chat-empty">
@@ -78,6 +73,22 @@
 </div>
 </div>
 </div>
+<nav class="fts-bottom-nav" aria-label="Navigation principale">
+  <a href="membres.html" class="fts-nav-item" data-nav="membres">
+    <span class="fts-nav-icon">👤</span><span class="fts-nav-label">Membres</span>
+  </a>
+  <a href="membres.html#member-news-panel" class="fts-nav-item" data-nav="unread">
+    <span class="fts-nav-icon-wrap"><span class="fts-nav-icon">📬</span><span class="fts-nav-badge" id="fts-news-badge"></span></span>
+    <span class="fts-nav-label">Non lus</span>
+  </a>
+  <a href="hub-messages.html" class="fts-nav-item" data-nav="messages">
+    <span class="fts-nav-icon">💬</span><span class="fts-nav-label">Messages</span>
+  </a>
+  <a href="#" class="fts-nav-item" data-nav="calendar" aria-disabled="true">
+    <span class="fts-nav-icon">📅</span><span class="fts-nav-label">Agenda</span>
+  </a>
+</nav>
+<div class="fts-bottom-spacer"></div>
 <script src="./assets/js/fts-utils.js"></script>
 <script src="./assets/js/fts-firebase.js"></script>
 <script src="./assets/js/fts-chat.js?v=8"></script>
@@ -92,6 +103,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/fts-nav.js?v=1"></script>
-<script src="assets/js/pages/forum.js?v=4"></script>
+<script src="assets/js/pages/forum.js?v=3"></script>
 </body>
 </html>
