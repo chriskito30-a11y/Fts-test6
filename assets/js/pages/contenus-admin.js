@@ -200,7 +200,7 @@ function renderQList(){
     const legacyAttr=q._legacyPath ? ` data-legacy="${FTS.esc(q._legacyPath)}"` : '';
     return `<div class="item${selected===q.key?' sel':''}" data-fts-click="editQuestionnaire('${FTS.esc(q.key)}', this.dataset.legacy||'')"${legacyAttr}>
       <div class="item-title">${FTS.esc(q.icon||'')} ${FTS.esc(q.title||q.titre||'Sans titre')}</div>
-      <div class="item-meta">${FTS.esc(q.type||'')} · ordre ${q.order||0}${q.active===false?' · masqué':''}${q._legacyPath?' · ancien emplacement':''}</div>
+      <div class="item-meta">${FTS.esc(q.type||'')} · ${priorityLabel(q.order)}${q.active===false?' · masqué':''}${q._legacyPath?' · ancien emplacement':''}</div>
     </div>`;
   }).join('') : '<div class="hint">Aucune option.</div>';
 }
@@ -209,7 +209,7 @@ function newQuestionnaire(){
   $('q-key').dataset.legacy='';
   $('q-type').value='adhesion';
   $('q-icon').value='🎭';
-  $('q-order').value=(questionnaire.length+1)*10;
+  $('q-order').value='100';
   $('q-active').value='true';
   renderQList();
   renderQuestionnairePreview();
@@ -220,7 +220,7 @@ function editQuestionnaire(key, legacyPath=''){
   $('q-key').value=key;
   $('q-key').dataset.legacy=legacyPath || q._legacyPath || '';
   $('q-type').value=q.type||'adhesion';
-  $('q-order').value=q.order||10;
+  $('q-order').value=normalizePriorityValue(q.order); 
   $('q-icon').value=q.icon||'';
   $('q-active').value=String(q.active!==false);
   $('q-title').value=q.title||q.titre||'';
@@ -341,11 +341,11 @@ function updateResourceSubcats(){
 function renderCList(){
   const el=$('c-list'); if(!el) return;
   const selected=$('c-key')?.value||'';
-  el.innerHTML=categoriesRaw.length?categoriesRaw.map(c=>`<div class="item${selected===c.key?' sel':''}" data-fts-click="editCategory('${FTS.esc(c.key)}')"><div class="item-title">${FTS.esc(c.icon||FTS.catIcon(c.name))} ${FTS.esc(c.name||c.category||'Sans nom')}</div><div class="item-meta">${(c.subcatsArray||[]).length} sous-catégorie${(c.subcatsArray||[]).length>1?'s':''} · ordre ${c.order||0}${c.active===false?' · masquée':''}</div></div>`).join(''):'<div class="hint">Aucune catégorie.</div>';
+  el.innerHTML=categoriesRaw.length?categoriesRaw.map(c=>`<div class="item${selected===c.key?' sel':''}" data-fts-click="editCategory('${FTS.esc(c.key)}')"><div class="item-title">${FTS.esc(c.icon||FTS.catIcon(c.name))} ${FTS.esc(c.name||c.category||'Sans nom')}</div><div class="item-meta">${(c.subcatsArray||[]).length} sous-catégorie${(c.subcatsArray||[]).length>1?'s':''} · ${priorityLabel(c.order)}${c.active===false?' · masquée':''}</div></div>`).join(''):'<div class="hint">Aucune catégorie.</div>';
 }
 function newCategory(){
   ['c-key','c-name','c-icon','c-subcats'].forEach(id=>$(id).value='');
-  $('c-order').value=(categoriesRaw.length+1)*10;
+  $('c-order').value='100';
   $('c-active').value='true';
   renderCList();
 }
@@ -354,7 +354,7 @@ function editCategory(key){
   $('c-key').value=key;
   $('c-name').value=c.name||c.category||'';
   $('c-icon').value=c.icon||c.emoji||FTS.catIcon(c.name||c.category||'');
-  $('c-order').value=c.order||10;
+  $('c-order').value=normalizePriorityValue(c.order);
   $('c-active').value=String(c.active!==false);
   $('c-subcats').value=(c.subcatsArray||[]).map(s=>s.name).join('\n');
   renderCList();
