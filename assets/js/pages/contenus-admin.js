@@ -18,6 +18,52 @@ function msg(id, txt, ok=true){
   el.className='msg '+(ok?'ok':'err');
   setTimeout(()=>{ el.className='msg'; }, 3000);
 }
+
+function escText(v){ return FTS.esc(String(v||'').trim()); }
+function renderAdminPreviews(){
+  renderAnnoncePreview();
+  renderQuestionnairePreview();
+  renderResourcePreview();
+}
+function renderAnnoncePreview(){
+  const box=$('annonce-preview'); if(!box) return;
+  const active=$('a-active')?.value==='true';
+  const title=$('a-title')?.value.trim() || 'Info importante';
+  const body=$('a-body')?.value.trim() || 'Ton annonce apparaîtra ici.';
+  const btn=$('a-btn')?.value.trim();
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card ${active?'':'is-muted'}"><strong>${escText(title)}</strong><p>${escText(body)}</p>${btn?`<span class="preview-button">${escText(btn)}</span>`:''}</div>`;
+}
+function renderQuestionnairePreview(){
+  const box=$('questionnaire-preview'); if(!box) return;
+  const icon=$('q-icon')?.value.trim() || '🎭';
+  const title=$('q-title')?.value.trim() || 'Titre de la carte';
+  const desc=$('q-desc')?.value.trim() || 'Résumé affiché sous le titre.';
+  const d1k=$('q-d1k')?.value.trim(), d1v=$('q-d1v')?.value.trim();
+  const d2k=$('q-d2k')?.value.trim(), d2v=$('q-d2v')?.value.trim();
+  const active=$('q-active')?.value!=='false';
+  const tags=[];
+  if(d1k && d1v) tags.push(`<span>${escText(d1k)} : ${escText(d1v)}</span>`);
+  if(d2k && d2v) tags.push(`<span>${escText(d2k)} : ${escText(d2v)}</span>`);
+  box.innerHTML=`<div class="preview-label">Aperçu accueil ${active?'':'· masqué'}</div><div class="preview-card ${active?'':'is-muted'}"><span class="preview-icon">${escText(icon)}</span><strong>${escText(title)}</strong><p>${escText(desc)}</p>${tags.length?`<div class="preview-tags">${tags.join('')}</div>`:''}</div>`;
+}
+function renderResourcePreview(){
+  const box=$('resource-preview'); if(!box) return;
+  const name=$('r-name')?.value.trim() || 'Nom de la ressource';
+  const type=($('r-type')?.value || 'pdf').toUpperCase();
+  const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || 'Catégorie');
+  const sub=($('r-subcat-new')?.value.trim() || $('r-subcat')?.value || 'Sous-catégorie');
+  const active=$('r-active')?.value!=='false';
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
+}
+function bindPreviewInputs(){
+  ['a-active','a-title','a-body','a-btn','a-url','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
+    const el=$(id); if(!el || el.__ftsPreviewBound) return;
+    el.__ftsPreviewBound=true;
+    el.addEventListener('input', renderAdminPreviews);
+    el.addEventListener('change', renderAdminPreviews);
+  });
+}
+
 function showTab(id,btn){
   document.querySelectorAll('.tab-lnk').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -39,6 +85,8 @@ function init(){
     if(!p || p.role!=='admin'){ location.href='membres.html'; return; }
     $('auth-loading').style.display='none';
     $('admin-shell').style.display='block';
+    bindPreviewInputs();
+    renderAdminPreviews();
     await seedCategoriesIfEmpty();
     listenCategories();
     listenQuestionnaire();
@@ -56,6 +104,7 @@ async function loadAnnonce(){
   $('a-body').value=a.body||a.text||'';
   $('a-btn').value=a.buttonText||'';
   $('a-url').value=a.buttonUrl||'';
+  renderAnnoncePreview();
 }
 async function saveAnnonce(){
   await db.ref('fts_content/annonces/current').set({
@@ -163,6 +212,7 @@ function newQuestionnaire(){
   $('q-order').value=(questionnaire.length+1)*10;
   $('q-active').value='true';
   renderQList();
+  renderQuestionnairePreview();
 }
 function editQuestionnaire(key, legacyPath=''){
   const q=questionnaire.find(x=>x.key===key && (!legacyPath || x._legacyPath===legacyPath)) || questionnaire.find(x=>x.key===key);
@@ -184,6 +234,7 @@ function editQuestionnaire(key, legacyPath=''){
   $('q-dtitle').value=q.destTitle||q.dest_titre||'';
   $('q-ddesc').value=q.destDesc||q.dest_desc||'';
   renderQList();
+  renderQuestionnairePreview();
 }
 async function saveQuestionnaire(){
   const existingKey=$('q-key').value;
@@ -285,6 +336,7 @@ function updateResourceSubcats(){
   const cat=(categoryStructure||[]).find(c=>c.category===$('r-cat').value);
   sub.innerHTML='<option value="">-- Aucune --</option>'+(((cat&&cat.subs)||[]).map(s=>`<option value="${FTS.esc(s.name)}">${FTS.esc(s.name)}</option>`).join(''));
   if(current && [...sub.options].some(o=>o.value===current)) sub.value=current;
+  renderResourcePreview();
 }
 function renderCList(){
   const el=$('c-list'); if(!el) return;
@@ -395,6 +447,7 @@ function newResource(){
   $('r-active').value='true';
   fillCats();
   renderRList();
+  renderResourcePreview();
 }
 function editResource(key){
   const r=resources.find(x=>x.key===key); if(!r)return;
@@ -410,6 +463,7 @@ function editResource(key){
   $('r-name').value=r.name||'';
   $('r-url').value=r.url||r.content||r.text||'';
   renderRList();
+  renderResourcePreview();
 }
 async function saveResource(){
   const key=$('r-key').value;
