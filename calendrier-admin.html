@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/calendrier-admin.css?v=1" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/calendrier-admin.css?v=2" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -29,9 +29,26 @@
 </div>
 </div>
 <div class="layout">
+<div class="admin-intro">
+  <div>
+    <div class="mini-title">Cockpit calendrier</div>
+    <h1>Gérer les événements sans rien oublier</h1>
+    <p>Les événements créés ici alimentent l’espace membres et le questionnaire d’accueil. Priorité : infos claires, visibles, faciles à vérifier.</p>
+  </div>
+  <div class="admin-note">
+    <strong>Repère simple</strong>
+    <span>Saison = présentation globale. Calendrier = dates concrètes : spectacles, stages, répétitions, réunions.</span>
+  </div>
+</div>
+<div class="stats-grid" id="event-stats">
+  <div class="stat-card"><span>À venir</span><strong id="stat-upcoming">0</strong></div>
+  <div class="stat-card"><span>Importants</span><strong id="stat-important">0</strong></div>
+  <div class="stat-card"><span>Masqués</span><strong id="stat-hidden">0</strong></div>
+  <div class="stat-card"><span>À vérifier</span><strong id="stat-check">0</strong></div>
+</div>
 <div class="grid">
 <div class="card-admin">
-<div class="mini-title">Événements Firebase</div>
+<div class="mini-title">Événements</div>
 <div class="event-list" id="event-list"><div class="empty">Chargement…</div></div>
 <button class="btn-gold u-calendrier-admin-inline-1" data-fts-handler-2="">+ Ajouter un événement</button>
 <p class="hint u-calendrier-admin-inline-2">Source officielle : <strong>fts_events</strong>. Cette page affiche aussi les anciens événements synchronisés dans le questionnaire afin de pouvoir les migrer, modifier ou supprimer.</p>
@@ -43,11 +60,16 @@
 <div class="field full"><label>Nom</label><input id="e-name" placeholder="Ex : Showcase de fin d’année"/></div>
 <div class="field"><label>Type</label><input id="e-type" placeholder="Spectacle, stage, répétition…"/></div>
 <div class="field"><label>Visible</label><select id="e-active"><option value="true">Oui</option><option value="false">Non</option></select></div>
+<div class="field"><label>Importance</label><select id="e-priority"><option value="normal">Normal</option><option value="important">Important</option></select></div>
 <div class="field"><label>Date</label><input id="e-date" type="date"/></div>
 <div class="field"><label>Heure</label><input id="e-hour" type="time"/></div>
 <div class="field full"><label>Lieu</label><input id="e-location" placeholder="Salle, ville…"/></div>
+<div class="field full"><label>Groupes concernés</label><input id="e-audience" placeholder="Ex : Tous, Théâtre ados, Singer Academy, Parents…"/></div>
 <div class="field full"><label>Lien inscription / infos</label><input id="e-url" placeholder="https://…"/></div>
 <div class="field full"><label>Note interne / description</label><textarea id="e-desc" placeholder="Optionnel — détails utiles pour l’équipe"></textarea></div>
+<div class="admin-help full">
+  <strong>Conseil admin :</strong> coche “Important” pour les dates qui doivent ressortir visuellement côté cockpit. Ce champ est déjà enregistré dans Firebase pour préparer une future mise en avant dashboard/notifications.
+</div>
 </div>
 <div class="row-actions">
 <button class="btn btn-sm" data-fts-handler-3="" id="btn-save-event">Enregistrer</button>
@@ -70,6 +92,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/calendrier-admin.js?v=1"></script>
+<script src="assets/js/pages/calendrier-admin.js?v=2"></script>
 </body>
 </html>
