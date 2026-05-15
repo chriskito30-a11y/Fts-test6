@@ -170,6 +170,7 @@ function listenUsers() {
     Object.keys(raw).forEach(id => { allUsers[id] = normalizeAdminUser(id, raw[id]); });
     renderPending();
     renderMembers();
+    renderCategorySummary();
   });
 }
 
@@ -239,6 +240,111 @@ function renderMembers() {
         <button class="btn-action btn-revoke" data-fts-click="revokeUser('${id}')">✕ Révoquer</button>
       </div>
     </div>`).join("");
+}
+
+
+/* ── RÉSUMÉ CATÉGORIES / SOUS-CATÉGORIES ────────────────────────
+   Lecture seule : aucun changement Firebase.
+   Comptage des personnes actives : compte principal + enfants.
+─────────────────────────────────────────────────────────────── */
+function getKnownCategories() {
+  return [...new Set(allGroups.map(g => g.cat).filter(Boolean))];
+}
+function getKnownSubcatsFor(cat) {
+  return [...new Set(allGroups.filter(g => g.cat === cat && g.sub).map(g => g.sub).filter(Boolean))];
+}
+function safeSubgroupsByCat(personCats, personSubs, explicitMap) {
+  const out = {};
+  const map = explicitMap && typeof explicitMap === 'object' ? explicitMap : {};
+  normList(personCats).forEach(cat => {
+    const valid = getKnownSubcatsFor(cat);
+    const explicit = normList(map[cat]);
+    const fallback = normList(personSubs).filter(s => valid.includes(s));
+    out[cat] = uniqList(explicit.length ? explicit : fallback);
+  });
+  return out;
+}
+function getPeopleFromUser(u) {
+  const people = [];
+  const parentCats = normList(u.disciplines || u.group);
+  const parentSubs = normList(u.subgroups || u.subgroup);
+  if (parentCats.length || parentSubs.length) {
+    people.push({
+      cats: parentCats,
+      subs: parentSubs,
+      byCat: safeSubgroupsByCat(parentCats, parentSubs, u.subgroupsByCat),
+    });
+  }
+
+  (Array.isArray(u.enfants) ? u.enfants : []).forEach(e => {
+    const childCats = normList(e.disciplines || e.group);
+    const childSubs = normList(e.subgroups || e.subcategories || e.subgroup);
+    if (!childCats.length && !childSubs.length) return;
+    people.push({
+      cats: childCats,
+      subs: childSubs,
+      byCat: safeSubgroupsByCat(childCats, childSubs, e.subgroupsByCat),
+    });
+  });
+  return people;
+}
+function pluralPeople(n) {
+  return n > 1 ? n + " personnes" : n + " personne";
+}
+function renderCategorySummary() {
+  const wrap = document.getElementById("category-summary");
+  const totalEl = document.getElementById("summary-total-people");
+  if (!wrap) return;
+
+  const cats = getKnownCategories();
+  const stats = {};
+  cats.forEach(cat => {
+    stats[cat] = { total: 0, subcats: {} };
+    getKnownSubcatsFor(cat).forEach(sub => { stats[cat].subcats[sub] = 0; });
+  });
+
+  let totalPeople = 0;
+  Object.values(allUsers || {}).forEach(u => {
+    if (!u || u.status !== "active") return;
+    const people = getPeopleFromUser(u);
+    totalPeople += people.length;
+
+    people.forEach(person => {
+      uniqList(person.cats).forEach(cat => {
+        if (!stats[cat]) stats[cat] = { total: 0, subcats: {} };
+        stats[cat].total += 1;
+
+        const subsForCat = safeSubgroupsByCat([cat], person.subs, person.byCat)[cat] || [];
+        uniqList(subsForCat).forEach(sub => {
+          stats[cat].subcats[sub] = (stats[cat].subcats[sub] || 0) + 1;
+        });
+      });
+    });
+  });
+
+  if (totalEl) totalEl.textContent = pluralPeople(totalPeople);
+
+  const visibleCats = Object.entries(stats)
+    .sort((a, b) => b[1].total - a[1].total || a[0].localeCompare(b[0], 'fr'));
+
+  if (!visibleCats.length) {
+    wrap.innerHTML = '<div class="empty-msg">Aucune catégorie configurée.</div>';
+    return;
+  }
+
+  wrap.innerHTML = visibleCats.map(([cat, stat]) => {
+    const subs = Object.entries(stat.subcats || {})
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
+    return `<article class="summary-card">
+      <div class="summary-card-top">
+        <strong>${FTS.esc(cat)}</strong>
+        <span>${pluralPeople(stat.total)}</span>
+      </div>
+      ${subs.length ? `<div class="summary-sublist">
+        ${subs.map(([sub, count]) => `<div class="summary-subrow"><span>${FTS.esc(sub)}</span><b>${count}</b></div>`).join('')}
+      </div>` : '<div class="summary-empty-sub">Pas de sous-catégorie configurée.</div>'}
+    </article>`;
+  }).join('');
 }
 
 /* ── ACTIONS UTILISATEURS ────────────────────────────────────────
