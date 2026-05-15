@@ -132,26 +132,45 @@ function resetTargetSelection(){
 function setTargetSelectionFromEvent(e){
   selectedTargetCategories = new Set(normArray(e.targetCategories || e.categories || e.groups));
   selectedTargetSubgroups = {};
-  const raw = e.targetSubgroups || e.targetSubcategories || e.subgroups || e.subcategories || [];
-  const subs = normArray(raw);
-  subs.forEach(sub => {
-    const cat = categoryStructure.find(c => (c.subcats || []).some(s => FTS.norm(s) === FTS.norm(sub)));
-    if(cat){
-      selectedTargetCategories.add(cat.name);
-      if(!selectedTargetSubgroups[cat.name]) selectedTargetSubgroups[cat.name] = new Set();
-      selectedTargetSubgroups[cat.name].add(sub);
-    }
-  });
+
+  if(e && e.targetGroups && typeof e.targetGroups === 'object' && !Array.isArray(e.targetGroups)){
+    Object.entries(e.targetGroups).forEach(([cat, subs]) => {
+      if(!cat) return;
+      selectedTargetCategories.add(cat);
+      selectedTargetSubgroups[cat] = new Set(normArray(subs));
+    });
+  }else{
+    const raw = e.targetSubgroups || e.targetSubcategories || e.subgroups || e.subcategories || [];
+    const subs = normArray(raw);
+    subs.forEach(sub => {
+      const cat = categoryStructure.find(c => (c.subcats || []).some(s => FTS.norm(s) === FTS.norm(sub)));
+      if(cat){
+        selectedTargetCategories.add(cat.name);
+        if(!selectedTargetSubgroups[cat.name]) selectedTargetSubgroups[cat.name] = new Set();
+        selectedTargetSubgroups[cat.name].add(sub);
+      }
+    });
+  }
+
   renderTargetSelector();
 }
 
 function getTargetSelection(){
   const categories = [...selectedTargetCategories];
   const subgroups = [];
-  Object.values(selectedTargetSubgroups).forEach(set => set.forEach(s => subgroups.push(s)));
+  const groups = {};
+
+  categories.forEach(cat => {
+    const set = selectedTargetSubgroups[cat];
+    const subs = set ? [...set].map(x => String(x || '').trim()).filter(Boolean) : [];
+    groups[cat] = [...new Set(subs)];
+    subs.forEach(s => subgroups.push(s));
+  });
+
   return {
     targetCategories: [...new Set(categories)],
-    targetSubgroups: [...new Set(subgroups)]
+    targetSubgroups: [...new Set(subgroups)],
+    targetGroups: groups
   };
 }
 
@@ -302,7 +321,8 @@ function normalizeEvent(key, v){
     important:v.important === true || v.priority === 'important',
     priority:v.priority || (v.important ? 'important' : 'normal'),
     targetCategories:normArray(v.targetCategories || v.categories || v.groups),
-    targetSubgroups:normArray(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories)
+    targetSubgroups:normArray(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories),
+    targetGroups:(v.targetGroups && typeof v.targetGroups === 'object') ? v.targetGroups : null
   };
 }
 
@@ -550,6 +570,7 @@ async function saveEvent(){
       priority:important ? 'important' : 'normal',
       targetCategories:targets.targetCategories,
       targetSubgroups:targets.targetSubgroups,
+      targetGroups:targets.targetGroups,
       dateTs:dateTs(iso,hour),
       updatedAt:Date.now()
     };

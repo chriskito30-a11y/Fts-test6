@@ -232,21 +232,57 @@ function renderDashboard(profile, email) {
 
 
 function eventTargetValues(e){
-  return {
-    cats: normList(e && (e.targetCategories || e.categories || e.groups)),
-    subs: normList(e && (e.targetSubgroups || e.targetSubcategories || e.subgroups || e.subcategories))
-  };
+  const cats = normList(e && (e.targetCategories || e.categories || e.groups));
+  const subs = normList(e && (e.targetSubgroups || e.targetSubcategories || e.subgroups || e.subcategories));
+  const groups = {};
+
+  if (e && e.targetGroups && typeof e.targetGroups === 'object' && !Array.isArray(e.targetGroups)) {
+    Object.entries(e.targetGroups).forEach(([cat, list]) => {
+      if (!cat) return;
+      groups[cat] = normList(list);
+    });
+  } else {
+    // Compatibilité anciens événements : sans mapping catégorie -> sous-catégories,
+    // on rattache les sous-catégories à leur discipline via la structure actuelle.
+    cats.forEach(cat => { groups[cat] = []; });
+    subs.forEach(sub => {
+      const cat = C.categories.find(c => (c.subcats || []).some(s => FTS.norm(s) === FTS.norm(sub)));
+      if (cat && cat.name) {
+        if (!groups[cat.name]) groups[cat.name] = [];
+        groups[cat.name].push(sub);
+      }
+    });
+  }
+
+  return { cats, subs, groups };
 }
 
 function canSeeEvent(e){
   if (profileIsAdmin()) return true;
   const t = eventTargetValues(e || {});
-  if (!t.cats.length && !t.subs.length) return true;
+  if (!t.cats.length && !t.subs.length && !Object.keys(t.groups).length) return true;
+
   const myCats = userDisciplines().map(FTS.norm);
   const mySubs = userSubgroups().map(FTS.norm);
-  const catOk = t.cats.some(c => myCats.includes(FTS.norm(c)));
-  const subOk = t.subs.some(sub => mySubs.includes(FTS.norm(sub)));
-  return catOk || subOk;
+
+  // Règle cible :
+  // - catégorie cochée SANS sous-catégorie = toute la catégorie voit l'événement
+  // - catégorie cochée AVEC sous-catégories = seuls ces sous-groupes voient l'événement
+  // - aucune cible = tout le monde
+  for (const [cat, subs] of Object.entries(t.groups)) {
+    const catOk = myCats.includes(FTS.norm(cat));
+    const cleanSubs = normList(subs);
+    if (catOk && !cleanSubs.length) return true;
+    if (cleanSubs.some(sub => mySubs.includes(FTS.norm(sub)))) return true;
+  }
+
+  // Sécurité de compatibilité pour anciens événements qui n'auraient que des champs plats.
+  if (!Object.keys(t.groups).length) {
+    if (t.cats.length && !t.subs.length) return t.cats.some(c => myCats.includes(FTS.norm(c)));
+    if (t.subs.length) return t.subs.some(sub => mySubs.includes(FTS.norm(sub)));
+  }
+
+  return false;
 }
 
 function updateNextEventSummary(events) {
@@ -300,6 +336,7 @@ async function loadEvts() {
           important: v.important === true || v.priority === 'important',
           targetCategories: normList(v.targetCategories || v.categories || v.groups),
           targetSubgroups: normList(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories),
+          targetGroups: (v.targetGroups && typeof v.targetGroups === 'object') ? v.targetGroups : null,
           ts
         });
       });
