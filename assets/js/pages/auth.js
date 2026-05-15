@@ -126,14 +126,23 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      if (profile.status === 'pending') {
+      const role = String(profile.role || '').toLowerCase();
+      const status = String(profile.status || '').toLowerCase();
+      const isAdminAccount = role === 'admin' || String(user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
+      const isAllowed = isAdminAccount || role === 'prof' || status === 'active';
+
+      if (status === 'pending' && !isAdminAccount) {
         showPendingScreen(user.email);
         return;
       }
 
-      if (profile.status === 'active') {
-        window.location.replace('membres.html');
+      if (isAllowed) {
+        window.location.href = 'membres.html';
+        return;
       }
+
+      // Profil existant mais statut inattendu : on évite une boucle silencieuse.
+      showPendingScreen(user.email);
 
     } catch(e) {
       console.warn('[FTS Auth] Erreur lecture profil :', e);

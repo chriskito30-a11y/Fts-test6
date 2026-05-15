@@ -136,8 +136,19 @@ function canSeeDocInCategory(doc, cat) {
       userProfile = snap.val();
       currentUid = user.uid;
 
-      if (!userProfile || userProfile.status === 'pending') {
-        // Compte en attente → retour auth
+      const role = String(userProfile && userProfile.role || '').toLowerCase();
+      const status = String(userProfile && userProfile.status || '').toLowerCase();
+      const isAdminAccount = role === 'admin' || String(user.email || '').toLowerCase() === 'contact@faistonshow.fr';
+
+      if (!userProfile) {
+        // Profil absent : session invalide → déconnexion propre.
+        await auth.signOut();
+        window.location.href = 'auth.html';
+        return;
+      }
+
+      if (status === 'pending' && !isAdminAccount) {
+        // Compte en attente → retour auth.
         await auth.signOut();
         window.location.href = 'auth.html';
         return;
@@ -157,14 +168,14 @@ function canSeeDocInCategory(doc, cat) {
       await loadCategories();
       renderDashboard(userProfile, user.email);
 
-      // Liens nav selon rôle — tolérant si les boutons n'existent plus dans la nouvelle bottom nav
-      const bnavProfs = document.getElementById('bnav-profs');
-      const bnavAdmin = document.getElementById('bnav-admin');
+      // Liens nav selon rôle — compatibilité avec anciennes/nouvelles navigations.
+      const navProfs = document.getElementById('bnav-profs');
+      const navAdmin = document.getElementById('bnav-admin');
       if (userProfile.role === 'admin') {
-        if (bnavProfs) bnavProfs.style.display = 'flex';
-        if (bnavAdmin) bnavAdmin.style.display = 'flex';
+        if (navProfs) navProfs.style.display = 'flex';
+        if (navAdmin) navAdmin.style.display = 'flex';
       } else if (userProfile.role === 'prof') {
-        if (bnavProfs) bnavProfs.style.display = 'flex';
+        if (navProfs) navProfs.style.display = 'flex';
       }
 
       // Filtrage des catégories selon les disciplines
@@ -183,21 +194,11 @@ function canSeeDocInCategory(doc, cat) {
       handleResourceDeepLink();
 
     } catch(e) {
-      console.warn('[FTS] Erreur chargement espace membres :', e);
-
-      // Anti-boucle auth <-> membres : une erreur d'affichage/dashboard ne doit pas
-      // renvoyer vers auth.html tant que Firebase confirme que l'utilisateur est connecté.
+      console.warn('[FTS] Erreur chargement profil :', e);
       const loading = document.getElementById('auth-loading');
-      const content = document.getElementById('page-content');
       if (loading) {
-        loading.style.display = 'block';
-        loading.innerHTML = `<div class="auth-loading-logo">FAIS TON <span>SHOW</span></div>
-          <div class="auth-loading-sub">Une erreur empêche l’ouverture de l’espace membres.</div>
-          <p style="max-width:520px;margin:16px auto;color:#f8f8f2;line-height:1.5">Recharge la page une fois. Si le problème continue, envoie une capture de la console.</p>
-          <button onclick="location.reload()" style="border:0;border-radius:999px;padding:12px 18px;font-weight:900;background:#f8e702;color:#000">Recharger</button>
-          <button onclick="firebase.auth().signOut().then(function(){ location.href='auth.html'; })" style="border:1px solid rgba(248,231,2,.35);border-radius:999px;padding:12px 18px;font-weight:900;background:#111;color:#f8e702">Me reconnecter</button>`;
+        loading.innerHTML = '<div class="logo">Erreur</div><div class="sub">Impossible de charger ton espace. Recharge la page ou réessaie la connexion.</div><button class="btn btn-sm" onclick="location.reload()">Recharger</button><button class="btn-outline" onclick="firebase.auth().signOut().then(()=>location.href='auth.html')">Se reconnecter</button>';
       }
-      if (content) content.style.display = 'none';
     }
   });
 })();
