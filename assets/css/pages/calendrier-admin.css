@@ -238,3 +238,45 @@
     flex-basis:100%;
   }
 }
+
+
+/* === Correctif V5 — anti débordement mobile admin calendrier === */
+html,body{max-width:100%;overflow-x:hidden}
+*,*::before,*::after{box-sizing:border-box}
+.admin-shell,.layout,.grid,.card-admin,.form-card-admin,.form-section,.target-box,.event-list{min-width:0;max-width:100%}
+.layout{width:100%;max-width:1100px}
+.card-admin{overflow-wrap:anywhere}
+.form-card-admin .field input,
+.form-card-admin .field textarea,
+.form-card-admin .field select{max-width:100%;min-width:0}
+.form-hero{min-width:0}
+.form-hero > div:last-child{min-width:0}
+.form-hero h2,.form-hero p{overflow-wrap:anywhere}
+.evt-row,.target-pill,.target-sub{min-width:0;max-width:100%}
+.evt-name,.evt-target{max-width:100%}
+@media(max-width:820px){
+  .layout{padding:.85rem;width:100%}
+  .topbar{padding:.9rem 1rem;max-width:100%;overflow:hidden}
+  .actions{width:100%;display:flex;overflow-x:auto;flex-wrap:nowrap;padding-bottom:.25rem;-webkit-overflow-scrolling:touch}
+  .actions .btn-sm,.actions .btn-outline{flex:0 0 auto;white-space:nowrap}
+  .grid{display:block;width:100%}
+  .grid > * + *{margin-top:1rem}
+  .card-admin{width:100%;padding:.85rem;border-radius:22px}
+  .form-card-admin{width:100%;border-radius:24px}
+  .form-hero{gap:.75rem;align-items:flex-start}
+  .form-section{margin:.7rem;padding:.8rem;width:auto}
+  .form-card-admin .form-grid{display:block;width:100%}
+  .form-card-admin .field{margin-bottom:.8rem;width:100%}
+  .target-box{width:100%;padding:.7rem;overflow:hidden}
+  .target-group{width:100%;padding:.45rem}
+  .target-subgrid{display:flex;flex-wrap:wrap;gap:.4rem;width:100%;overflow:hidden}
+  .target-sub{white-space:normal;text-align:left}
+  .row-actions,.form-actions-sticky{width:100%;max-width:100%}
+}
+@media(max-width:420px){
+  .layout{padding:.65rem}
+  .form-hero{flex-direction:column}
+  .form-hero h2{font-size:1.22rem;line-height:1}
+  .form-section{margin:.6rem;padding:.7rem;border-radius:18px}
+  .card-admin{padding:.75rem}
+}
