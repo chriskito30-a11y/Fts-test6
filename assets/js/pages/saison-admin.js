@@ -53,8 +53,11 @@ function renderPreview(){
   const box=document.getElementById('saison-preview');
   const a=saison.items[selectedIndex];
   if(!box||!a){return;}
-  const offer=(a.offers&&a.offers[0])?a.offers[0]:{};
-  box.innerHTML='<div class="preview-title">Aperçu public</div><div class="public-tile-preview"><div class="preview-icon">'+FTS.esc(a.icon||'🎭')+'</div><div><div class="preview-name">'+FTS.esc(a.name||'Sans titre')+'</div><div class="preview-sub">'+FTS.esc(a.subtitle||'Sous-titre')+'</div>'+(a.badge?'<div class="preview-badge">'+FTS.esc(a.badge)+'</div>':'')+'</div><span class="preview-status '+(a.active===false?'off':'')+'">'+(a.active===false?'Brouillon':'Visible')+'</span></div><div class="offer-preview"><div class="preview-offer-label">'+FTS.esc(offer.label||'Formule')+'</div><div class="preview-offer-main">'+(offer.main||'Description de la formule')+'</div><div class="preview-price">'+FTS.esc(offer.price||'Tarif à venir')+'</div></div>';
+  const offers=Array.isArray(a.offers)?a.offers:[];
+  const offersHtml=offers.length
+    ? offers.map((offer,idx)=>'<div class="offer-preview"><div class="preview-offer-label">Formule '+(idx+1)+' · '+FTS.esc(offer.label||'Formule')+'</div><div class="preview-offer-main">'+(offer.main||'Description de la formule')+'</div><div class="preview-price">'+FTS.esc(offer.price||'Tarif à venir')+'</div>'+(offer.priceNote?'<div class="preview-price-note">'+FTS.esc(offer.priceNote)+'</div>':'')+'</div>').join('')
+    : '<div class="offer-preview"><div class="preview-offer-label">Aucune formule</div><div class="preview-offer-main">Ajoute une formule pour voir l’aperçu public.</div></div>';
+  box.innerHTML='<div class="preview-title">Aperçu public</div><div class="public-tile-preview"><div class="preview-icon">'+FTS.esc(a.icon||'🎭')+'</div><div><div class="preview-name">'+FTS.esc(a.name||'Sans titre')+'</div><div class="preview-sub">'+FTS.esc(a.subtitle||'Sous-titre')+'</div>'+(a.badge?'<div class="preview-badge">'+FTS.esc(a.badge)+'</div>':'')+'</div><span class="preview-status '+(a.active===false?'off':'')+'">'+(a.active===false?'Brouillon':'Visible')+'</span></div><div class="preview-offers-list">'+offersHtml+'</div>';
 }
 
 async function saveAll(){try{readMeta();readActivity();await db.ref('fts_saison/config').set({...saison,updatedAt:Date.now()});showMsg('ok','Saison publiée. La page publique se mettra à jour automatiquement.')}catch(e){showMsg('err','Erreur publication : '+e.message)}}
