@@ -30,3 +30,10 @@
 .messages-error-link { color: #c9a84c; }
 .picker-empty { padding: .8rem 1rem; font-size: .82rem; color: #555; }
 .user-main { flex: 1; min-width: 0; }
+
+
+/* Messages page modern shell */
+body.fts-chat-modern .chat-empty-title::before { content: '💬 '; font-family: "DM Sans", sans-serif; }
+body.fts-chat-modern .chat-empty-sub { color: rgba(245,242,238,.68); }
+body.fts-chat-modern .btn-chat-del { border-radius: 999px; }
+body.fts-chat-modern .modal { background: #121212; border: 1px solid rgba(255,255,255,.08); }

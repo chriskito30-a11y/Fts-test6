@@ -21,3 +21,10 @@
 .forum-subchannel { position: relative; }
 .forum-subchannel .forum-unread-badge { margin-left: auto; }
 .conv-item .forum-unread-badge { margin-left: .35rem; }
+
+
+/* Forum page modern shell */
+body.fts-chat-modern .forum-category-group { margin-bottom: .45rem; }
+body.fts-chat-modern .forum-category-group .conv-item:first-child { border-color: rgba(201,168,76,.16); }
+body.fts-chat-modern .forum-unread-badge { box-shadow: 0 0 0 2px rgba(10,10,10,.85); }
+body.fts-chat-modern .upload-bar { border-top: 1px solid rgba(255,255,255,.08); background: rgba(20,20,20,.92); }
