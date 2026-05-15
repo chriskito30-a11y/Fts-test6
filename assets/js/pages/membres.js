@@ -177,7 +177,12 @@ function canSeeDocInCategory(doc, cat) {
       loadEvts();
       loadAnnonce();
       loadRecentDocs();
-      loadMemberNews();
+      loadMemberNews().then(() => {
+        if (location.hash === '#member-news-panel') {
+          const p = document.getElementById('member-news-panel');
+          if (p && !p.classList.contains('u-initial-hidden')) setTimeout(() => p.scrollIntoView({ behavior:'smooth', block:'start' }), 150);
+        }
+      });
       handleResourceDeepLink();
 
     } catch(e) {
@@ -311,6 +316,20 @@ function getSeenNewsMap() {
 
 function saveSeenNewsMap(map) {
   try { localStorage.setItem(seenNewsStorageKey(), JSON.stringify(map || {})); } catch(e) {}
+}
+
+function setMemberNewsCount(count) {
+  const n = Math.max(0, Number(count || 0) || 0);
+  try { if (currentUid) localStorage.setItem('fts_member_news_count_' + currentUid, String(n)); } catch(e) {}
+  const el = document.getElementById('news-badge');
+  if (el) {
+    if (n > 0) {
+      el.textContent = n > 20 ? '20+' : String(n);
+      el.style.display = 'inline-block';
+    } else {
+      el.style.display = 'none';
+    }
+  }
 }
 
 function newsItemId(item) {
@@ -524,10 +543,12 @@ function renderMemberNews(items) {
   if (!panel || !list) return;
 
   if (!items.length) {
+    setMemberNewsCount(0);
     panel.classList.add('u-initial-hidden');
     return;
   }
 
+  setMemberNewsCount(items.length);
   panel.classList.remove('u-initial-hidden');
   panel.style.display = 'block';
   const title = panel.querySelector('.smart-section-head h2');
@@ -553,7 +574,9 @@ function refreshNewsPanelAfterSeen(btn) {
   if (btn && btn.parentNode) btn.remove();
   const panel = document.getElementById('member-news-panel');
   const list = document.getElementById('member-news-list');
-  if (panel && list && !list.querySelector('.member-news-item')) {
+  const remaining = list ? list.querySelectorAll('.member-news-item').length : 0;
+  setMemberNewsCount(remaining);
+  if (panel && list && !remaining) {
     panel.classList.add('u-initial-hidden');
     panel.style.display = 'none';
   }
@@ -571,7 +594,7 @@ function openMemberNewsItem(btn) {
   }
 
   if (action === 'messages') {
-    window.location.href = 'messages.html';
+    window.location.href = 'hub-messages.html';
     return;
   }
   if (action === 'announcement') {
