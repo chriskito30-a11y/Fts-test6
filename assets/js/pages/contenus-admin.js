@@ -64,6 +64,41 @@ function bindPreviewInputs(){
   });
 }
 
+function currentQuestionnaireItem(){
+  const key=$('q-key')?.value||'';
+  const legacyPath=$('q-key')?.dataset?.legacy||'';
+  return questionnaire.find(x=>x.key===key && (!legacyPath || x._legacyPath===legacyPath)) || questionnaire.find(x=>x.key===key) || null;
+}
+function isCalendarSyncedQuestionnaireItem(q){
+  if(!q) return false;
+  return q.source==='fts_events' || !!q.eventKey || (String(q.key||'').startsWith('event_') && String(q.type||'').toLowerCase()==='event');
+}
+function setQuestionnaireFieldsLocked(locked){
+  ['q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc'].forEach(id=>{
+    const el=$(id); if(el) el.disabled=!!locked;
+  });
+  document.querySelectorAll('[data-fts-handler-8],[data-fts-handler-9]').forEach(btn=>{
+    if(btn) btn.disabled=!!locked;
+  });
+}
+function renderQuestionnaireSyncState(q){
+  const box=$('q-calendar-sync-warning');
+  const synced=isCalendarSyncedQuestionnaireItem(q);
+  if(box){
+    if(synced){
+      box.style.display='block';
+      box.innerHTML='<strong>🔁 Synchronisé avec le calendrier</strong><br>Cette carte vient de <b>Admin calendrier</b>. Pour éviter les doublons et les erreurs, elle est verrouillée ici. Modifie la date, le lieu, le lien ou le titre depuis le calendrier.<br><a class="btn btn-sm sync-link" href="calendrier-admin.html">Ouvrir le calendrier admin</a>';
+    }else if(q && String(q.type||'').toLowerCase()==='event'){
+      box.style.display='block';
+      box.innerHTML='<strong>⚠️ Événement non synchronisé</strong><br>Cette option est un ancien événement créé dans les contenus. Pour garder une seule source officielle, privilégie <b>Admin calendrier</b>.';
+    }else{
+      box.style.display='none';
+      box.innerHTML='';
+    }
+  }
+  setQuestionnaireFieldsLocked(synced);
+}
+
 function showTab(id,btn){
   document.querySelectorAll('.tab-lnk').forEach(b=>b.classList.remove('active'));
   if(btn) btn.classList.add('active');
@@ -86,6 +121,7 @@ function init(){
     $('auth-loading').style.display='none';
     $('admin-shell').style.display='block';
     bindPreviewInputs();
+    const qTypeEl=$('q-type'); if(qTypeEl && !qTypeEl.__ftsSyncStateBound){ qTypeEl.__ftsSyncStateBound=true; qTypeEl.addEventListener('change',()=>renderQuestionnaireSyncState(currentQuestionnaireItem())); }
     renderAdminPreviews();
     await seedCategoriesIfEmpty();
     listenCategories();
@@ -200,7 +236,7 @@ function renderQList(){
     const legacyAttr=q._legacyPath ? ` data-legacy="${FTS.esc(q._legacyPath)}"` : '';
     return `<div class="item${selected===q.key?' sel':''}" data-fts-click="editQuestionnaire('${FTS.esc(q.key)}', this.dataset.legacy||'')"${legacyAttr}>
       <div class="item-title">${FTS.esc(q.icon||'')} ${FTS.esc(q.title||q.titre||'Sans titre')}</div>
-      <div class="item-meta">${FTS.esc(q.type||'')} · ${priorityLabel(q.order)}${q.active===false?' · masqué':''}${q._legacyPath?' · ancien emplacement':''}</div>
+      <div class="item-meta">${isCalendarSyncedQuestionnaireItem(q)?'🔁 calendrier · ':''}${FTS.esc(q.type||'')} · ${isCalendarSyncedQuestionnaireItem(q)?'ordre calendrier':priorityLabel(q.order)}${q.active===false?' · masqué':''}${q._legacyPath?' · ancien emplacement':''}</div>
     </div>`;
   }).join('') : '<div class="hint">Aucune option.</div>';
 }
@@ -213,6 +249,7 @@ function newQuestionnaire(){
   $('q-active').value='true';
   renderQList();
   renderQuestionnairePreview();
+  renderQuestionnaireSyncState(null);
 }
 function editQuestionnaire(key, legacyPath=''){
   const q=questionnaire.find(x=>x.key===key && (!legacyPath || x._legacyPath===legacyPath)) || questionnaire.find(x=>x.key===key);
@@ -220,7 +257,7 @@ function editQuestionnaire(key, legacyPath=''){
   $('q-key').value=key;
   $('q-key').dataset.legacy=legacyPath || q._legacyPath || '';
   $('q-type').value=q.type||'adhesion';
-  $('q-order').value=normalizePriorityValue(q.order); 
+  $('q-order').value=isCalendarSyncedQuestionnaireItem(q) ? '100' : normalizePriorityValue(q.order);
   $('q-icon').value=q.icon||'';
   $('q-active').value=String(q.active!==false);
   $('q-title').value=q.title||q.titre||'';
@@ -235,10 +272,17 @@ function editQuestionnaire(key, legacyPath=''){
   $('q-ddesc').value=q.destDesc||q.dest_desc||'';
   renderQList();
   renderQuestionnairePreview();
+  renderQuestionnaireSyncState(q);
 }
 async function saveQuestionnaire(){
   const existingKey=$('q-key').value;
   const legacyPath=$('q-key').dataset.legacy||'';
+  const currentQ=currentQuestionnaireItem();
+  if(isCalendarSyncedQuestionnaireItem(currentQ)){
+    msg('msg-q','Cet événement est synchronisé avec le calendrier. Modifie-le depuis Admin calendrier pour éviter les doublons.',false);
+    renderQuestionnaireSyncState(currentQ);
+    return;
+  }
   const details=[];
   [['q-d1k','q-d1v'],['q-d2k','q-d2v']].forEach(([k,v])=>{
     const detailKey=$(k).value.trim();
@@ -278,6 +322,12 @@ async function saveQuestionnaire(){
 async function deleteQuestionnaire(){
   const key=$('q-key').value;
   const legacyPath=$('q-key').dataset.legacy||'';
+  const currentQ=currentQuestionnaireItem();
+  if(isCalendarSyncedQuestionnaireItem(currentQ)){
+    msg('msg-q','Suppression bloquée ici : cet événement vient du calendrier. Supprime-le depuis Admin calendrier.',false);
+    renderQuestionnaireSyncState(currentQ);
+    return;
+  }
   if(!key || !confirm('Supprimer cette option ?')) return;
   if(legacyPath) await db.ref(legacyPath).remove();
   else await db.ref('fts_content/questionnaire/options/'+key).remove();
