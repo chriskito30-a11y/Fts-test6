@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/calendrier-admin.css?v=2" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/calendrier-admin.css?v=4" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -36,22 +36,41 @@
 <button class="btn-gold u-calendrier-admin-inline-1" data-fts-handler-2="">+ Ajouter un événement</button>
 <p class="hint u-calendrier-admin-inline-2">Source officielle : <strong>fts_events</strong>. Cette page affiche aussi les anciens événements synchronisés dans le questionnaire afin de pouvoir les migrer, modifier ou supprimer.</p>
 </div>
-<div class="card-admin">
+<div class="card-admin form-card-admin">
+<div class="form-hero">
+<div class="form-hero-icon">🎭</div>
+<div>
 <div class="mini-title">Éditer un événement</div>
+<h2>Créer ou modifier une info calendrier</h2>
+<p>Complète les informations essentielles, choisis les groupes concernés, puis enregistre.</p>
+</div>
+</div>
 <input id="e-key" type="hidden"/>
+<div class="form-section">
+<div class="section-title"><span>1</span>Informations principales</div>
 <div class="form-grid">
-<div class="field full"><label>Nom</label><input id="e-name" placeholder="Ex : Showcase de fin d’année"/></div>
+<div class="field full field-main"><label>Nom de l’événement</label><input id="e-name" placeholder="Ex : Showcase de fin d’année"/></div>
 <div class="field"><label>Type</label><input id="e-type" placeholder="Spectacle, stage, répétition…"/></div>
 <div class="field"><label>Visible</label><select id="e-active"><option value="true">Oui</option><option value="false">Non</option></select></div>
 <div class="field"><label>Importance</label><select id="e-important"><option value="false">Normal</option><option value="true">Important</option></select></div>
-<div class="field full"><label>Groupes concernés</label><div class="target-help">Aucune case cochée = visible par tout le monde. Tu peux cocher plusieurs catégories et sous-catégories.</div><div class="target-box" id="event-targets"><div class="empty">Chargement des groupes…</div></div></div>
+</div>
+</div>
+<div class="form-section target-section">
+<div class="section-title"><span>2</span>Groupes concernés</div>
+<div class="target-help">Aucune case cochée = visible par tout le monde. Tu peux cocher plusieurs catégories et sous-catégories.</div>
+<div class="target-box" id="event-targets"><div class="empty">Chargement des groupes…</div></div>
+</div>
+<div class="form-section">
+<div class="section-title"><span>3</span>Date, lieu et détails</div>
+<div class="form-grid">
 <div class="field"><label>Date</label><input id="e-date" type="date"/></div>
 <div class="field"><label>Heure</label><input id="e-hour" type="time"/></div>
 <div class="field full"><label>Lieu</label><input id="e-location" placeholder="Salle, ville…"/></div>
 <div class="field full"><label>Lien inscription / infos</label><input id="e-url" placeholder="https://…"/></div>
 <div class="field full"><label>Note interne / description</label><textarea id="e-desc" placeholder="Optionnel — détails utiles pour l’équipe"></textarea></div>
 </div>
-<div class="row-actions">
+</div>
+<div class="row-actions form-actions-sticky">
 <button class="btn btn-sm" data-fts-handler-3="" id="btn-save-event">Enregistrer</button>
 <button class="btn-outline" data-fts-handler-4="">Nouveau</button>
 <button class="btn-outline danger" data-fts-handler-5="">Supprimer</button>
@@ -72,6 +91,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/calendrier-admin.js?v=2"></script>
+<script src="assets/js/pages/calendrier-admin.js?v=4"></script>
 </body>
 </html>
