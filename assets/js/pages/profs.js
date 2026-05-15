@@ -1,9 +1,4 @@
 /* ================================================================
-   PAGE MODULE — PROFS
-   Extrait depuis profs.html pour supprimer le JavaScript inline.
-   ================================================================ */
-
-/* ================================================================
    PROFS.JS
    ✅ Firebase Auth — accès admin ou prof uniquement
    ✅ Publication dans Firebase RTDB (fts_ressources)
@@ -94,6 +89,8 @@ window.addEventListener("DOMContentLoaded", function() {
 
       // Charger les documents
       loadDocs();
+      initPublishPreview();
+      updateProfsStats();
 
     } catch(e) {
       console.warn("[FTS Profs]", e);
@@ -118,13 +115,8 @@ window.addEventListener("DOMContentLoaded", function() {
 /* ── CATÉGORIES AUTORISÉES ────────────────────────────────────── */
 function allowedCats() {
   if (userProfile.role === "admin") return ALL_CATS;
-
-  // Les profils peuvent contenir des disciplines avec accents, espaces, emojis ou formats hérités.
-  // On compare donc en version normalisée, comme côté membres/forum.
-  const discs = splitAccessList(userProfile.disciplines && userProfile.disciplines.length ? userProfile.disciplines : userProfile.group)
-    .map(normAccess);
-
-  return ALL_CATS.filter(c => discs.includes(normAccess(c.value)));
+  const discs = userProfile.disciplines || [];
+  return ALL_CATS.filter(c => discs.includes(c.value));
 }
 
 function categoryOptionsFromStructureLocal(structure) {
@@ -188,6 +180,7 @@ async function buildCatSelectors() {
   document.getElementById("filter-cat").innerHTML =
     '<option value="">Toutes les catégories</option>' +
     cats.map(c => `<option value="${FTS.esc(c.value)}">${FTS.esc(c.label)}</option>`).join("");
+  updateProfsStats();
 }
 
 /* ── ONGLETS ──────────────────────────────────────────────────── */
@@ -245,6 +238,8 @@ async function loadStudents() {
 
     const badge = document.getElementById("students-count");
     if (badge) badge.textContent = students.length;
+    const statStudents = document.getElementById("profs-stat-students");
+    if (statStudents) statStudents.textContent = students.length;
 
     if (!students.length) {
       el.innerHTML = "<div class='empty-manage'>Aucun élève dans tes disciplines pour le moment.</div>";
@@ -270,9 +265,9 @@ async function loadStudents() {
           <div class="student-child">
             🎩 <strong>${FTS.esc(e.prenom || "")} ${FTS.esc(e.nom || "")}</strong>
             ${e.disciplines && e.disciplines.length
-              ? `<span class="student-disciplines"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
+              ? `<span style="color:var(--gold)"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
               : ""}
-            ${e.telephone ? `<span class="student-phone"> · 📞 ${FTS.esc(e.telephone)}</span>` : ""}
+            ${e.telephone ? `<span style="color:#555"> · 📞 ${FTS.esc(e.telephone)}</span>` : ""}
           </div>`).join("");
       }
 
@@ -302,6 +297,7 @@ function updateSubcats() {
   const cat = document.getElementById("f-cat").value;
   _fillSubcat("f-subcat", "subcat-row", cat);
   updateDanceVideoFolder();
+  renderPublishPreview();
 }
 function updateEditSubcats() {
   const cat = document.getElementById("e-cat").value;
@@ -392,6 +388,62 @@ function updateType() {
   t === "video" ? "block" : "none";
   document.getElementById("url-label").textContent = labels[t] || "Lien";
   updateDanceVideoFolder();
+  renderPublishPreview();
+}
+
+
+/* ── APERÇU PUBLICATION + STATS ─────────────────────────────── */
+function initPublishPreview() {
+  ["f-cat", "f-subcat", "f-type", "f-name", "f-url", "f-text"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.previewBound === "1") return;
+    el.dataset.previewBound = "1";
+    el.addEventListener("input", renderPublishPreview);
+    el.addEventListener("change", renderPublishPreview);
+  });
+  renderPublishPreview();
+}
+
+function typeLabel(type) {
+  const labels = { pdf:"Document PDF", mp3:"Audio", audio:"Audio", video:"Vidéo", image:"Image", texte:"Message", doc:"Lien" };
+  return labels[type] || "Ressource";
+}
+
+function renderPublishPreview() {
+  const nameEl = document.getElementById("preview-name");
+  const metaEl = document.getElementById("preview-meta");
+  const noteEl = document.getElementById("preview-note");
+  const pillEl = document.getElementById("preview-type-pill");
+  if (!nameEl || !metaEl || !pillEl) return;
+
+  const cat = document.getElementById("f-cat")?.value || "";
+  const subcat = document.getElementById("f-subcat")?.value || "";
+  const type = document.getElementById("f-type")?.value || "doc";
+  const name = (document.getElementById("f-name")?.value || "").trim();
+  const url = (document.getElementById("f-url")?.value || "").trim();
+  const text = (document.getElementById("f-text")?.value || "").trim();
+
+  nameEl.textContent = name || "Titre de la ressource";
+  pillEl.textContent = typeLabel(type);
+  const target = cat ? (subcat ? cat + " · " + subcat : cat) : "Catégorie à choisir";
+  const linkInfo = type === "texte" ? "texte direct" : (url ? "lien renseigné" : "lien/fichier à ajouter");
+  metaEl.textContent = target + " · " + typeLabel(type) + " · " + linkInfo;
+  if (noteEl) {
+    noteEl.style.display = text ? "block" : "none";
+    noteEl.textContent = text;
+  }
+}
+
+function updateProfsStats() {
+  const docsEl = document.getElementById("profs-stat-docs");
+  const catsEl = document.getElementById("profs-stat-cats");
+  const catsNoteEl = document.getElementById("profs-stat-cats-note");
+  const lastEl = document.getElementById("profs-stat-last");
+  if (docsEl) docsEl.textContent = allDocs.length || 0;
+  const cats = allowedCats ? allowedCats() : [];
+  if (catsEl) catsEl.textContent = cats.length || 0;
+  if (catsNoteEl) catsNoteEl.textContent = cats.length ? cats.map(c => c.value).slice(0, 2).join(", ") + (cats.length > 2 ? "…" : "") : "accessibles";
+  if (lastEl) lastEl.textContent = allDocs[0]?.name ? String(allDocs[0].name).slice(0, 22) : "—";
 }
 
 /* ── UPLOAD CLOUDINARY ────────────────────────────────────────── */
@@ -468,19 +520,8 @@ async function doSubmit() {
 
     const ref = await db.ref("fts_ressources").push(data);
     data.key = ref.key;
-
-    // Les professeurs ont le droit d'écrire dans fts_ressources, mais pas dans fts_content.
-    // La synchronisation automatique des catégories est donc réservée aux admins,
-    // sinon la publication prof échoue après avoir créé la ressource.
-    if (userProfile.role === "admin" && FTS.ensureResourceCategory) {
-      try {
-        await FTS.ensureResourceCategory(db, data);
-        await buildCatSelectors();
-      } catch(syncErr) {
-        console.warn("[FTS Profs] Synchro catégorie non bloquante", syncErr);
-      }
-    }
-
+    await FTS.ensureResourceCategory(db, data);
+    await buildCatSelectors();
     await notifyNewResource(data);
 
     showMsg("✓ Publié avec succès !", "success");
@@ -504,6 +545,7 @@ function resetForm() {
   document.getElementById("subcat-row").style.display   = "none";
   const box = document.getElementById("dance-video-folder-box");
   if (box) box.style.display = "none";
+  renderPublishPreview();
 }
 
 
@@ -532,14 +574,7 @@ function userCanReceiveResourceNotification(u, target) {
   if (!u || u.status !== "active") return false;
   if (u.role === "admin") return true;
 
-  // Même logique que membres.html : un parent doit recevoir les notifications
-  // des disciplines / sous-catégories de ses enfants.
-  const ownCats = splitAccessList(u.disciplines && u.disciplines.length ? u.disciplines : u.group);
-  const childCats = Array.isArray(u.enfants)
-    ? u.enfants.flatMap(e => splitAccessList(e.disciplines || e.group || []))
-    : [];
-  const cats = [...ownCats, ...childCats];
-
+  const cats = splitAccessList(u.disciplines && u.disciplines.length ? u.disciplines : u.group);
   const hasCat = cats.some(c => normAccess(c) === normAccess(target.category));
   if (!hasCat) return false;
 
@@ -550,13 +585,8 @@ function userCanReceiveResourceNotification(u, target) {
   const byCat = u.subgroupsByCat || {};
   const matchingCatKey = Object.keys(byCat).find(k => normAccess(k) === normAccess(target.category));
   const exactCatSubs = splitAccessList(matchingCatKey ? byCat[matchingCatKey] : []);
-  const ownSubs = splitAccessList(u.subgroups && u.subgroups.length ? u.subgroups : u.subgroup);
-  const childSubs = Array.isArray(u.enfants)
-    ? u.enfants.flatMap(e => splitAccessList(e.subgroups || e.subgroup || []))
-    : [];
-  const globalSubs = [...ownSubs, ...childSubs];
+  const globalSubs = splitAccessList(u.subgroups && u.subgroups.length ? u.subgroups : u.subgroup);
   const allowedSubs = exactCatSubs.length ? exactCatSubs : globalSubs;
-
   return allowedSubs.some(s => normAccess(s) === normAccess(target.subcategory));
 }
 
@@ -578,14 +608,13 @@ async function getResourceRecipientUids(target) {
       if (child.key !== currentUserUid && u.status === "active" && !uids.includes(child.key)) uids.push(child.key);
     });
   }
-  return Array.from(new Set(uids.map(uid => String(uid || '').trim()).filter(Boolean)));
+  return uids;
 }
 
 async function notifyNewResource(data) {
   try {
     const target = resourceTargetPayload(data);
-    const rawRecipientUids = await getResourceRecipientUids(target);
-    const recipientUids = Array.from(new Set(rawRecipientUids.map(uid => String(uid || '').trim()).filter(Boolean)));
+    const recipientUids = await getResourceRecipientUids(target);
     if (!recipientUids.length) return;
 
     const catLabel = target.subcategory ? (target.category + " — " + target.subcategory) : target.category;
@@ -593,11 +622,27 @@ async function notifyNewResource(data) {
       + "&cat=" + encodeURIComponent(target.category || "")
       + "&subcat=" + encodeURIComponent(target.subcategory || "");
 
-    // IMPORTANT : ne pas écrire de notification ressource dans fts_user_notifications ici.
-    // Le push serveur ci-dessous envoie déjà la notification réelle.
-    // Écrire aussi dans fts_user_notifications déclencheait le fallback local côté membres.js,
-    // ce qui produisait deux notifications :
-    // 1) "Nouveau document" local, 2) "FTS — Nouveau document" push.
+    // Trace interne utile pour audit / debug, sans bloquer la publication.
+    const notif = {
+      type: "resource",
+      resourceId: data.key || "",
+      cat: target.category,
+      category: target.category,
+      subcat: target.subcategory,
+      subcategory: target.subcategory,
+      title: "Nouveau document",
+      body: data.name || "Nouveau document",
+      url,
+      read: false,
+      createdAt: Date.now(),
+      authorUid: currentUserUid
+    };
+    const fanout = {};
+    recipientUids.forEach(uid => {
+      const nref = db.ref("fts_user_notifications/" + uid).push();
+      fanout["fts_user_notifications/" + uid + "/" + nref.key] = notif;
+    });
+    await db.ref().update(fanout).catch(() => {});
 
     if (!FTS.PUSH || !FTS.PUSH.workerUrl) {
       await db.ref("fts_debug_notifications/resource_" + (data.key || Date.now())).set({
@@ -622,8 +667,7 @@ async function notifyNewResource(data) {
       title: "FTS — Nouveau document",
       body: (data.name || "Nouveau document") + (catLabel ? " · " + catLabel : ""),
       url,
-      senderUid: currentUserUid,
-      notificationKey: "resource-" + (data.key || Date.now())
+      senderUid: currentUserUid
     };
 
     await Promise.allSettled(recipientUids.map(uid =>
@@ -636,10 +680,7 @@ async function notifyNewResource(data) {
           uids: [uid],
           recipientUids: [uid],
           recipients: [uid],
-          forceUid: true,
-          tag: pushPayloadBase.notificationKey + "-" + uid,
-          notificationKey: pushPayloadBase.notificationKey + "-" + uid,
-          collapseKey: pushPayloadBase.notificationKey + "-" + uid
+          tag: "resource-" + (data.key || Date.now()) + "-" + uid
         })
       })
     ));
@@ -665,6 +706,7 @@ function loadDocs() {
       });
     }
     document.getElementById("manage-count").textContent = allDocs.length;
+    updateProfsStats();
     applyFilters();
   });
 }
@@ -709,8 +751,8 @@ function renderDocs() {
         </div>
       </div>
       <div class="doc-item-actions">
-        <button class="btn-edit"   data-fts-click="openEditModal('${FTS.esc(d.key)}')">✎ Éditer</button>
-        <button class="btn-delete" data-fts-click="deleteDoc('${FTS.esc(d.key)}', '${FTS.esc(d.name)}')">🗑 Supprimer</button>
+        <button class="btn-edit"   onclick="openEditModal('${FTS.esc(d.key)}')">✎ Éditer</button>
+        <button class="btn-delete" onclick="deleteDoc('${FTS.esc(d.key)}', '${FTS.esc(d.name)}')">🗑 Supprimer</button>
       </div>
     </div>`;
   }).join("");
@@ -819,25 +861,3 @@ function clearMsg() { document.getElementById("msg").style.display = "none"; }
 function doSignOut() {
   auth.signOut().then(() => window.location.href = "auth.html");
 }
-
-/* FTS_AUTO_EXTRACTED_HANDLERS:profs.html */
-(function(){
-  'use strict';
-  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doSignOut()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "switchTab('publish')"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "switchTab('manage')"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "switchTab('students')"}, {"selector": "[data-fts-handler-5]", "event": "change", "code": "updateSubcats()"}, {"selector": "[data-fts-handler-6]", "event": "change", "code": "updateDanceVideoFolder()"}, {"selector": "[data-fts-handler-7]", "event": "change", "code": "updateType()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "document.getElementById('f-file').click()"}, {"selector": "[data-fts-handler-9]", "event": "click", "code": "doSubmit()"}, {"selector": "[data-fts-handler-10]", "event": "change", "code": "applyFilters()"}, {"selector": "[data-fts-handler-11]", "event": "change", "code": "applyFilters()"}, {"selector": "[data-fts-handler-12]", "event": "click", "code": "closeEditModal()"}, {"selector": "[data-fts-handler-13]", "event": "change", "code": "updateEditSubcats()"}, {"selector": "[data-fts-handler-14]", "event": "click", "code": "closeEditModal()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "saveEdit()"}];
-  function bindExtractedHandlers(){
-    handlers.forEach(function(h){
-      document.querySelectorAll(h.selector).forEach(function(el){
-        if (el.__ftsExtractedHandlers && el.__ftsExtractedHandlers[h.event + h.code]) return;
-        el.__ftsExtractedHandlers = el.__ftsExtractedHandlers || {};
-        el.__ftsExtractedHandlers[h.event + h.code] = true;
-        el.addEventListener(h.event, function(event){
-          try { (new Function('event', h.code)).call(el, event); }
-          catch (err) { console.error('[FTS] Handler extrait en erreur:', h.code, err); }
-        });
-      });
-    });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindExtractedHandlers);
-  else bindExtractedHandlers();
-})();
-/* END_FTS_AUTO_EXTRACTED_HANDLERS */
