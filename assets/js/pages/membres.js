@@ -197,7 +197,12 @@ function canSeeDocInCategory(doc, cat) {
       console.warn('[FTS] Erreur chargement profil :', e);
       const loading = document.getElementById('auth-loading');
       if (loading) {
-        loading.innerHTML = '<div class="logo">Erreur</div><div class="sub">Impossible de charger ton espace. Recharge la page ou réessaie la connexion.</div><button class="btn btn-sm" onclick="location.reload()">Recharger</button><button class="btn-outline" onclick="firebase.auth().signOut().then(()=>location.href='auth.html')">Se reconnecter</button>';
+        loading.innerHTML = `
+          <div class="auth-loading-logo">Erreur</div>
+          <div class="auth-loading-sub">Impossible de charger ton espace. Recharge la page ou réessaie la connexion.</div>
+          <button class="btn btn-sm" type="button" onclick="location.reload()">Recharger</button>
+          <button class="btn-outline" type="button" onclick="firebase.auth().signOut().then(function(){ location.href='auth.html'; })">Se reconnecter</button>
+        `;
       }
     }
   });
