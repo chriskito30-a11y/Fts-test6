@@ -2,3 +2,156 @@
 .auth-loading{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem}.spinner{width:24px;height:24px;border:2px solid #333;border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.admin-shell{display:none}.topbar{background:var(--grey2);border-bottom:1px solid var(--border);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}.logo{font-family:var(--font-display);font-size:1.55rem;letter-spacing:.04em}.logo span{color:var(--red)}.sub{font-size:.65rem;color:var(--muted);letter-spacing:.12em;text-transform:uppercase}.top-actions{display:flex;gap:.5rem;flex-wrap:wrap}.btn-sm{width:auto;font-family:var(--font-body);font-size:.76rem;letter-spacing:0;padding:.55rem .9rem}.btn-dark{background:#242424}.btn-dark:hover{background:#303030}.admin-wrap{position:relative;z-index:1;max-width:1040px;margin:0 auto;padding:2rem 1.5rem 3rem}.hello-card{background:linear-gradient(135deg,rgba(212,32,26,.12),rgba(201,168,76,.07));border:1px solid rgba(255,255,255,.08);border-radius:var(--r-lg);padding:1.4rem;margin-bottom:1.4rem;position:relative;overflow:hidden}.hello-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(var(--red),var(--gold))}.hello-kicker{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:.35rem}.hello-title{font-family:var(--font-display);font-size:2.1rem;line-height:1;letter-spacing:.03em}.hello-title span{color:var(--red)}.hello-sub{font-size:.86rem;color:var(--muted);line-height:1.6;margin-top:.45rem;max-width:720px}.admin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}.admin-card{display:flex;flex-direction:column;min-height:190px;background:var(--grey);border:1px solid var(--border);border-radius:var(--r-md);padding:1.2rem;text-decoration:none;color:var(--white);transition:all .2s;position:relative;overflow:hidden}.admin-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:0;background:var(--red);transition:width .2s}.admin-card:hover{border-color:rgba(212,32,26,.45);transform:translateY(-2px);background:#202020}.admin-card:hover::before{width:3px}.admin-ico{font-size:2rem;margin-bottom:.8rem}.admin-title{font-family:var(--font-display);font-size:1.35rem;letter-spacing:.04em;line-height:1.05}.admin-desc{font-size:.78rem;color:var(--muted);line-height:1.55;margin-top:.45rem;flex:1}.admin-meta{font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-top:1rem}.section-lbl{margin-top:2rem}.quick-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-top:1rem}.quick-link{display:flex;align-items:center;gap:.65rem;background:#141414;border:1px solid var(--border);border-radius:var(--r-md);padding:.9rem;color:var(--white);text-decoration:none;font-size:.84rem;transition:all .2s}.quick-link:hover{border-color:var(--gold);transform:translateY(-1px)}.quick-link span:first-child{font-size:1.25rem}.empty-error{display:none;max-width:460px;text-align:center;color:var(--muted);font-size:.85rem;line-height:1.7}.empty-error a{color:var(--gold)}@media(max-width:860px){.admin-grid{grid-template-columns:repeat(2,1fr)}.quick-row{grid-template-columns:1fr 1fr}.topbar{align-items:flex-start;flex-direction:column}.top-actions{width:100%}.top-actions a,.top-actions button{flex:1;justify-content:center;text-align:center}}@media(max-width:560px){.admin-grid,.quick-row{grid-template-columns:1fr}.hello-title{font-size:1.7rem}.admin-card{min-height:auto}.admin-wrap{padding:1.4rem 1rem 2.4rem}}
 
 .u-admin-inline-1 { margin-top:2rem }
+
+/* === FTS Etape 4 — Admin cockpit uniforme V2 === */
+.admin-overview{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:.85rem;
+  margin:1rem 0 1.2rem;
+}
+.overview-card{
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:.8rem;
+  background:linear-gradient(135deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:22px;
+  padding:1rem;
+  box-shadow:0 16px 42px rgba(0,0,0,.22);
+}
+.overview-card.overview-waiting{
+  border-color:rgba(201,168,76,.35);
+  background:linear-gradient(135deg,rgba(201,168,76,.13),rgba(255,255,255,.02));
+}
+.overview-icon{
+  flex:0 0 auto;
+  width:42px;
+  height:42px;
+  display:grid;
+  place-items:center;
+  border-radius:16px;
+  background:rgba(255,255,255,.07);
+  font-size:1.3rem;
+}
+.overview-number{
+  font-family:var(--font-display);
+  font-size:1.85rem;
+  line-height:1;
+  letter-spacing:.03em;
+}
+.overview-label{
+  margin-top:.2rem;
+  font-size:.72rem;
+  line-height:1.25;
+  color:var(--muted);
+}
+.admin-insight-card{
+  background:linear-gradient(135deg,rgba(18,18,18,.96),rgba(36,36,36,.92));
+  border:1px solid rgba(255,255,255,.09);
+  border-radius:26px;
+  padding:1.15rem;
+  margin:1rem 0 1.6rem;
+  box-shadow:0 18px 52px rgba(0,0,0,.24);
+  overflow:hidden;
+}
+.insight-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+}
+.section-lbl.compact{margin-top:0;margin-bottom:.25rem}
+.admin-insight-card h2{
+  margin:0;
+  font-family:var(--font-display);
+  font-size:1.7rem;
+  letter-spacing:.04em;
+  line-height:1;
+}
+.insight-note{
+  margin:.7rem 0 1rem;
+  color:var(--muted);
+  font-size:.82rem;
+  line-height:1.55;
+}
+.category-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:.8rem;
+}
+.category-stat-card{
+  min-width:0;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:20px;
+  padding:.95rem;
+}
+.category-stat-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+  margin-bottom:.75rem;
+}
+.category-stat-name{
+  min-width:0;
+  font-weight:700;
+  font-size:.95rem;
+  overflow-wrap:anywhere;
+}
+.category-stat-count{
+  flex:0 0 auto;
+  border-radius:999px;
+  padding:.35rem .62rem;
+  background:rgba(212,32,26,.14);
+  border:1px solid rgba(212,32,26,.28);
+  color:#fff;
+  font-size:.78rem;
+  font-weight:700;
+  white-space:nowrap;
+}
+.sub-stat-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.42rem;
+}
+.sub-stat-pill{
+  max-width:100%;
+  border-radius:999px;
+  padding:.34rem .55rem;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.075);
+  color:var(--muted);
+  font-size:.72rem;
+  line-height:1.2;
+  overflow-wrap:anywhere;
+}
+.sub-stat-pill strong{color:#fff;font-weight:700}
+.insight-empty{
+  color:var(--muted);
+  font-size:.84rem;
+  line-height:1.6;
+  padding:.85rem;
+  border-radius:18px;
+  background:rgba(255,255,255,.04);
+  border:1px dashed rgba(255,255,255,.12);
+}
+
+@media(max-width:860px){
+  .admin-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .category-summary-grid{grid-template-columns:1fr}
+  .insight-head{align-items:stretch;flex-direction:column}
+  .insight-head .btn{width:100%;justify-content:center;text-align:center}
+}
+@media(max-width:560px){
+  .admin-wrap{max-width:100%;overflow-x:hidden}
+  .topbar,.admin-wrap,.hello-card,.admin-insight-card,.overview-card,.admin-card,.quick-link{box-sizing:border-box;max-width:100%}
+  .admin-overview{grid-template-columns:1fr;gap:.7rem}
+  .overview-card{padding:.9rem;border-radius:20px}
+  .admin-insight-card{padding:1rem;border-radius:22px}
+  .admin-insight-card h2{font-size:1.45rem}
+  .category-stat-card{border-radius:18px;padding:.85rem}
+  .category-stat-top{align-items:flex-start;flex-direction:column;gap:.5rem}
+}
