@@ -177,12 +177,7 @@ function canSeeDocInCategory(doc, cat) {
       loadEvts();
       loadAnnonce();
       loadRecentDocs();
-      loadMemberNews().then(() => {
-        if (location.hash === '#member-news-panel') {
-          const p = document.getElementById('member-news-panel');
-          if (p && !p.classList.contains('u-initial-hidden')) setTimeout(() => p.scrollIntoView({ behavior:'smooth', block:'start' }), 150);
-        }
-      });
+      loadMemberNews();
       handleResourceDeepLink();
 
     } catch(e) {
@@ -318,17 +313,14 @@ function saveSeenNewsMap(map) {
   try { localStorage.setItem(seenNewsStorageKey(), JSON.stringify(map || {})); } catch(e) {}
 }
 
-function setMemberNewsCount(count) {
-  const n = Math.max(0, Number(count || 0) || 0);
-  try { if (currentUid) localStorage.setItem('fts_member_news_count_' + currentUid, String(n)); } catch(e) {}
-  const el = document.getElementById('news-badge');
-  if (el) {
-    if (n > 0) {
-      el.textContent = n > 20 ? '20+' : String(n);
-      el.style.display = 'inline-block';
-    } else {
-      el.style.display = 'none';
-    }
+function memberNewsCountStorageKey() {
+  return 'fts_member_news_count_' + (currentUid || 'anonymous');
+}
+
+function saveMemberNewsCount(count) {
+  try { localStorage.setItem(memberNewsCountStorageKey(), String(Math.max(0, Number(count || 0)))); } catch(e) {}
+  if (window.FTSNav && typeof window.FTSNav.setBadge === 'function') {
+    window.FTSNav.setBadge('fts-news-badge', count);
   }
 }
 
@@ -543,14 +535,14 @@ function renderMemberNews(items) {
   if (!panel || !list) return;
 
   if (!items.length) {
-    setMemberNewsCount(0);
+    saveMemberNewsCount(0);
     panel.classList.add('u-initial-hidden');
     return;
   }
 
-  setMemberNewsCount(items.length);
   panel.classList.remove('u-initial-hidden');
   panel.style.display = 'block';
+  saveMemberNewsCount(items.length);
   const title = panel.querySelector('.smart-section-head h2');
   if (title) title.textContent = 'Nouveautés à consulter';
 
@@ -574,11 +566,13 @@ function refreshNewsPanelAfterSeen(btn) {
   if (btn && btn.parentNode) btn.remove();
   const panel = document.getElementById('member-news-panel');
   const list = document.getElementById('member-news-list');
-  const remaining = list ? list.querySelectorAll('.member-news-item').length : 0;
-  setMemberNewsCount(remaining);
-  if (panel && list && !remaining) {
-    panel.classList.add('u-initial-hidden');
-    panel.style.display = 'none';
+  if (panel && list) {
+    var remaining = list.querySelectorAll('.member-news-item').length;
+    saveMemberNewsCount(remaining);
+    if (!remaining) {
+      panel.classList.add('u-initial-hidden');
+      panel.style.display = 'none';
+    }
   }
 }
 
