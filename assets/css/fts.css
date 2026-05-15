@@ -49,6 +49,8 @@
   --t: all 0.2s ease;
 }
 
+
+
 /* ── 2bis. POLICE MARQUE FTS ───────────────────────────────────
    Utilisée uniquement sur les gros titres de marque.
    Fichier attendu : assets/fonts/budmo-jiggler.otf
@@ -61,8 +63,10 @@
   font-display: swap;
 }
 
-.fts-brand-title {
-  font-family: "FTS Budmo", var(--font-display), Impact, sans-serif;
+.fts-brand-title,
+.index-page .site-title.fts-brand-title,
+.hub-hero h1.fts-brand-title {
+  font-family: "FTS Budmo", var(--font-display), Impact, sans-serif !important;
   letter-spacing: .025em;
   text-transform: uppercase;
 }
@@ -70,7 +74,6 @@
 .fts-brand-title span {
   font-family: inherit;
 }
-
 
 /* ── 3. BASE ──────────────────────────────────────────────────── */
 
