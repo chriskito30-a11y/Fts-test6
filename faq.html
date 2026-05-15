@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aide / FAQ — Fais Ton Show</title>
+  <meta name="description" content="Centre d’aide Fais Ton Show : application, inscriptions, cours, spectacles, organisation et espace professeurs."/>
+  <link rel="manifest" href="./manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/css/fts.css"/>
+  <link rel="stylesheet" href="assets/css/pages/faq.css?v=1"/>
+</head>
+<body class="has-noise has-glow faq-page">
+  <div class="faq-shell">
+    <header class="faq-hero">
+      <a class="faq-back" href="index.html">← Retour accueil</a>
+      <div class="faq-eyebrow">Centre d’aide</div>
+      <h1>❓ Aide Fais Ton Show</h1>
+      <p>Retrouvez les réponses essentielles pour utiliser l’application, suivre les informations importantes et comprendre le fonctionnement de l’association.</p>
+      <div class="faq-hero-actions">
+        <a href="membres.html" class="faq-primary-action">🎭 Mon espace membre</a>
+        <a href="hub-messages.html" class="faq-secondary-action">💬 Messages</a>
+      </div>
+    </header>
+
+    <section class="faq-search-card" aria-label="Recherche FAQ">
+      <label for="faq-search">Rechercher dans l’aide</label>
+      <div class="faq-search-row">
+        <span>🔎</span>
+        <input id="faq-search" type="search" placeholder="Ex : installer l’app, absence, spectacle, document…" autocomplete="off"/>
+      </div>
+      <div class="faq-tabs" aria-label="Filtres FAQ">
+        <button class="faq-tab active" data-filter="all" type="button">Tout</button>
+        <button class="faq-tab" data-filter="app" type="button">Application</button>
+        <button class="faq-tab" data-filter="membres" type="button">Membres / parents</button>
+        <button class="faq-tab" data-filter="organisation" type="button">Fonctionnement FTS</button>
+        <button class="faq-tab faq-prof-tab" data-filter="profs" type="button" hidden>Professeurs</button>
+      </div>
+    </section>
+
+    <div id="faq-role-note" class="faq-role-note" hidden></div>
+
+    <main id="faq-content" class="faq-content" aria-live="polite"></main>
+
+    <section id="faq-empty" class="faq-empty" hidden>
+      <div class="faq-empty-icon">🤔</div>
+      <h2>Aucun résultat</h2>
+      <p>Essayez un autre mot-clé ou revenez à l’ensemble de la FAQ.</p>
+      <button type="button" id="faq-reset" class="faq-secondary-action">Réinitialiser</button>
+    </section>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="assets/js/fts-utils.js"></script>
+  <script src="assets/js/fts-firebase.js"></script>
+  <script src="assets/js/fts-pwa.js"></script>
+  <script src="assets/js/pages/faq.js?v=1"></script>
+
+  <div class="install-bar" id="install-bar">
+    <p id="install-msg"></p>
+    <button class="btn-install" id="btn-install">Installer</button>
+    <button class="btn-close-bar" id="btn-close-bar">✕</button>
+  </div>
+</body>
+</html>
