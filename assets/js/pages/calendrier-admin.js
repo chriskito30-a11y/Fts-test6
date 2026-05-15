@@ -129,6 +129,9 @@ function normalizeEvent(key, v){
     dateLabel:v.dateLabel||v.d||v.date||'',
     hour:v.hour||v.heure||v.time||v.h||'',
     location:v.location||v.lieu||v.l||'',
+    audience:v.audience||v.groups||v.public||v.concerned||'',
+    priority:v.priority || (v.important ? 'important' : 'normal'),
+    important:v.important === true || v.priority === 'important',
     url:v.url||v.link||v.lien||v.u||'',
     desc:v.description||v.desc||'',
     dateTs:Number(v.dateTs||v.startTs||v.ts||0),
@@ -136,24 +139,51 @@ function normalizeEvent(key, v){
   };
 }
 
+function isPastEvent(e){
+  if(!e || !e.dateTs) return false;
+  const endOfDay = new Date(e.dateTs);
+  endOfDay.setHours(23,59,59,999);
+  return endOfDay.getTime() < Date.now();
+}
+function renderStats(){
+  const upcoming = events.filter(e => e.active !== false && !isPastEvent(e)).length;
+  const important = events.filter(e => e.important || e.priority === 'important').length;
+  const hidden = events.filter(e => e.active === false).length;
+  const check = events.filter(e => e.source === 'questionnaire' || !e.dateTs || !e.location).length;
+  if($('stat-upcoming')) $('stat-upcoming').textContent = upcoming;
+  if($('stat-important')) $('stat-important').textContent = important;
+  if($('stat-hidden')) $('stat-hidden').textContent = hidden;
+  if($('stat-check')) $('stat-check').textContent = check;
+}
 function renderList(){
   const el=$('event-list');
+  renderStats();
   if(!events.length){ el.innerHTML='<div class="empty">Aucun événement. Clique sur “Ajouter un événement”.</div>'; return; }
   el.innerHTML=events.map(e=>{
     const d=e.dateTs?new Date(e.dateTs):null;
     const day=d?String(d.getDate()).padStart(2,'0'):'—';
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
-    return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
+    const past = isPastEvent(e);
+    const important = e.important || e.priority === 'important';
+    const badges = [
+      `<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>`,
+      `<span class="status-pill ${past?'status-past':'status-soon'}">${past?'Passé':'À venir'}</span>`,
+      important ? '<span class="status-pill status-important">Important</span>' : '',
+      e.source==='questionnaire' ? '<span class="status-pill status-off">À migrer</span>' : ''
+    ].filter(Boolean).join('');
+    const audience = e.audience ? `<div class="evt-audience">👥 ${FTS.esc(e.audience)}</div>` : '';
+    return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}${important?' evt-important':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
-      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div></div>
+      <div class="evt-info"><div class="evt-name"><span>${FTS.esc(e.name||'Sans nom')}</span><span class="evt-badges">${badges}</span></div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div>${audience}</div>
     </div>`;
   }).join('');
 }
 
 function newEvent(){
   selectedKey='';
-  ['e-key','e-name','e-type','e-date','e-hour','e-location','e-url','e-desc'].forEach(id=>$(id).value='');
+  ['e-key','e-name','e-type','e-date','e-hour','e-location','e-audience','e-url','e-desc'].forEach(id=>$(id).value='');
   $('e-active').value='true';
+  if($('e-priority')) $('e-priority').value='normal';
   renderList();
 }
 function editEvent(key){
@@ -166,6 +196,8 @@ function editEvent(key){
   $('e-date').value=isoInputFromEvent(e);
   $('e-hour').value=toInputTime(e.hour||'');
   $('e-location').value=e.location||'';
+  if($('e-audience')) $('e-audience').value=e.audience||'';
+  if($('e-priority')) $('e-priority').value=(e.important || e.priority === 'important') ? 'important' : 'normal';
   $('e-url').value=e.url||'';
   $('e-desc').value=e.desc||'';
   renderList();
@@ -231,6 +263,9 @@ function eventToQuestionnaireOption(key, data){
     dateLabel:date,
     hour,
     location,
+    audience:data.audience || data.groups || '',
+    priority:data.priority || (data.important ? 'important' : 'normal'),
+    important:data.important === true || data.priority === 'important',
     updatedAt:Date.now()
   };
 }
@@ -362,6 +397,10 @@ async function saveEvent(){
       h:hour,
       location:$('e-location').value.trim(),
       l:$('e-location').value.trim(),
+      audience:$('e-audience') ? $('e-audience').value.trim() : '',
+      groups:$('e-audience') ? $('e-audience').value.trim() : '',
+      priority:$('e-priority') ? $('e-priority').value : 'normal',
+      important:$('e-priority') ? $('e-priority').value === 'important' : false,
       url:$('e-url').value.trim(),
       u:$('e-url').value.trim(),
       description:$('e-desc').value.trim(),
