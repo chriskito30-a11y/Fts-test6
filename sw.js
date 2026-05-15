@@ -1,4 +1,4 @@
-const CACHE = 'fts-v30-auth-loop-fix';
+const CACHE = 'fts-v30-auth-loop-deep-fix';
 const FILES = [
   './manifest.json',
   './index.html',
