@@ -297,18 +297,45 @@ function canSeeEvent(e){
    Objectif : afficher uniquement ce que le membre peut déjà voir ailleurs.
    Aucun nouveau chemin Firebase, aucun contournement de permissions.
    Les filtres réutilisent canSeeDocInCategory() et canSeeEvent(). */
-function lastVisitStorageKey() {
-  return 'fts_last_visit_' + (currentUid || 'anonymous');
+function seenNewsStorageKey() {
+  return 'fts_seen_news_' + (currentUid || 'anonymous');
 }
 
-function getLastVisitTs() {
+function getSeenNewsMap() {
   try {
-    return Number(localStorage.getItem(lastVisitStorageKey()) || 0) || 0;
-  } catch(e) { return 0; }
+    const raw = localStorage.getItem(seenNewsStorageKey());
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+  } catch(e) { return {}; }
 }
 
-function setLastVisitTs(ts) {
-  try { localStorage.setItem(lastVisitStorageKey(), String(ts || Date.now())); } catch(e) {}
+function saveSeenNewsMap(map) {
+  try { localStorage.setItem(seenNewsStorageKey(), JSON.stringify(map || {})); } catch(e) {}
+}
+
+function newsItemId(item) {
+  if (!item) return '';
+  const base = item.key || item.title || item.action || '';
+  return [item.type || 'item', base, item.ts || '0'].map(v => String(v || '').trim()).join('|');
+}
+
+function isNewsSeen(itemOrId) {
+  const id = typeof itemOrId === 'string' ? itemOrId : newsItemId(itemOrId);
+  if (!id) return false;
+  return getSeenNewsMap()[id] === true;
+}
+
+function markNewsSeen(itemOrId) {
+  const id = typeof itemOrId === 'string' ? itemOrId : newsItemId(itemOrId);
+  if (!id) return;
+  const map = getSeenNewsMap();
+  map[id] = true;
+  saveSeenNewsMap(map);
+}
+
+function recentNewsSince() {
+  // Pas de lecture/écriture Firebase : on limite juste les nouveautés anciennes côté navigateur.
+  return Date.now() - 14 * 24 * 60 * 60 * 1000;
 }
 
 function itemTs(obj) {
@@ -325,11 +352,6 @@ function itemTs(obj) {
 
 function isAfterLastVisit(ts, sinceTs) {
   return Number(ts || 0) > Number(sinceTs || 0);
-}
-
-function newsFallbackSince(lastVisit) {
-  // Première visite sur cet appareil : on montre les nouveautés récentes sans prétendre tout connaître.
-  return lastVisit || (Date.now() - 14 * 24 * 60 * 60 * 1000);
 }
 
 async function getUnreadMessageCount(uid) {
@@ -451,9 +473,7 @@ async function loadMemberNews() {
   if (!panel || !list || !currentUid) return;
 
   const now = Date.now();
-  const lastVisit = getLastVisitTs();
-  const sinceTs = newsFallbackSince(lastVisit);
-  const firstVisitOnDevice = !lastVisit;
+  const sinceTs = recentNewsSince();
 
   try {
     const [resources, events, announcement, unread] = await Promise.all([
@@ -474,32 +494,31 @@ async function loadMemberNews() {
         title: unread === 1 ? '1 message non lu' : `${unread} messages non lus`,
         meta: 'Messages privés / groupes',
         ts: now + 1,
-        action: 'messages'
+        action: 'messages',
+        skipSeenFilter: true
       });
     }
     items.push(...resources, ...events, ...announcement);
 
     const unique = [];
-    const seen = new Set();
+    const seenIds = new Set();
     items.sort((a,b) => Number(b.ts || 0) - Number(a.ts || 0)).forEach(item => {
-      const id = [item.type, item.key || item.title || '', item.action || ''].join('|');
-      if (seen.has(id)) return;
-      seen.add(id);
-      unique.push(item);
+      const id = newsItemId(item);
+      if (!id || seenIds.has(id)) return;
+      seenIds.add(id);
+      if (!item.skipSeenFilter && isNewsSeen(id)) return;
+      unique.push({ ...item, newsId: id });
     });
 
-    renderMemberNews(unique.slice(0, 5), firstVisitOnDevice);
-    if (hint) hint.textContent = firstVisitOnDevice ? 'Derniers jours · selon vos cours' : 'Depuis votre dernier passage';
-
-    // On marque la visite après le rendu pour éviter de masquer les éléments pendant le chargement.
-    setTimeout(() => setLastVisitTs(now), 1200);
+    renderMemberNews(unique.slice(0, 5), false);
+    if (hint) hint.textContent = 'Non consultées · selon vos cours';
   } catch(e) {
     console.warn('[FTS] Nouveautés indisponibles :', e);
     panel.classList.add('u-initial-hidden');
   }
 }
 
-function renderMemberNews(items, firstVisitOnDevice) {
+function renderMemberNews(items) {
   const panel = document.getElementById('member-news-panel');
   const list = document.getElementById('member-news-list');
   if (!panel || !list) return;
@@ -512,11 +531,12 @@ function renderMemberNews(items, firstVisitOnDevice) {
   panel.classList.remove('u-initial-hidden');
   panel.style.display = 'block';
   const title = panel.querySelector('.smart-section-head h2');
-  if (title && firstVisitOnDevice) title.textContent = 'À voir en ce moment';
+  if (title) title.textContent = 'Nouveautés à consulter';
 
   list.innerHTML = items.map(item => `
     <button type="button" class="smart-item member-news-item" data-news-action="${FTS.esc(item.action || '')}"
       data-news-key="${FTS.esc(item.key || '')}"
+      data-news-id="${FTS.esc(item.newsId || newsItemId(item))}"
       data-cat-index="${Number.isInteger(item.catIndex) ? item.catIndex : ''}"
       data-resource-cat="${FTS.esc(item.cat || '')}"
       data-resource-sub="${FTS.esc(item.sub || '')}">
@@ -529,8 +549,27 @@ function renderMemberNews(items, firstVisitOnDevice) {
     </button>`).join('');
 }
 
+function refreshNewsPanelAfterSeen(btn) {
+  if (btn && btn.parentNode) btn.remove();
+  const panel = document.getElementById('member-news-panel');
+  const list = document.getElementById('member-news-list');
+  if (panel && list && !list.querySelector('.member-news-item')) {
+    panel.classList.add('u-initial-hidden');
+    panel.style.display = 'none';
+  }
+}
+
 function openMemberNewsItem(btn) {
   const action = btn.dataset.newsAction || '';
+  const newsId = btn.dataset.newsId || '';
+
+  // Les messages restent pilotés par le vrai compteur non-lu Firebase.
+  // Les autres nouveautés sont marquées comme lues localement, une par une.
+  if (action !== 'messages' && newsId) {
+    markNewsSeen(newsId);
+    refreshNewsPanelAfterSeen(btn);
+  }
+
   if (action === 'messages') {
     window.location.href = 'messages.html';
     return;
