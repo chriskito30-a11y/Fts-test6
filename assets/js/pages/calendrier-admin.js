@@ -4,6 +4,9 @@
    ================================================================ */
 
 let db, auth, events = [], selectedKey = '';
+let categoryStructure = [];
+let selectedTargetCategories = new Set();
+let selectedTargetSubgroups = {};
 let isSavingEvent = false;
 let eventReloadTimer = null;
 let hasBootSyncedEventsMirror = false;
@@ -23,10 +26,173 @@ function init(){
       if(!profile || profile.role!=='admin'){ location.href='membres.html'; return; }
       $('auth-loading').style.display='none';
       $('admin-shell').style.display='block';
+      await loadTargetCategories();
+      bindTargetSelectionHandlers();
       listenEvents();
       newEvent();
     }catch(e){ console.warn('[FTS Calendrier]', e); location.href='auth.html'; }
   });
+}
+
+
+function normalizeCategoryStructure(rows){
+  return (Array.isArray(rows) ? rows : [])
+    .filter(c => c && c.active !== false)
+    .map(c => {
+      const name = c.name || c.category || '';
+      const rawSubs = c.subs || c.subcats || c.subcategories || [];
+      const subcats = (Array.isArray(rawSubs) ? rawSubs : Object.values(rawSubs))
+        .map(s => typeof s === 'string' ? s : (s && (s.name || s.label)))
+        .filter(Boolean);
+      return {
+        icon: c.icon || c.emoji || FTS.catIcon(name),
+        name,
+        subcats
+      };
+    })
+    .filter(c => c.name);
+}
+
+async function loadTargetCategories(){
+  try{
+    const rows = FTS.getCategoryStructureAsync
+      ? await FTS.getCategoryStructureAsync(db)
+      : (FTS.getCategoryStructure ? FTS.getCategoryStructure() : []);
+    categoryStructure = normalizeCategoryStructure(rows);
+  }catch(e){
+    console.warn('[FTS Calendrier] Catégories indisponibles', e);
+    categoryStructure = normalizeCategoryStructure(FTS.getDefaultCategoryStructure ? FTS.getDefaultCategoryStructure() : []);
+  }
+  renderTargetSelector();
+}
+
+function bindTargetSelectionHandlers(){
+  if(window.__FTS_CAL_TARGETS_BOUND__) return;
+  window.__FTS_CAL_TARGETS_BOUND__ = true;
+  document.addEventListener('click', function(event){
+    const el = event.target && event.target.closest ? event.target.closest('[data-cal-target-action]') : null;
+    if(!el || !document.documentElement.contains(el)) return;
+    event.preventDefault();
+    const action = el.getAttribute('data-cal-target-action');
+    const cat = el.getAttribute('data-cat') || '';
+    const sub = el.getAttribute('data-sub') || '';
+    if(action === 'toggle-cat') toggleTargetCategory(cat);
+    if(action === 'toggle-sub') toggleTargetSubgroup(cat, sub);
+  });
+}
+
+function toggleTargetCategory(cat){
+  if(!cat) return;
+  if(selectedTargetCategories.has(cat)){
+    selectedTargetCategories.delete(cat);
+    delete selectedTargetSubgroups[cat];
+  }else{
+    selectedTargetCategories.add(cat);
+    if(!selectedTargetSubgroups[cat]) selectedTargetSubgroups[cat] = new Set();
+  }
+  renderTargetSelector();
+}
+
+function toggleTargetSubgroup(cat, sub){
+  if(!cat || !sub) return;
+  if(!selectedTargetCategories.has(cat)) selectedTargetCategories.add(cat);
+  if(!selectedTargetSubgroups[cat]) selectedTargetSubgroups[cat] = new Set();
+  if(selectedTargetSubgroups[cat].has(sub)) selectedTargetSubgroups[cat].delete(sub);
+  else selectedTargetSubgroups[cat].add(sub);
+  renderTargetSelector();
+}
+
+function renderTargetSelector(){
+  const wrap = $('event-targets');
+  if(!wrap) return;
+  if(!categoryStructure.length){
+    wrap.innerHTML = '<div class="empty">Aucun groupe disponible.</div>';
+    return;
+  }
+  wrap.innerHTML = categoryStructure.map(cat => {
+    const catOn = selectedTargetCategories.has(cat.name);
+    const subs = Array.isArray(cat.subcats) ? cat.subcats : [];
+    const subHtml = (catOn && subs.length) ? `<div class="target-subgrid">${subs.map(sub => {
+      const on = selectedTargetSubgroups[cat.name] && selectedTargetSubgroups[cat.name].has(sub);
+      return `<button type="button" class="target-pill target-sub ${on ? 'active' : ''}" data-cal-target-action="toggle-sub" data-cat="${FTS.esc(cat.name)}" data-sub="${FTS.esc(sub)}">${on ? '✓ ' : ''}${FTS.esc(sub)}</button>`;
+    }).join('')}</div>` : '';
+    return `<div class="target-group">
+      <button type="button" class="target-pill target-cat ${catOn ? 'active' : ''}" data-cal-target-action="toggle-cat" data-cat="${FTS.esc(cat.name)}">${catOn ? '✓ ' : ''}${cat.icon || FTS.catIcon(cat.name)} ${FTS.esc(cat.name)}</button>
+      ${subHtml}
+    </div>`;
+  }).join('');
+}
+
+function resetTargetSelection(){
+  selectedTargetCategories = new Set();
+  selectedTargetSubgroups = {};
+  renderTargetSelector();
+}
+
+function setTargetSelectionFromEvent(e){
+  selectedTargetCategories = new Set(normArray(e.targetCategories || e.categories || e.groups));
+  selectedTargetSubgroups = {};
+  const raw = e.targetSubgroups || e.targetSubcategories || e.subgroups || e.subcategories || [];
+  const subs = normArray(raw);
+  subs.forEach(sub => {
+    const cat = categoryStructure.find(c => (c.subcats || []).some(s => FTS.norm(s) === FTS.norm(sub)));
+    if(cat){
+      selectedTargetCategories.add(cat.name);
+      if(!selectedTargetSubgroups[cat.name]) selectedTargetSubgroups[cat.name] = new Set();
+      selectedTargetSubgroups[cat.name].add(sub);
+    }
+  });
+  renderTargetSelector();
+}
+
+function getTargetSelection(){
+  const categories = [...selectedTargetCategories];
+  const subgroups = [];
+  Object.values(selectedTargetSubgroups).forEach(set => set.forEach(s => subgroups.push(s)));
+  return {
+    targetCategories: [...new Set(categories)],
+    targetSubgroups: [...new Set(subgroups)]
+  };
+}
+
+function normArray(value){
+  if(Array.isArray(value)) return value.map(x => String(x || '').trim()).filter(Boolean);
+  return String(value || '').split(',').map(x => x.trim()).filter(Boolean);
+}
+
+function eventTargetLabel(e){
+  const cats = normArray(e.targetCategories);
+  const subs = normArray(e.targetSubgroups);
+  if(!cats.length && !subs.length) return 'Tout le monde';
+  if(subs.length) return [...cats, ...subs].join(' · ');
+  return cats.join(' · ');
+}
+
+function userMatchesEventTargets(profile, e){
+  const cats = normArray(e.targetCategories);
+  const subs = normArray(e.targetSubgroups);
+  if(!cats.length && !subs.length) return true;
+  const userCats = collectUserCategories(profile).map(FTS.norm);
+  const userSubs = collectUserSubgroups(profile).map(FTS.norm);
+  const catOk = cats.some(c => userCats.includes(FTS.norm(c)));
+  const subOk = subs.some(sg => userSubs.includes(FTS.norm(sg)));
+  return catOk || subOk;
+}
+
+function collectUserCategories(profile){
+  const own = normArray(profile && (profile.disciplines || profile.group));
+  const child = (profile && Array.isArray(profile.enfants))
+    ? profile.enfants.flatMap(e => normArray(e.disciplines || e.group))
+    : [];
+  return [...new Set([...own, ...child])];
+}
+
+function collectUserSubgroups(profile){
+  const own = normArray(profile && (profile.subgroups || profile.subcategories || profile.subgroup));
+  const child = (profile && Array.isArray(profile.enfants))
+    ? profile.enfants.flatMap(e => normArray(e.subgroups || e.subcategories || e.subgroup))
+    : [];
+  return [...new Set([...own, ...child])];
 }
 
 function listenEvents(){
@@ -129,61 +295,37 @@ function normalizeEvent(key, v){
     dateLabel:v.dateLabel||v.d||v.date||'',
     hour:v.hour||v.heure||v.time||v.h||'',
     location:v.location||v.lieu||v.l||'',
-    audience:v.audience||v.groups||v.public||v.concerned||'',
-    priority:v.priority || (v.important ? 'important' : 'normal'),
-    important:v.important === true || v.priority === 'important',
     url:v.url||v.link||v.lien||v.u||'',
     desc:v.description||v.desc||'',
     dateTs:Number(v.dateTs||v.startTs||v.ts||0),
-    updatedAt:v.updatedAt||0
+    updatedAt:v.updatedAt||0,
+    important:v.important === true || v.priority === 'important',
+    priority:v.priority || (v.important ? 'important' : 'normal'),
+    targetCategories:normArray(v.targetCategories || v.categories || v.groups),
+    targetSubgroups:normArray(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories)
   };
 }
 
-function isPastEvent(e){
-  if(!e || !e.dateTs) return false;
-  const endOfDay = new Date(e.dateTs);
-  endOfDay.setHours(23,59,59,999);
-  return endOfDay.getTime() < Date.now();
-}
-function renderStats(){
-  const upcoming = events.filter(e => e.active !== false && !isPastEvent(e)).length;
-  const important = events.filter(e => e.important || e.priority === 'important').length;
-  const hidden = events.filter(e => e.active === false).length;
-  const check = events.filter(e => e.source === 'questionnaire' || !e.dateTs || !e.location).length;
-  if($('stat-upcoming')) $('stat-upcoming').textContent = upcoming;
-  if($('stat-important')) $('stat-important').textContent = important;
-  if($('stat-hidden')) $('stat-hidden').textContent = hidden;
-  if($('stat-check')) $('stat-check').textContent = check;
-}
 function renderList(){
   const el=$('event-list');
-  renderStats();
   if(!events.length){ el.innerHTML='<div class="empty">Aucun événement. Clique sur “Ajouter un événement”.</div>'; return; }
   el.innerHTML=events.map(e=>{
     const d=e.dateTs?new Date(e.dateTs):null;
     const day=d?String(d.getDate()).padStart(2,'0'):'—';
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
-    const past = isPastEvent(e);
-    const important = e.important || e.priority === 'important';
-    const badges = [
-      `<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>`,
-      `<span class="status-pill ${past?'status-past':'status-soon'}">${past?'Passé':'À venir'}</span>`,
-      important ? '<span class="status-pill status-important">Important</span>' : '',
-      e.source==='questionnaire' ? '<span class="status-pill status-off">À migrer</span>' : ''
-    ].filter(Boolean).join('');
-    const audience = e.audience ? `<div class="evt-audience">👥 ${FTS.esc(e.audience)}</div>` : '';
-    return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}${important?' evt-important':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
+    return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
-      <div class="evt-info"><div class="evt-name"><span>${FTS.esc(e.name||'Sans nom')}</span><span class="evt-badges">${badges}</span></div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div>${audience}</div>
+      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
     </div>`;
   }).join('');
 }
 
 function newEvent(){
   selectedKey='';
-  ['e-key','e-name','e-type','e-date','e-hour','e-location','e-audience','e-url','e-desc'].forEach(id=>$(id).value='');
+  ['e-key','e-name','e-type','e-date','e-hour','e-location','e-url','e-desc'].forEach(id=>$(id).value='');
   $('e-active').value='true';
-  if($('e-priority')) $('e-priority').value='normal';
+  if($('e-important')) $('e-important').value='false';
+  resetTargetSelection();
   renderList();
 }
 function editEvent(key){
@@ -196,10 +338,10 @@ function editEvent(key){
   $('e-date').value=isoInputFromEvent(e);
   $('e-hour').value=toInputTime(e.hour||'');
   $('e-location').value=e.location||'';
-  if($('e-audience')) $('e-audience').value=e.audience||'';
-  if($('e-priority')) $('e-priority').value=(e.important || e.priority === 'important') ? 'important' : 'normal';
   $('e-url').value=e.url||'';
   $('e-desc').value=e.desc||'';
+  if($('e-important')) $('e-important').value=String(!!e.important);
+  setTargetSelectionFromEvent(e);
   renderList();
 }
 function isoInputFromEvent(e){
@@ -263,9 +405,10 @@ function eventToQuestionnaireOption(key, data){
     dateLabel:date,
     hour,
     location,
-    audience:data.audience || data.groups || '',
-    priority:data.priority || (data.important ? 'important' : 'normal'),
     important:data.important === true || data.priority === 'important',
+    priority:data.priority || (data.important ? 'important' : 'normal'),
+    targetCategories:normArray(data.targetCategories || []),
+    targetSubgroups:normArray(data.targetSubgroups || []),
     updatedAt:Date.now()
   };
 }
@@ -290,11 +433,12 @@ async function syncAllEventsToQuestionnaire(){
     setTimeout(() => { isSyncingEventsMirror = false; }, 250);
   }
 }
-async function getEventRecipientUids(excludeUid){
+async function getEventRecipientUids(excludeUid, eventData){
   const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
   const uids = [];
   if(snap.exists()) snap.forEach(child => {
-    if(child.key !== excludeUid) uids.push(child.key);
+    const profile = child.val() || {};
+    if(child.key !== excludeUid && userMatchesEventTargets(profile, eventData || {})) uids.push(child.key);
   });
   return uids;
 }
@@ -302,7 +446,7 @@ async function notifyNewEvent(key, data){
   try{
     if(!key || !data || data.active === false || data.status === 'inactive') return;
     const currentUser = auth && auth.currentUser ? auth.currentUser.uid : '';
-    const recipientUids = await getEventRecipientUids(currentUser);
+    const recipientUids = await getEventRecipientUids(currentUser, data);
     if(!recipientUids.length) return;
 
     const dateText = data.dateLabel || data.date || data.d || '';
@@ -381,6 +525,8 @@ async function saveEvent(){
     const selected = events.find(x => x.key === $('e-key').value || x.eventKey === $('e-key').value);
     const key = (selected && selected.eventKey) || $('e-key').value || db.ref('fts_events').push().key;
     const active=$('e-active').value==='true';
+    const targets = getTargetSelection();
+    const important = $('e-important') ? $('e-important').value === 'true' : false;
     const data={
       name,
       title:name,
@@ -397,13 +543,13 @@ async function saveEvent(){
       h:hour,
       location:$('e-location').value.trim(),
       l:$('e-location').value.trim(),
-      audience:$('e-audience') ? $('e-audience').value.trim() : '',
-      groups:$('e-audience') ? $('e-audience').value.trim() : '',
-      priority:$('e-priority') ? $('e-priority').value : 'normal',
-      important:$('e-priority') ? $('e-priority').value === 'important' : false,
       url:$('e-url').value.trim(),
       u:$('e-url').value.trim(),
       description:$('e-desc').value.trim(),
+      important,
+      priority:important ? 'important' : 'normal',
+      targetCategories:targets.targetCategories,
+      targetSubgroups:targets.targetSubgroups,
       dateTs:dateTs(iso,hour),
       updatedAt:Date.now()
     };

@@ -230,6 +230,25 @@ function renderDashboard(profile, email) {
   }
 }
 
+
+function eventTargetValues(e){
+  return {
+    cats: normList(e && (e.targetCategories || e.categories || e.groups)),
+    subs: normList(e && (e.targetSubgroups || e.targetSubcategories || e.subgroups || e.subcategories))
+  };
+}
+
+function canSeeEvent(e){
+  if (profileIsAdmin()) return true;
+  const t = eventTargetValues(e || {});
+  if (!t.cats.length && !t.subs.length) return true;
+  const myCats = userDisciplines().map(FTS.norm);
+  const mySubs = userSubgroups().map(FTS.norm);
+  const catOk = t.cats.some(c => myCats.includes(FTS.norm(c)));
+  const subOk = t.subs.some(sub => mySubs.includes(FTS.norm(sub)));
+  return catOk || subOk;
+}
+
 function updateNextEventSummary(events) {
   const title = document.getElementById('dash-next-event');
   const date  = document.getElementById('dash-next-event-date');
@@ -267,6 +286,7 @@ async function loadEvts() {
       snap.forEach(child => {
         const v = child.val() || {};
         if (v.active === false || v.status === 'inactive') return;
+        if (!canSeeEvent(v)) return;
 
         const ts = Number(v.dateTs || v.startTs || v.ts || 0);
         rows.push({
@@ -277,6 +297,9 @@ async function loadEvts() {
           h: v.hour || v.heure || v.time || v.h || '',
           l: v.location || v.lieu || v.l || '',
           u: v.url || v.link || v.lien || v.u || '',
+          important: v.important === true || v.priority === 'important',
+          targetCategories: normList(v.targetCategories || v.categories || v.groups),
+          targetSubgroups: normList(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories),
           ts
         });
       });
@@ -311,6 +334,7 @@ function showEvts(es) {
         <div class="evt-name">${FTS.esc(e.n)}</div>
         <div class="evt-meta">${FTS.esc(e.d)}${e.h?' — '+FTS.esc(e.h):''}${e.l?' — '+FTS.esc(e.l):''}</div>
       </div>
+      ${e.important?`<span class="evt-type important">Important</span>`:''}
       ${e.t?`<span class="evt-type">${FTS.esc(e.t)}</span>`:''}
       ${e.u?`<a href="${e.u}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:''}
     </div>`).join('');
