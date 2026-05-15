@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=1" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=2" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -27,8 +27,54 @@
 <section class="hello-card">
 <div class="hello-kicker">Tableau de bord admin</div>
 <div class="hello-title">Bienvenue, <span id="admin-name">admin</span></div>
-<div class="hello-sub">Cette page centralise les accès aux modules existants sans les fusionner. Chaque carte ouvre la page dédiée, déjà sécurisée par Firebase.</div>
+<div class="hello-sub">Vue rapide de l’association. Les validations, rôles et catégories restent gérés dans les pages dédiées.</div>
 </section>
+
+<section aria-label="Résumé administration" class="admin-overview" id="admin-overview">
+  <article class="overview-card overview-waiting">
+    <div class="overview-icon">⏳</div>
+    <div>
+      <div class="overview-number" id="stat-pending">—</div>
+      <div class="overview-label">Inscriptions en attente</div>
+    </div>
+  </article>
+  <article class="overview-card">
+    <div class="overview-icon">✅</div>
+    <div>
+      <div class="overview-number" id="stat-active">—</div>
+      <div class="overview-label">Membres validés</div>
+    </div>
+  </article>
+  <article class="overview-card">
+    <div class="overview-icon">🎓</div>
+    <div>
+      <div class="overview-number" id="stat-staff">—</div>
+      <div class="overview-label">Admins / profs</div>
+    </div>
+  </article>
+  <article class="overview-card">
+    <div class="overview-icon">👨‍👩‍👧</div>
+    <div>
+      <div class="overview-number" id="stat-children">—</div>
+      <div class="overview-label">Enfants renseignés</div>
+    </div>
+  </article>
+</section>
+
+<section class="admin-insight-card" id="admin-category-summary" aria-label="Résumé par catégorie">
+  <div class="insight-head">
+    <div>
+      <div class="section-lbl compact">Répartition rapide</div>
+      <h2>Catégories & sous-catégories</h2>
+    </div>
+    <a class="btn btn-sm btn-dark" href="forum-admin.html">Gérer les accès</a>
+  </div>
+  <div class="insight-note">Comptage indicatif depuis les profils validés, en incluant les adultes et les enfants.</div>
+  <div class="category-summary-grid" id="category-summary-grid">
+    <div class="hint">Chargement du résumé…</div>
+  </div>
+</section>
+
 <div class="section-lbl">Modules principaux</div>
 <section aria-label="Modules administrateur" class="admin-grid">
 <a class="admin-card" href="forum-admin.html"><div class="admin-ico">👥</div><div class="admin-title">Membres &amp; accès</div><div class="admin-desc">Valider les inscriptions, modifier les rôles, disciplines et sous-catégories, gérer les membres actifs.</div><div class="admin-meta">forum-admin.html</div></a>
@@ -58,6 +104,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/admin.js?v=1"></script>
+<script src="assets/js/pages/admin.js?v=2"></script>
 </body>
 </html>
