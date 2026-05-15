@@ -1,4 +1,3 @@
-/* === Styles extraits de profs.html === */
 /* ── AUTH LOADING ─────────────────────────────────────────────── */
 .auth-loading {
   min-height: 100vh; display: flex; flex-direction: column;
@@ -247,27 +246,200 @@
 .btn-cancel-edit { background: #2a2a2a; color: var(--muted); }
 .btn-cancel-edit:hover { background: #333; color: var(--white); }
 
-.u-profs-inline-1 { display:none }
 
-.u-profs-inline-2 { display:none }
-
-.u-profs-inline-3 { background:#2a5a2a }
-
-.u-profs-inline-4 { display:none }
-
-.u-profs-inline-5 { display:none }
-
-.u-profs-inline-6 { margin-top:.7rem;
-  font-size:.72rem;
-  color:var(--muted);
-  line-height:1.5;
-  display:none; }
-
-.u-profs-inline-7 { display:none }
-
-.u-profs-inline-8 { font-size:.7rem;color:var(--muted);font-style:italic;margin-bottom:.8rem }
-
-.u-profs-inline-9 { display:none }
-
-.student-disciplines { color: var(--gold); }
-.student-phone { color: #555; }
+/* ── MODERNISATION COCKPIT PROFS — V1 ─────────────────────────── */
+* { box-sizing: border-box; }
+.wrap { max-width: 980px; }
+.profs-hero-card,
+.profs-panel,
+.profs-preview,
+.profs-info-card {
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 22px;
+  box-shadow: 0 18px 60px rgba(0,0,0,.28);
+}
+.profs-hero-card {
+  padding: 1rem;
+  margin: 0 0 1rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: .7rem;
+}
+.profs-stat {
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.07);
+  border-radius: 16px;
+  padding: .9rem;
+  min-width: 0;
+}
+.profs-stat-kicker {
+  display:block;
+  color: var(--muted);
+  font-size: .58rem;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  margin-bottom: .25rem;
+}
+.profs-stat-value {
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.profs-stat-note {
+  display:block;
+  color: var(--gold);
+  font-size: .68rem;
+  margin-top: .25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.form-card {
+  border-radius: 24px;
+  padding: 1.1rem;
+  background: linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.018));
+  border: 1px solid rgba(255,255,255,.11);
+  box-shadow: 0 18px 60px rgba(0,0,0,.30);
+}
+.form-card .card-title {
+  color: var(--white);
+  font-size: 1.55rem;
+  font-family: var(--font-display);
+  letter-spacing: .02em;
+  text-transform: none;
+  margin-bottom: .25rem;
+}
+.profs-card-subtitle {
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+  margin: 0 0 1.15rem;
+}
+.profs-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .9rem;
+}
+.profs-form-grid .field-full { grid-column: 1 / -1; }
+.field {
+  margin-bottom: .95rem;
+}
+.field label {
+  color: rgba(255,255,255,.78);
+  font-size: .72rem;
+  letter-spacing: .08em;
+}
+.field small {
+  display:block;
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.35;
+  margin-top: .38rem;
+}
+.field input, .field select, .field textarea {
+  border-radius: 14px;
+  min-height: 46px;
+  background: rgba(0,0,0,.34);
+  border-color: rgba(255,255,255,.10);
+}
+.field textarea { min-height: 96px; }
+#drop-zone {
+  border-radius: 18px;
+  background: rgba(0,0,0,.18);
+  min-height: 108px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+}
+.profs-preview {
+  padding: 1rem;
+  margin-top: 1rem;
+}
+.profs-preview-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.6rem;
+  margin-bottom:.7rem;
+}
+.profs-preview-title {
+  color: var(--gold);
+  font-size: .65rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+.profs-preview-card {
+  background: rgba(0,0,0,.24);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  padding: .95rem;
+}
+.profs-preview-name { font-weight: 700; margin-bottom: .35rem; }
+.profs-preview-meta { color: var(--muted); font-size: .75rem; line-height: 1.45; }
+.profs-preview-note { color: rgba(255,255,255,.72); font-size: .78rem; margin-top:.6rem; line-height:1.45; }
+.tabs-row {
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  padding: .25rem;
+  gap: .25rem;
+  overflow-x: auto;
+}
+.tab-lnk {
+  border-bottom: none;
+  border-radius: 14px;
+  min-width: 108px;
+}
+.tab-lnk.active {
+  background: rgba(212,32,26,.16);
+  border-bottom-color: transparent;
+}
+.manage-filters {
+  background: rgba(255,255,255,.045);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px;
+  padding: .75rem;
+}
+.filter-select { border-radius: 14px; min-height: 42px; }
+.doc-item,
+.student-card {
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255,255,255,.052), rgba(255,255,255,.018));
+  border: 1px solid rgba(255,255,255,.09);
+}
+.doc-item-actions button { min-height: 36px; }
+.profs-section-head {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap: 1rem;
+  margin: 0 0 .8rem;
+}
+.profs-section-head h2 {
+  margin:0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  line-height:1;
+}
+.profs-section-head p { margin:.25rem 0 0; color:var(--muted); font-size:.78rem; line-height:1.4; }
+@media (max-width: 720px) {
+  .wrap { width: min(100%, 100vw); padding-left: .85rem; padding-right: .85rem; overflow-x: hidden; }
+  .page-hdr h1 { font-size: clamp(2.5rem, 15vw, 4.5rem); }
+  .user-bar { flex-direction: column; align-items: stretch; gap: .75rem; border-radius: 20px; }
+  .btn-signout { width: 100%; min-height: 42px; }
+  .profs-hero-card { grid-template-columns: repeat(2, minmax(0,1fr)); padding: .75rem; border-radius: 20px; }
+  .profs-stat { padding: .8rem; }
+  .profs-form-grid { grid-template-columns: 1fr; gap: 0; }
+  .form-card { padding: .95rem; border-radius: 22px; }
+  .doc-item { align-items: flex-start; }
+  .doc-item-actions { width:100%; display:grid; grid-template-columns: 1fr 1fr; }
+  .doc-item-actions button { width:100%; }
+  .modal-box { border-radius: 22px; padding: 1rem; }
+}
+@media (max-width: 380px) {
+  .profs-hero-card { grid-template-columns: 1fr; }
+  .tab-lnk { min-width: 96px; font-size:.72rem; }
+}
