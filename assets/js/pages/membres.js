@@ -33,6 +33,7 @@ let showAll   = false;
 let userProfile = null;
 let currentUid = null;
 let pendingResourceOpen = null;
+let latestUnreadMessages = 0;
 
 /* ── ICÔNES FICHIERS ─────────────────────────────────────────── */
 const ICONS = {
@@ -106,8 +107,12 @@ function allowedSubcatsForCategory(cat) {
 
 function canSeeDocInCategory(doc, cat) {
   if (profileIsAdmin()) return true;
+  const catName = String(cat && cat.name || '').trim();
+  const userCatNorms = new Set(userDisciplines().map(FTS.norm));
+  if (catName && !userCatNorms.has(FTS.norm(catName))) return false;
+
   const docSub = String(doc.sub || '').trim();
-  if (!docSub) return true; // document général de la discipline
+  if (!docSub) return true; // document général de la discipline autorisée
   const allowedNorms = new Set(allowedSubcatsForCategory(cat).map(FTS.norm));
   return allowedNorms.has(FTS.norm(docSub));
 }
@@ -172,6 +177,7 @@ function canSeeDocInCategory(doc, cat) {
       loadEvts();
       loadAnnonce();
       loadRecentDocs();
+      loadMemberNews();
       handleResourceDeepLink();
 
     } catch(e) {
@@ -273,7 +279,7 @@ function canSeeEvent(e){
     const catOk = myCats.includes(FTS.norm(cat));
     const cleanSubs = normList(subs);
     if (catOk && !cleanSubs.length) return true;
-    if (cleanSubs.some(sub => mySubs.includes(FTS.norm(sub)))) return true;
+    if (catOk && cleanSubs.some(sub => mySubs.includes(FTS.norm(sub)))) return true;
   }
 
   // Sécurité de compatibilité pour anciens événements qui n'auraient que des champs plats.
@@ -283,6 +289,280 @@ function canSeeEvent(e){
   }
 
   return false;
+}
+
+
+
+/* ── NOUVEAUTÉS CIBLÉES MEMBRE ─────────────────────────────────
+   Objectif : afficher uniquement ce que le membre peut déjà voir ailleurs.
+   Aucun nouveau chemin Firebase, aucun contournement de permissions.
+   Les filtres réutilisent canSeeDocInCategory() et canSeeEvent(). */
+function lastVisitStorageKey() {
+  return 'fts_last_visit_' + (currentUid || 'anonymous');
+}
+
+function getLastVisitTs() {
+  try {
+    return Number(localStorage.getItem(lastVisitStorageKey()) || 0) || 0;
+  } catch(e) { return 0; }
+}
+
+function setLastVisitTs(ts) {
+  try { localStorage.setItem(lastVisitStorageKey(), String(ts || Date.now())); } catch(e) {}
+}
+
+function itemTs(obj) {
+  const raw = obj && (obj.updatedAt || obj.createdAt || obj.publishedAt || obj.dateCreated || obj.ts || obj.dateTs || obj.startTs || 0);
+  if (typeof raw === 'number') return raw;
+  if (typeof raw === 'string') {
+    const asNum = Number(raw);
+    if (Number.isFinite(asNum) && asNum > 0) return asNum;
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
+function isAfterLastVisit(ts, sinceTs) {
+  return Number(ts || 0) > Number(sinceTs || 0);
+}
+
+function newsFallbackSince(lastVisit) {
+  // Première visite sur cet appareil : on montre les nouveautés récentes sans prétendre tout connaître.
+  return lastVisit || (Date.now() - 14 * 24 * 60 * 60 * 1000);
+}
+
+async function getUnreadMessageCount(uid) {
+  if (!uid) return 0;
+  try {
+    const snap = await db.ref('fts_dm/userConvs/' + uid).once('value');
+    const convIds = snap.val() ? Object.keys(snap.val()) : [];
+    if (!convIds.length) return 0;
+    let total = 0;
+    await Promise.all(convIds.map(id =>
+      db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
+        .then(s => { total += Number(s.val() || 0) || 0; })
+        .catch(() => {})
+    ));
+    return total;
+  } catch(e) {
+    console.warn('[FTS] Compteur messages nouveautés indisponible :', e);
+    return 0;
+  }
+}
+
+function newsLabelDate(ts) {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    const today = new Date();
+    const sameDay = d.toDateString() === today.toDateString();
+    return sameDay ? 'Aujourd’hui' : d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
+  } catch(e) { return ''; }
+}
+
+async function collectNewResources(sinceTs) {
+  const snap = await db.ref('fts_ressources').once('value');
+  const items = [];
+  if (!snap.exists()) return items;
+
+  snap.forEach(child => {
+    const d = child.val() || {};
+    if (d.active === false || d.status === 'inactive') return;
+    const ts = itemTs(d);
+    if (!isAfterLastVisit(ts, sinceTs)) return;
+
+    const catName = d.cat || d.category || '';
+    const idx = C.categories.findIndex(c => FTS.norm(c.name) === FTS.norm(catName));
+    if (idx < 0) return;
+    const cat = C.categories[idx];
+    const item = {
+      type: 'resource',
+      icon: ICONS[(d.type || 'doc').toLowerCase().trim()] || '📄',
+      title: d.name || d.nom || d.title || d.titre || 'Nouveau document',
+      meta: (d.subcat || d.subcategory) ? `${catName} · ${d.subcat || d.subcategory}` : catName,
+      ts,
+      action: 'resource',
+      key: child.key,
+      catIndex: idx,
+      cat: catName,
+      sub: d.subcat || d.subcategory || ''
+    };
+    if (!canSeeDocInCategory({ sub:item.sub }, cat)) return;
+    items.push(item);
+  });
+  return items;
+}
+
+async function collectNewEvents(sinceTs) {
+  const snap = await db.ref('fts_events').once('value');
+  const items = [];
+  if (!snap.exists()) return items;
+  const startOfToday = new Date();
+  startOfToday.setHours(0,0,0,0);
+
+  snap.forEach(child => {
+    const v = child.val() || {};
+    if (v.active === false || v.status === 'inactive') return;
+    if (!canSeeEvent(v)) return;
+
+    const eventDateTs = Number(v.dateTs || v.startTs || 0) || 0;
+    if (eventDateTs && eventDateTs < startOfToday.getTime()) return;
+
+    const ts = itemTs({ updatedAt:v.updatedAt, createdAt:v.createdAt, ts:v.ts });
+    if (!isAfterLastVisit(ts, sinceTs)) return;
+
+    items.push({
+      type: 'event',
+      icon: v.important ? '🔥' : '📅',
+      title: v.name || v.nom || v.title || v.titre || 'Nouvel événement',
+      meta: [v.dateLabel || v.date || v.d || '', v.hour || v.heure || v.time || v.h || ''].filter(Boolean).join(' · '),
+      ts,
+      action: 'event',
+      key: child.key
+    });
+  });
+  return items;
+}
+
+async function collectNewAnnouncement(sinceTs) {
+  const snap = await db.ref('fts_content/annonces/current').once('value');
+  const a = snap.val() || {};
+  if (!a || a.active === false || a.status === 'inactive') return [];
+  const title = a.title || a.titre || '';
+  const body = a.body || a.text || a.texte || '';
+  if (!title && !body) return [];
+  const ts = itemTs(a);
+  if (!isAfterLastVisit(ts, sinceTs)) return [];
+  return [{
+    type: 'announcement',
+    icon: '⚠️',
+    title: title || 'Nouvelle annonce importante',
+    meta: 'Information importante',
+    ts,
+    action: 'announcement'
+  }];
+}
+
+async function loadMemberNews() {
+  const panel = document.getElementById('member-news-panel');
+  const list = document.getElementById('member-news-list');
+  const hint = document.getElementById('member-news-hint');
+  if (!panel || !list || !currentUid) return;
+
+  const now = Date.now();
+  const lastVisit = getLastVisitTs();
+  const sinceTs = newsFallbackSince(lastVisit);
+  const firstVisitOnDevice = !lastVisit;
+
+  try {
+    const [resources, events, announcement, unread] = await Promise.all([
+      collectNewResources(sinceTs).catch(() => []),
+      collectNewEvents(sinceTs).catch(() => []),
+      collectNewAnnouncement(sinceTs).catch(() => []),
+      getUnreadMessageCount(currentUid)
+    ]);
+
+    latestUnreadMessages = unread;
+    updateMsgBadge(unread);
+
+    const items = [];
+    if (unread > 0) {
+      items.push({
+        type: 'messages',
+        icon: '💬',
+        title: unread === 1 ? '1 message non lu' : `${unread} messages non lus`,
+        meta: 'Messages privés / groupes',
+        ts: now + 1,
+        action: 'messages'
+      });
+    }
+    items.push(...resources, ...events, ...announcement);
+
+    const unique = [];
+    const seen = new Set();
+    items.sort((a,b) => Number(b.ts || 0) - Number(a.ts || 0)).forEach(item => {
+      const id = [item.type, item.key || item.title || '', item.action || ''].join('|');
+      if (seen.has(id)) return;
+      seen.add(id);
+      unique.push(item);
+    });
+
+    renderMemberNews(unique.slice(0, 5), firstVisitOnDevice);
+    if (hint) hint.textContent = firstVisitOnDevice ? 'Derniers jours · selon vos cours' : 'Depuis votre dernier passage';
+
+    // On marque la visite après le rendu pour éviter de masquer les éléments pendant le chargement.
+    setTimeout(() => setLastVisitTs(now), 1200);
+  } catch(e) {
+    console.warn('[FTS] Nouveautés indisponibles :', e);
+    panel.classList.add('u-initial-hidden');
+  }
+}
+
+function renderMemberNews(items, firstVisitOnDevice) {
+  const panel = document.getElementById('member-news-panel');
+  const list = document.getElementById('member-news-list');
+  if (!panel || !list) return;
+
+  if (!items.length) {
+    panel.classList.add('u-initial-hidden');
+    return;
+  }
+
+  panel.classList.remove('u-initial-hidden');
+  panel.style.display = 'block';
+  const title = panel.querySelector('.smart-section-head h2');
+  if (title && firstVisitOnDevice) title.textContent = 'À voir en ce moment';
+
+  list.innerHTML = items.map(item => `
+    <button type="button" class="smart-item member-news-item" data-news-action="${FTS.esc(item.action || '')}"
+      data-news-key="${FTS.esc(item.key || '')}"
+      data-cat-index="${Number.isInteger(item.catIndex) ? item.catIndex : ''}"
+      data-resource-cat="${FTS.esc(item.cat || '')}"
+      data-resource-sub="${FTS.esc(item.sub || '')}">
+      <span class="smart-item-icon member-news-icon member-news-${FTS.esc(item.type || 'item')}">${item.icon || '🔔'}</span>
+      <span class="smart-item-main">
+        <strong>${FTS.esc(item.title || 'Nouvelle information')}</strong>
+        <small>${FTS.esc(item.meta || '')}${newsLabelDate(item.ts) ? ' · ' + FTS.esc(newsLabelDate(item.ts)) : ''}</small>
+      </span>
+      <span class="smart-item-action">Voir</span>
+    </button>`).join('');
+}
+
+function openMemberNewsItem(btn) {
+  const action = btn.dataset.newsAction || '';
+  if (action === 'messages') {
+    window.location.href = 'messages.html';
+    return;
+  }
+  if (action === 'announcement') {
+    const panel = document.getElementById('priority-panel');
+    if (panel) panel.scrollIntoView({ behavior:'smooth', block:'center' });
+    return;
+  }
+  if (action === 'event') {
+    const key = btn.dataset.newsKey || '';
+    const target = key ? document.getElementById('evt-' + key) : null;
+    const section = document.getElementById('membres-events');
+    if (target) {
+      target.scrollIntoView({ behavior:'smooth', block:'center' });
+      target.classList.add('news-highlight');
+      setTimeout(() => target.classList.remove('news-highlight'), 2600);
+    } else if (section) {
+      section.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+    return;
+  }
+  if (action === 'resource') {
+    const idx = Number(btn.dataset.catIndex);
+    if (!Number.isInteger(idx)) return;
+    pendingResourceOpen = {
+      resource: btn.dataset.newsKey || '',
+      catName: btn.dataset.resourceCat || (C.categories[idx] && C.categories[idx].name) || '',
+      subcat: btn.dataset.resourceSub || ''
+    };
+    openCat(idx);
+  }
 }
 
 function updateNextEventSummary(events) {
@@ -366,7 +646,7 @@ function showEvts(es) {
     return;
   }
   el.innerHTML = es.map(e => `
-    <div class="evt">
+    <div class="evt" id="evt-${FTS.esc(e.id || '')}">
       <div class="evt-info">
         <div class="evt-name">${FTS.esc(e.n)}</div>
         <div class="evt-meta">${FTS.esc(e.d)}${e.h?' — '+FTS.esc(e.h):''}${e.l?' — '+FTS.esc(e.l):''}</div>
@@ -800,6 +1080,7 @@ function listenUnreadBadge(uid) {
 }
 
 function updateMsgBadge(count) {
+  latestUnreadMessages = Number(count || 0) || 0;
   const el = document.getElementById('msg-badge');
   if (!el) return;
   const dash = document.getElementById('dash-msg-count');
@@ -1294,6 +1575,12 @@ function bindMembresUiEvents() {
     const closeResourceBtn = e.target.closest('[data-action="close-resource-modal"]');
     if (closeResourceBtn) {
       closeMo();
+      return;
+    }
+
+    const memberNewsBtn = e.target.closest('.member-news-item[data-news-action]');
+    if (memberNewsBtn) {
+      openMemberNewsItem(memberNewsBtn);
       return;
     }
 
