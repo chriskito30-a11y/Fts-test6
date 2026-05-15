@@ -1,60 +1,96 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<meta content="Fais Ton Show" name="application-name"/>
+<meta content="Fais Ton Show" name="apple-mobile-web-app-title"/>
+<meta content="#000000" name="theme-color"/>
 <title>Fais Ton Show — Rejoins-nous</title>
 <meta content="Fais Ton Show — École des arts de la scène. Théâtre, danse, musique, chant, comédie musicale." name="description"/>
 <link href="./manifest.json" rel="manifest"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&amp;display=swap" rel="stylesheet"/>
-<!-- Design system partagé -->
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/index.css?v=1" rel="stylesheet"/>
-
-<!-- Styles spécifiques à cette page -->
-
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&amp;display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/pages/index.css?v=2" rel="stylesheet"/>
 </head>
-<body class="has-noise has-glow">
+
+<body class="has-noise has-glow index-page">
 <div class="wrapper">
-<header class="site-header">
-<div class="eyebrow" id="h-eyebrow"></div>
-<div class="site-title" id="h-title"></div>
-<div class="site-slogan" id="h-slogan"></div>
-<a class="header-link header-link-gold" href="./membres.html" id="h-membres">
-      🎭 Déjà adhérent·e ? → Accéder à mon espace
-    </a>
-<br/>
-<a class="header-link header-link-muted" href="saison.html">
-      📅 Découvrir la saison 2026/2027 →
-    </a>
-<br/>
-<a class="header-link header-link-muted" href="faq.html">
-      ❓ Aide / FAQ Fais Ton Show →
-    </a>
-</header>
-<div class="questionnaire-card" id="card">
-<div class="loading-wrap" id="loading">
-<div class="loading-spinner"></div>
-<div class="loading-text">Chargement en cours…</div>
+  <main class="index-shell" aria-label="Accueil Fais Ton Show">
+    <section class="hero-card">
+      <header class="site-header">
+        <div class="eyebrow" id="h-eyebrow"></div>
+        <div class="site-title" id="h-title"></div>
+        <div class="site-slogan" id="h-slogan"></div>
+      </header>
+
+      <div class="hero-actions" aria-label="Accès rapides">
+        <a class="header-link header-link-gold" href="./membres.html" id="h-membres">
+          🎭 Mon espace membre
+        </a>
+        <a class="header-link header-link-muted" href="saison.html">
+          📅 Saison 2026/2027
+        </a>
+        <a class="header-link header-link-muted" href="faq.html">
+          ❓ Aide / FAQ
+        </a>
+      </div>
+
+      <div class="hero-chips" aria-label="Disciplines">
+        <span>Théâtre</span>
+        <span>Danse</span>
+        <span>Chant</span>
+        <span>Musique</span>
+        <span>Comédie musicale</span>
+      </div>
+    </section>
+
+    <section class="questionnaire-zone" aria-label="Questionnaire d'orientation">
+      <div class="zone-kicker">Orientation rapide</div>
+      <div class="questionnaire-card" id="card">
+        <div class="loading-wrap" id="loading">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">Chargement en cours…</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-grid" aria-label="Ce que vous pouvez faire">
+      <article class="quick-card">
+        <span class="quick-icon">🧭</span>
+        <strong>Je suis nouveau</strong>
+        <p>Trouvez rapidement le bon parcours : activité, âge, inscription ou spectacle.</p>
+      </article>
+      <article class="quick-card">
+        <span class="quick-icon">👨‍👩‍👧</span>
+        <strong>Je suis parent</strong>
+        <p>Accédez aux infos utiles sans chercher dans plusieurs conversations.</p>
+      </article>
+      <article class="quick-card">
+        <span class="quick-icon">🎟️</span>
+        <strong>Je veux réserver</strong>
+        <p>Billetterie, saison et événements restent accessibles dès l’accueil.</p>
+      </article>
+    </section>
+
+    <footer class="page-footer" id="footer"></footer>
+  </main>
 </div>
-</div>
-<footer class="page-footer" id="footer"></footer>
-</div>
-<!-- Firebase + utilitaires partagés -->
+
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
-<!-- PWA partagé -->
 <script src="assets/js/fts-pwa.js"></script>
-<!-- Install bar (HTML minimal requis par fts-pwa.js) -->
+
 <div class="install-bar" id="install-bar">
-<p id="install-msg"></p>
-<button class="btn-install" id="btn-install">Installer</button>
-<button class="btn-close-bar" id="btn-close-bar">✕</button>
+  <p id="install-msg"></p>
+  <button class="btn-install" id="btn-install">Installer</button>
+  <button class="btn-close-bar" id="btn-close-bar">✕</button>
 </div>
+
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/resources.service.js?v=1"></script>
