@@ -283,3 +283,228 @@
 .u-forum-admin-inline-2 { display:none }
 
 .mod-parent-name { font-size: .65rem; color: var(--muted); text-transform: none; letter-spacing: 0; }
+
+
+/* ── FTS ÉTAPE 4 — STYLE ADMIN UNIFORME + RÉSUMÉ FORUM ───────── */
+* { box-sizing: border-box; }
+body { overflow-x: hidden; }
+.dashboard {
+  background:
+    radial-gradient(circle at top left, rgba(212,32,26,.12), transparent 28rem),
+    radial-gradient(circle at top right, rgba(201,168,76,.10), transparent 24rem),
+    #070707;
+}
+.dash-hdr {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(14,14,14,.92);
+  backdrop-filter: blur(16px);
+}
+.dash-body {
+  max-width: 1120px;
+  width: 100%;
+}
+.tabs-bar {
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-bar::-webkit-scrollbar { display:none; }
+.tab-btn { white-space: nowrap; }
+.admin-card,
+.user-card,
+.msg-item,
+.modal {
+  box-shadow: 0 18px 50px rgba(0,0,0,.22);
+}
+.admin-card {
+  background: linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.018));
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.admin-card-head {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:1rem;
+  margin-bottom:1rem;
+}
+.admin-card-head h2 {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  margin: 0 0 .15rem;
+  color: var(--white);
+  letter-spacing: .02em;
+}
+.admin-card-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.summary-total {
+  flex-shrink: 0;
+  border: 1px solid rgba(201,168,76,.35);
+  background: rgba(201,168,76,.10);
+  color: var(--gold);
+  border-radius: 999px;
+  padding: .45rem .75rem;
+  font-size: .75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: .75rem;
+}
+.summary-card {
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 18px;
+  padding: .9rem;
+  min-width: 0;
+}
+.summary-card-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.8rem;
+  padding-bottom:.65rem;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+.summary-card-top strong {
+  min-width:0;
+  color: var(--white);
+  font-size:.95rem;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.summary-card-top span {
+  flex-shrink:0;
+  color: var(--gold);
+  font-size:.76rem;
+  font-weight:700;
+}
+.summary-sublist {
+  display:flex;
+  flex-direction:column;
+  gap:.35rem;
+  margin-top:.65rem;
+}
+.summary-subrow {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.6rem;
+  color: var(--muted);
+  font-size:.78rem;
+}
+.summary-subrow span {
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.summary-subrow b {
+  flex-shrink:0;
+  min-width:1.8rem;
+  text-align:center;
+  border-radius:999px;
+  background:rgba(255,255,255,.06);
+  color:var(--white);
+  padding:.12rem .45rem;
+}
+.summary-empty-sub {
+  margin-top:.65rem;
+  color:#777;
+  font-size:.75rem;
+  font-style:italic;
+}
+.user-card {
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255,255,255,.045), rgba(255,255,255,.02));
+  border-color: rgba(255,255,255,.08);
+}
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(12px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:1rem;
+  z-index:100;
+}
+.modal-overlay.hidden { display:none; }
+.modal {
+  border-radius: 24px;
+  max-width: 680px;
+  background: linear-gradient(145deg, #171717, #101010);
+}
+.pill,
+.role-pill,
+.ch-tag,
+.btn-admin-link,
+.btn-logout,
+.btn-action,
+.modal-row button {
+  min-height: 40px;
+  border-radius: 999px;
+}
+
+@media (max-width: 700px) {
+  .dash-hdr {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dash-actions {
+    flex-direction: row;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: .15rem;
+  }
+  .btn-admin-link,
+  .btn-logout {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .tabs-bar {
+    padding: 0 1rem;
+  }
+  .dash-body {
+    padding: 1rem;
+    max-width: 100%;
+  }
+  .admin-card {
+    border-radius: 20px;
+    padding: .9rem;
+  }
+  .admin-card-head {
+    flex-direction: column;
+  }
+  .summary-total {
+    align-self: flex-start;
+  }
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+  .user-card {
+    align-items: flex-start;
+  }
+  .user-actions {
+    width: 100%;
+  }
+  .user-actions .btn-action {
+    flex: 1 1 auto;
+  }
+  .modal {
+    width: 100%;
+    max-height: 88vh;
+    padding: 1rem;
+  }
+}
