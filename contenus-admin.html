@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=2" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=3" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -39,7 +39,7 @@
 <div class="grid"><div class="card-admin list-panel"><div class="mini-title">Parcours disponibles</div><p class="field-help top-help">Liste des réponses affichées dans le questionnaire d’accueil.</p><div class="list" id="q-list"></div><button class="btn-gold u-contenus-admin-inline-1" data-fts-handler-7="">+ Ajouter</button></div>
 <div class="card-admin form-panel"><div class="mini-title">Éditer une option du questionnaire</div><p class="field-help top-help">Ces informations apparaissent dans le parcours “Que souhaitez-vous faire ?”.</p><input id="q-key" type="hidden"/><div class="form-grid">
 <div class="field"><label>Famille du parcours</label><select id="q-type"><option value="adhesion">Inscription / adhésion</option><option value="event">Spectacle / événement</option><option value="goodie">Boutique / goodies</option><option value="renew">Renouvellement</option></select><small>Aide à classer le bouton dans l’accueil.</small></div>
-<div class="field"><label>Ordre d’affichage</label><input id="q-order" type="number" value="10"/><small>Plus le chiffre est petit, plus l’option remonte.</small></div>
+<div class="field"><label>Importance dans l’accueil</label><select id="q-order"><option value="10">⭐ Prioritaire — en haut de la liste</option><option value="50">🔥 Important — très visible</option><option value="100">📌 Normal — affichage standard</option><option value="200">📂 Secondaire — plus bas dans la liste</option></select><small>Choisis une priorité claire. L’ordre technique est géré automatiquement.</small></div>
 <div class="field"><label>Icône visible</label><input id="q-icon" placeholder="🎭"/><small>Emoji affiché dans la carte.</small></div>
 <div class="field"><label>Visible dans l’accueil</label><select id="q-active"><option value="true">Oui, visible</option><option value="false">Non, masqué</option></select><small>Masquer sans supprimer.</small></div>
 <div class="field full"><label>Titre de la carte</label><input id="q-title" placeholder="Inscription théâtre"/><small>Exemple : Je veux inscrire mon enfant.</small></div>
@@ -77,7 +77,7 @@
 <div class="form-grid">
 <div class="field"><label>Nom de la discipline</label><input id="c-name" placeholder="Ex : Éveil musical"/><small>Nom visible par les membres.</small></div>
 <div class="field"><label>Icône de la discipline</label><input id="c-icon" placeholder="🎵"/><small>Emoji affiché dans l’application.</small></div>
-<div class="field"><label>Ordre d’affichage</label><input id="c-order" type="number" value="100"/><small>Plus petit = affiché plus haut.</small></div>
+<div class="field"><label>Importance dans les listes</label><select id="c-order"><option value="10">⭐ Prioritaire — en haut</option><option value="50">🔥 Important</option><option value="100">📌 Normal</option><option value="200">📂 Secondaire — plus bas</option></select><small>Choisis une priorité lisible. Le tri technique est conservé automatiquement.</small></div>
 <div class="field"><label>Catégorie active</label><select id="c-active"><option value="true">Oui, active</option><option value="false">Non, masquée</option></select><small>Masquer sans supprimer.</small></div>
 <div class="field full"><label>Sous-catégories — une par ligne</label><textarea id="c-subcats" placeholder="7/9 ans\n10/12 ans\nAdultes"></textarea></div>
 </div>
@@ -103,6 +103,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/contenus-admin.js?v=2"></script>
+<script src="assets/js/pages/contenus-admin.js?v=3"></script>
 </body>
 </html>
