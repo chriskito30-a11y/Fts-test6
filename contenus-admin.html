@@ -36,9 +36,10 @@
 </div>
 </section>
 <section class="tab-pane" id="tab-questionnaire">
-<div class="grid"><div class="card-admin list-panel"><div class="mini-title">Parcours disponibles</div><p class="field-help top-help">Liste des réponses affichées dans le questionnaire d’accueil.</p><div class="list" id="q-list"></div><button class="btn-gold u-contenus-admin-inline-1" data-fts-handler-7="">+ Ajouter</button></div>
-<div class="card-admin form-panel"><div class="mini-title">Éditer une option du questionnaire</div><p class="field-help top-help">Ces informations apparaissent dans le parcours “Que souhaitez-vous faire ?”.</p><div id="q-calendar-sync-warning" class="sync-warning" style="display:none"></div><input id="q-key" type="hidden"/><div class="form-grid">
-<div class="field"><label>Famille du parcours</label><select id="q-type"><option value="adhesion">Inscription / adhésion</option><option value="event">Spectacle / événement</option><option value="goodie">Boutique / goodies</option><option value="renew">Renouvellement</option></select><small>Aide à classer le bouton dans l’accueil.</small></div>
+<div class="admin-info-banner"><strong>📅 Événements et spectacles</strong><span>Ils se créent uniquement depuis <a href="calendrier-admin.html">Calendrier admin</a>. Cette page sert aux parcours, contenus et ressources hors calendrier.</span></div>
+<div class="grid"><div class="card-admin list-panel"><div class="mini-title">Parcours disponibles</div><p class="field-help top-help">Liste des réponses affichées dans le questionnaire d’accueil, hors événements du calendrier.</p><div class="list" id="q-list"></div><button class="btn-gold u-contenus-admin-inline-1" data-fts-handler-7="">+ Ajouter un parcours</button></div>
+<div class="card-admin form-panel"><div class="mini-title">Éditer une option du questionnaire</div><p class="field-help top-help">Ces informations apparaissent dans le parcours “Que souhaitez-vous faire ?”.</p><input id="q-key" type="hidden"/><div class="form-grid">
+<div class="field"><label>Famille du parcours</label><select id="q-type"><option value="adhesion">Inscription / adhésion</option><option value="goodie">Boutique / goodies</option><option value="renew">Renouvellement</option></select><small>Les spectacles et événements sont gérés uniquement dans Calendrier admin pour éviter les doublons.</small></div>
 <div class="field"><label>Importance dans l’accueil</label><select id="q-order"><option value="10">⭐ Prioritaire — en haut de la liste</option><option value="50">🔥 Important — très visible</option><option value="100">📌 Normal — affichage standard</option><option value="200">📂 Secondaire — plus bas dans la liste</option></select><small>Choisis une priorité claire. L’ordre technique est géré automatiquement.</small></div>
 <div class="field"><label>Icône visible</label><input id="q-icon" placeholder="🎭"/><small>Emoji affiché dans la carte.</small></div>
 <div class="field"><label>Visible dans l’accueil</label><select id="q-active"><option value="true">Oui, visible</option><option value="false">Non, masqué</option></select><small>Masquer sans supprimer.</small></div>
@@ -48,7 +49,7 @@
 <div class="field"><label>Info rapide 1 — nom</label><input id="q-d1k" placeholder="Âge"/><small>Ex : âge, jour, lieu.</small></div><div class="field"><label>Info rapide 1 — valeur</label><input id="q-d1v" placeholder="7/9 ans"/><small>Valeur affichée à côté.</small></div>
 <div class="field"><label>Info rapide 2 — nom</label><input id="q-d2k" placeholder="Jour"/><small>Deuxième repère utile.</small></div><div class="field"><label>Info rapide 2 — valeur</label><input id="q-d2v" placeholder="Mercredi"/><small>Ex : mercredi 14h.</small></div>
 <div class="field full"><label>Titre de l’écran suivant</label><input id="q-dtitle"/><small>Affiché après le choix si utilisé par la page d’accueil.</small></div><div class="field full"><label>Texte de l’écran suivant</label><textarea id="q-ddesc"></textarea><small>Complément d’information avant le lien final.</small></div>
-</div><div class="preview-box" id="questionnaire-preview"><div class="preview-label">Aperçu accueil</div><div class="preview-card"><span class="preview-icon">🎭</span><strong>Titre de la carte</strong><p>Résumé affiché sous le titre.</p><div class="preview-tags"><span>Âge : 7/9 ans</span><span>Jour : mercredi</span></div></div></div><div class="row-actions"><button class="btn btn-sm" data-fts-handler-8="">Enregistrer</button><button class="btn-outline danger" data-fts-handler-9="">Supprimer</button></div><div class="hint">Ces données remplacent le CSV du questionnaire d’accueil.</div><div class="msg" id="msg-q"></div></div></div>
+</div><div class="preview-box" id="questionnaire-preview"><div class="preview-label">Aperçu accueil</div><div class="preview-card"><span class="preview-icon">🎭</span><strong>Titre de la carte</strong><p>Résumé affiché sous le titre.</p><div class="preview-tags"><span>Âge : 7/9 ans</span><span>Jour : mercredi</span></div></div></div><div class="row-actions"><button class="btn btn-sm" data-fts-handler-8="">Enregistrer</button><button class="btn-outline danger" data-fts-handler-9="">Supprimer</button></div><div class="hint">Ces données remplacent le CSV du questionnaire d’accueil. Les événements calendrier restent gérés dans Calendrier admin.</div><div class="msg" id="msg-q"></div></div></div>
 </section>
 <section class="tab-pane" id="tab-ressources">
 <div class="grid"><div class="card-admin list-panel"><div class="mini-title">Ressources publiées</div><p class="field-help top-help">Documents, liens, textes, audios ou vidéos disponibles côté membres.</p><div class="list" id="r-list"></div><button class="btn-gold u-contenus-admin-inline-2" data-fts-handler-10="">+ Ajouter</button></div>
@@ -103,6 +104,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/contenus-admin.js?v=3"></script>
+<script src="assets/js/pages/contenus-admin.js?v=4"></script>
 </body>
 </html>
