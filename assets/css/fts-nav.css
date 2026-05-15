@@ -45,7 +45,7 @@
   width: 28px;
   height: 2px;
   border-radius: 999px;
-  background: var(--red, #d4201a);
+  background: var(--red, #f8e702);
 }
 
 .fts-nav-icon-wrap { position: relative; display: inline-flex; line-height: 1; }
@@ -63,8 +63,8 @@
   height: 18px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--red, #d4201a);
-  color: #fff;
+  background: var(--red, #f8e702);
+  color: var(--brand-ink, #050505);
   border: 2px solid #0a0a0a;
   font-size: .58rem;
   font-weight: 800;

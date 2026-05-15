@@ -21,9 +21,13 @@
   /* Palette */
   --black:    #0a0a0a;
   --white:    #f5f2ee;
-  --red:      #d4201a;
-  --red-dark: #a81713;
-  --gold:     #c9a84c;
+  --brand:    #f8e702;
+  --brand-ink:#050505;
+  --danger:   #ff5a5a;
+  --danger-bg:rgba(255,90,90,.12);
+  --red:      #f8e702;
+  --red-dark: #d7c800;
+  --gold:     #f8e702;
   --grey:     #1c1c1c;
   --grey2:    #161616;
   --muted:    #888;
@@ -84,7 +88,7 @@ html, body {
   transform: translateX(-50%);
   width: 700px;
   height: 700px;
-  background: radial-gradient(ellipse, rgba(212,32,26,.1) 0%, transparent 70%);
+  background: radial-gradient(ellipse, rgba(248,231,2,.1) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
@@ -203,7 +207,7 @@ h1 span { color: var(--red); }
 
 /* ── 8. BOUTONS ───────────────────────────────────────────────── */
 
-/* Primaire rouge */
+/* Primaire marque FTS */
 .btn {
   display: inline-block;
   width: 100%;
@@ -211,7 +215,7 @@ h1 span { color: var(--red); }
   background: var(--red);
   border: none;
   border-radius: var(--r-sm);
-  color: var(--white);
+  color: var(--brand-ink, #050505);
   font-family: var(--font-display);
   font-size: 1.1rem;
   letter-spacing: .12em;
@@ -221,7 +225,7 @@ h1 span { color: var(--red); }
   transition: background .2s;
 }
 
-.btn:hover  { background: var(--red-dark); }
+.btn:hover  { background: var(--red-dark); color: var(--brand-ink, #050505); }
 
 .btn:disabled,
 .btn[disabled] {
@@ -268,7 +272,7 @@ h1 span { color: var(--red); }
   text-decoration: none;
 }
 
-.btn-gold:hover { background: rgba(201,168,76,.1); }
+.btn-gold:hover { background: rgba(248,231,2,.1); }
 
 /* Lien discret */
 .btn-ghost {
@@ -469,14 +473,14 @@ textarea {
 }
 
 .badge-gold {
-  background: rgba(201,168,76,.1);
-  border: 1px solid rgba(201,168,76,.3);
+  background: rgba(248,231,2,.1);
+  border: 1px solid rgba(248,231,2,.3);
   color: var(--gold);
 }
 
 .badge-red {
-  background: rgba(212,32,26,.1);
-  border: 1px solid rgba(212,32,26,.3);
+  background: rgba(248,231,2,.1);
+  border: 1px solid rgba(248,231,2,.3);
   color: var(--red);
 }
 
@@ -494,7 +498,7 @@ textarea {
 
 /* Alias rétrocompatibilité forum-admin */
 .status-badge   { font-size:.6rem; padding:.15rem .45rem; border-radius:2px; text-transform:uppercase; letter-spacing:.08em; font-weight:600; }
-.status-pending { background:rgba(201,168,76,.1); color:var(--gold);  border:1px solid rgba(201,168,76,.2); }
+.status-pending { background:rgba(248,231,2,.1); color:var(--gold);  border:1px solid rgba(248,231,2,.2); }
 .status-active  { background:rgba(50,120,50,.1);  color:#6aba6a;      border:1px solid #2a5a2a; }
 .status-refused { background:rgba(100,40,40,.1);  color:#aa6060;      border:1px solid #5a2020; }
 
@@ -510,7 +514,7 @@ textarea {
   display: inline-block;
   width: 28px;
   height: 28px;
-  border: 2px solid rgba(212,32,26,.2);
+  border: 2px solid rgba(248,231,2,.2);
   border-top-color: var(--red);
   border-radius: 50%;
   animation: spin .7s linear infinite;
@@ -550,8 +554,8 @@ textarea {
 }
 
 .msg-error {
-  background: rgba(212,32,26,.1);
-  border: 1px solid rgba(212,32,26,.3);
+  background: rgba(248,231,2,.1);
+  border: 1px solid rgba(248,231,2,.3);
   color: #ff6b6b;
 }
 
@@ -562,8 +566,8 @@ textarea {
 }
 
 .msg-info {
-  background: rgba(201,168,76,.06);
-  border: 1px solid rgba(201,168,76,.2);
+  background: rgba(248,231,2,.06);
+  border: 1px solid rgba(248,231,2,.2);
   color: var(--white);
   line-height: 1.7;
 }
@@ -577,7 +581,7 @@ textarea {
 
 /* Alias rétrocompatibilité profs.html */
 .msg { padding:.75rem 1rem; border-radius:var(--r-sm); font-size:.82rem; margin-top:1rem; display:none; }
-.msg.error  { background:rgba(212,32,26,.1); border:1px solid rgba(212,32,26,.3); color:#ff6b6b; }
+.msg.error  { background:var(--danger-bg); border:1px solid rgba(255,90,90,.35); color:var(--danger); }
 .msg.success{ background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.3); color:#4ade80; }
 
 
@@ -714,7 +718,7 @@ textarea {
 .pill.active {
   background: var(--red);
   border-color: var(--red);
-  color: var(--white);
+  color: var(--brand-ink, #050505);
   font-weight: 500;
 }
 
@@ -753,7 +757,7 @@ textarea {
 .btn-install {
   background: var(--red);
   border: none;
-  color: var(--white);
+  color: var(--brand-ink, #050505);
   padding: .5rem 1rem;
   border-radius: var(--r-sm);
   cursor: pointer;
