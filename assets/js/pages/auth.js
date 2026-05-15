@@ -132,7 +132,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       }
 
       if (profile.status === 'active') {
-        window.location.href = 'membres.html';
+        window.location.replace('membres.html');
       }
 
     } catch(e) {

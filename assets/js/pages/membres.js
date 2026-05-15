@@ -182,7 +182,13 @@ function canSeeDocInCategory(doc, cat) {
 
     } catch(e) {
       console.warn('[FTS] Erreur chargement profil :', e);
-      window.location.href = 'auth.html';
+
+      // Sécurité anti-boucle : si la lecture du profil échoue (droits RTDB,
+      // cache, réseau, profil absent temporairement), ne pas renvoyer vers
+      // auth.html en gardant une session Firebase active. Sinon auth.html voit
+      // l'utilisateur connecté et renvoie vers membres.html → boucle infinie.
+      try { await auth.signOut(); } catch(_) {}
+      window.location.replace('auth.html?err=profile');
     }
   });
 })();
