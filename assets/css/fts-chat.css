@@ -527,3 +527,141 @@ html, body {
 .notif-mini { padding:.55rem .8rem; font-size:.72rem; color:var(--muted); border-top:1px solid var(--border); }
 .btn-notif { width:100%; background:transparent; border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:.55rem .8rem; cursor:pointer; font-family:"DM Sans", sans-serif; }
 .btn-notif.on, .btn-notif:hover { color:var(--gold); border-color:var(--gold); background:rgba(201,168,76,.07); }
+
+
+/* ════════════════════════════════════════════════════════════════
+   FTS Chat Modern — harmonisation avec Espace Membres
+   CSS uniquement : ne change pas la logique Firebase.
+════════════════════════════════════════════════════════════════ */
+body.fts-chat-modern {
+  background:
+    radial-gradient(circle at top right, rgba(212,32,26,.13), transparent 32%),
+    radial-gradient(circle at bottom left, rgba(201,168,76,.08), transparent 28%),
+    var(--black);
+}
+body.fts-chat-modern .app { background: transparent; }
+body.fts-chat-modern .sidebar {
+  background: rgba(20,20,20,.92);
+  border-right: 1px solid rgba(255,255,255,.08);
+  box-shadow: 14px 0 35px rgba(0,0,0,.22);
+}
+body.fts-chat-modern .sb-hdr {
+  min-height: 76px;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(212,32,26,.11), rgba(201,168,76,.06));
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+body.fts-chat-modern .sb-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.55rem;
+  letter-spacing: .05em;
+}
+body.fts-chat-modern .sb-title::after {
+  content: attr(data-subtitle);
+  display: block;
+  margin-top: .15rem;
+  font-family: "DM Sans", sans-serif;
+  color: var(--muted);
+  font-size: .62rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+body.fts-chat-modern .sb-search { padding: .75rem .85rem; background: rgba(10,10,10,.28); }
+body.fts-chat-modern .search-inp {
+  min-height: 42px;
+  border-radius: 999px;
+  background-color: rgba(255,255,255,.04);
+}
+body.fts-chat-modern .conv-list { padding: .45rem; }
+body.fts-chat-modern .conv-item {
+  margin-bottom: .35rem;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 16px;
+  background: rgba(255,255,255,.025);
+  padding: .85rem;
+}
+body.fts-chat-modern .conv-item.active {
+  border-left: 1px solid rgba(212,32,26,.45);
+  padding-left: .85rem;
+  border-color: rgba(212,32,26,.38);
+  background: rgba(212,32,26,.08);
+}
+body.fts-chat-modern .conv-av,
+body.fts-chat-modern .sb-avatar,
+body.fts-chat-modern .chat-hdr-av {
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 8px 18px rgba(0,0,0,.18);
+}
+body.fts-chat-modern .notif-mini { padding: .65rem .85rem; }
+body.fts-chat-modern .btn-notif {
+  border-radius: 999px;
+  border-color: rgba(201,168,76,.28);
+  background: rgba(201,168,76,.06);
+  color: var(--gold);
+}
+body.fts-chat-modern .sb-nav { display: none; }
+body.fts-chat-modern .main {
+  background:
+    radial-gradient(circle at top right, rgba(201,168,76,.05), transparent 35%),
+    var(--black);
+}
+body.fts-chat-modern .chat-empty-ring {
+  width: 96px;
+  height: 96px;
+  border-color: rgba(201,168,76,.22);
+  background: rgba(255,255,255,.025);
+}
+body.fts-chat-modern .chat-empty-title { font-size: 2.15rem; }
+body.fts-chat-modern .chat-empty-sub { max-width: 320px; }
+body.fts-chat-modern .btn-start {
+  border-radius: 999px;
+  box-shadow: 0 12px 24px rgba(212,32,26,.18);
+}
+body.fts-chat-modern .chat-hdr {
+  min-height: 72px;
+  background: rgba(20,20,20,.94);
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+body.fts-chat-modern .messages { padding-bottom: calc(1rem + env(safe-area-inset-bottom)); }
+body.fts-chat-modern .msg-bubble { border-radius: 18px; }
+body.fts-chat-modern .msg-wrap.own .msg-bubble {
+  background: linear-gradient(135deg, rgba(212,32,26,.30), rgba(212,32,26,.18));
+  border: 1px solid rgba(212,32,26,.22);
+}
+body.fts-chat-modern .msg-wrap.other .msg-bubble {
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.07);
+}
+body.fts-chat-modern .input-area {
+  padding: .75rem .85rem calc(.75rem + env(safe-area-inset-bottom));
+  background: rgba(10,10,10,.96);
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+body.fts-chat-modern .input-pill {
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.08);
+}
+body.fts-chat-modern .btn-send,
+body.fts-chat-modern .btn-attach,
+body.fts-chat-modern .btn-compose {
+  border-radius: 999px;
+}
+body.fts-chat-modern .btn-send { box-shadow: 0 10px 22px rgba(212,32,26,.18); }
+body.fts-chat-modern .pending-bar,
+body.fts-chat-modern .admin-bar {
+  border-radius: 0;
+}
+
+@media (max-width: 700px) {
+  body.fts-chat-modern .conv-list { padding: .6rem .7rem calc(84px + env(safe-area-inset-bottom)); }
+  body.fts-chat-modern .sidebar { box-shadow: none; }
+  body.fts-chat-modern .chat-hdr { min-height: 64px; }
+}
+
+/* Navigation partagée : ne jamais gêner une conversation ouverte */
+body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav,
+body.fts-chat-modern .app.chat-open ~ .fts-bottom-spacer { display: none; }
+@media (min-width: 701px) {
+  body.fts-chat-modern .fts-bottom-nav,
+  body.fts-chat-modern .fts-bottom-spacer { display: none; }
+}
