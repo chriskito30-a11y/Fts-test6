@@ -1,248 +1,328 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<meta content="Fais Ton Show" name="application-name"/>
-<meta content="Fais Ton Show" name="apple-mobile-web-app-title"/>
-<meta content="#000000" name="theme-color"/>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="application-name" content="Fais Ton Show">
+<meta name="apple-mobile-web-app-title" content="Fais Ton Show">
+<meta name="theme-color" content="#000000">
+  
 <title>Espace Profs — Fais Ton Show</title>
-<link href="./manifest.json" rel="manifest"/>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/profs.css?v=1" rel="stylesheet"/>
+<link rel="manifest" href="/manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/fts.css">
 
-
+<link rel="stylesheet" href="assets/css/pages/profs.css?v=2">
 </head>
+
 <body class="has-glow">
+
 <!-- ── ÉCRAN CHARGEMENT AUTH ──────────────────────────────────── -->
 <div class="auth-loading" id="auth-loading">
-<div class="auth-loading-logo">FAIS TON <span>SHOW</span></div>
-<div class="spinner"></div>
-<div class="auth-loading-sub">Vérification accès…</div>
+  <div class="auth-loading-logo">FAIS TON <span>SHOW</span></div>
+  <div class="spinner"></div>
+  <div class="auth-loading-sub">Vérification accès…</div>
 </div>
+
 <!-- ── PAGE PRINCIPALE ────────────────────────────────────────── -->
-<div class="u-profs-inline-1" id="page-content">
-<!-- Bottom nav -->
-<nav aria-label="Navigation principale" class="bottom-nav">
-<a class="bnav-item" href="membres.html">
-<span class="bnav-icon">👤</span><span>Membres</span>
-</a>
-<a class="bnav-item" href="messages.html">
-<span class="bnav-icon-wrap">
-<span class="bnav-icon">✉️</span>
-<span class="bnav-badge" id="msg-badge">0</span>
-</span>
-<span>Messages</span>
-</a>
-<a class="bnav-item" href="forum.html">
-<span class="bnav-icon">💬</span><span>Forum</span>
-</a>
-<a class="bnav-item u-profs-inline-2" href="admin.html" id="bnav-admin">
-<span class="bnav-icon">🛡</span><span>Admin</span>
-</a>
-</nav>
-<div class="wrap wrap-sm">
-<div class="page-hdr">
-<div class="eyebrow">Fais Ton Show</div>
-<h1>ESPACE<br/><span>PROFS</span></h1>
-</div>
-<!-- Barre utilisateur -->
-<div class="user-bar">
-<div class="user-name">
-<strong id="user-display-name">…</strong>
-<span class="user-role" id="user-role-badge"></span>
-</div>
-<button class="btn-signout" data-fts-handler-1="">Déconnexion</button>
-</div>
-<!-- Onglets -->
-<div class="tabs-row">
-<button class="tab-lnk active" data-fts-handler-2="" id="tab-btn-publish">
+<div id="page-content" style="display:none">
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav" aria-label="Navigation principale">
+    <a href="membres.html" class="bnav-item">
+      <span class="bnav-icon">👤</span><span>Membres</span>
+    </a>
+    <a href="messages.html" class="bnav-item">
+      <span class="bnav-icon-wrap">
+        <span class="bnav-icon">✉️</span>
+        <span class="bnav-badge" id="msg-badge">0</span>
+      </span>
+      <span>Messages</span>
+    </a>
+    <a href="forum.html" class="bnav-item">
+      <span class="bnav-icon">💬</span><span>Forum</span>
+    </a>
+    <a href="admin.html" class="bnav-item" id="bnav-admin" style="display:none">
+      <span class="bnav-icon">🛡</span><span>Admin</span>
+    </a>
+  </nav>
+
+  <div class="wrap wrap-sm">
+
+    <div class="page-hdr">
+      <div class="eyebrow">Fais Ton Show</div>
+      <h1>ESPACE<br><span>PROFS</span></h1>
+    </div>
+
+    <!-- Barre utilisateur -->
+    <div class="user-bar">
+      <div class="user-name">
+        <strong id="user-display-name">…</strong>
+        <span class="user-role" id="user-role-badge"></span>
+      </div>
+      <button class="btn-signout" onclick="doSignOut()">Déconnexion</button>
+    </div>
+
+    <!-- Résumé rapide prof -->
+    <section class="profs-hero-card" aria-label="Résumé espace profs">
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Documents</span>
+        <span class="profs-stat-value" id="profs-stat-docs">0</span>
+        <span class="profs-stat-note">publiés</span>
+      </div>
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Élèves</span>
+        <span class="profs-stat-value" id="profs-stat-students">0</span>
+        <span class="profs-stat-note">dans tes disciplines</span>
+      </div>
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Catégories</span>
+        <span class="profs-stat-value" id="profs-stat-cats">0</span>
+        <span class="profs-stat-note" id="profs-stat-cats-note">accessibles</span>
+      </div>
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Dernier ajout</span>
+        <span class="profs-stat-value" style="font-size:1.1rem" id="profs-stat-last">—</span>
+        <span class="profs-stat-note">ressource récente</span>
+      </div>
+    </section>
+
+    <!-- Onglets -->
+    <div class="tabs-row">
+      <button class="tab-lnk active" id="tab-btn-publish" onclick="switchTab('publish')">
         ✏️ Publier
       </button>
-<button class="tab-lnk" data-fts-handler-3="" id="tab-btn-manage">
+      <button class="tab-lnk" id="tab-btn-manage" onclick="switchTab('manage')">
         📁 Gérer <span class="tab-badge" id="manage-count">0</span>
-</button>
-<button class="tab-lnk" data-fts-handler-4="" id="tab-btn-students">
-        👥 Élèves <span class="tab-badge u-profs-inline-3" id="students-count">0</span>
-</button>
-</div>
-<!-- ── ONGLET PUBLIER ── -->
-<div class="tab-pane active" id="tab-publish">
-<div class="form-card">
-<div class="card-title">Publier un contenu</div>
-<div class="field">
-<label>Catégorie</label>
-<select data-fts-handler-5="" id="f-cat">
-<option value="">-- Choisir --</option>
-</select>
-</div>
-<div class="field u-profs-inline-4" id="subcat-row">
-<label>Section (optionnel)</label>
-<select data-fts-handler-6="" id="f-subcat">
-<option value="">-- Aucune --</option>
-</select>
-</div>
-<div class="field">
-<label>Type de contenu</label>
-<select data-fts-handler-7="" id="f-type">
-<option value="pdf">Document PDF</option>
-<option value="mp3">Audio / MP3</option>
-<option value="video">Vidéo</option>
-<option value="image">Image</option>
-<option value="texte">Texte / Message</option>
-<option value="doc">Autre lien</option>
-</select>
-</div>
-<div class="field">
-<label>Titre</label>
-<input id="f-name" placeholder="Ex : Partition cours 3…" type="text"/>
-</div>
-<div class="field" id="url-row">
-<label id="url-label">Lien (Google Drive, YouTube…)</label>
-<input id="f-url" placeholder="https://…" type="text"/>
-</div>
-<div class="field" id="upload-row">
-<label>Ou glisse ton fichier directement</label>
-<div data-fts-handler-8="" id="drop-zone">
-<div id="drop-text">Glisse ton fichier ici ou clique pour choisir</div>
-<div class="u-profs-inline-5" id="upload-progress">
-<div class="upload-progress-bar">
-<div class="upload-progress-fill" id="progress-bar"></div>
-</div>
-<div class="upload-progress-text" id="progress-text">Upload en cours…</div>
-</div>
-</div>
-<p class="u-profs-inline-6" id="video-upload-tip">
+      </button>
+      <button class="tab-lnk" id="tab-btn-students" onclick="switchTab('students')">
+        👥 Élèves <span class="tab-badge" id="students-count" style="background:#2a5a2a">0</span>
+      </button>
+    </div>
+
+    <!-- ── ONGLET PUBLIER ── -->
+    <div class="tab-pane active" id="tab-publish">
+      <div class="form-card">
+        <div class="card-title">Publier une ressource</div>
+        <p class="profs-card-subtitle">Ajoute un document, un audio, une vidéo ou un message pour les élèves concernés. Les catégories contrôlent automatiquement l’accès côté membre.</p>
+
+        <div class="profs-form-grid">
+        <div class="field">
+          <label>Catégorie visible</label>
+          <select id="f-cat" onchange="updateSubcats()">
+            <option value="">-- Choisir --</option>
+          </select>
+          <small>Choisis la discipline ou l’activité concernée.</small>
+        </div>
+
+        <div class="field" id="subcat-row" style="display:none">
+          <label>Sous-catégorie / groupe</label>
+          <select id="f-subcat" onchange="updateDanceVideoFolder()">
+            <option value="">-- Aucune --</option>
+          </select>
+          <small>Optionnel : limite la ressource à un groupe précis.</small>
+        </div>
+
+        <div class="field">
+          <label>Type de ressource</label>
+          <select id="f-type" onchange="updateType()">
+            <option value="pdf">Document PDF</option>
+            <option value="mp3">Audio / MP3</option>
+            <option value="video">Vidéo</option>
+            <option value="image">Image</option>
+            <option value="texte">Texte / Message</option>
+            <option value="doc">Autre lien</option>
+          </select>
+        </div>
+
+        <div class="field field-full">
+          <label>Titre</label>
+          <input type="text" id="f-name" placeholder="Ex : Partition cours 3…">
+          <small>Un titre court et clair pour que les élèves le retrouvent vite.</small>
+        </div>
+
+        <div class="field field-full" id="url-row">
+          <label id="url-label">Lien (Google Drive, YouTube…)</label>
+          <input type="text" id="f-url" placeholder="https://…">
+        </div>
+
+        <div class="field field-full" id="upload-row">
+          <label>Ou glisse ton fichier directement</label>
+          <div id="drop-zone" onclick="document.getElementById('f-file').click()">
+            <div id="drop-text">Glisse ton fichier ici ou clique pour choisir</div>
+            <div id="upload-progress" style="display:none">
+              <div class="upload-progress-bar">
+                <div class="upload-progress-fill" id="progress-bar"></div>
+              </div>
+              <div class="upload-progress-text" id="progress-text">Upload en cours…</div>
+            </div>
+          </div>
+          <p id="video-upload-tip" style="
+  margin-top:.7rem;
+  font-size:.72rem;
+  color:var(--muted);
+  line-height:1.5;
+  display:none;
+">
   🎥 Pour les vidéos longues :
   utilisez <strong>OneDrive</strong>,
   <strong>YouTube non répertorié</strong> ou <strong>Google Drive</strong>,
   puis collez simplement le lien.
           </p>
-<div class="dance-video-box" id="dance-video-folder-box">
-<strong id="dance-video-folder-title">Dossier vidéo Danse</strong>
-<div id="dance-video-folder-text">Le lien lecture sera renseigné automatiquement dans le champ ci-dessus.</div>
-<div class="dance-video-actions">
-<a class="dance-video-btn disabled" href="#" id="dance-video-upload-link" rel="noopener" target="_blank">📁 Déposer la vidéo</a>
-</div>
-<div class="dance-video-note" id="dance-video-folder-note">Configure les liens OneDrive dans le bloc DANCE_VIDEO_FOLDERS.</div>
-</div>
-<input accept=".pdf,.mp3,.mp4,.jpg,.jpeg,.png,.gif,.doc,.docx,.ppt,.pptx" class="u-profs-inline-7" id="f-file" type="file"/>
-</div>
-<hr class="divider"/>
-<p class="u-profs-inline-8">
+
+          <div id="dance-video-folder-box" class="dance-video-box">
+            <strong id="dance-video-folder-title">Dossier vidéo Danse</strong>
+            <div id="dance-video-folder-text">Le lien lecture sera renseigné automatiquement dans le champ ci-dessus.</div>
+            <div class="dance-video-actions">
+              <a id="dance-video-upload-link" class="dance-video-btn disabled" href="#" target="_blank" rel="noopener">📁 Déposer la vidéo</a>
+            </div>
+            <div class="dance-video-note" id="dance-video-folder-note">Configure les liens OneDrive dans le bloc DANCE_VIDEO_FOLDERS.</div>
+          </div>
+
+          <input type="file" id="f-file" style="display:none"
+            accept=".pdf,.mp3,.mp4,.jpg,.jpeg,.png,.gif,.doc,.docx,.ppt,.pptx">
+        </div>
+
+        <hr class="divider">
+        <p style="font-size:.7rem;color:var(--muted);font-style:italic;margin-bottom:.8rem">
           Optionnel — Note pour les élèves
         </p>
-<div class="field">
-<textarea id="f-text" placeholder="Ex : Pensez à apporter vos partitions…"></textarea>
-</div>
-<div class="msg" id="msg"></div>
-<button class="btn" data-fts-handler-9="" id="btn-submit">Publier</button>
-</div>
-</div><!-- /tab-publish -->
-<!-- ── ONGLET GÉRER ── -->
-<div class="tab-pane" id="tab-manage">
-<div class="manage-filters">
-<select class="filter-select" data-fts-handler-10="" id="filter-cat">
-<option value="">Toutes les catégories</option>
-</select>
-<select class="filter-select" data-fts-handler-11="" id="filter-type">
-<option value="">Tous les types</option>
-<option value="pdf">PDF</option>
-<option value="mp3">Audio</option>
-<option value="video">Vidéo</option>
-<option value="image">Image</option>
-<option value="texte">Texte</option>
-<option value="doc">Autre</option>
-</select>
-</div>
-<div id="doc-list">
-<div class="empty-manage">Chargement…</div>
-</div>
-</div><!-- /tab-manage -->
-<!-- ── ONGLET ÉLÈVES ── -->
-<div class="tab-pane" id="tab-students">
-<div id="students-list">
-<div class="empty-manage">Chargement…</div>
-</div>
-</div>
-<div class="bnav-spacer"></div>
-<footer class="page-footer">
-<a href="membres.html">Espace membres</a>
-</footer>
-</div>
+        <div class="field field-full">
+          <textarea id="f-text" placeholder="Ex : Pensez à apporter vos partitions…"></textarea>
+        </div>
+
+        </div>
+
+        <div class="profs-preview" aria-live="polite">
+          <div class="profs-preview-top">
+            <div class="profs-preview-title">Aperçu côté membre</div>
+            <span class="doc-item-cat" id="preview-type-pill">Document</span>
+          </div>
+          <div class="profs-preview-card">
+            <div class="profs-preview-name" id="preview-name">Titre de la ressource</div>
+            <div class="profs-preview-meta" id="preview-meta">Choisis une catégorie et un type pour voir le rendu.</div>
+            <div class="profs-preview-note" id="preview-note" style="display:none"></div>
+          </div>
+        </div>
+
+        <div id="msg" class="msg"></div>
+        <button class="btn" id="btn-submit" onclick="doSubmit()">Publier la ressource</button>
+      </div>
+    </div><!-- /tab-publish -->
+
+    <!-- ── ONGLET GÉRER ── -->
+    <div class="tab-pane" id="tab-manage">
+      <div class="profs-section-head">
+        <div><h2>Ressources publiées</h2><p>Retrouve, filtre et corrige les contenus déjà disponibles pour les membres.</p></div>
+      </div>
+      <div class="manage-filters">
+        <select class="filter-select" id="filter-cat" onchange="applyFilters()">
+          <option value="">Toutes les catégories</option>
+        </select>
+        <select class="filter-select" id="filter-type" onchange="applyFilters()">
+          <option value="">Tous les types</option>
+          <option value="pdf">PDF</option>
+          <option value="mp3">Audio</option>
+          <option value="video">Vidéo</option>
+          <option value="image">Image</option>
+          <option value="texte">Texte</option>
+          <option value="doc">Autre</option>
+        </select>
+      </div>
+      <div id="doc-list">
+        <div class="empty-manage">Chargement…</div>
+      </div>
+    </div><!-- /tab-manage -->
+
+    <!-- ── ONGLET ÉLÈVES ── -->
+    <div class="tab-pane" id="tab-students">
+      <div class="profs-section-head">
+        <div><h2>Élèves concernés</h2><p>Vue rapide des comptes actifs liés à tes disciplines.</p></div>
+      </div>
+      <div id="students-list">
+        <div class="empty-manage">Chargement…</div>
+      </div>
+    </div>
+
+    <div class="bnav-spacer"></div>
+
+    <footer class="page-footer">
+      <a href="membres.html">Espace membres</a>
+    </footer>
+
+  </div>
 </div><!-- /page-content -->
+
 <!-- ── MODALE ÉDITION ─────────────────────────────────────────── -->
 <div class="modal-overlay hidden" id="edit-modal">
-<div class="modal-box">
-<div class="modal-hdr">
-<div class="modal-hdr-title">Modifier</div>
-<button class="modal-close" data-fts-handler-12="">✕</button>
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <div class="modal-hdr-title">Modifier</div>
+      <button class="modal-close" onclick="closeEditModal()">✕</button>
+    </div>
+    <input type="hidden" id="edit-key">
+
+    <div class="field">
+      <label>Catégorie</label>
+      <select id="e-cat" onchange="updateEditSubcats()">
+        <option value="">-- Choisir --</option>
+      </select>
+    </div>
+    <div class="field" id="e-subcat-row" style="display:none">
+      <label>Section</label>
+      <select id="e-subcat"><option value="">-- Aucune --</option></select>
+    </div>
+    <div class="field">
+      <label>Type</label>
+      <select id="e-type">
+        <option value="pdf">PDF</option>
+        <option value="mp3">Audio</option>
+        <option value="video">Vidéo</option>
+        <option value="image">Image</option>
+        <option value="texte">Texte</option>
+        <option value="doc">Autre</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Titre</label>
+      <input type="text" id="e-name" placeholder="Titre…">
+    </div>
+    <div class="field">
+      <label>Lien ou contenu</label>
+      <input type="text" id="e-url" placeholder="https://…">
+    </div>
+    <div class="field">
+      <label>Note (optionnel)</label>
+      <textarea id="e-text" placeholder="Note pour les élèves…"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel-edit" onclick="closeEditModal()">Annuler</button>
+      <button class="btn-save" onclick="saveEdit()">Enregistrer</button>
+    </div>
+  </div>
 </div>
-<input id="edit-key" type="hidden"/>
-<div class="field">
-<label>Catégorie</label>
-<select data-fts-handler-13="" id="e-cat">
-<option value="">-- Choisir --</option>
-</select>
-</div>
-<div class="field u-profs-inline-9" id="e-subcat-row">
-<label>Section</label>
-<select id="e-subcat"><option value="">-- Aucune --</option></select>
-</div>
-<div class="field">
-<label>Type</label>
-<select id="e-type">
-<option value="pdf">PDF</option>
-<option value="mp3">Audio</option>
-<option value="video">Vidéo</option>
-<option value="image">Image</option>
-<option value="texte">Texte</option>
-<option value="doc">Autre</option>
-</select>
-</div>
-<div class="field">
-<label>Titre</label>
-<input id="e-name" placeholder="Titre…" type="text"/>
-</div>
-<div class="field">
-<label>Lien ou contenu</label>
-<input id="e-url" placeholder="https://…" type="text"/>
-</div>
-<div class="field">
-<label>Note (optionnel)</label>
-<textarea id="e-text" placeholder="Note pour les élèves…"></textarea>
-</div>
-<div class="modal-actions">
-<button class="btn-cancel-edit" data-fts-handler-14="">Annuler</button>
-<button class="btn-save" data-fts-handler-15="">Enregistrer</button>
-</div>
-</div>
-</div>
+
 <!-- Install bar PWA -->
 <div class="install-bar" id="install-bar">
-<p id="install-msg"></p>
-<button class="btn-install" id="btn-install">Installer</button>
-<button class="btn-close-bar" id="btn-close-bar">✕</button>
+  <p id="install-msg"></p>
+  <button class="btn-install" id="btn-install">Installer</button>
+  <button class="btn-close-bar" id="btn-close-bar">✕</button>
 </div>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
+
+<script src="assets/js/pages/profs.js?v=2"></script>
+
 <script src="assets/js/fts-pwa.js?v=12"></script>
-<script src="assets/js/services/auth.service.js?v=1"></script>
-<script src="assets/js/services/users.service.js?v=1"></script>
-<script src="assets/js/services/resources.service.js?v=1"></script>
-<script src="assets/js/services/events.service.js?v=1"></script>
-<script src="assets/js/services/forum.service.js?v=1"></script>
-<script src="assets/js/services/messages.service.js?v=1"></script>
-<script src="assets/js/services/content.service.js?v=1"></script>
-<script src="assets/js/services/notifications.service.js?v=1"></script>
-<script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/profs.js?v=4"></script>
+
 </body>
 </html>
