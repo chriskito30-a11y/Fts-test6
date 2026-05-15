@@ -1,0 +1,55 @@
+/* FTS-NAV.CSS — navigation mobile commune */
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1000;
+  background: rgba(13,13,13,.96);
+  border-top: 1px solid #1e1e1e;
+  display: flex;
+  align-items: stretch;
+  min-height: 60px;
+  padding-bottom: env(safe-area-inset-bottom);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.bnav-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: #666;
+  font-size: .58rem;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  transition: color .2s, background .2s;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-body, "DM Sans", sans-serif);
+  -webkit-tap-highlight-color: transparent;
+  padding: .25rem .15rem;
+}
+.bnav-item:hover { color: #999; }
+.bnav-item.active { color: var(--white, #f5f2ee); }
+.bnav-item.active .bnav-icon { color: var(--red, #d4201a); }
+.bnav-icon { font-size: 1.25rem; line-height: 1; transition: color .2s; }
+.bnav-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bnav-spacer { height: calc(74px + env(safe-area-inset-bottom)); }
+.bnav-icon-wrap { position: relative; display: inline-flex; line-height: 1; }
+.bnav-badge {
+  position: absolute; top: -7px; right: -10px;
+  background: var(--red, #d4201a); color: #fff;
+  font-size: .52rem; font-weight: 800;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 999px; text-align: center; line-height: 16px;
+  border: 2px solid #0d0d0d; display: none;
+  box-shadow: 0 0 0 2px rgba(212,32,26,.14);
+}
+@media (max-width: 380px) {
+  .bnav-item { font-size: .51rem; letter-spacing: .035em; }
+  .bnav-icon { font-size: 1.12rem; }
+}
