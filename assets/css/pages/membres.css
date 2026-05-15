@@ -1476,3 +1476,33 @@ body.pwa-coach-open { overflow: hidden; }
   .pwa-note { display: none !important; }
   .pwa-coach-modal { max-height: min(88dvh, calc(100vh - 1rem)) !important; }
 }
+
+/* === FTS v29 — Bugfix strict popup PWA : jamais en app installée + fermeture robuste === */
+@media (display-mode: standalone), (display-mode: fullscreen), (display-mode: minimal-ui), (display-mode: window-controls-overlay), (display-mode: tabbed) {
+  #pwa-coach,
+  #pwa-coach:not(.hidden),
+  .pwa-coach-overlay,
+  .pwa-coach-overlay:not(.hidden) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  body.pwa-coach-open,
+  html.pwa-coach-open {
+    overflow: auto !important;
+  }
+}
+
+#pwa-coach.hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+#pwa-coach-close,
+#pwa-coach-later {
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+}
