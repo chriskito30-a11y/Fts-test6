@@ -1,3 +1,12 @@
+
+/* Police marque FTS — fichier attendu : assets/fonts/budmo-jiggler.otf */
+@font-face {
+  font-family: "FTS Budmo";
+  src: url("../fonts/budmo-jiggler.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
 /* FTS-CHAT.CSS — styles communs Messages + Forum */
 :root {
   --black:   #0a0a0a;
@@ -668,4 +677,23 @@ body.fts-chat-modern .app.chat-open ~ .fts-bottom-spacer { display: none; }
 @media (min-width: 701px) {
   body.fts-chat-modern .fts-bottom-nav,
   body.fts-chat-modern .fts-bottom-spacer { display: none; }
+}
+
+
+/* Police marque FTS : uniquement gros titres Messages */
+body.fts-chat-modern .sb-title.fts-brand-title,
+body.fts-chat-modern .chat-empty-title.fts-brand-title {
+  font-family: "FTS Budmo", "Bebas Neue", Impact, sans-serif;
+  letter-spacing: .025em;
+}
+
+body.fts-chat-modern .sb-title.fts-brand-title span {
+  display: block;
+  color: var(--red);
+  font-size: .72em;
+  line-height: 1;
+}
+
+body.fts-chat-modern .chat-empty-title.fts-brand-title span {
+  color: var(--red);
 }
