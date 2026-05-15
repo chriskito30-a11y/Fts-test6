@@ -1,4 +1,4 @@
-const CACHE = 'fts-v28-pwa-popup-stable-rollback';
+const CACHE = 'fts-v29-pwa-close-only';
 const FILES = [
   './manifest.json',
   './index.html',
