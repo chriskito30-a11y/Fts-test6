@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=1" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=2" rel="stylesheet"/>
 
 <!-- Firebase SDK — Auth ajouté -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -54,6 +54,18 @@
 </div>
 <div class="tab-content" id="tab-members">
 <div class="sec-title">Membres actifs</div>
+<section class="admin-card forum-summary-card" aria-labelledby="forum-summary-title">
+  <div class="admin-card-head">
+    <div>
+      <h2 id="forum-summary-title">📊 Résumé des groupes</h2>
+      <p>Vue rapide des personnes actives par catégorie et sous-catégorie.</p>
+    </div>
+    <span class="summary-total" id="summary-total-people">0 personne</span>
+  </div>
+  <div class="summary-grid" id="category-summary">
+    <div class="empty-msg">Chargement du résumé…</div>
+  </div>
+</section>
 <div id="members-list"></div>
 </div>
 <div class="tab-content" id="tab-messages">
@@ -99,6 +111,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/forum-admin.js?v=3"></script>
+<script src="assets/js/pages/forum-admin.js?v=4"></script>
 </body>
 </html>
