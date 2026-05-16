@@ -7,8 +7,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0a0a0a",
-  "theme_color": "#d4201a",
+  "background_color": "#f4c542",
+  "theme_color": "#f4c542",
   "categories": [
     "education",
     "entertainment",
