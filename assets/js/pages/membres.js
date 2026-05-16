@@ -1704,3 +1704,28 @@ function doSignOut() {
     window.location.href = 'auth.html';
   });
 }
+
+
+/* ── TOPBAR ROLE BUTTONS ───────────────────────────── */
+function updateRoleNavButtons() {
+  try {
+    const profBtn = document.getElementById('fts-nav-prof');
+    const adminBtn = document.getElementById('fts-nav-admin');
+
+    if (!userProfile) return;
+
+    const role = String(userProfile.role || '').toLowerCase();
+    const isAdmin = role === 'admin';
+    const isProf = role === 'prof' || isAdmin;
+
+    if (profBtn) {
+      profBtn.classList.toggle('is-role-hidden', !isProf);
+    }
+
+    if (adminBtn) {
+      adminBtn.classList.toggle('is-role-hidden', !isAdmin);
+    }
+  } catch(e) {
+    console.warn('[FTS] role nav buttons:', e);
+  }
+}
