@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/css/fts.css">
 
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=3">
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=13">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=14">
 </head>
 
 <body class="has-glow">
@@ -125,25 +125,21 @@
     </section>
 
     <!-- Nouveaux documents : source actuelle = ressources Firebase déjà filtrées -->
-    <section class="smart-section section-with-spacer" id="membres-documents" aria-label="Documents récents">
-      <div class="smart-section-head">
+    <details class="smart-section section-with-spacer collapsible-section" id="membres-documents" aria-label="Documents récents">
+      <summary class="smart-section-head collapsible-summary">
         <div>
           <div class="smart-kicker">Documents</div>
           <h2>Dernières ressources</h2>
         </div>
-        <span class="smart-hint">Selon tes cours</span>
-      </div>
-      <div class="smart-list" id="recent-docs">
+        <span class="smart-hint collapsible-hint">Ouvrir</span>
+      </summary>
+      <div class="smart-list collapsible-content" id="recent-docs">
         <div class="list-loading">Chargement…</div>
       </div>
-    </section>
+    </details>
 
-    <!-- Accès rapides : volontairement limités pour éviter les doublons avec la topbar -->
-    <div class="quick-actions section-with-spacer quick-actions-lite" aria-label="Accès rapides utiles">
-      <a href="#membres-documents" class="quick-card">
-        <span class="quick-ico">📄</span>
-        <span class="quick-title">Documents</span>
-      </a>
+    <!-- Accès rapides : limités aux actions qui ne sont pas déjà visibles juste au-dessus -->
+    <div class="quick-actions quick-actions-lite" aria-label="Accès rapides utiles">
       <a href="#membres-events" class="quick-card">
         <span class="quick-ico">📅</span>
         <span class="quick-title">Événements</span>
