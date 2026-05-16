@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
-<link rel="stylesheet" href="assets/css/fts-nav.css?v=1">
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=3">
 
 <link rel="stylesheet" href="assets/css/pages/profs.css?v=3">
 </head>
@@ -32,28 +32,24 @@
 <div id="page-content" style="display:none">
 
   <!-- Bottom nav -->
-  <nav class="bottom-nav" aria-label="Navigation principale">
-    <a href="membres.html" class="bnav-item">
-      <span class="bnav-icon">👤</span><span class="bnav-label">Membres</span>
-    </a>
-    <a href="membres.html#member-news-panel" class="bnav-item">
-      <span class="bnav-icon-wrap">
-        <span class="bnav-icon">📬</span>
-        <span class="bnav-badge" id="news-badge">0</span>
-      </span>
-      <span class="bnav-label">Non lus</span>
-    </a>
-    <a href="hub-messages.html" class="bnav-item">
-      <span class="bnav-icon-wrap">
-        <span class="bnav-icon">💬</span>
-        <span class="bnav-badge" id="msg-badge">0</span>
-      </span>
-      <span class="bnav-label">Messages</span>
-    </a>
-    <a href="admin.html" class="bnav-item" id="bnav-admin" style="display:none">
-      <span class="bnav-icon">🛡</span><span class="bnav-label">Admin</span>
-    </a>
-  </nav>
+  <nav class="fts-bottom-nav fts-nav-3" aria-label="Navigation principale">
+  <a href="membres.html" class="fts-nav-item" data-nav="membres">
+    <span class="fts-nav-icon">👤</span><span class="fts-nav-label">Membres</span>
+  </a>
+  <a href="membres.html#member-news-panel" class="fts-nav-item" data-nav="unread">
+    <span class="fts-nav-icon-wrap"><span class="fts-nav-icon">📬</span><span class="fts-nav-badge" id="fts-news-badge"></span></span>
+    <span class="fts-nav-label">Non lus</span>
+  </a>
+  <a href="hub-messages.html" class="fts-nav-item" data-nav="messages">
+    <span class="fts-nav-icon">💬</span><span class="fts-nav-label">Messages</span>
+  </a>
+  <a href="profs.html" class="fts-nav-item fts-role-nav" id="fts-nav-prof" data-nav="prof" hidden aria-hidden="true">
+    <span class="fts-nav-icon">🎓</span><span class="fts-nav-label">Prof</span>
+  </a>
+  <a href="admin.html" class="fts-nav-item fts-role-nav" id="fts-nav-admin" data-nav="admin" hidden aria-hidden="true">
+    <span class="fts-nav-icon">🛡️</span><span class="fts-nav-label">Admin</span>
+  </a>
+</nav>
 
   <div class="wrap wrap-sm">
 
@@ -325,7 +321,7 @@
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
 
-<script src="assets/js/fts-nav.js?v=1"></script>
+<script src="assets/js/fts-nav.js?v=3"></script>
 <script src="assets/js/pages/profs.js?v=3"></script>
 
 <script src="assets/js/fts-pwa.js?v=12"></script>
