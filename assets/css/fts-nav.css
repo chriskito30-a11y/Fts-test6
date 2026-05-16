@@ -123,3 +123,26 @@
   }
 }
 
+
+
+/* FTS role nav v3 — une seule ligne, même avec Prof + Admin */
+.fts-bottom-nav {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+}
+.fts-bottom-nav.fts-nav-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fts-bottom-nav.fts-nav-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fts-bottom-nav.fts-nav-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.fts-role-nav[hidden] { display: none !important; }
+.fts-role-nav[aria-hidden="true"] { display: none !important; }
+
+@media (max-width: 420px) {
+  .fts-bottom-nav.fts-nav-5 .fts-nav-item {
+    font-size: .49rem;
+    letter-spacing: .035em;
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .fts-bottom-nav.fts-nav-5 .fts-nav-icon { font-size: 1.02rem; }
+  .fts-bottom-nav.fts-nav-5 .fts-nav-label { max-width: 46px; }
+}
