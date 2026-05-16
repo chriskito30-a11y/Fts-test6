@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/css/fts.css">
 
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=3">
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=12">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=13">
 </head>
 
 <body class="has-glow">
@@ -113,7 +113,7 @@
     </section>
 
     <!-- Info importante : source actuelle = annonce générale administrée -->
-    <section class="priority-panel u-initial-hidden" id="priority-panel" aria-label="Information importante">
+    <section class="priority-panel section-with-spacer u-initial-hidden" id="priority-panel" aria-label="Information importante">
       <div class="priority-head">
         <span class="priority-icon">⚠️</span>
         <div>
@@ -125,7 +125,7 @@
     </section>
 
     <!-- Nouveaux documents : source actuelle = ressources Firebase déjà filtrées -->
-    <section class="smart-section" id="membres-documents" aria-label="Documents récents">
+    <section class="smart-section section-with-spacer" id="membres-documents" aria-label="Documents récents">
       <div class="smart-section-head">
         <div>
           <div class="smart-kicker">Documents</div>
@@ -138,8 +138,8 @@
       </div>
     </section>
 
-    <!-- Accès rapides -->
-    <div class="quick-actions" aria-label="Accès rapides">
+    <!-- Accès rapides : volontairement limités pour éviter les doublons avec la topbar -->
+    <div class="quick-actions section-with-spacer quick-actions-lite" aria-label="Accès rapides utiles">
       <a href="#membres-documents" class="quick-card">
         <span class="quick-ico">📄</span>
         <span class="quick-title">Documents</span>
@@ -148,25 +148,9 @@
         <span class="quick-ico">📅</span>
         <span class="quick-title">Événements</span>
       </a>
-      <a href="hub-messages.html" class="quick-card">
-        <span class="quick-ico">✉️</span>
-        <span class="quick-title">Messages</span>
-      </a>
-      <a href="hub-messages.html" class="quick-card">
-        <span class="quick-ico">💬</span>
-        <span class="quick-title">Groupes</span>
-      </a>
       <a href="saison.html" class="quick-card">
         <span class="quick-ico">🎬</span>
         <span class="quick-title">Saison</span>
-      </a>
-      <a href="profs.html" class="quick-card u-initial-hidden" id="bnav-profs">
-        <span class="quick-ico">🎓</span>
-        <span class="quick-title">Espace prof</span>
-      </a>
-      <a href="admin.html" class="quick-card u-initial-hidden" id="bnav-admin">
-        <span class="quick-ico">🛠️</span>
-        <span class="quick-title">Console admin</span>
       </a>
       <button type="button" class="quick-card btn-quick" id="btn-notif">
         <span class="quick-ico">🔕</span>
@@ -175,7 +159,7 @@
     </div>
 
     <!-- Section événements -->
-    <div class="evt-sec" id="membres-events">
+    <div class="evt-sec section-with-spacer" id="membres-events">
       <div class="sec-ttl">
         <span>Prochains événements</span>
         <button class="btn-toggle" id="btg">Voir tous</button>

@@ -13,7 +13,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
-<link href="assets/css/pages/index.css?v=2" rel="stylesheet"/>
+<link href="assets/css/pages/index.css?v=3" rel="stylesheet"/>
 </head>
 
 <body class="has-noise has-glow index-page">
@@ -26,17 +26,20 @@
         <div class="site-slogan" id="h-slogan"></div>
       </header>
 
-      <div class="hero-actions" aria-label="Accès rapides">
+      <div class="hero-actions" aria-label="Actions principales">
         <a class="header-link header-link-gold" href="./membres.html" id="h-membres">
           🎭 Mon espace membre
         </a>
-        <a class="header-link header-link-muted" href="saison.html">
-          📅 Saison 2026/2027
-        </a>
-        <a class="header-link header-link-muted" href="faq.html">
-          ❓ Aide / FAQ
+        <a class="header-link header-link-muted" href="#orientation">
+          🧭 Je découvre / je m’inscris
         </a>
       </div>
+
+      <nav class="hero-secondary-links" aria-label="Liens utiles">
+        <a href="saison.html">📅 Saison 2026/2027</a>
+        <span aria-hidden="true">•</span>
+        <a href="faq.html">❓ Aide / FAQ</a>
+      </nav>
 
       <div class="hero-chips" aria-label="Disciplines">
         <span>Théâtre</span>
@@ -47,7 +50,7 @@
       </div>
     </section>
 
-    <section class="questionnaire-zone" aria-label="Questionnaire d'orientation">
+    <section class="questionnaire-zone" id="orientation" aria-label="Questionnaire d'orientation">
       <div class="zone-kicker">Orientation rapide</div>
       <div class="questionnaire-card" id="card">
         <div class="loading-wrap" id="loading">
@@ -57,21 +60,16 @@
       </div>
     </section>
 
-    <section class="quick-grid" aria-label="Ce que vous pouvez faire">
+    <section class="quick-grid quick-grid-lite" aria-label="Repères utiles">
       <article class="quick-card">
-        <span class="quick-icon">🧭</span>
-        <strong>Je suis nouveau</strong>
-        <p>Trouvez rapidement le bon parcours : activité, âge, inscription ou spectacle.</p>
+        <span class="quick-icon">✨</span>
+        <strong>Nouveau ici ?</strong>
+        <p>Répondez au questionnaire : il vous guide vers le bon parcours.</p>
       </article>
       <article class="quick-card">
         <span class="quick-icon">👨‍👩‍👧</span>
-        <strong>Je suis parent</strong>
-        <p>Accédez aux infos utiles sans chercher dans plusieurs conversations.</p>
-      </article>
-      <article class="quick-card">
-        <span class="quick-icon">🎟️</span>
-        <strong>Je veux réserver</strong>
-        <p>Billetterie, saison et événements restent accessibles dès l’accueil.</p>
+        <strong>Déjà dans l’association ?</strong>
+        <p>Utilisez l’espace membre pour retrouver documents, messages et événements.</p>
       </article>
     </section>
 
