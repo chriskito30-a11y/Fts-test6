@@ -1858,3 +1858,79 @@ body.pwa-coach-open { overflow: hidden; }
     min-height: 88px;
   }
 }
+
+/* ── PATCH UX CLEAN V14 — Membres simplifié + correctif raccourcis ─ */
+.quick-actions.section-with-spacer::before {
+  grid-column: 1 / -1;
+}
+
+.collapsible-section {
+  padding: 0;
+  overflow: hidden;
+}
+
+.collapsible-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 1.1rem;
+  margin-bottom: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.collapsible-summary::-webkit-details-marker { display: none; }
+
+.collapsible-summary .collapsible-hint::after {
+  content: " ↓";
+  color: var(--gold);
+}
+
+.collapsible-section[open] .collapsible-summary {
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+.collapsible-section[open] .collapsible-summary .collapsible-hint::before {
+  content: "Selon tes cours · ";
+  color: var(--muted);
+}
+
+.collapsible-section[open] .collapsible-summary .collapsible-hint {
+  color: var(--gold);
+}
+
+.collapsible-section[open] .collapsible-summary .collapsible-hint::after { content: " ↑"; }
+
+.collapsible-content {
+  padding: 1rem 1.1rem 1.1rem;
+}
+
+.quick-actions-lite {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 1rem 0 1.25rem;
+}
+
+.quick-actions-lite .quick-card {
+  min-height: 76px;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .collapsible-summary { padding: 1rem; }
+  .collapsible-content { padding: .85rem 1rem 1rem; }
+
+  .quick-actions-lite {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .55rem;
+  }
+
+  .quick-actions-lite .quick-card {
+    min-height: 78px;
+    padding: .72rem .55rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .quick-actions-lite .quick-title {
+    font-size: .74rem;
+    line-height: 1.15;
+  }
+}

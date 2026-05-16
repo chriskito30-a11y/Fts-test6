@@ -583,3 +583,46 @@ html, body { min-height: 100%; }
     width: min(145px, 54%);
   }
 }
+
+/* ── PATCH UX CLEAN V4 — Accueil ultra épuré ──────────────────── */
+.index-shell {
+  grid-template-areas:
+    "hero questionnaire"
+    "footer footer";
+}
+
+.index-shell > section:not(:first-child)::before {
+  content: "";
+  display: block;
+  width: min(150px, 46%);
+  height: 1px;
+  margin: 0 auto .9rem;
+  background: linear-gradient(90deg, transparent, rgba(248,231,2,.52), rgba(191,22,34,.38), transparent);
+  box-shadow: 0 0 16px rgba(248,231,2,.14);
+  opacity: .72;
+}
+
+.index-shell > footer::before { content: none !important; display: none !important; }
+
+.page-footer {
+  min-height: 58px;
+  padding: .9rem 1rem;
+  font-size: .82rem;
+  opacity: .88;
+}
+
+@media (max-width: 900px) {
+  .index-shell {
+    grid-template-areas:
+      "hero"
+      "questionnaire"
+      "footer";
+  }
+}
+
+@media (max-width: 560px) {
+  .page-footer {
+    min-height: 54px;
+    padding: .85rem;
+  }
+}
