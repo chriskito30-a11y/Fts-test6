@@ -1518,6 +1518,11 @@ body.pwa-coach-open { overflow: hidden; }
     linear-gradient(180deg, #181818, #101010) !important;
   border: 1px solid rgba(248,231,2,.18) !important;
   box-shadow: 0 24px 80px rgba(0,0,0,.55);
+  max-height: min(88vh, 760px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 .account-hero {
   position: sticky;
