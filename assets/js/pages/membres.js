@@ -34,6 +34,8 @@ let userProfile = null;
 let currentUid = null;
 let pendingResourceOpen = null;
 let latestUnreadMessages = 0;
+let seenNewsCache = null;
+let seenNewsLoaded = false;
 
 /* ── ICÔNES FICHIERS ─────────────────────────────────────────── */
 const ICONS = {
@@ -346,7 +348,7 @@ function seenNewsStorageKey() {
   return 'fts_seen_news_' + (currentUid || 'anonymous');
 }
 
-function getSeenNewsMap() {
+function readSeenNewsLocal() {
   try {
     const raw = localStorage.getItem(seenNewsStorageKey());
     const parsed = raw ? JSON.parse(raw) : {};
@@ -354,8 +356,49 @@ function getSeenNewsMap() {
   } catch(e) { return {}; }
 }
 
+function getSeenNewsMap() {
+  if (seenNewsCache && typeof seenNewsCache === 'object') return seenNewsCache;
+  seenNewsCache = readSeenNewsLocal();
+  return seenNewsCache;
+}
+
 function saveSeenNewsMap(map) {
-  try { localStorage.setItem(seenNewsStorageKey(), JSON.stringify(map || {})); } catch(e) {}
+  seenNewsCache = map && typeof map === 'object' ? map : {};
+  try { localStorage.setItem(seenNewsStorageKey(), JSON.stringify(seenNewsCache)); } catch(e) {}
+}
+
+function encodeSeenNewsFirebaseKey(id) {
+  try {
+    return btoa(unescape(encodeURIComponent(String(id || ''))))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/g, '');
+  } catch(e) {
+    return String(id || '').replace(/[.#$\[\]\/]/g, '_').slice(0, 160);
+  }
+}
+
+async function loadSeenNewsMap() {
+  if (seenNewsLoaded) return getSeenNewsMap();
+  seenNewsLoaded = true;
+
+  const localMap = readSeenNewsLocal();
+  const merged = { ...localMap };
+
+  if (db && currentUid) {
+    try {
+      const snap = await db.ref('fts_users/' + currentUid + '/seenNews').once('value');
+      const remote = snap.val() || {};
+      Object.values(remote).forEach(v => {
+        if (v && v.id) merged[v.id] = true;
+      });
+    } catch(e) {
+      // Si les règles Firebase refusent l'accès, le localStorage reste la source de secours.
+    }
+  }
+
+  saveSeenNewsMap(merged);
+  return merged;
 }
 
 function memberNewsCountStorageKey() {
@@ -371,22 +414,42 @@ function saveMemberNewsCount(count) {
 
 function newsItemId(item) {
   if (!item) return '';
-  const base = item.key || item.title || item.action || '';
-  return [item.type || 'item', base, item.ts || '0'].map(v => String(v || '').trim()).join('|');
+  const type = String(item.type || 'item').trim();
+  const key = String(item.key || '').trim();
+
+  // IDs volontairement stables : une nouveauté consultée ne doit pas réapparaître
+  // au rafraîchissement simplement parce qu'un timestamp ou un libellé a changé.
+  if (type === 'resource' && key) return 'resource|' + key;
+  if (type === 'event' && key) return 'event|' + key;
+  if (type === 'announcement') return 'announcement|current|' + String(item.ts || '0').trim();
+  if (type === 'messages') return 'messages|unread';
+
+  const base = key || item.action || item.title || '';
+  return [type, base].map(v => String(v || '').trim()).join('|');
 }
 
 function isNewsSeen(itemOrId) {
   const id = typeof itemOrId === 'string' ? itemOrId : newsItemId(itemOrId);
   if (!id) return false;
-  return getSeenNewsMap()[id] === true;
+  const val = getSeenNewsMap()[id];
+  return val === true || Number(val || 0) > 0;
 }
 
 function markNewsSeen(itemOrId) {
   const id = typeof itemOrId === 'string' ? itemOrId : newsItemId(itemOrId);
   if (!id) return;
   const map = getSeenNewsMap();
-  map[id] = true;
+  map[id] = Date.now();
   saveSeenNewsMap(map);
+
+  // Double sauvegarde non bloquante : localStorage pour l'immédiat, Firebase pour
+  // survivre aux rafraîchissements/cache/PWA quand les règles l'autorisent.
+  if (db && currentUid) {
+    const safeKey = encodeSeenNewsFirebaseKey(id);
+    db.ref('fts_users/' + currentUid + '/seenNews/' + safeKey)
+      .set({ id, seenAt: Date.now() })
+      .catch(() => {});
+  }
 }
 
 function recentNewsSince() {
@@ -532,6 +595,8 @@ async function loadMemberNews() {
   const sinceTs = recentNewsSince();
 
   try {
+    await loadSeenNewsMap();
+
     const [resources, events, announcement, unread] = await Promise.all([
       collectNewResources(sinceTs).catch(() => []),
       collectNewEvents(sinceTs).catch(() => []),
