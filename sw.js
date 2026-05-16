@@ -1,4 +1,4 @@
-const CACHE = 'fts-v29-pwa-close-only';
+const CACHE = 'fts-v32-admin-prof-quick-access';
 const FILES = [
   './manifest.json',
   './index.html',
