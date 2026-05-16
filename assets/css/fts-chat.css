@@ -699,3 +699,143 @@ body.fts-chat-modern .chat-empty-title.fts-brand-title span {
   color: var(--red);
   font-family: inherit;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   V15 — Harmonisation Messages + Forum avec le dashboard FTS
+   Mise en page uniquement : aucun changement Firebase / logique JS.
+════════════════════════════════════════════════════════════════ */
+body.fts-chat-modern {
+  --panel-soft: rgba(255,255,255,.045);
+  --panel-border: rgba(255,255,255,.09);
+  --panel-border-strong: rgba(248,231,2,.22);
+}
+
+body.fts-chat-modern .app {
+  isolation: isolate;
+}
+
+body.fts-chat-modern .sidebar {
+  border-right-color: var(--panel-border);
+}
+
+body.fts-chat-modern .sb-hdr {
+  position: relative;
+  overflow: hidden;
+}
+
+body.fts-chat-modern .sb-hdr::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(248,231,2,.75), rgba(255,87,87,.55), transparent);
+  opacity: .8;
+}
+
+body.fts-chat-modern .conv-item,
+body.fts-chat-modern .forum-subchannel,
+body.fts-chat-modern .chat-empty-ring,
+body.fts-chat-modern .input-pill,
+body.fts-chat-modern .modal,
+body.fts-chat-modern .user-list {
+  border-color: var(--panel-border);
+}
+
+body.fts-chat-modern .forum-category-group {
+  margin: 0 0 .5rem;
+  border: 0;
+}
+
+body.fts-chat-modern .forum-category-group .conv-item:first-child {
+  margin-bottom: .25rem;
+}
+
+body.fts-chat-modern .forum-subchannels {
+  padding: 0 .55rem .45rem 4.6rem;
+}
+
+body.fts-chat-modern .forum-subchannel {
+  min-height: 42px;
+  margin: .18rem 0;
+  border: 1px solid rgba(255,255,255,.055);
+  background: rgba(255,255,255,.025);
+}
+
+body.fts-chat-modern .forum-subchannel.active {
+  border-color: var(--panel-border-strong);
+}
+
+body.fts-chat-modern .chat-empty {
+  background:
+    radial-gradient(circle at 50% 34%, rgba(248,231,2,.09), transparent 28%),
+    transparent;
+}
+
+body.fts-chat-modern .chat-empty-title,
+body.fts-chat-modern .modal-title {
+  letter-spacing: .045em;
+}
+
+body.fts-chat-modern .chat-hdr,
+body.fts-chat-modern .input-area,
+body.fts-chat-modern .upload-bar {
+  backdrop-filter: blur(16px);
+}
+
+body.fts-chat-modern .messages {
+  scroll-behavior: smooth;
+}
+
+body.fts-chat-modern .btn-compose,
+body.fts-chat-modern .btn-chat-del,
+body.fts-chat-modern .btn-attach {
+  background: rgba(255,255,255,.04);
+  border-color: rgba(255,255,255,.10);
+}
+
+body.fts-chat-modern .btn-compose:hover,
+body.fts-chat-modern .btn-chat-del:hover,
+body.fts-chat-modern .btn-attach:hover {
+  background: rgba(248,231,2,.08);
+}
+
+@media (max-width: 700px) {
+  body.fts-chat-modern .app:not(.chat-open) {
+    height: calc(var(--vh, 100vh) - 62px - env(safe-area-inset-bottom));
+  }
+
+  body.fts-chat-modern .sb-hdr {
+    min-height: 72px;
+    padding: .9rem 1rem;
+  }
+
+  body.fts-chat-modern .sb-title {
+    font-size: 1.42rem;
+  }
+
+  body.fts-chat-modern .sb-search {
+    padding: .7rem .85rem .55rem;
+  }
+
+  body.fts-chat-modern .conv-list {
+    padding: .55rem .7rem .9rem;
+  }
+
+  body.fts-chat-modern .notif-mini {
+    padding: .55rem .85rem .8rem;
+  }
+
+  body.fts-chat-modern .app.chat-open .main {
+    height: var(--vh, 100vh);
+  }
+
+  body.fts-chat-modern .app.chat-open .input-area {
+    padding-bottom: calc(.75rem + env(safe-area-inset-bottom));
+  }
+
+  body.fts-chat-modern .modal-overlay {
+    z-index: 130;
+  }
+}
