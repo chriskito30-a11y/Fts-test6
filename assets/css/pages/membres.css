@@ -1799,3 +1799,62 @@ body.pwa-coach-open { overflow: hidden; }
 @media (max-width: 720px) {
   .member-news-panel { padding: 1rem; }
 }
+
+/* ── PATCH UX SIMPLIFICATION V13 ───────────────────────────────
+   Objectif : supprimer les doublons visuels, mieux séparer les sections.
+   Aucune logique Firebase/auth/messages/forum modifiée.
+──────────────────────────────────────────────────────────────── */
+.section-with-spacer {
+  position: relative;
+  margin-top: 1.7rem;
+}
+
+.section-with-spacer::before {
+  content: "";
+  display: block;
+  width: min(180px, 48%);
+  height: 1px;
+  margin: 0 auto 1.05rem;
+  background: linear-gradient(90deg, transparent, rgba(248,231,2,.58), rgba(191,22,34,.45), transparent);
+  box-shadow: 0 0 18px rgba(248,231,2,.16);
+  opacity: .82;
+}
+
+.quick-actions-lite {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 1.25rem;
+}
+
+.quick-actions-lite .quick-card {
+  min-height: 86px;
+  justify-content: center;
+}
+
+.member-dashboard {
+  margin-bottom: 1.35rem;
+}
+
+.smart-section,
+.priority-panel,
+.evt-sec {
+  scroll-margin-top: 1rem;
+}
+
+@media (max-width: 720px) {
+  .section-with-spacer {
+    margin-top: 1.45rem;
+  }
+
+  .section-with-spacer::before {
+    width: min(150px, 55%);
+    margin-bottom: .85rem;
+  }
+
+  .quick-actions-lite {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .quick-actions-lite .quick-card {
+    min-height: 88px;
+  }
+}

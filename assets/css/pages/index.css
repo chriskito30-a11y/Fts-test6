@@ -505,3 +505,81 @@ html, body { min-height: 100%; }
     font-size: .82rem;
   }
 }
+
+/* ── PATCH UX SIMPLIFICATION V3 ────────────────────────────────
+   Objectif : moins de CTA visibles, lecture plus calme, séparateurs doux.
+   Aucune logique JS/Firebase modifiée.
+──────────────────────────────────────────────────────────────── */
+.hero-secondary-links {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem;
+  margin-top: .75rem;
+  color: rgba(245,242,238,.45);
+  font-size: .78rem;
+}
+
+.hero-secondary-links a {
+  color: rgba(245,242,238,.78);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color .18s ease, border-color .18s ease;
+}
+
+.hero-secondary-links a:hover {
+  color: var(--gold);
+  border-color: rgba(248,231,2,.45);
+}
+
+.index-shell > section:not(:first-child)::before,
+.index-shell > footer::before {
+  content: "";
+  display: block;
+  width: min(170px, 46%);
+  height: 1px;
+  margin: 0 auto 1rem;
+  background: linear-gradient(90deg, transparent, rgba(248,231,2,.55), rgba(191,22,34,.45), transparent);
+  box-shadow: 0 0 18px rgba(248,231,2,.18);
+  opacity: .78;
+}
+
+.questionnaire-zone,
+.quick-grid,
+.page-footer {
+  position: relative;
+}
+
+.quick-grid-lite {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quick-grid-lite .quick-card {
+  min-height: 118px;
+}
+
+@media (min-width: 901px) {
+  .questionnaire-zone::before {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .quick-grid-lite { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .hero-secondary-links {
+    justify-content: center;
+    text-align: center;
+    font-size: .76rem;
+  }
+
+  .index-shell > section:not(:first-child)::before,
+  .index-shell > footer::before {
+    margin-bottom: .75rem;
+    width: min(145px, 54%);
+  }
+}
