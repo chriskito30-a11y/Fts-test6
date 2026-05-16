@@ -1,7 +1,7 @@
 {
   "name": "Fais Ton Show",
   "short_name": "FTS",
-  "description": "Le hub central des adhérents Fais Ton Show.",
+  "description": "Le hub central des membres de Fais Ton Show.",
   "id": "./",
   "start_url": "./membres.html",
   "scope": "./",
