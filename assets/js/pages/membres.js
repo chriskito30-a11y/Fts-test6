@@ -74,6 +74,37 @@ function profileIsAdmin() {
   return userProfile && userProfile.role === 'admin';
 }
 
+
+function updateRoleNavigation(profile, email) {
+  try {
+    const bottomNav = document.querySelector('.fts-bottom-nav');
+    const topProf = document.getElementById('fts-nav-prof');
+    const topAdmin = document.getElementById('fts-nav-admin');
+    const quickProf = document.getElementById('bnav-profs');
+    const quickAdmin = document.getElementById('bnav-admin');
+
+    const role = String((profile && profile.role) || '').trim().toLowerCase();
+    const mail = String(email || (profile && profile.email) || '').trim().toLowerCase();
+
+    const isAdminRole = role === 'admin' || mail === 'contact@faistonshow.fr';
+    const isProfRole = role === 'prof' || isAdminRole;
+
+    if (topProf) topProf.style.display = isProfRole ? 'flex' : 'none';
+    if (topAdmin) topAdmin.style.display = isAdminRole ? 'flex' : 'none';
+
+    // Anciennes cartes rapides masquées : l'accès se fait désormais par la topbar.
+    if (quickProf) quickProf.style.display = 'none';
+    if (quickAdmin) quickAdmin.style.display = 'none';
+
+    if (bottomNav) {
+      bottomNav.classList.remove('fts-nav-3', 'fts-nav-4', 'fts-nav-5');
+      bottomNav.classList.add(isAdminRole ? 'fts-nav-5' : isProfRole ? 'fts-nav-4' : 'fts-nav-3');
+    }
+  } catch (err) {
+    console.warn('[FTS] updateRoleNavigation:', err);
+  }
+}
+
 function normList(arr) {
   return (Array.isArray(arr) ? arr : String(arr || '').split(','))
     .map(x => String(x || '').trim())
@@ -168,15 +199,8 @@ function canSeeDocInCategory(doc, cat) {
       await loadCategories();
       renderDashboard(userProfile, user.email);
 
-      // Liens nav selon rôle — compatibilité avec anciennes/nouvelles navigations.
-      const navProfs = document.getElementById('bnav-profs');
-      const navAdmin = document.getElementById('bnav-admin');
-      if (userProfile.role === 'admin') {
-        if (navProfs) navProfs.style.display = 'flex';
-        if (navAdmin) navAdmin.style.display = 'flex';
-      } else if (userProfile.role === 'prof') {
-        if (navProfs) navProfs.style.display = 'flex';
-      }
+      // Liens topbar selon rôle — strict, sans toucher à l'auth.
+      updateRoleNavigation(userProfile, user.email);
 
       // Filtrage des catégories selon les disciplines
       applyDisciplineFilter(userProfile);
@@ -1703,29 +1727,4 @@ function doSignOut() {
   firebase.auth().signOut().then(() => {
     window.location.href = 'auth.html';
   });
-}
-
-
-/* ── TOPBAR ROLE BUTTONS ───────────────────────────── */
-function updateRoleNavButtons() {
-  try {
-    const profBtn = document.getElementById('fts-nav-prof');
-    const adminBtn = document.getElementById('fts-nav-admin');
-
-    if (!userProfile) return;
-
-    const role = String(userProfile.role || '').toLowerCase();
-    const isAdmin = role === 'admin';
-    const isProf = role === 'prof' || isAdmin;
-
-    if (profBtn) {
-      profBtn.classList.toggle('is-role-hidden', !isProf);
-    }
-
-    if (adminBtn) {
-      adminBtn.classList.toggle('is-role-hidden', !isAdmin);
-    }
-  } catch(e) {
-    console.warn('[FTS] role nav buttons:', e);
-  }
 }
