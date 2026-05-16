@@ -11,7 +11,7 @@ const CFG = {
   name:    "Fais Ton Show",
   eyebrow: "École des arts de la scène",
   slogan:  "On est pas là pour faire semblant, on est là pour faire le Show !",
-  footer:  "Fais Ton Show · contact@faistonshow.fr",
+  footer:  "Fais Ton Show",
 
   step1: {
     question: "C'est ta première fois avec nous ?",
