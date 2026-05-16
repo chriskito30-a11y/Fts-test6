@@ -89,8 +89,8 @@ function updateRoleNavigation(profile, email) {
     const isAdminRole = role === 'admin' || mail === 'contact@faistonshow.fr';
     const isProfRole = role === 'prof' || isAdminRole;
 
-    if (topProf) topProf.style.display = isProfRole ? 'flex' : 'none';
-    if (topAdmin) topAdmin.style.display = isAdminRole ? 'flex' : 'none';
+    if (topProf) { topProf.hidden = !isProfRole; topProf.setAttribute('aria-hidden', isProfRole ? 'false' : 'true'); topProf.style.display = isProfRole ? 'flex' : 'none'; }
+    if (topAdmin) { topAdmin.hidden = !isAdminRole; topAdmin.setAttribute('aria-hidden', isAdminRole ? 'false' : 'true'); topAdmin.style.display = isAdminRole ? 'flex' : 'none'; }
 
     // Anciennes cartes rapides masquées : l'accès se fait désormais par la topbar.
     if (quickProf) quickProf.style.display = 'none';

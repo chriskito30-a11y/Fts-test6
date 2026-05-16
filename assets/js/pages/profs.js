@@ -78,7 +78,7 @@ window.addEventListener("DOMContentLoaded", function() {
 
       // Lien Admin dans nav (admins seulement)
       if (userProfile.role === "admin") {
-        document.getElementById("bnav-admin").style.display = "flex";
+        const oldAdminNav = document.getElementById("bnav-admin"); if (oldAdminNav) oldAdminNav.style.display = "flex";
       }
 
       // Badge non lus messages
