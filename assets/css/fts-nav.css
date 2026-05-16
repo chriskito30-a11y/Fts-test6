@@ -90,3 +90,36 @@
   }
   .fts-bottom-spacer { height: 92px; }
 }
+
+
+/* FTS role nav compact — garde la topbar sur une seule ligne */
+.fts-bottom-nav.fts-nav-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.fts-bottom-nav.fts-nav-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fts-bottom-nav.fts-nav-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.fts-role-nav[style*="display:none"] { display: none !important; }
+
+@media (max-width: 520px) {
+  .fts-bottom-nav { min-height: 56px; }
+  .fts-nav-item {
+    min-width: 0;
+    gap: 2px;
+    font-size: .54rem;
+    letter-spacing: .055em;
+    padding: 4px 1px 3px;
+  }
+  .fts-nav-icon { font-size: 1.12rem; }
+  .fts-nav-label {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .fts-nav-badge {
+    top: -7px;
+    right: -10px;
+    min-width: 17px;
+    height: 17px;
+    font-size: .55rem;
+  }
+}
+
