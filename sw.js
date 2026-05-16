@@ -227,3 +227,5 @@ self.addEventListener('notificationclick', function(event) {
     })
   );
 });
+
+// FTS cache bump topbar compact v3
