@@ -1,4 +1,4 @@
-const CACHE = 'fts-v32-admin-prof-quick-access';
+const CACHE = 'fts-v33-icons-fix';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -53,8 +53,11 @@ const FILES = [
   './assets/js/pages/profs.js',
   './assets/js/pages/saison-admin.js',
   './assets/js/pages/saison.js',
-  './assets/img/fts192.png',
-  './assets/img/fts512.png'
+  './assets/img/fts-any-192.png',
+  './assets/img/fts-maskable-192.png',
+  './assets/img/fts-badge-96.png',
+  './assets/img/fts-any-512.png',
+  './assets/img/fts-maskable-512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -194,8 +197,8 @@ async function handlePushNotification(event){
 
   await self.registration.showNotification(data.title || 'Fais Ton Show', {
     body: data.body || 'Nouvelle notification',
-    icon: './assets/img/fts192.png',
-    badge: './assets/img/fts192.png',
+    icon: './assets/img/fts-any-192.png',
+    badge: './assets/img/fts-badge-96.png',
     vibrate: [200, 100, 200],
     tag,
     // Si une notification identique arrive plusieurs fois, elle est remplacée sans revibrer.
