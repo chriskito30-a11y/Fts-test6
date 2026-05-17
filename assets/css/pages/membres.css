@@ -2291,3 +2291,48 @@ button.profile-pill:focus-visible {
     min-height: 64px;
   }
 }
+
+
+/* Badge public gamification dans l'espace membre */
+.fts-public-badge{
+  display:inline-flex;
+  align-items:center;
+  max-width:100%;
+  padding:3px 8px;
+  border-radius:999px;
+  font-size:.72rem;
+  line-height:1.1;
+  font-weight:900;
+  white-space:nowrap;
+  border:1px solid rgba(0,0,0,.08);
+  background:rgba(255,255,255,.72);
+  box-shadow:0 4px 14px rgba(0,0,0,.08);
+}
+.fts-public-badge--artist{
+  background:linear-gradient(135deg, #fff4a8, #ffffff);
+  border-color:rgba(245,197,66,.55);
+}
+.fts-public-badge--rare{
+  background:linear-gradient(135deg, #fff, #ffe7f0);
+  border-color:rgba(255,119,170,.38);
+}
+
+.member-public-badge{
+  margin-top:8px;
+  display:flex;
+  align-items:center;
+  min-height:28px;
+}
+.member-public-badge .fts-public-badge{
+  font-size:.78rem;
+  padding:5px 10px;
+  background:rgba(255,255,255,.78);
+}
+.member-public-badge .fts-public-badge--artist{
+  background:linear-gradient(135deg,#fff3a0,#fff);
+  border-color:rgba(245,197,66,.65);
+}
+.member-public-badge .fts-public-badge--rare{
+  background:linear-gradient(135deg,#fff,#ffe4f0);
+  border-color:rgba(255,119,170,.42);
+}
