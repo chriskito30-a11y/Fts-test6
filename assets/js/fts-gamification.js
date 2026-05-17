@@ -61,6 +61,34 @@
     }, extra || {});
     return db.ref('fts_forum/messages/general').push(msg);
   }
+
+  async function writeRewardHistory(db, payload){
+    if(!db || !payload) return null;
+    const item = Object.assign({ ts:now() }, payload || {});
+    // Historique confort : ne doit jamais bloquer l'attribution si les rules refusent.
+    return db.ref('fts_forum/rewardHistory').push(item).catch(()=>null);
+  }
+
+  async function clearSpecialBadge(db, targetUid, clearedBy){
+    if(!db || !targetUid) return;
+    await db.ref(`fts_forum/users/${targetUid}/specialBadge`).remove();
+    db.ref(`fts_users/${targetUid}/specialBadge`).remove().catch(()=>{});
+    await writeRewardHistory(db, { type:'cleared', targetUid, assignedBy:clearedBy || '' });
+  }
+
+  async function extendSpecialBadge(db, targetUid, days, assignedBy){
+    if(!db || !targetUid) return;
+    const ref = db.ref(`fts_forum/users/${targetUid}/specialBadge`);
+    const snap = await ref.once('value');
+    const current = snap.val();
+    if(!current || !current.label) throw new Error('Aucun badge temporaire actif à prolonger.');
+    const base = Math.max(Number(current.until || 0), now());
+    const until = base + Math.max(1, Number(days || 7)) * 86400000;
+    const payload = Object.assign({}, current, { until, extendedBy:assignedBy || '', extendedAt:now() });
+    await ref.set(payload);
+    db.ref(`fts_users/${targetUid}/specialBadge`).set(payload).catch(()=>{});
+    await writeRewardHistory(db, { type:'extended', targetUid, label:payload.label, until, assignedBy:assignedBy || '' });
+  }
   async function awardXp(db, targetUid, action, points, options){
     options = options || {};
     if(!db || !targetUid || !points) return { ok:false, reason:'missing' };
@@ -90,6 +118,8 @@
     updates[`fts_users/${targetUid}/xpUpdatedAt`] = now();
     updates[`fts_forum/users/${targetUid}/xpUpdatedAt`] = now();
     await db.ref().update(updates).catch(()=>{});
+    db.ref(`fts_forum/users/${targetUid}/stats/${logKey}`).transaction(v => Number(v || 0) + 1).catch(()=>{});
+    db.ref(`fts_users/${targetUid}/stats/${logKey}`).transaction(v => Number(v || 0) + 1).catch(()=>{});
 
     const oldBadge = getXpBadge(before).label;
     const newBadge = getXpBadge(after).label;
@@ -107,6 +137,7 @@
     db.ref(`fts_users/${targetUid}/specialBadge`).set(payload).catch(()=>{});
     const snap = await db.ref('fts_forum/users/' + targetUid).once('value').catch(()=>null);
     const u = snap && snap.val ? snap.val() : {};
+    await writeRewardHistory(db, { type:'special_badge', targetUid, label:badgeLabel, until, assignedBy:assignedBy || '', reason:reason || '', name:publicName(u) });
     await pushGeneralMessage(db, `🌟 ${publicName(u)} reçoit le badge temporaire « ${badgeLabel} » !`, { gamification:true, type:'special_badge', targetUid });
     await awardXp(db, targetUid, 'special_badge_received', 30, { maxPerDay:2 }).catch(()=>{});
   }
@@ -126,9 +157,10 @@
     // mais ne doit jamais bloquer l'attribution si les rules refusent ce chemin.
     db.ref('fts_community/artistOfWeek').set(payload).catch(()=>{});
 
+    await writeRewardHistory(db, { type:'artist_of_week', targetUid, label:payload.label, until, assignedBy:assignedBy || '', reason:text || '', name:publicName(u) });
     await pushGeneralMessage(db, `🎉 Bravo à ${publicName(u)} qui devient Artiste de la semaine !`, { gamification:true, type:'artist_of_week', targetUid });
     await awardXp(db, targetUid, 'artist_of_week', 100, { maxPerDay:1 }).catch(()=>{});
   }
 
-  window.FTSGamification = { XP_BADGES, RARE_BADGES, REACTIONS, getXpBadge, getPublicBadge, renderBadge, awardXp, setSpecialBadge, setArtistOfWeek, pushGeneralMessage, isActiveTimed };
+  window.FTSGamification = { XP_BADGES, RARE_BADGES, REACTIONS, getXpBadge, getPublicBadge, renderBadge, awardXp, setSpecialBadge, setArtistOfWeek, clearSpecialBadge, extendSpecialBadge, pushGeneralMessage, writeRewardHistory, isActiveTimed };
 })();
