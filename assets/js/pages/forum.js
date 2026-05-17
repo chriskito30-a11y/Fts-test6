@@ -376,9 +376,9 @@ function renderMedia(payload){
   const isPdf = ext === 'pdf';
   if(isImg) return `<div class="msg-media-wrap"><img class="msg-img" src="${esc(url)}" data-fts-click="window.open('${esc(url)}')"><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
   if(isVideo) return `<div class="msg-media-wrap"><video class="msg-video" src="${esc(url)}" controls playsinline></video><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
-  if(isAudio) return `<div class="msg-audio-card"><div class="msg-audio-title">🎵 ${esc(title)}</div><audio class="msg-audio" controls preload="none"><source src="${esc(url)}"></audio><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
-  if(isPdf) return renderFileCard('📄', title, url, 'PDF · toucher pour ouvrir');
-  return renderFileCard('📎', title, url, 'Fichier joint');
+  if(isAudio) return `<div class="msg-audio-card"><div class="msg-audio-title">🎵 ${esc(title)}</div><audio class="msg-audio" controls preload="none"><source src="${esc(url)}"></audio><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger le fichier</a></div>`;
+  if(isPdf) return renderFileCard('📄', title, url, 'PDF · ouvrir ou télécharger');
+  return renderFileCard('📎', title, url, 'Fichier joint · ouvrir ou télécharger');
 }
 
 function listenUnreadBadge(uid){

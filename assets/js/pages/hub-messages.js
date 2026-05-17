@@ -16,14 +16,18 @@
     if (!badge) return;
     var n = Math.max(0, Number(count || 0));
     var card = badge.closest('.hub-card');
+    var statusId = id === 'hub-dm-badge' ? 'hub-dm-status' : (id === 'hub-forum-badge' ? 'hub-forum-status' : '');
+    var status = statusId ? document.getElementById(statusId) : null;
     if (!n) {
       badge.hidden = true;
       badge.textContent = '0';
       if (card) card.classList.remove('has-unread');
+      if (status) status.textContent = id === 'hub-dm-badge' ? 'Aucun message privé à lire' : 'Aucune nouveauté groupe';
       return;
     }
     badge.hidden = false;
     badge.textContent = n > 20 ? '20+' : String(n);
+    if (status) status.textContent = n > 20 ? '20+ à lire' : (n + ' à lire');
     if (card) card.classList.add('has-unread');
   }
 
