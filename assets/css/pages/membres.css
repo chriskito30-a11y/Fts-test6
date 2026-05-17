@@ -2662,3 +2662,22 @@ button.profile-pill:focus-visible {
 @media (max-width:420px){
   .account-rewards-stats{ grid-template-columns:1fr; }
 }
+
+
+/* Correctif v37 — clic Mon compte garanti */
+.welcome-card.smart-hero .account-actions{
+  position: relative !important;
+  z-index: 5 !important;
+}
+.welcome-card.smart-hero .account-actions #btn-open-account,
+.welcome-card.smart-hero .account-actions #btn-open-guide,
+.welcome-card.smart-hero .account-actions #btn-notif{
+  position: relative !important;
+  z-index: 8 !important;
+  pointer-events: auto !important;
+}
+.welcome-card.smart-hero .member-public-badge--hero{
+  position: relative !important;
+  z-index: 6 !important;
+  pointer-events: none !important;
+}
