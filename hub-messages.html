@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=16">
-<link rel="stylesheet" href="assets/css/pages/hub-messages.css?v=1">
+<link rel="stylesheet" href="assets/css/pages/hub-messages.css?v=18">
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -55,7 +55,7 @@
       <a class="hub-card hub-card-main" href="messages.html">
         <span class="hub-card-icon">👤</span>
         <span class="hub-card-content">
-          <strong>Discussions privées</strong>
+          <span class="hub-card-titleline"><strong>Discussions privées</strong><span class="hub-count-badge" id="hub-dm-badge" hidden>0</span></span>
           <small>Contactez directement un membre, un parent ou un professeur.</small>
         </span>
         <span class="hub-card-action">Ouvrir</span>
@@ -63,7 +63,7 @@
       <a class="hub-card" href="forum.html">
         <span class="hub-card-icon">👥</span>
         <span class="hub-card-content">
-          <strong>Groupes Fais Ton Show</strong>
+          <span class="hub-card-titleline"><strong>Groupes Fais Ton Show</strong><span class="hub-count-badge" id="hub-forum-badge" hidden>0</span></span>
           <small>Suivez les échanges par activité, groupe ou projet.</small>
         </span>
         <span class="hub-card-action">Ouvrir</span>
@@ -86,6 +86,6 @@
 <script src="./assets/js/fts-firebase.js"></script>
 <script src="assets/js/fts-pwa.js"></script>
 <script src="assets/js/fts-nav.js?v=16"></script>
-<script src="assets/js/pages/hub-messages.js?v=1"></script>
+<script src="assets/js/pages/hub-messages.js?v=18"></script>
 </body>
 </html>
