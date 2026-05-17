@@ -341,13 +341,42 @@ function reactionCount(reactions, emoji){
   return bucket && typeof bucket === 'object' ? Object.keys(bucket).length : 0;
 }
 function hasReacted(reactions, emoji){ return !!(uid && reactions && reactions[emoji] && reactions[emoji][uid]); }
+function renderReactionSummary(reactions){
+  const used = FTSGamification.REACTIONS
+    .map(emoji => ({ emoji, count:reactionCount(reactions, emoji) }))
+    .filter(r => r.count > 0);
+  if(!used.length) return '<span class="msg-reaction-empty">Sois le premier à réagir</span>';
+  const total = used.reduce((sum, r) => sum + r.count, 0);
+  const icons = used.slice(0, 3).map(r => `<span>${r.emoji}</span>`).join('');
+  return `<span class="msg-reaction-icons">${icons}</span><span class="msg-reaction-total">${total}</span>`;
+}
 function renderReactions(m, key){
   const reactions = (m && m.reactions) || {};
-  return `<div class="msg-reactions" id="react-${esc(key)}">${FTSGamification.REACTIONS.map(emoji => {
-    const count = reactionCount(reactions, emoji);
-    const active = hasReacted(reactions, emoji);
-    return `<button type="button" class="msg-react ${active?'active':''}" data-fts-click="toggleForumReaction('${esc(key)}','${emoji}')" aria-label="Réagir ${emoji}"><span>${emoji}</span>${count ? `<b>${count}</b>` : ''}</button>`;
-  }).join('')}</div>`;
+  return `<div class="msg-reactions msg-reactions-compact" id="react-${esc(key)}">
+    <button type="button" class="msg-reaction-summary" data-fts-click="toggleReactionPicker('${esc(key)}')" aria-label="Voir ou ajouter une réaction">${renderReactionSummary(reactions)}</button>
+    <button type="button" class="msg-react-open" data-fts-click="toggleReactionPicker('${esc(key)}')" aria-label="Réagir">Réagir</button>
+    <div class="msg-reaction-picker" id="react-picker-${esc(key)}" aria-hidden="true">${FTSGamification.REACTIONS.map(emoji => {
+      const count = reactionCount(reactions, emoji);
+      const active = hasReacted(reactions, emoji);
+      return `<button type="button" class="msg-react ${active?'active':''}" data-fts-click="toggleForumReaction('${esc(key)}','${emoji}')" aria-label="Réagir ${emoji}"><span>${emoji}</span>${count ? `<b>${count}</b>` : ''}</button>`;
+    }).join('')}</div>
+  </div>`;
+}
+
+function closeReactionPickers(exceptKey){
+  document.querySelectorAll('.msg-reaction-picker.is-open').forEach(el => {
+    if(exceptKey && el.id === 'react-picker-' + exceptKey) return;
+    el.classList.remove('is-open');
+    el.setAttribute('aria-hidden','true');
+  });
+}
+function toggleReactionPicker(msgKey){
+  const picker = document.getElementById('react-picker-' + msgKey);
+  if(!picker) return;
+  const willOpen = !picker.classList.contains('is-open');
+  closeReactionPickers(msgKey);
+  picker.classList.toggle('is-open', willOpen);
+  picker.setAttribute('aria-hidden', willOpen ? 'false' : 'true');
 }
 
 async function toggleForumReaction(msgKey, emoji){
@@ -364,6 +393,7 @@ async function toggleForumReaction(msgKey, emoji){
       FTSGamification.awardXp(db, uid, 'reaction_given', 1, { maxPerDay:5 }).catch(()=>{});
     }
   }
+  closeReactionPickers();
 }
 
 function updateForumMsg(m, key){

@@ -200,6 +200,7 @@ function canSeeDocInCategory(doc, cat) {
 
       await loadCategories();
       renderDashboard(userProfile, user.email);
+      initMemberGamificationBadge(user.uid, userProfile, user.email);
 
       // Liens topbar selon rôle — strict, sans toucher à l'auth.
       updateRoleNavigation(userProfile, user.email);
@@ -281,6 +282,53 @@ function renderDashboard(profile, email) {
       ? 'Retrouve tes ressources, tes événements et tes espaces d’échange en un seul endroit.'
       : 'Ton compte est actif, mais aucune discipline n’est encore associée à ton profil.';
   }
+}
+
+
+/* ── BADGE PUBLIC MEMBRE / GAMIFICATION ───────────────────────── */
+let memberBadgeUserRef = null;
+let memberBadgeArtistRef = null;
+let memberForumUser = null;
+let memberArtistOfWeek = null;
+
+function renderMemberPublicBadge(){
+  const el = document.getElementById('member-public-badge');
+  if(!el || !window.FTSGamification) return;
+  const source = Object.assign({ uid: currentUser && currentUser.uid, xp:0 }, memberForumUser || {});
+  const badge = FTSGamification.getPublicBadge(source, memberArtistOfWeek);
+  el.innerHTML = FTSGamification.renderBadge(badge.label, badge.kind);
+  el.classList.remove('is-empty');
+}
+
+function initMemberGamificationBadge(memberUid, profile, email){
+  const el = document.getElementById('member-public-badge');
+  if(!el || !memberUid || !window.FTSGamification || !db) return;
+  el.innerHTML = FTSGamification.renderBadge('🌱 Nouveau talent', 'xp');
+
+  // Hydrate doucement le profil forum utilisé pour afficher les badges publics.
+  // Update non bloquant : n'empêche jamais l'ouverture de membres.
+  const publicName = (profile && (profile.name || [profile.firstName, profile.lastName].filter(Boolean).join(' '))) || email || 'Membre';
+  db.ref('fts_forum/users/' + memberUid).update({
+    uid: memberUid,
+    name: publicName,
+    role: (profile && profile.role) || 'member',
+    updatedAt: Date.now()
+  }).catch(()=>{});
+
+  if(memberBadgeUserRef) memberBadgeUserRef.off();
+  if(memberBadgeArtistRef) memberBadgeArtistRef.off();
+
+  memberBadgeUserRef = db.ref('fts_forum/users/' + memberUid);
+  memberBadgeUserRef.on('value', snap => {
+    memberForumUser = Object.assign({ uid:memberUid, name:publicName, xp:0 }, snap.val() || {});
+    renderMemberPublicBadge();
+  });
+
+  memberBadgeArtistRef = db.ref('fts_community/artistOfWeek');
+  memberBadgeArtistRef.on('value', snap => {
+    memberArtistOfWeek = snap.val() || null;
+    renderMemberPublicBadge();
+  });
 }
 
 
