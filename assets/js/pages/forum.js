@@ -296,10 +296,18 @@ async function sendMessage(){
 
 
 function listenArtistOfWeek(){
-  db.ref('fts_community/artistOfWeek').on('value', snap => {
+  db.ref('fts_forum/artistOfWeek').on('value', snap => {
     artistOfWeek = snap.val() || null;
     refreshAllVisibleBadges();
   });
+  // Compat ancienne version : lecture non bloquante de l'ancien chemin.
+  db.ref('fts_community/artistOfWeek').on('value', snap => {
+    const legacy = snap.val() || null;
+    if(legacy && (!artistOfWeek || Number(legacy.ts||0) >= Number(artistOfWeek.ts||0))){
+      artistOfWeek = legacy;
+      refreshAllVisibleBadges();
+    }
+  }, ()=>{});
 }
 
 function ensureForumUser(uidToLoad){
