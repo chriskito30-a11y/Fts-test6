@@ -115,7 +115,14 @@
     const snap = await db.ref('fts_forum/users/' + targetUid).once('value').catch(()=>null);
     const u = snap && snap.val ? snap.val() : {};
     const payload = { uid:targetUid, label:'⭐ Artiste de la semaine', until, assignedBy:assignedBy || '', text:text || '', name:publicName(u), ts:now() };
-    await db.ref('fts_community/artistOfWeek').set(payload);
+
+    // Chemin principal volontairement dans fts_forum : mêmes autorisations que le forum,
+    // donc moins de risque de Permission denied que le chemin fts_community.
+    await db.ref('fts_forum/artistOfWeek').set(payload);
+
+    // Compat ancienne version : tentative non bloquante sur l'ancien chemin.
+    db.ref('fts_community/artistOfWeek').set(payload).catch(()=>{});
+
     await pushGeneralMessage(db, `🎉 Bravo à ${publicName(u)} qui devient Artiste de la semaine !`, { gamification:true, type:'artist_of_week', targetUid });
     await awardXp(db, targetUid, 'artist_of_week', 100, { maxPerDay:1 }).catch(()=>{});
   }
