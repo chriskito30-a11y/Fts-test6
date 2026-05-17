@@ -532,11 +532,21 @@ html, body {
   padding:.7rem; border:1px solid rgba(255,255,255,.09); border-radius:14px;
   background:rgba(255,255,255,.045);
 }
+.msg-file-visible-title {
+  display: block;
+  width: 100%;
+  color: var(--white);
+  font-size: .9rem;
+  font-weight: 900;
+  line-height: 1.25;
+  margin-bottom: .45rem;
+  overflow-wrap: anywhere;
+}
 .msg-file-main { display:flex; align-items:center; gap:.65rem; color:var(--white); text-decoration:none; min-width:0; }
 .msg-file-main:hover .msg-file-title { color:var(--gold); }
 .msg-file-icon { width:36px; height:36px; display:grid; place-items:center; flex-shrink:0; border-radius:10px; background:rgba(248,231,2,.09); font-size:1.15rem; }
-.msg-file-info { display:grid; gap:.12rem; min-width:0; }
-.msg-file-title { font-size:.82rem; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.msg-file-info { display:grid; gap:.12rem; min-width:0; flex:1; max-width:100%; }
+.msg-file-title { display:block; color:var(--white); font-size:.82rem; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
 .msg-file-sub { font-size:.68rem; color:var(--muted); }
 .msg-file-download {
   display:inline-flex; align-items:center; justify-content:center; gap:.35rem; width:fit-content;
