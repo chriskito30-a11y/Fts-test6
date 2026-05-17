@@ -1394,6 +1394,41 @@ function closeAccountModal() {
   }
 }
 
+function openGuideModal() {
+  const m = document.getElementById('guide-modal');
+  if (!m) return;
+  m.classList.remove('hidden');
+  m.setAttribute('aria-hidden', 'false');
+}
+
+function closeGuideModal() {
+  const m = document.getElementById('guide-modal');
+  if (!m) return;
+  m.classList.add('hidden');
+  m.setAttribute('aria-hidden', 'true');
+}
+
+function handleGuideAction(action) {
+  if (!action) return;
+  if (action === 'docs') {
+    closeGuideModal();
+    if (window.FTSNav && typeof window.FTSNav.openDocumentsModal === 'function') {
+      window.FTSNav.openDocumentsModal();
+    }
+    return;
+  }
+  if (action === 'events') {
+    closeGuideModal();
+    const target = document.getElementById('membres-events');
+    if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  if (action === 'account') {
+    closeGuideModal();
+    openAccountModal();
+  }
+}
+
 function setAccountMsg(id, text, type) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -1725,6 +1760,8 @@ function bindMembresUiEvents() {
   };
 
   bindClick('btn-open-account', openAccountModal);
+  bindClick('btn-open-guide', openGuideModal);
+  bindClick('btn-account-guide', function(){ closeAccountModal(); openGuideModal(); });
   bindClick('btn-notif', toggleNotifications);
   bindClick('btg', toggleEvts);
   bindClick('btn-save-profile', saveProfileInfo);
@@ -1751,6 +1788,23 @@ function bindMembresUiEvents() {
     const closeAccountBtn = e.target.closest('[data-action="close-account-modal"]');
     if (closeAccountBtn) {
       closeAccountModal();
+      return;
+    }
+
+    if (e.target && e.target.id === 'guide-modal') {
+      closeGuideModal();
+      return;
+    }
+
+    const closeGuideBtn = e.target.closest('[data-action="close-guide-modal"]');
+    if (closeGuideBtn) {
+      closeGuideModal();
+      return;
+    }
+
+    const guideAction = e.target.closest('[data-guide-action]');
+    if (guideAction) {
+      handleGuideAction(guideAction.dataset.guideAction);
       return;
     }
 
@@ -1786,6 +1840,15 @@ function bindMembresUiEvents() {
       if (Number.isInteger(catIndex) && Number.isInteger(subcatIndex)) {
         filtDocs(subcatIndex, catIndex, subcatBtn);
       }
+    }
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeGuideModal();
+      closeAccountModal();
+      closeMo();
+      closePwaInstallCoach();
     }
   });
 
