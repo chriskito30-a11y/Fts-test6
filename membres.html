@@ -15,8 +15,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
 
-<link rel="stylesheet" href="assets/css/fts-nav.css?v=16">
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=16">
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=17">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=17">
 </head>
 
 <body class="has-glow">
@@ -77,34 +77,15 @@
             <button type="button" class="btn-account" id="btn-open-account">⚙️ Mon compte</button>
           </div>
         </div>
-        <div class="welcome-sub" id="welcome-sub">Retrouve ici tes informations importantes, tes documents et tes prochains rendez-vous.</div>
-        <div class="profile-pills" id="profile-pills"></div>
+        <div class="welcome-sub" id="welcome-sub">Tes infos, tes ressources et tes échanges au même endroit.</div>
+        <div class="profile-pills" id="profile-pills" aria-label="Raccourcis vers mes ressources"></div>
       </div>
 
-      <div class="focus-grid" aria-label="Résumé rapide">
-        <a href="#membres-events" class="focus-card focus-card-event">
-          <span class="focus-icon">📅</span>
-          <span class="focus-content">
-            <span class="focus-label">Prochain événement</span>
-            <strong id="dash-next-event">Chargement…</strong>
-            <small id="dash-next-event-date"></small>
-          </span>
-        </a>
-        <a href="hub-messages.html" class="focus-card focus-card-message">
-          <span class="focus-icon">💬</span>
-          <span class="focus-content">
-            <span class="focus-label">Messages non lus</span>
-            <strong id="dash-msg-count">0</strong>
-            <small>Ouvrir le hub messages</small>
-          </span>
-        </a>
-      </div>
-
-      <section class="smart-section member-news-panel u-initial-hidden" id="member-news-panel" aria-label="Nouveautés depuis votre dernière visite">
+      <section class="smart-section member-news-panel u-initial-hidden" id="member-news-panel" aria-label="Nouveautés à consulter">
         <div class="smart-section-head">
           <div>
-            <div class="smart-kicker">Nouveautés</div>
-            <h2>Depuis votre dernière visite</h2>
+            <div class="smart-kicker">À consulter</div>
+            <h2>Nouveautés</h2>
           </div>
           <span class="smart-hint" id="member-news-hint">Selon vos cours</span>
         </div>
@@ -112,6 +93,25 @@
           <div class="list-loading">Recherche des nouveautés…</div>
         </div>
       </section>
+
+      <div class="focus-grid focus-grid-priority" aria-label="Résumé rapide">
+        <a href="hub-messages.html" class="focus-card focus-card-message">
+          <span class="focus-icon">💬</span>
+          <span class="focus-content">
+            <span class="focus-label">Messages</span>
+            <strong id="dash-msg-count">0</strong>
+            <small id="dash-msg-status">Rien à lire</small>
+          </span>
+        </a>
+        <a href="#membres-events" class="focus-card focus-card-event">
+          <span class="focus-icon">📅</span>
+          <span class="focus-content">
+            <span class="focus-label">À venir</span>
+            <strong id="dash-next-event">Chargement…</strong>
+            <small id="dash-next-event-date"></small>
+          </span>
+        </a>
+      </div>
     </section>
 
     <!-- Info importante : source actuelle = annonce générale administrée -->
@@ -129,7 +129,7 @@
     <!-- Section événements -->
     <div class="evt-sec section-with-spacer" id="membres-events">
       <div class="sec-ttl">
-        <span>Prochains événements</span>
+        <span>Tous les événements à venir</span>
         <button class="btn-toggle" id="btg">Voir tous</button>
       </div>
       <div class="evt-list" id="evts">
