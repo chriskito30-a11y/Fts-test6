@@ -340,15 +340,17 @@ function parseMediaPayload(payload){
 function renderFileCard(icon, title, url, label){
   const safeUrl = esc(url);
   const dlUrl = esc(mediaDownloadUrl(url));
+  const safeTitle = esc(title || 'Fichier joint');
   return `<div class="msg-file-card">
-    <a class="msg-file-main" href="${safeUrl}" target="_blank" rel="noopener" title="${esc(title)}">
-      <span class="msg-file-icon">${icon}</span>
+    <div class="msg-file-visible-title">${icon} ${safeTitle}</div>
+    <a class="msg-file-main" href="${safeUrl}" target="_blank" rel="noopener" title="${safeTitle}">
+      <span class="msg-file-icon" aria-hidden="true">${icon}</span>
       <span class="msg-file-info">
-        <span class="msg-file-title">${esc(title)}</span>
+        <span class="msg-file-title">${safeTitle}</span>
         <span class="msg-file-sub">${label}</span>
       </span>
     </a>
-    <a class="msg-file-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${esc(title)}">⬇ Télécharger</a>
+    <a class="msg-file-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${safeTitle}">⬇ Télécharger</a>
   </div>`;
 }
 
