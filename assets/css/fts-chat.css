@@ -1137,3 +1137,124 @@ body.fts-chat-modern .msg-file-download:hover {
   body.fts-chat-modern .msg-file-title,
   body.fts-chat-modern .msg-media-title strong { font-size: .82rem; }
 }
+
+
+/* ================================================================
+   PATCH UX CHAT/FORUM v25 — polish visuel prudent
+   Aucune logique messages/forum/Cloudinary/Firebase modifiée.
+   ================================================================ */
+
+:root {
+  --chat-shadow-soft: 0 14px 38px rgba(0,0,0,.30);
+  --chat-shadow-lift: 0 20px 52px rgba(0,0,0,.40);
+  --chat-border-soft: rgba(255,255,255,.09);
+}
+
+.conv-item,
+.msg-bubble,
+.forum-post,
+.forum-thread,
+.file-card,
+.fts-file-card,
+.discussion-switch,
+.composer,
+.chat-main,
+.sidebar {
+  border-color: var(--chat-border-soft);
+}
+
+.conv-item,
+.msg-bubble,
+.forum-post,
+.forum-thread,
+.file-card,
+.fts-file-card {
+  box-shadow: var(--chat-shadow-soft);
+}
+
+.conv-item:hover,
+.forum-post:hover,
+.forum-thread:hover,
+.file-card:hover,
+.fts-file-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--chat-shadow-lift);
+}
+
+.conv-item,
+.forum-post,
+.forum-thread,
+.file-card,
+.fts-file-card,
+.discussion-switch a,
+.discussion-switch button,
+.btn-compose,
+.btn-send,
+.attach-btn {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    color .18s ease,
+    opacity .18s ease;
+}
+
+.discussion-switch a:active,
+.discussion-switch button:active,
+.conv-item:active,
+.file-card:active,
+.fts-file-card:active,
+.btn-compose:active,
+.btn-send:active,
+.attach-btn:active {
+  transform: scale(.985);
+}
+
+:where(a, button, input, textarea, [role="button"], .conv-item, .file-card, .fts-file-card):focus-visible {
+  outline: 2px solid rgba(248,231,2,.9);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+/* Les métadonnées restent lisibles sans voler l’attention */
+.conv-last,
+.conv-meta,
+.msg-time,
+.forum-meta,
+.file-meta,
+.fts-file-meta {
+  color: rgba(245,242,238,.62);
+}
+
+/* Les pièces jointes ressortent comme actions utiles */
+.file-card,
+.fts-file-card {
+  background:
+    linear-gradient(135deg, rgba(248,231,2,.08), rgba(255,255,255,.035)),
+    rgba(20,20,20,.92);
+}
+
+/* Meilleur confort mobile : éviter les effets hover inutiles */
+@media (max-width: 720px) {
+  .conv-item:hover,
+  .forum-post:hover,
+  .forum-thread:hover,
+  .file-card:hover,
+  .fts-file-card:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+

@@ -861,3 +861,155 @@ textarea {
   .card { padding: 1.4rem 1.2rem; }
   .btn  { font-size: 1rem; }
 }
+
+
+/* ================================================================
+   PATCH UX GLOBAL v25 — polish premium prudent
+   Objectif : hiérarchie visuelle + cohérence + micro-interactions.
+   Aucune logique JS/Firebase modifiée.
+   ================================================================ */
+
+:root {
+  --fts-shadow-soft: 0 16px 42px rgba(0,0,0,.32);
+  --fts-shadow-lift: 0 22px 58px rgba(0,0,0,.42);
+  --fts-border-soft: rgba(255,255,255,.09);
+  --fts-border-strong: rgba(248,231,2,.22);
+  --fts-panel-glow: radial-gradient(circle at top left, rgba(248,231,2,.13), transparent 24rem);
+}
+
+/* Cartes plus cohérentes, sans modifier la structure */
+.card,
+.page-hdr,
+.hub-hero,
+.hub-card,
+.questionnaire-card,
+.result-card,
+.step-card,
+.faq-card,
+.season-card,
+.event-card,
+.admin-card {
+  border-color: var(--fts-border-soft);
+  box-shadow: var(--fts-shadow-soft);
+}
+
+/* Meilleure lecture des sections */
+.section-lbl,
+.sec-ttl,
+.cats-title,
+.zone-kicker,
+.hub-kicker,
+.eyebrow {
+  letter-spacing: .13em;
+}
+
+.section-lbl::after,
+.sec-ttl::after {
+  opacity: .9;
+}
+
+/* Rythme visuel : les éléments importants ont un léger relief */
+.card:hover,
+.hub-card:hover,
+.questionnaire-card:hover,
+.option:hover,
+.faq-card:hover,
+.season-card:hover,
+.event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--fts-shadow-lift);
+}
+
+/* Boutons plus tactiles et plus cohérents */
+.btn,
+.header-link,
+.option,
+.hub-card,
+.card,
+.faq-card,
+.season-card,
+.event-card {
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform .18s ease,
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    color .18s ease;
+}
+
+.btn:active,
+.header-link:active,
+.option:active,
+.hub-card:active {
+  transform: translateY(0) scale(.985);
+}
+
+/* Focus clavier/accessibilité plus propre */
+:where(a, button, input, select, textarea, [role="button"], .option):focus-visible {
+  outline: 2px solid rgba(248,231,2,.9);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+/* Textes secondaires : meilleure lisibilité sans agrandir l’interface */
+.slg,
+.step-desc,
+.hub-hero p,
+.hub-card small,
+.page-footer,
+.card small,
+.muted {
+  color: rgba(245,242,238,.68);
+}
+
+/* Séparateurs premium visibles mais doux */
+.fts-section-separator,
+.section-separator {
+  height: 1px;
+  margin: 1.15rem 0;
+  border: 0;
+  background: linear-gradient(90deg, transparent, rgba(248,231,2,.35), rgba(255,255,255,.08), transparent);
+}
+
+/* Footer public plus assumé */
+.page-footer,
+.ft {
+  border-top: 1px solid rgba(255,255,255,.08);
+  margin-top: 1.6rem;
+  padding-top: 1rem;
+}
+
+/* Animations désactivées si l’utilisateur le demande */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .card,
+  .questionnaire-card,
+  .hub-card,
+  .faq-card,
+  .season-card,
+  .event-card {
+    box-shadow: 0 12px 34px rgba(0,0,0,.30);
+  }
+
+  .card:hover,
+  .hub-card:hover,
+  .questionnaire-card:hover,
+  .option:hover,
+  .faq-card:hover,
+  .season-card:hover,
+  .event-card:hover {
+    transform: none;
+  }
+}
+

@@ -300,3 +300,43 @@
 @media (min-width: 760px) {
   .fts-docs-modal { align-items: center; }
 }
+
+
+/* ================================================================
+   PATCH UX NAV v25 — polish premium prudent
+   ================================================================ */
+
+.fts-bottom-nav {
+  box-shadow: 0 -16px 42px rgba(0,0,0,.42);
+}
+
+.fts-nav-item.active {
+  background: linear-gradient(180deg, rgba(248,231,2,.10), transparent);
+}
+
+.fts-nav-item.active::before {
+  width: 34px;
+  height: 3px;
+  box-shadow: 0 0 16px rgba(248,231,2,.45);
+}
+
+.fts-nav-icon {
+  transition: transform .18s ease, filter .18s ease;
+}
+
+.fts-nav-item.active .fts-nav-icon {
+  transform: translateY(-1px);
+  filter: drop-shadow(0 0 8px rgba(248,231,2,.34));
+}
+
+.fts-nav-badge {
+  box-shadow: 0 0 0 2px rgba(0,0,0,.85), 0 0 16px rgba(248,231,2,.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fts-nav-icon,
+  .fts-nav-item {
+    transition: none !important;
+  }
+}
+
