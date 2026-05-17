@@ -1848,6 +1848,16 @@ function bindMembresUiEvents() {
     if (el) el.addEventListener('click', handler);
   };
 
+  // Sécurité UX : Mon compte doit toujours s'ouvrir, même si un style/badge se superpose.
+  // Capture + délégation pour éviter qu'un autre listener ne bloque le bouton.
+  document.addEventListener('click', function(e) {
+    const openAccountBtn = e.target.closest('#btn-open-account, [data-action="open-account-modal"]');
+    if (!openAccountBtn) return;
+    e.preventDefault();
+    e.stopPropagation();
+    openAccountModal();
+  }, true);
+
   bindClick('btn-open-account', openAccountModal);
   bindClick('btn-open-guide', openGuideModal);
   bindClick('btn-account-guide', function(){ closeAccountModal(); openGuideModal(); });
