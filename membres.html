@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/css/fts.css">
 
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=17">
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=17">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=26">
 </head>
 
 <body class="has-glow">
@@ -75,6 +75,7 @@
               <span class="quick-ico">🔕</span><span class="quick-title">Activer les notifs</span>
             </button>
             <button type="button" class="btn-account" id="btn-open-account">⚙️ Mon compte</button>
+            <button type="button" class="btn-account" id="btn-open-guide">❔ Où trouver quoi ?</button>
           </div>
         </div>
         <div class="welcome-sub" id="welcome-sub">Tes infos, tes ressources et tes échanges au même endroit.</div>
@@ -152,6 +153,52 @@
 
 
 
+<!-- ── MINI GUIDE OÙ TROUVER QUOI ───────────────────────────── -->
+<div class="modal-overlay hidden" id="guide-modal" aria-hidden="true">
+  <div class="modal-box account-modal-box guide-modal-box" role="dialog" aria-modal="true" aria-labelledby="guide-modal-title">
+    <div class="account-hero">
+      <div class="account-avatar" aria-hidden="true">🧭</div>
+      <div class="account-hero-text">
+        <div class="account-kicker">Guide rapide</div>
+        <h2 id="guide-modal-title">Où trouver quoi ?</h2>
+        <p>Les bons raccourcis pour retrouver rapidement les infos importantes.</p>
+      </div>
+      <button class="modal-close account-close" data-action="close-guide-modal" aria-label="Fermer le guide">✕</button>
+    </div>
+
+    <div class="guide-actions-list" aria-label="Raccourcis expliqués">
+      <button type="button" class="account-action-card guide-action-card" data-guide-action="docs">
+        <span class="account-action-ico fts-nav-icon">📄</span>
+        <span><strong>Docs</strong><small>Textes, partitions, musiques, vidéos et PDF.</small></span>
+      </button>
+      <a class="account-action-card guide-action-card" href="hub-messages.html">
+        <span class="account-action-ico fts-nav-icon">💬</span>
+        <span><strong>Messages</strong><small>Messages privés et accès aux groupes.</small></span>
+      </a>
+      <a class="account-action-card guide-action-card" href="forum.html">
+        <span class="account-action-ico fts-nav-icon">👥</span>
+        <span><strong>Forum</strong><small>Discussions par activité, annonces et fichiers partagés.</small></span>
+      </a>
+      <a class="account-action-card guide-action-card" href="#membres-events" data-guide-action="events">
+        <span class="account-action-ico fts-nav-icon">📅</span>
+        <span><strong>Événements</strong><small>Cours, répétitions, spectacles et rendez-vous à venir.</small></span>
+      </a>
+      <button type="button" class="account-action-card guide-action-card" data-guide-action="account">
+        <span class="account-action-ico fts-nav-icon">⚙️</span>
+        <span><strong>Mon compte</strong><small>Téléphone, notifications, installation et mot de passe.</small></span>
+      </button>
+      <a class="account-action-card guide-action-card" href="faq.html">
+        <span class="account-action-ico fts-nav-icon">❔</span>
+        <span><strong>FAQ</strong><small>Aide complète application, membres, fonctionnement et professeurs.</small></span>
+      </a>
+    </div>
+
+    <div class="account-footer-actions">
+      <button type="button" class="account-btn account-btn-ghost" data-action="close-guide-modal">J’ai compris</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── MODAL MON COMPTE ─────────────────────────────────────── -->
 <div class="modal-overlay hidden" id="account-modal" aria-hidden="true">
   <div class="modal-box account-modal-box" role="dialog" aria-modal="true" aria-labelledby="account-modal-title">
@@ -218,6 +265,10 @@
       <button type="button" class="account-action-card" id="btn-account-pwa-help">
         <span class="account-action-ico">📲</span>
         <span><strong>Installer l’app</strong><small>Aide iPhone / Android</small></span>
+      </button>
+      <button type="button" class="account-action-card" id="btn-account-guide">
+        <span class="account-action-ico">🧭</span>
+        <span><strong>Où trouver quoi ?</strong><small>Guide rapide de l’espace membre</small></span>
       </button>
     </div>
 
@@ -346,6 +397,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/fts-nav.js?v=16"></script>
-<script src="assets/js/pages/membres.js?v=16"></script>
+<script src="assets/js/pages/membres.js?v=26"></script>
 </body>
 </html>
