@@ -1010,6 +1010,14 @@ function openDashboardResource(btn) {
   openCat(idx);
 }
 
+function resourceDownloadUrl(url) {
+  if (!url) return '';
+  if (url.includes('/upload/') && !url.includes('/fl_attachment')) {
+    return url.replace('/upload/', '/upload/fl_attachment/');
+  }
+  return url;
+}
+
 /* ── AFFICHAGE DOCUMENTS ─────────────────────────────────────── */
 function showDocs(docs, idx) {
   const el = document.getElementById('dc-' + idx);
@@ -1032,13 +1040,19 @@ function showDocs(docs, idx) {
     }
 
     const icon = ICONS[t] || '□';
-    return `<a href="${d.url}" target="_blank" rel="noopener" class="doc-link" id="doc-${FTS.esc(d.key || '')}" data-doc-key="${FTS.esc(d.key || '')}">
-              <span class="doc-icon">${icon}</span>
-              <span class="doc-name">
-                ${FTS.esc(d.name)}
-                ${d.sub ? `<span class="doc-sub">— ${FTS.esc(d.sub)}</span>` : ''}
-              </span>
-            </a>`;
+    const safeUrl = FTS.esc(d.url);
+    const dlUrl = FTS.esc(resourceDownloadUrl(d.url));
+    const title = FTS.esc(d.name || 'Document');
+    return `<div class="doc-file-row" id="doc-${FTS.esc(d.key || '')}" data-doc-key="${FTS.esc(d.key || '')}">
+              <a href="${safeUrl}" target="_blank" rel="noopener" class="doc-link">
+                <span class="doc-icon">${icon}</span>
+                <span class="doc-name">
+                  ${title}
+                  ${d.sub ? `<span class="doc-sub">— ${FTS.esc(d.sub)}</span>` : ''}
+                </span>
+              </a>
+              <a class="doc-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${title}">⬇ Télécharger</a>
+            </div>`;
   }).join('');
   revealPendingResource(idx);
 }

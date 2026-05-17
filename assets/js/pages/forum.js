@@ -306,23 +306,66 @@ function uploadMedia(file){
       txt.textContent = '✓ '+file.name;
       setTimeout(() => bar.classList.remove('show'), 1600);
       document.getElementById('file-input').value = '';
-      const mediaMsg = { uid, name:userData.name, text:'[media]'+url, ts:Date.now() };
+      const mediaMsg = { uid, name:userData.name, text:'[media]'+url+'|'+encodeURIComponent(file.name || 'fichier'), ts:Date.now() };
       db.ref('fts_forum/messages/'+currentChannel).push(mediaMsg).then(ref => notifyChannel(currentChannel, (userData.name || 'Membre') + ' a envoyé un fichier', ref.key));
     })
     .catch(() => { txt.textContent='Erreur upload'; setTimeout(() => bar.classList.remove('show'), 2500); });
 }
 
-function renderMedia(url){
+function mediaDownloadUrl(url){
+  if(!url) return '';
+  // Cloudinary : force un vrai téléchargement quand c'est possible.
+  if(url.includes('/upload/') && !url.includes('/fl_attachment')){
+    return url.replace('/upload/', '/upload/fl_attachment/');
+  }
+  return url;
+}
+
+function cleanMediaName(raw, fallback){
+  let name = '';
+  try{ name = decodeURIComponent(raw || ''); }catch(e){ name = raw || ''; }
+  name = String(name || '').split('/').pop().split('?')[0].trim();
+  if(!name) name = fallback || 'Fichier joint';
+  return name.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function parseMediaPayload(payload){
+  const parts = String(payload || '').split('|');
+  const url = parts.shift() || '';
+  const fromPayload = parts.join('|');
+  const fallback = url.split('?')[0].split('/').pop() || 'Fichier joint';
+  return { url, name: cleanMediaName(fromPayload || fallback, fallback) };
+}
+
+function renderFileCard(icon, title, url, label){
+  const safeUrl = esc(url);
+  const dlUrl = esc(mediaDownloadUrl(url));
+  return `<div class="msg-file-card">
+    <a class="msg-file-main" href="${safeUrl}" target="_blank" rel="noopener" title="${esc(title)}">
+      <span class="msg-file-icon">${icon}</span>
+      <span class="msg-file-info">
+        <span class="msg-file-title">${esc(title)}</span>
+        <span class="msg-file-sub">${label}</span>
+      </span>
+    </a>
+    <a class="msg-file-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${esc(title)}">⬇ Télécharger</a>
+  </div>`;
+}
+
+function renderMedia(payload){
+  const media = parseMediaPayload(payload);
+  const url = media.url;
+  const title = media.name;
   const ext = url.split('?')[0].split('.').pop().toLowerCase();
-  const isImg = url.includes('/image/upload/') || ['jpg','jpeg','png','gif','webp'].includes(ext);
+  const isImg = url.includes('/image/upload/') && !['pdf'].includes(ext) || ['jpg','jpeg','png','gif','webp'].includes(ext);
   const isVideo = (url.includes('/video/upload/') && !['mp3','wav','ogg','aac','m4a'].includes(ext)) || ['mp4','mov','webm'].includes(ext);
   const isAudio = ['mp3','wav','ogg','aac','m4a'].includes(ext);
   const isPdf = ext === 'pdf';
-  if(isImg) return `<img class="msg-img" src="${esc(url)}" data-fts-click="window.open('${esc(url)}')">`;
-  if(isVideo) return `<video class="msg-video" src="${esc(url)}" controls playsinline></video>`;
-  if(isAudio) return `<audio class="msg-audio" controls preload="none"><source src="${esc(url)}"></audio>`;
-  if(isPdf) return `<a class="msg-pdf" href="${esc(url)}" target="_blank">📄 Ouvrir le PDF</a>`;
-  return `<a class="msg-pdf" href="${esc(url)}" target="_blank">📎 Fichier joint</a>`;
+  if(isImg) return `<div class="msg-media-wrap"><img class="msg-img" src="${esc(url)}" data-fts-click="window.open('${esc(url)}')"><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
+  if(isVideo) return `<div class="msg-media-wrap"><video class="msg-video" src="${esc(url)}" controls playsinline></video><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
+  if(isAudio) return `<div class="msg-audio-card"><div class="msg-audio-title">🎵 ${esc(title)}</div><audio class="msg-audio" controls preload="none"><source src="${esc(url)}"></audio><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
+  if(isPdf) return renderFileCard('📄', title, url, 'PDF · toucher pour ouvrir');
+  return renderFileCard('📎', title, url, 'Fichier joint');
 }
 
 function listenUnreadBadge(uid){
