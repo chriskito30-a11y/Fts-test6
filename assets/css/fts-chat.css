@@ -947,3 +947,22 @@ body.fts-chat-modern .discussion-switch-text {
     font-size: .76rem;
   }
 }
+
+
+/* Patch UX v22 — switch visible aussi quand une discussion est ouverte sur mobile */
+body.fts-chat-modern .discussion-switch-main {
+  display: none;
+  flex-shrink: 0;
+}
+@media (max-width: 700px) {
+  body.fts-chat-modern .app.chat-open .discussion-switch-main {
+    display: grid;
+    position: relative;
+    z-index: 2;
+    padding-top: calc(.62rem + env(safe-area-inset-top));
+    background: linear-gradient(180deg, rgba(20,20,20,.98), rgba(20,20,20,.92));
+  }
+  body.fts-chat-modern .app.chat-open .discussion-switch-main + .chat-hdr {
+    border-top: 1px solid rgba(255,255,255,.055);
+  }
+}
