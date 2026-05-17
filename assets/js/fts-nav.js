@@ -4,6 +4,9 @@
 
   var ADMIN_FALLBACK_EMAILS = ['contact@faistonshow.fr'];
   var unreadListenerUid = null;
+  var unreadConvListeners = {};
+  var unreadTotalByConv = {};
+  var unreadUserConvsRef = null;
 
   function esc(v){
     if (window.FTS && typeof FTS.esc === 'function') return FTS.esc(v);
@@ -113,21 +116,64 @@
     return null;
   }
 
+  function renderMemberUnreadTotal(){
+    var total = Object.keys(unreadTotalByConv).reduce(function(sum, id){ return sum + (Number(unreadTotalByConv[id] || 0) || 0); }, 0);
+    setBadge('fts-member-badge', total);
+  }
+
+  function clearUnreadListeners(){
+    try {
+      Object.keys(unreadConvListeners).forEach(function(id){
+        var entry = unreadConvListeners[id];
+        if (entry && entry.ref && entry.cb) entry.ref.off('value', entry.cb);
+      });
+      if (unreadUserConvsRef) unreadUserConvsRef.off();
+    } catch(e) {}
+    unreadConvListeners = {};
+    unreadTotalByConv = {};
+    unreadUserConvsRef = null;
+  }
+
   function listenUnreadMessages(uid){
-    if (!uid || unreadListenerUid === uid) return;
-    unreadListenerUid = uid;
+    if (!uid) return;
     var db = initFirebaseSafe();
     if (!(db && window.firebase && firebase.database)) return;
 
-    db.ref('fts_dm/userConvs/' + uid).on('value', function(snap){
+    if (unreadListenerUid && unreadListenerUid !== uid) clearUnreadListeners();
+    if (unreadListenerUid === uid && unreadUserConvsRef) return;
+    unreadListenerUid = uid;
+
+    unreadUserConvsRef = db.ref('fts_dm/userConvs/' + uid);
+    unreadUserConvsRef.on('value', function(snap){
       var convIds = snap.val() ? Object.keys(snap.val()) : [];
-      if (!convIds.length) { setBadge('fts-member-badge', 0); return; }
-      var total = 0;
-      Promise.all(convIds.map(function(id){
-        return db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
-          .then(function(s){ total += Number(s.val() || 0) || 0; })
-          .catch(function(){});
-      })).then(function(){ setBadge('fts-member-badge', total); });
+      var active = convIds.reduce(function(acc, id){ acc[id] = true; return acc; }, {});
+
+      Object.keys(unreadConvListeners).forEach(function(id){
+        if (!active[id]) {
+          var entry = unreadConvListeners[id];
+          if (entry && entry.ref && entry.cb) entry.ref.off('value', entry.cb);
+          delete unreadConvListeners[id];
+          delete unreadTotalByConv[id];
+        }
+      });
+
+      if (!convIds.length) {
+        unreadTotalByConv = {};
+        renderMemberUnreadTotal();
+        return;
+      }
+
+      convIds.forEach(function(id){
+        if (unreadConvListeners[id]) return;
+        var ref = db.ref('fts_dm/conversations/' + id + '/unread/' + uid);
+        var cb = function(s){
+          unreadTotalByConv[id] = Number(s.val() || 0) || 0;
+          renderMemberUnreadTotal();
+        };
+        unreadConvListeners[id] = { ref: ref, cb: cb };
+        ref.on('value', cb);
+      });
+      renderMemberUnreadTotal();
     });
   }
 
