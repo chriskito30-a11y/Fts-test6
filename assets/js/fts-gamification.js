@@ -45,7 +45,7 @@
     if(artistOfWeek && artistOfWeek.uid && artistOfWeek.uid === user.uid && isActiveTimed(artistOfWeek)){
       return { label: artistOfWeek.label || '⭐ Artiste de la semaine', kind:'artist' };
     }
-    if(isActiveTimed(user.specialBadge)) return { label:user.specialBadge.label, kind:'rare' };
+    if(isActiveTimed(user.specialBadge)) return { label:user.specialBadge.label, kind:(user.specialBadge.kind || user.specialBadge.type || 'rare') };
     return { label:getXpBadge(user.xp).label, kind:'xp' };
   }
   function renderBadge(label, kind){
@@ -114,13 +114,16 @@
     const until = now() + Math.max(1, Number(days || 7)) * 86400000;
     const snap = await db.ref('fts_forum/users/' + targetUid).once('value').catch(()=>null);
     const u = snap && snap.val ? snap.val() : {};
-    const payload = { uid:targetUid, label:'⭐ Artiste de la semaine', until, assignedBy:assignedBy || '', text:text || '', name:publicName(u), ts:now() };
+    const payload = { uid:targetUid, label:'⭐ Artiste de la semaine', kind:'artist', until, assignedBy:assignedBy || '', text:text || '', reason:text || '', name:publicName(u), ts:now() };
 
-    // Chemin principal volontairement dans fts_forum : mêmes autorisations que le forum,
-    // donc moins de risque de Permission denied que le chemin fts_community.
-    await db.ref('fts_forum/artistOfWeek').set(payload);
+    // Important : certaines règles Firebase n'autorisent pas encore fts_community.
+    // On écrit donc d'abord sur le profil forum de l'élève, comme les badges temporaires,
+    // ce qui garantit l'affichage dans le forum et dans membres sans permission spéciale.
+    await db.ref(`fts_forum/users/${targetUid}/specialBadge`).set(payload);
+    db.ref(`fts_users/${targetUid}/specialBadge`).set(payload).catch(()=>{});
 
-    // Compat ancienne version : tentative non bloquante sur l'ancien chemin.
+    // Chemin global facultatif : utile pour un bloc "Artiste de la semaine" plus tard,
+    // mais ne doit jamais bloquer l'attribution si les rules refusent ce chemin.
     db.ref('fts_community/artistOfWeek').set(payload).catch(()=>{});
 
     await pushGeneralMessage(db, `🎉 Bravo à ${publicName(u)} qui devient Artiste de la semaine !`, { gamification:true, type:'artist_of_week', targetUid });
