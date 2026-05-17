@@ -1969,3 +1969,293 @@ body.pwa-coach-open { overflow: hidden; }
     line-height: 1.15;
   }
 }
+
+/* ── PATCH UX PREMIUM V17 — Dashboard membre intelligent ─────────
+   Objectif : mieux guider l'attention sans toucher aux flux Firebase.
+──────────────────────────────────────────────────────────────── */
+.member-dashboard {
+  gap: 1.05rem;
+}
+
+.smart-hero {
+  background:
+    radial-gradient(circle at 12% 0%, rgba(248,231,2,.22), transparent 34%),
+    radial-gradient(circle at 88% 8%, rgba(191,22,34,.18), transparent 32%),
+    linear-gradient(145deg, rgba(22,22,22,.98), rgba(10,10,10,.96));
+  border-color: rgba(248,231,2,.20);
+  box-shadow: 0 22px 55px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.05);
+}
+
+.smart-hero::after {
+  content: '';
+  position: absolute;
+  inset: auto 1.1rem 0 1.1rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(248,231,2,.45), rgba(191,22,34,.28), transparent);
+  opacity: .7;
+}
+
+.welcome-head {
+  align-items: center;
+}
+
+.welcome-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.welcome-kicker::before {
+  content: '✨';
+  font-size: .78rem;
+  letter-spacing: 0;
+}
+
+.welcome-title {
+  margin-bottom: .2rem;
+}
+
+.welcome-sub {
+  max-width: 560px;
+  margin-top: .55rem;
+  font-size: .8rem;
+  line-height: 1.45;
+}
+
+.account-actions {
+  justify-content: flex-end;
+}
+
+.btn-account {
+  min-height: 38px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.045);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.86);
+}
+
+.btn-account:hover {
+  border-color: rgba(248,231,2,.55);
+  background: rgba(248,231,2,.10);
+  color: var(--gold);
+}
+
+.btn-notif-hero {
+  background: rgba(191,22,34,.12);
+  border-color: rgba(191,22,34,.38);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(191,22,34,.12);
+}
+
+.btn-notif-hero.on {
+  background: linear-gradient(135deg, rgba(248,231,2,.22), rgba(248,231,2,.11));
+  border-color: rgba(248,231,2,.72);
+  color: #fff;
+  box-shadow: 0 0 0 3px rgba(248,231,2,.09), 0 14px 30px rgba(248,231,2,.12);
+}
+
+.profile-pills {
+  gap: .5rem;
+  margin-top: 1.05rem;
+}
+
+.profile-pill {
+  min-height: 34px;
+  padding: .45rem .72rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.055);
+  border-color: rgba(255,255,255,.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+button.profile-pill {
+  background: linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.035));
+}
+
+button.profile-pill::after {
+  content: '›';
+  opacity: .7;
+  color: var(--gold);
+  font-weight: 800;
+  transform: translateY(-1px);
+}
+
+button.profile-pill:hover,
+button.profile-pill:focus-visible {
+  border-color: rgba(248,231,2,.55);
+  background: rgba(248,231,2,.12);
+  box-shadow: 0 10px 24px rgba(0,0,0,.22);
+  outline: none;
+}
+
+.profile-pill.role,
+.profile-pill-child {
+  background: rgba(248,231,2,.075);
+  border-color: rgba(248,231,2,.24);
+}
+
+.member-news-panel {
+  position: relative;
+  order: 1;
+  margin-bottom: .05rem;
+  background:
+    radial-gradient(circle at 0 0, rgba(248,231,2,.16), transparent 34%),
+    linear-gradient(145deg, rgba(28,24,10,.94), rgba(16,16,16,.98));
+  border-color: rgba(248,231,2,.30);
+}
+
+.focus-grid-priority {
+  order: 2;
+}
+
+.focus-card {
+  position: relative;
+  overflow: hidden;
+  min-height: 96px;
+  box-shadow: 0 14px 32px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.focus-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  opacity: .88;
+  background: rgba(248,231,2,.45);
+}
+
+.focus-card-message {
+  border-color: rgba(191,22,34,.26);
+  background:
+    radial-gradient(circle at 0 0, rgba(191,22,34,.18), transparent 34%),
+    linear-gradient(145deg, #171717, #0f0f0f);
+}
+
+.focus-card-message::before {
+  background: linear-gradient(180deg, var(--red), var(--gold));
+}
+
+.focus-card-event {
+  border-color: rgba(248,231,2,.18);
+}
+
+.focus-card:hover,
+.focus-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(248,231,2,.45);
+  box-shadow: 0 18px 38px rgba(0,0,0,.30), 0 0 0 3px rgba(248,231,2,.055);
+  outline: none;
+}
+
+.focus-icon {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.focus-content strong {
+  font-size: 1rem;
+}
+
+.focus-card-message strong {
+  font-size: 2.25rem;
+  color: #fff;
+  text-shadow: 0 0 16px rgba(191,22,34,.28);
+}
+
+.focus-card-message .focus-label {
+  color: #fff;
+}
+
+.focus-card-message small {
+  color: rgba(255,255,255,.72);
+}
+
+.smart-section-head h2,
+.sec-ttl span,
+.priority-title {
+  letter-spacing: .035em;
+}
+
+.member-news-list .smart-item {
+  background: rgba(10,10,10,.48);
+  border-color: rgba(255,255,255,.09);
+}
+
+.member-news-list .smart-item:hover,
+.member-news-list .smart-item:focus-visible {
+  background: rgba(255,255,255,.055);
+  border-color: rgba(248,231,2,.42);
+  outline: none;
+}
+
+.smart-item-action {
+  color: var(--gold);
+}
+
+.priority-panel {
+  margin-top: 1.55rem;
+}
+
+.evt-sec {
+  background: linear-gradient(145deg, rgba(255,255,255,.035), rgba(255,255,255,.018));
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: var(--r-lg);
+  padding: 1rem;
+}
+
+.evt-sec .sec-ttl {
+  margin-top: 0;
+}
+
+@media (max-width: 560px) {
+  .smart-hero {
+    padding: 1.15rem;
+  }
+
+  .welcome-head {
+    align-items: flex-start;
+  }
+
+  .account-actions {
+    grid-template-columns: 1.1fr .9fr;
+  }
+
+  .btn-notif-hero {
+    order: -1;
+  }
+
+  .profile-pills {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .45rem;
+  }
+
+  .profile-pill {
+    justify-content: center;
+    text-align: center;
+    min-width: 0;
+  }
+
+  .profile-pill.role,
+  .profile-pill-child {
+    grid-column: auto;
+  }
+
+  .focus-card {
+    min-height: 86px;
+    padding: .9rem;
+  }
+
+  .focus-card-message strong {
+    font-size: 2rem;
+  }
+
+  .evt-sec {
+    padding: .9rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-pills {
+    grid-template-columns: 1fr;
+  }
+}
