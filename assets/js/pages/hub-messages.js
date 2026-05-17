@@ -4,6 +4,8 @@
   var db = FTS.initFirebase();
   var currentUid = null;
   var currentProfile = null;
+  var dmUnreadByConv = {};
+  var dmUnreadListeners = {};
 
   function norm(v){ return (window.FTS && FTS.norm) ? FTS.norm(v) : String(v || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
   function list(v){ return (Array.isArray(v) ? v : String(v || '').split(',')).map(function(x){ return String(x || '').trim(); }).filter(Boolean); }
@@ -65,16 +67,42 @@
     return Object.keys(channels.reduce(function(acc, ch){ if(ch) acc[ch] = true; return acc; }, {}));
   }
 
+  function renderPrivateUnreadTotal(){
+    var total = Object.keys(dmUnreadByConv).reduce(function(sum, id){ return sum + (Number(dmUnreadByConv[id] || 0) || 0); }, 0);
+    setHubBadge('hub-dm-badge', total);
+  }
+
   function listenPrivateUnread(uid){
     db.ref('fts_dm/userConvs/' + uid).on('value', function(snap){
       var convIds = snap.val() ? Object.keys(snap.val()) : [];
-      if (!convIds.length) { setHubBadge('hub-dm-badge', 0); return; }
-      var total = 0;
-      Promise.all(convIds.map(function(id){
-        return db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
-          .then(function(s){ total += Number(s.val() || 0) || 0; })
-          .catch(function(){});
-      })).then(function(){ setHubBadge('hub-dm-badge', total); });
+      var active = convIds.reduce(function(acc, id){ acc[id] = true; return acc; }, {});
+
+      Object.keys(dmUnreadListeners).forEach(function(id){
+        if (!active[id]) {
+          var entry = dmUnreadListeners[id];
+          if (entry && entry.ref && entry.cb) entry.ref.off('value', entry.cb);
+          delete dmUnreadListeners[id];
+          delete dmUnreadByConv[id];
+        }
+      });
+
+      if (!convIds.length) {
+        dmUnreadByConv = {};
+        renderPrivateUnreadTotal();
+        return;
+      }
+
+      convIds.forEach(function(id){
+        if (dmUnreadListeners[id]) return;
+        var ref = db.ref('fts_dm/conversations/' + id + '/unread/' + uid);
+        var cb = function(s){
+          dmUnreadByConv[id] = Number(s.val() || 0) || 0;
+          renderPrivateUnreadTotal();
+        };
+        dmUnreadListeners[id] = { ref: ref, cb: cb };
+        ref.on('value', cb);
+      });
+      renderPrivateUnreadTotal();
     });
   }
 
