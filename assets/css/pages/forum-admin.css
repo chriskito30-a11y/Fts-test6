@@ -508,3 +508,58 @@ body { overflow-x: hidden; }
     padding: 1rem;
   }
 }
+
+/* Gamification — historique récompenses */
+.rewards-history{
+  margin-top:1rem;
+  padding-top:1rem;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.rewards-history-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.75rem;
+  margin-bottom:.7rem;
+}
+.rewards-history-head strong{ color:var(--gold); }
+.rewards-history-head small{ color:var(--muted); }
+.rewards-history-list{ display:flex; flex-direction:column; gap:.55rem; }
+.reward-history-item{
+  display:grid;
+  grid-template-columns:1fr auto;
+  align-items:center;
+  gap:.75rem;
+  padding:.72rem;
+  border-radius:18px;
+  background:rgba(0,0,0,.26);
+  border:1px solid rgba(255,255,255,.08);
+}
+.reward-history-item.is-artist{ border-color:rgba(248,231,2,.34); background:rgba(248,231,2,.055); }
+.reward-history-main{ min-width:0; display:flex; flex-direction:column; gap:.2rem; }
+.reward-history-main strong{ color:#fff; }
+.reward-history-main small{ color:var(--muted); line-height:1.35; }
+.reward-history-badge{
+  display:inline-flex;
+  width:max-content;
+  max-width:100%;
+  padding:.24rem .55rem;
+  border-radius:999px;
+  background:rgba(0,0,0,.42);
+  border:1px solid rgba(248,231,2,.22);
+  color:#fff;
+  font-size:.72rem;
+  font-weight:800;
+}
+.reward-history-actions{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; }
+.reward-history-empty{
+  padding:.8rem;
+  border-radius:16px;
+  background:rgba(255,255,255,.035);
+  color:var(--muted);
+  font-size:.8rem;
+}
+@media (max-width:620px){
+  .reward-history-item{ grid-template-columns:1fr; align-items:stretch; }
+  .reward-history-actions{ justify-content:flex-start; }
+}
