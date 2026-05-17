@@ -213,48 +213,23 @@ body.fts-chat-modern .msg-audio-title { font-weight: 900; }
 .msg-react.active{ background:rgba(248,231,2,.22); }
 .msg-react b{ color:#fff; }
 
-/* Correctif UX forum — réactions très discrètes + auteurs lisibles */
-.msg-author-name-inline{
-  color:#f8e702 !important;
-  font-weight:950 !important;
-  text-shadow:0 1px 3px rgba(0,0,0,.8) !important;
+
+/* Correctif v34 : bulles non lus visibles dans les canaux forum */
+.forum-unread-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  font-size:.66rem;
+  font-weight:900;
+  line-height:1;
+  color:#111;
+  background:#f8e702;
+  box-shadow:0 0 0 2px rgba(0,0,0,.75), 0 5px 14px rgba(248,231,2,.18);
 }
-.msg-wrap.own .msg-author-name-inline{ color:#fff !important; }
-.msg-reactions{
-  gap:3px !important;
-  margin:1px 8px 5px !important;
-  min-height:18px !important;
-}
-.msg-reaction-summary,
-.msg-react-open{
-  background:rgba(0,0,0,.30) !important;
-  border:1px solid rgba(255,255,255,.08) !important;
-  color:rgba(255,255,255,.68) !important;
-  box-shadow:none !important;
-  backdrop-filter:blur(8px);
-}
-.msg-react-open{
-  width:24px !important;
-  height:20px !important;
-  min-height:20px !important;
-  padding:0 !important;
-  font-size:.76rem !important;
-  opacity:.62;
-}
-.msg-react-open:hover,
-.msg-react-open:focus-visible{
-  opacity:1;
-  background:rgba(248,231,2,.12) !important;
-  border-color:rgba(248,231,2,.18) !important;
-}
-.msg-reaction-summary{
-  min-height:20px !important;
-  padding:1px 6px !important;
-}
-.msg-reaction-icons span{ font-size:.72rem !important; }
-.msg-reaction-total{ font-size:.63rem !important; color:rgba(255,255,255,.58) !important; }
-.msg-reaction-picker{
-  bottom:24px !important;
-  background:rgba(10,10,10,.96) !important;
-  border-color:rgba(248,231,2,.18) !important;
-}
+.forum-subchannel .forum-unread-badge{ margin-left:auto; flex:0 0 auto; }
+.conv-row1 .forum-unread-badge{ margin-left:auto; }
+.forum-chevron{ margin-left:.35rem; }

@@ -2367,69 +2367,38 @@ button.profile-pill:focus-visible {
   .member-public-badge--hero{ width:100%; }
 }
 
-/* Correctif UX badge membre — 18/05 : badge sous Bonjour, notifications plus discret */
-.welcome-identity{
-  min-width:0;
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
+
+/* Correctif UX badge membre v34 : visible mais discret */
+.account-actions{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:.5rem;
+  align-items:center;
 }
-.welcome-identity .member-public-badge--hero{
-  margin-top:.72rem;
+.account-actions .btn-account,
+.account-actions .member-public-badge--hero{
+  min-height:34px !important;
+  padding:.38rem .62rem !important;
+  font-size:.74rem !important;
 }
 .member-public-badge--hero{
   width:auto !important;
   max-width:100% !important;
-  min-height:44px !important;
-  padding:.68rem 1rem !important;
-  border-radius:999px !important;
-  border:1px solid rgba(248,231,2,.72) !important;
-  background:linear-gradient(135deg, rgba(248,231,2,.28), rgba(248,231,2,.10), rgba(255,255,255,.055)) !important;
-  box-shadow:0 0 0 3px rgba(248,231,2,.08), 0 14px 30px rgba(0,0,0,.28), inset 0 0 0 1px rgba(255,255,255,.08) !important;
+  justify-self:stretch;
+  box-shadow:0 8px 20px rgba(0,0,0,.16), inset 0 0 0 1px rgba(255,255,255,.04) !important;
 }
 .member-public-badge--hero .fts-public-badge{
-  font-size:.96rem !important;
-  font-weight:950 !important;
-  line-height:1.1 !important;
-  color:#fff !important;
-  text-shadow:0 2px 5px rgba(0,0,0,.42) !important;
+  font-size:.74rem !important;
+  line-height:1.05 !important;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
-.member-public-badge--hero .fts-public-badge--artist,
-.member-public-badge--hero .fts-public-badge--rare{
-  color:#fff !important;
-  text-shadow:0 2px 5px rgba(0,0,0,.42) !important;
+.btn-notif-hero .quick-ico{ font-size:1.05rem !important; }
+@media (max-width:720px){
+  .member-public-badge--hero{ width:auto !important; }
 }
-.btn-notif-hero{
-  min-height:32px !important;
-  padding:.28rem .62rem !important;
-  font-size:.68rem !important;
-  opacity:.86;
-}
-.btn-notif-hero .quick-ico{ font-size:.92rem; }
-.btn-notif-hero .quick-title{ font-size:.68rem; }
-@media (max-width:560px){
-  .welcome-head{
-    flex-direction:column !important;
-    align-items:flex-start !important;
-    gap:.75rem !important;
-  }
-  .welcome-identity,
-  .welcome-identity .member-public-badge--hero{
-    width:100% !important;
-  }
-  .account-actions{
-    width:100% !important;
-    display:grid !important;
-    grid-template-columns:1fr 1fr !important;
-    gap:.5rem !important;
-  }
-  .account-actions .btn-notif-hero{
-    grid-column:1/-1;
-    width:auto !important;
-    justify-self:start;
-    min-height:30px !important;
-  }
-  .account-actions .btn-account:not(.btn-notif-hero){
-    min-height:42px !important;
-  }
+@media (max-width:380px){
+  .account-actions{ grid-template-columns:1fr 1fr; }
+  .account-actions .btn-account,
+  .account-actions .member-public-badge--hero{ font-size:.7rem !important; padding:.34rem .5rem !important; }
 }
