@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=3" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=4" rel="stylesheet"/>
 
 <!-- Firebase SDK — Auth ajouté -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -108,6 +108,7 @@
     <button class="btn-action btn-approve" data-fts-click="assignArtistOfWeek()">⭐ Définir Artiste de la semaine</button>
   </div>
   <div class="empty-msg rewards-note">Un message automatique sera publié dans le forum général.</div>
+  <div class="rewards-history" id="rewards-history" aria-label="Historique des récompenses"></div>
 </section>
 </div>
 <div class="tab-content" id="tab-messages">
@@ -144,7 +145,7 @@
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/fts-pwa.js"></script>
-<script src="assets/js/fts-gamification.js?v=2"></script>
+<script src="assets/js/fts-gamification.js?v=3"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/resources.service.js?v=1"></script>
@@ -154,6 +155,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/forum-admin.js?v=6"></script>
+<script src="assets/js/pages/forum-admin.js?v=7"></script>
 </body>
 </html>
