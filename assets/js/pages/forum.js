@@ -27,6 +27,9 @@ let forumUserCache = {};
 let forumUserListeners = {};
 let artistOfWeek = null;
 let currentMessages = {};
+let forumUnreadCounts = {};
+let forumUnreadRefreshTimer = null;
+let forumUnreadListening = false;
 
 function norm(s){ return FTS.norm(s); }
 function normList(arr){
@@ -102,7 +105,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       FTSChat.setAvatar(document.getElementById('my-avatar'), label);
       listenUnreadBadge(uid);
       checkNotifStatus();
-      buildForumItems(); renderForumList(); openForumDeepLink();
+      buildForumItems(); renderForumList(); initForumUnreadWatchers(); openForumDeepLink();
     }catch(e){ console.warn('[FTS Forum]', e); showBootError(e); }
   });
 });
@@ -159,7 +162,7 @@ async function loadUserData(){
   }).catch(e => console.warn('[FTS Forum] Synchro profil forum impossible', e));
 
   db.ref('fts_forum/users/'+uid+'/status').on('value', snap => {
-    if(snap.exists()){ userData.status = snap.val(); updateStatusUI(); buildForumItems(); renderForumList(); openForumDeepLink(); }
+    if(snap.exists()){ userData.status = snap.val(); updateStatusUI(); buildForumItems(); renderForumList(); initForumUnreadWatchers(); openForumDeepLink(); }
   });
 }
 
@@ -172,7 +175,7 @@ async function loadCategoryStructure(){
     categoryStructure = FTS.getCategoryStructureAsync ? await FTS.getCategoryStructureAsync(db) : (FTS.getCategoryStructure ? FTS.getCategoryStructure() : []);
   }catch(e){ console.warn('[FTS Forum] Structure catégories Firebase', e); categoryStructure = []; }
   categoryLoaded = true;
-  buildForumItems(); renderForumList(document.getElementById('forum-search')?.value || ''); openForumDeepLink();
+  buildForumItems(); renderForumList(document.getElementById('forum-search')?.value || ''); initForumUnreadWatchers(); openForumDeepLink();
 }
 
 function buildForumItems(){
@@ -206,6 +209,66 @@ function buildForumItems(){
   forumItems = items;
 }
 
+
+function getVisibleForumChannelIds(){
+  const ids = [];
+  (forumItems || []).forEach(item => {
+    if(item.type === 'channel' && item.id) ids.push(item.id);
+    (item.channels || []).forEach(ch => { if(ch && ch.id) ids.push(ch.id); });
+  });
+  return [...new Set(ids)];
+}
+
+function forumUnreadBadgeHtml(channel){
+  const n = Number(forumUnreadCounts[channel] || 0);
+  if(!n) return '';
+  return `<span class="forum-unread-badge" aria-label="${n} message${n>1?'s':''} non lu${n>1?'s':''}">${n > 99 ? '99+' : n}</span>`;
+}
+
+function forumUnreadCategoryTotal(item){
+  return (item.channels || []).reduce((sum, ch) => sum + Number(forumUnreadCounts[ch.id] || 0), 0);
+}
+
+function scheduleForumUnreadRefresh(){
+  if(forumUnreadRefreshTimer) clearTimeout(forumUnreadRefreshTimer);
+  forumUnreadRefreshTimer = setTimeout(refreshForumUnreadCounts, 120);
+}
+
+async function refreshForumUnreadCounts(){
+  if(!uid || !db) return;
+  const channels = getVisibleForumChannelIds();
+  if(!channels.length){ forumUnreadCounts = {}; renderForumList(document.getElementById('forum-search')?.value || ''); return; }
+  try{
+    const readsSnap = await db.ref('fts_users/' + uid + '/forumReads').once('value');
+    const reads = readsSnap.val() || {};
+    const next = {};
+    await Promise.all(channels.map(ch => {
+      const lastRead = Number((reads[ch] && reads[ch].ts) || reads[ch] || 0);
+      if(!lastRead){ next[ch] = 0; return Promise.resolve(); }
+      return db.ref('fts_forum/messages/' + ch).orderByChild('ts').startAt(lastRead + 1).limitToLast(50).once('value')
+        .then(snap => {
+          let count = 0;
+          snap.forEach(child => {
+            const msg = child.val() || {};
+            if(msg.uid && msg.uid === uid) return;
+            count += 1;
+          });
+          next[ch] = count;
+        }).catch(() => { next[ch] = 0; });
+    }));
+    forumUnreadCounts = next;
+    renderForumList(document.getElementById('forum-search')?.value || '');
+  }catch(e){ console.warn('[FTS Forum] compteurs non lus:', e); }
+}
+
+function initForumUnreadWatchers(){
+  if(!uid || !db || forumUnreadListening) return;
+  forumUnreadListening = true;
+  db.ref('fts_forum/messages').on('value', scheduleForumUnreadRefresh);
+  db.ref('fts_users/' + uid + '/forumReads').on('value', scheduleForumUnreadRefresh);
+  scheduleForumUnreadRefresh();
+}
+
 function renderForumList(q=''){
   const list = document.getElementById('forum-list'); if(!list) return;
   const term = q.trim().toLowerCase();
@@ -222,12 +285,12 @@ function renderForumList(q=''){
       <div class="conv-item" data-fts-click="toggleCategory('${esc(item.id)}')">
         <div class="conv-av conv-av-gold-soft">${item.icon}</div>
         <div class="conv-body">
-          <div class="conv-row1"><div class="conv-name">${esc(item.name)}</div><div class="forum-chevron">›</div></div>
+          <div class="conv-row1"><div class="conv-name">${esc(item.name)}</div>${forumUnreadCategoryTotal(item) ? `<span class="forum-unread-badge">${forumUnreadCategoryTotal(item) > 99 ? '99+' : forumUnreadCategoryTotal(item)}</span>` : ''}<div class="forum-chevron">›</div></div>
           <div class="conv-row2"><div class="conv-preview">${esc(item.desc)}</div></div>
         </div>
       </div>
       <div class="forum-subchannels">
-        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span></div>`).join('')}
+        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span>${forumUnreadBadgeHtml(ch.id)}</div>`).join('')}
       </div>
     </div>`;
   }).join('');
@@ -237,7 +300,7 @@ function renderChannelBubble(ch){
   return `<div class="conv-item${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')">
     <div class="conv-av conv-av-red-soft">${ch.icon}</div>
     <div class="conv-body">
-      <div class="conv-row1"><div class="conv-name">${esc(ch.name)}</div></div>
+      <div class="conv-row1"><div class="conv-name">${esc(ch.name)}</div>${forumUnreadBadgeHtml(ch.id)}</div>
       <div class="conv-row2"><div class="conv-preview">${esc(ch.preview || ch.desc || '')}</div></div>
     </div>
   </div>`;
@@ -247,6 +310,8 @@ function toggleCategory(id){ openCats[id] = !openCats[id]; renderForumList(docum
 
 function markForumChannelRead(channel){
   if(!uid || !channel || !db) return;
+  forumUnreadCounts[channel] = 0;
+  renderForumList(document.getElementById('forum-search')?.value || '');
   db.ref('fts_users/' + uid + '/forumReads/' + channel).set({ ts: Date.now() }).catch(() => {});
 }
 
@@ -296,18 +361,10 @@ async function sendMessage(){
 
 
 function listenArtistOfWeek(){
-  db.ref('fts_forum/artistOfWeek').on('value', snap => {
+  db.ref('fts_community/artistOfWeek').on('value', snap => {
     artistOfWeek = snap.val() || null;
     refreshAllVisibleBadges();
   });
-  // Compat ancienne version : lecture non bloquante de l'ancien chemin.
-  db.ref('fts_community/artistOfWeek').on('value', snap => {
-    const legacy = snap.val() || null;
-    if(legacy && (!artistOfWeek || Number(legacy.ts||0) >= Number(artistOfWeek.ts||0))){
-      artistOfWeek = legacy;
-      refreshAllVisibleBadges();
-    }
-  }, ()=>{});
 }
 
 function ensureForumUser(uidToLoad){
