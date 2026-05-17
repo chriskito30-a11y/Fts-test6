@@ -1,4 +1,4 @@
-const CACHE = 'fts-v33-icons-fix';
+const CACHE = 'fts-v34-notif-badge-fix';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -198,7 +198,7 @@ async function handlePushNotification(event){
   await self.registration.showNotification(data.title || 'Fais Ton Show', {
     body: data.body || 'Nouvelle notification',
     icon: './assets/img/fts-any-192.png',
-    badge: './assets/img/fts-any-192.png',
+    badge: './assets/img/fts-badge-96.png',
     vibrate: [200, 100, 200],
     tag,
     // Si une notification identique arrive plusieurs fois, elle est remplacée sans revibrer.
