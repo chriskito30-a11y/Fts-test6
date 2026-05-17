@@ -13,7 +13,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
-<link href="assets/css/pages/index.css?v=3" rel="stylesheet"/>
+<link href="assets/css/pages/index.css?v=23" rel="stylesheet"/>
 </head>
 
 <body class="has-noise has-glow index-page">
@@ -27,12 +27,18 @@
       </header>
 
       <div class="hero-actions" aria-label="Actions principales">
-        <a class="header-link header-link-gold" href="./membres.html" id="h-membres">
-          🎭 Mon espace membre
-        </a>
-        <a class="header-link header-link-muted" href="#orientation">
+        <a class="header-link header-link-gold header-link-primary" href="#orientation">
           🧭 Je découvre / je m’inscris
         </a>
+        <a class="header-link header-link-muted" href="./membres.html" id="h-membres">
+          🎭 Mon espace membre
+        </a>
+      </div>
+
+      <div class="hero-guidance" aria-label="Parcours simplifié">
+        <span>1. Je réponds</span>
+        <span>2. Je choisis</span>
+        <span>3. J’accède au bon lien</span>
       </div>
 
       <nav class="hero-secondary-links" aria-label="Liens utiles">
@@ -46,6 +52,10 @@
 
     <section class="questionnaire-zone" id="orientation" aria-label="Questionnaire d'orientation">
       <div class="zone-kicker">Orientation rapide</div>
+      <div class="orientation-intro">
+        <strong>Que veux-tu faire aujourd’hui ?</strong>
+        <span>Réponds en quelques secondes, l’app t’envoie au bon endroit.</span>
+      </div>
       <div class="questionnaire-card" id="card">
         <div class="loading-wrap" id="loading">
           <div class="loading-spinner"></div>
@@ -80,6 +90,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/index.js?v=2"></script>
+<script src="assets/js/pages/index.js?v=23"></script>
 </body>
 </html>
