@@ -28,3 +28,29 @@ body.fts-chat-modern .forum-category-group { margin-bottom: .45rem; }
 body.fts-chat-modern .forum-category-group .conv-item:first-child { border-color: rgba(248,231,2,.16); }
 body.fts-chat-modern .forum-unread-badge { box-shadow: 0 0 0 2px rgba(10,10,10,.85); }
 body.fts-chat-modern .upload-bar { border-top: 1px solid rgba(255,255,255,.08); background: rgba(20,20,20,.92); }
+
+
+/* Patch UX v19 — forum plus lisible sans changer Firebase */
+body.fts-chat-modern .sb-title::after { opacity: .78; }
+body.fts-chat-modern .forum-category-group {
+  padding: .22rem 0 .34rem;
+  border-bottom: 1px solid rgba(255,255,255,.045);
+}
+body.fts-chat-modern .forum-category-group:last-child { border-bottom: 0; }
+body.fts-chat-modern .forum-subchannel {
+  border: 1px solid transparent;
+}
+body.fts-chat-modern .forum-subchannel.active {
+  border-color: rgba(248,231,2,.18);
+  box-shadow: inset 0 0 0 1px rgba(248,231,2,.08);
+}
+body.fts-chat-modern .chat-empty-title span,
+body.fts-chat-modern .chat-hdr-name { letter-spacing: .01em; }
+body.fts-chat-modern .msg-audio-card {
+  padding: .75rem;
+  border: 1px solid rgba(248,231,2,.14);
+  border-radius: 16px;
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+  box-shadow: 0 12px 30px rgba(0,0,0,.2);
+}
+body.fts-chat-modern .msg-audio-title { font-weight: 900; }

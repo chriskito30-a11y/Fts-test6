@@ -37,3 +37,11 @@ body.fts-chat-modern .chat-empty-title::before { content: '💬 '; font-family: 
 body.fts-chat-modern .chat-empty-sub { color: rgba(245,242,238,.68); }
 body.fts-chat-modern .btn-chat-del { border-radius: 999px; }
 body.fts-chat-modern .modal { background: #121212; border: 1px solid rgba(255,255,255,.08); }
+
+
+/* Patch UX v19 — messages plus premium */
+body.fts-chat-modern .sb-title { line-height: 1; }
+body.fts-chat-modern .btn-compose { box-shadow: 0 10px 24px rgba(0,0,0,.2); }
+body.fts-chat-modern .chat-empty-sub { max-width: 360px; line-height: 1.55; }
+body.fts-chat-modern .type-tab.on { box-shadow: inset 0 0 0 1px rgba(248,231,2,.14); }
+body.fts-chat-modern .modal-title { font-weight: 900; }
