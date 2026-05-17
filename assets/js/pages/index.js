@@ -11,16 +11,16 @@ const CFG = {
   name:    "Fais Ton Show",
   eyebrow: "École des arts de la scène",
   slogan:  "On est pas là pour faire semblant, on est là pour faire le Show !",
-  footer:  "Fais Ton Show",
+  footer:  "Fais Ton Show · contact@faistonshow.fr",
 
   step1: {
     question: "C'est ta première fois avec nous ?",
-    desc:     "Pour te guider vers les bonnes options.",
+    desc:     "On te guide vers le bon parcours, sans chercher partout.",
   },
 
   step2: {
     question:   "Que souhaites-tu faire ?",
-    desc:       "Dis-nous si tu fais déjà partie de l'aventure.",
+    desc:       "Choisis ton besoin principal, on te redirige au bon endroit.",
     categories: [
       { id: "adhesion", icon: "🎫", title: "Prendre mon adhésion",       desc: "Rejoindre l'association pour la saison",    profiles: ["new"] },
       { id: "event",    icon: "🎪", title: "Acheter une place",           desc: "Spectacles, soirées, showcases…",          profiles: ["member", "new"] },
@@ -305,7 +305,7 @@ function goStep3() {
     </div>
     <div class="step-actions">
       <button class="btn-step-back" data-fts-click="goStep2()">← Retour</button>
-      <button class="btn-step-next" id="btn3" disabled data-fts-click="showDest()">Voir où s'inscrire →</button>
+      <button class="btn-step-next" id="btn3" disabled data-fts-click="showDest()">Voir le bon lien →</button>
     </div>`;
 }
 
@@ -337,7 +337,7 @@ function showDest() {
       <div class="dest-desc">${FTS.esc(opt.destDesc  || opt.desc)}</div>
       ${details ? '<div class="dest-details">' + details + '</div>' : ''}
       <a href="${opt.link}" class="btn-helloasso" target="_blank" rel="noopener">
-        S'inscrire sur HelloAsso →
+        Ouvrir le lien sécurisé →
       </a>
       <button class="btn-ghost" data-fts-click="restart()">Recommencer depuis le début</button>
     </div>`;
