@@ -291,6 +291,37 @@ let memberBadgeArtistRef = null;
 let memberForumUser = null;
 let memberArtistOfWeek = null;
 
+function formatRewardUntil(until){
+  const ts = Number(until || 0);
+  if(!ts) return '';
+  try {
+    return new Date(ts).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
+  } catch(e) { return ''; }
+}
+
+function renderAccountRewardsPanel(){
+  if(!window.FTSGamification) return;
+  const badgeEl = document.getElementById('account-current-badge');
+  const metaEl = document.getElementById('account-rewards-meta');
+  const postsEl = document.getElementById('account-stat-posts');
+  const reactsEl = document.getElementById('account-stat-reactions');
+  const source = Object.assign({ uid: currentUser && currentUser.uid, xp:0, stats:{} }, memberForumUser || {});
+  const badge = FTSGamification.getPublicBadge(source, memberArtistOfWeek);
+  if(badgeEl) badgeEl.innerHTML = FTSGamification.renderBadge(badge.label, badge.kind);
+  if(metaEl){
+    let msg = 'Ton badge est affiché dans le forum quand tu participes.';
+    const until = (badge.kind === 'artist' && memberArtistOfWeek && memberArtistOfWeek.uid === source.uid)
+      ? memberArtistOfWeek.until
+      : (source.specialBadge && source.specialBadge.until);
+    if(badge.kind === 'artist') msg = 'Statut temporaire : Artiste de la semaine' + (formatRewardUntil(until) ? ' jusqu’au ' + formatRewardUntil(until) : '') + '.';
+    else if(badge.kind === 'rare') msg = 'Badge temporaire attribué par l’équipe' + (formatRewardUntil(until) ? ' jusqu’au ' + formatRewardUntil(until) : '') + '.';
+    metaEl.textContent = msg;
+  }
+  const stats = source.stats || {};
+  if(postsEl) postsEl.textContent = Number(stats.forum_post || stats.forumPosts || 0);
+  if(reactsEl) reactsEl.textContent = Number(stats.reaction_received || stats.reactionsReceived || 0);
+}
+
 function renderMemberPublicBadge(){
   const el = document.getElementById('member-public-badge');
   if(!el || !window.FTSGamification) return;
@@ -298,6 +329,7 @@ function renderMemberPublicBadge(){
   const badge = FTSGamification.getPublicBadge(source, memberArtistOfWeek);
   el.innerHTML = FTSGamification.renderBadge(badge.label, badge.kind);
   el.classList.remove('is-empty');
+  renderAccountRewardsPanel();
 }
 
 function initMemberGamificationBadge(memberUid, profile, email){
@@ -1377,6 +1409,7 @@ function openAccountModal() {
   clearAccountMsg('account-pwd-msg');
   clearAccountMsg('profile-msg');
   fillAccountIdentity();
+  renderAccountRewardsPanel();
   checkNotifStatus();
   const p1 = document.getElementById('account-new-pwd');
   const p2 = document.getElementById('account-new-pwd2');

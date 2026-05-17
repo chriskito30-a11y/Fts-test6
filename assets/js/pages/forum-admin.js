@@ -156,6 +156,8 @@ function normalizeAdminUser(id, u) {
     subgroups,
     hasEnfant: u.hasEnfant || false,
     enfants: Array.isArray(u.enfants) ? u.enfants : [],
+    specialBadge: u.specialBadge || null,
+    stats: u.stats || {},
     ts: u.createdAt || u.ts || Date.now(),
   };
 }
@@ -164,15 +166,40 @@ function normalizeAdminUser(id, u) {
 function listenUsers() {
   // Source officielle : fts_users.
   // Les nouveaux inscrits pending y sont créés immédiatement, même si la synchro forum est bloquée par les règles.
-  db.ref("fts_users").on("value", function(snap) {
+  db.ref("fts_users").on("value", async function(snap) {
     const raw = snap.val() || {};
+    const forumSnap = await db.ref("fts_forum/users").once("value").catch(() => null);
+    const forumUsers = forumSnap && forumSnap.val ? (forumSnap.val() || {}) : {};
     allUsers = {};
-    Object.keys(raw).forEach(id => { allUsers[id] = normalizeAdminUser(id, raw[id]); });
+    Object.keys(raw).forEach(id => {
+      allUsers[id] = normalizeAdminUser(id, Object.assign({}, raw[id], {
+        specialBadge: (forumUsers[id] && forumUsers[id].specialBadge) || raw[id].specialBadge || null,
+        stats: Object.assign({}, raw[id].stats || {}, (forumUsers[id] && forumUsers[id].stats) || {})
+      }));
+    });
     renderPending();
     renderMembers();
     renderCategorySummary();
     renderRewardsPanel();
   });
+}
+
+async function refreshAdminUsersOnce() {
+  const snap = await db.ref("fts_users").once("value");
+  const raw = snap.val() || {};
+  const forumSnap = await db.ref("fts_forum/users").once("value").catch(() => null);
+  const forumUsers = forumSnap && forumSnap.val ? (forumSnap.val() || {}) : {};
+  allUsers = {};
+  Object.keys(raw).forEach(id => {
+    allUsers[id] = normalizeAdminUser(id, Object.assign({}, raw[id], {
+      specialBadge: (forumUsers[id] && forumUsers[id].specialBadge) || raw[id].specialBadge || null,
+      stats: Object.assign({}, raw[id].stats || {}, (forumUsers[id] && forumUsers[id].stats) || {})
+    }));
+  });
+  renderPending();
+  renderMembers();
+  renderCategorySummary();
+  renderRewardsPanel();
 }
 
 /* ── RENDU : EN ATTENTE ──────────────────────────────────────── */
@@ -675,6 +702,53 @@ function activeMembersForRewards() {
     .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'fr'));
 }
 
+function rewardUntilText(until) {
+  if (!until) return 'Durée inconnue';
+  try {
+    return 'jusqu’au ' + new Date(Number(until)).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  } catch(e) { return 'Durée inconnue'; }
+}
+
+function getActiveRewardsForAdmin() {
+  const now = Date.now();
+  return Object.entries(allUsers || {})
+    .filter(([id, u]) => u && u.specialBadge && u.specialBadge.label && (!u.specialBadge.until || Number(u.specialBadge.until) > now))
+    .sort((a, b) => Number(a[1].specialBadge.until || 0) - Number(b[1].specialBadge.until || 0));
+}
+
+function renderRewardHistoryPanel() {
+  const box = document.getElementById('rewards-history');
+  if (!box) return;
+  const items = getActiveRewardsForAdmin();
+  if (!items.length) {
+    box.innerHTML = '<div class="rewards-history-empty">Aucune récompense temporaire active pour le moment.</div>';
+    return;
+  }
+  box.innerHTML = `
+    <div class="rewards-history-head">
+      <strong>Récompenses en cours</strong>
+      <small>${items.length} active${items.length > 1 ? 's' : ''}</small>
+    </div>
+    <div class="rewards-history-list">
+      ${items.map(([uid, u]) => {
+        const b = u.specialBadge || {};
+        const isArtist = b.kind === 'artist' || String(b.label || '').includes('Artiste de la semaine');
+        return `
+          <div class="reward-history-item ${isArtist ? 'is-artist' : ''}">
+            <div class="reward-history-main">
+              <span class="reward-history-badge">${FTS.esc(b.label || 'Badge')}</span>
+              <strong>${FTS.esc(u.name || u.email || 'Membre')}</strong>
+              <small>${FTS.esc(rewardUntilText(b.until))}${b.reason ? ' · ' + FTS.esc(b.reason) : ''}</small>
+            </div>
+            <div class="reward-history-actions">
+              <button class="btn-action" data-fts-click="extendReward('${FTS.esc(uid)}')">+7j</button>
+              <button class="btn-action btn-del" data-fts-click="clearReward('${FTS.esc(uid)}')">Retirer</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
 function renderRewardsPanel() {
   const userSel = document.getElementById('reward-user');
   const badgeSel = document.getElementById('reward-badge');
@@ -689,6 +763,7 @@ function renderRewardsPanel() {
     badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
     badgeSel.dataset.ready = '1';
   }
+  renderRewardHistoryPanel();
 }
 
 async function assignSpecialBadge() {
@@ -700,6 +775,7 @@ async function assignSpecialBadge() {
   if (!targetUid || !badge) { alert('Choisis un membre et un badge.'); return; }
   try {
     await FTSGamification.setSpecialBadge(db, targetUid, badge, days, current && current.uid, reason);
+    await refreshAdminUsersOnce();
     alert('Badge temporaire attribué.');
   } catch (e) {
     console.warn('[FTS Rewards] Attribution impossible', e);
@@ -715,10 +791,36 @@ async function assignArtistOfWeek() {
   if (!confirm('Définir ce membre comme Artiste de la semaine ?')) return;
   try {
     await FTSGamification.setArtistOfWeek(db, targetUid, current && current.uid, reason, 7);
+    await refreshAdminUsersOnce();
     alert('Artiste de la semaine défini.');
   } catch (e) {
     console.warn('[FTS Rewards] Artiste de la semaine impossible', e);
     alert('Impossible de définir l’artiste de la semaine : ' + (e && e.message ? e.message : e));
+  }
+}
+
+
+async function extendReward(uid) {
+  const current = firebase.auth().currentUser;
+  if (!uid || !window.FTSGamification) return;
+  try {
+    await FTSGamification.extendSpecialBadge(db, uid, 7, current && current.uid);
+    await refreshAdminUsersOnce();
+  } catch(e) {
+    alert('Impossible de prolonger : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function clearReward(uid) {
+  const current = firebase.auth().currentUser;
+  if (!uid || !window.FTSGamification) return;
+  const name = allUsers && allUsers[uid] ? (allUsers[uid].name || allUsers[uid].email || 'ce membre') : 'ce membre';
+  if (!confirm('Retirer la récompense temporaire de ' + name + ' ?')) return;
+  try {
+    await FTSGamification.clearSpecialBadge(db, uid, current && current.uid);
+    await refreshAdminUsersOnce();
+  } catch(e) {
+    alert('Impossible de retirer : ' + (e && e.message ? e.message : e));
   }
 }
 

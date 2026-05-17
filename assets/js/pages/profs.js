@@ -879,23 +879,81 @@ async function getRewardVisibleStudents() {
       students.push({ uid: child.key, ...u });
     });
   }
+  // Fusion douce avec le profil forum : les badges temporaires y sont la source la plus fiable.
+  const forumSnap = await db.ref("fts_forum/users").once("value").catch(() => null);
+  const forumUsers = forumSnap && forumSnap.val ? (forumSnap.val() || {}) : {};
+  students.forEach(u => {
+    const fu = forumUsers[u.uid] || {};
+    if (fu.specialBadge) u.specialBadge = fu.specialBadge;
+    if (fu.stats) u.stats = Object.assign({}, u.stats || {}, fu.stats);
+  });
   students.sort((a, b) => (a.name || "").localeCompare(b.name || "", "fr"));
   return students;
+}
+
+let rewardVisibleStudentsCache = [];
+
+function rewardUntilText(until) {
+  if (!until) return 'Durée inconnue';
+  try {
+    return 'jusqu’au ' + new Date(Number(until)).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+  } catch(e) { return 'Durée inconnue'; }
+}
+
+function renderRewardsHistoryForProfs(students) {
+  const box = document.getElementById('rewards-history');
+  if (!box) return;
+  const now = Date.now();
+  const active = (students || [])
+    .filter(u => u && u.specialBadge && u.specialBadge.label && (!u.specialBadge.until || Number(u.specialBadge.until) > now))
+    .sort((a, b) => Number(a.specialBadge.until || 0) - Number(b.specialBadge.until || 0));
+  if (!active.length) {
+    box.innerHTML = '<div class="rewards-history-empty">Aucune récompense temporaire active pour tes élèves.</div>';
+    return;
+  }
+  box.innerHTML = `
+    <div class="rewards-history-head">
+      <strong>Récompenses en cours</strong>
+      <small>${active.length} active${active.length > 1 ? 's' : ''}</small>
+    </div>
+    <div class="rewards-history-list">
+      ${active.map(u => {
+        const b = u.specialBadge || {};
+        const isArtist = b.kind === 'artist' || String(b.label || '').includes('Artiste de la semaine');
+        const name = [u.firstName,u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre';
+        return `
+          <div class="reward-history-item ${isArtist ? 'is-artist' : ''}">
+            <div class="reward-history-main">
+              <span class="reward-history-badge">${FTS.esc(b.label || 'Badge')}</span>
+              <strong>${FTS.esc(name)}</strong>
+              <small>${FTS.esc(rewardUntilText(b.until))}${b.reason ? ' · ' + FTS.esc(b.reason) : ''}</small>
+            </div>
+            <div class="reward-history-actions">
+              <button class="btn-save rewards-mini-btn" onclick="extendRewardFromProfs('${FTS.esc(u.uid)}')">+7j</button>
+              <button class="btn-danger rewards-mini-btn" onclick="clearRewardFromProfs('${FTS.esc(u.uid)}')">Retirer</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
 }
 
 async function loadRewardsPanel() {
   const userSel = document.getElementById('reward-user');
   const badgeSel = document.getElementById('reward-badge');
   if (!userSel || !badgeSel || !window.FTSGamification) return;
+  const previousValue = userSel.value;
   userSel.innerHTML = '<option value="">Chargement…</option>';
   const students = await getRewardVisibleStudents();
+  rewardVisibleStudentsCache = students;
   userSel.innerHTML = students.length
     ? students.map(u => `<option value="${FTS.esc(u.uid)}">${FTS.esc([u.firstName,u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre')}</option>`).join('')
     : '<option value="">Aucun élève accessible</option>';
+  if (previousValue && students.some(u => u.uid === previousValue)) userSel.value = previousValue;
   if (!badgeSel.dataset.ready) {
     badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
     badgeSel.dataset.ready = '1';
   }
+  renderRewardsHistoryForProfs(students);
 }
 
 async function assignSpecialBadgeFromProfs() {
@@ -907,6 +965,7 @@ async function assignSpecialBadgeFromProfs() {
   if (!targetUid || !badge) { alert('Choisis un élève et un badge.'); return; }
   try {
     await FTSGamification.setSpecialBadge(db, targetUid, badge, days, current && current.uid, reason);
+    await loadRewardsPanel();
     alert('Badge temporaire attribué.');
   } catch (e) {
     console.warn('[FTS Profs Rewards]', e);
@@ -922,9 +981,35 @@ async function assignArtistOfWeekFromProfs() {
   if (!confirm('Définir cet élève comme Artiste de la semaine ?')) return;
   try {
     await FTSGamification.setArtistOfWeek(db, targetUid, current && current.uid, reason, 7);
+    await loadRewardsPanel();
     alert('Artiste de la semaine défini.');
   } catch (e) {
     console.warn('[FTS Profs Rewards]', e);
     alert('Impossible de définir l’artiste : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function extendRewardFromProfs(uid) {
+  const current = firebase.auth().currentUser;
+  if (!uid || !window.FTSGamification) return;
+  try {
+    await FTSGamification.extendSpecialBadge(db, uid, 7, current && current.uid);
+    await loadRewardsPanel();
+  } catch(e) {
+    alert('Impossible de prolonger : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function clearRewardFromProfs(uid) {
+  const current = firebase.auth().currentUser;
+  if (!uid || !window.FTSGamification) return;
+  const student = (rewardVisibleStudentsCache || []).find(u => u.uid === uid);
+  const name = student ? ([student.firstName, student.lastName].filter(Boolean).join(' ') || student.name || student.email || 'cet élève') : 'cet élève';
+  if (!confirm('Retirer la récompense temporaire de ' + name + ' ?')) return;
+  try {
+    await FTSGamification.clearSpecialBadge(db, uid, current && current.uid);
+    await loadRewardsPanel();
+  } catch(e) {
+    alert('Impossible de retirer : ' + (e && e.message ? e.message : e));
   }
 }
