@@ -3,6 +3,27 @@
   'use strict';
 
   var ADMIN_FALLBACK_EMAILS = ['contact@faistonshow.fr'];
+  var unreadListenerUid = null;
+
+  function esc(v){
+    if (window.FTS && typeof FTS.esc === 'function') return FTS.esc(v);
+    return String(v == null ? '' : v).replace(/[&<>'"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]); });
+  }
+  function norm(v){
+    if (window.FTS && typeof FTS.norm === 'function') return FTS.norm(v);
+    return String(v || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  }
+  function catIcon(name){
+    if (window.FTS && typeof FTS.catIcon === 'function') return FTS.catIcon(name);
+    var n = norm(name);
+    if (n.includes('theatre')) return '🎭';
+    if (n.includes('danse')) return '💃';
+    if (n.includes('chant')) return '🎤';
+    if (n.includes('musique')) return '🎸';
+    if (n.includes('comedie')) return '🎬';
+    if (n.includes('singer')) return '⭐';
+    return '📄';
+  }
 
   function setBadge(id, count){
     var el = document.getElementById(id);
@@ -17,12 +38,6 @@
     el.textContent = n > 20 ? '20+' : String(n);
     el.classList.add('is-on');
     el.style.display = 'inline-flex';
-  }
-
-  function getStoredNewsCount(uid){
-    if (!uid) return 0;
-    try { return Number(localStorage.getItem('fts_member_news_count_' + uid) || 0); }
-    catch(e){ return 0; }
   }
 
   function boolVisible(el, visible){
@@ -90,14 +105,42 @@
     });
   }
 
+  function initFirebaseSafe(){
+    try {
+      if (window.FTS && typeof FTS.initFirebase === 'function') return FTS.initFirebase();
+      if (window.firebase && firebase.database) return firebase.database();
+    } catch(e) {}
+    return null;
+  }
+
+  function listenUnreadMessages(uid){
+    if (!uid || unreadListenerUid === uid) return;
+    unreadListenerUid = uid;
+    var db = initFirebaseSafe();
+    if (!(db && window.firebase && firebase.database)) return;
+
+    db.ref('fts_dm/userConvs/' + uid).on('value', function(snap){
+      var convIds = snap.val() ? Object.keys(snap.val()) : [];
+      if (!convIds.length) { setBadge('fts-member-badge', 0); return; }
+      var total = 0;
+      Promise.all(convIds.map(function(id){
+        return db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
+          .then(function(s){ total += Number(s.val() || 0) || 0; })
+          .catch(function(){});
+      })).then(function(){ setBadge('fts-member-badge', total); });
+    });
+  }
+
   function updateBadges(){
-    var done = function(uid){ setBadge('fts-news-badge', getStoredNewsCount(uid)); };
     try {
       if (window.FTS && typeof FTS.initFirebase === 'function') FTS.initFirebase();
       if (window.firebase && firebase.auth) {
         var user = firebase.auth().currentUser;
-        if (user) return done(user.uid);
-        firebase.auth().onAuthStateChanged(function(u){ done(u && u.uid); });
+        if (user) { listenUnreadMessages(user.uid); return; }
+        firebase.auth().onAuthStateChanged(function(u){
+          if (u) listenUnreadMessages(u.uid);
+          else setBadge('fts-member-badge', 0);
+        });
       }
     } catch(e) {}
   }
@@ -125,10 +168,168 @@
     }
   }
 
+  function profileLists(profile){
+    function list(v){ return (Array.isArray(v) ? v : String(v || '').split(',')).map(function(x){ return String(x || '').trim(); }).filter(Boolean); }
+    var ownCats = list(profile && (profile.disciplines || profile.group));
+    var ownSubs = list(profile && (profile.subgroups || profile.subcategories || profile.subgroup));
+    var childCats = [];
+    var childSubs = [];
+    if (profile && profile.hasEnfant && Array.isArray(profile.enfants)) {
+      profile.enfants.forEach(function(e){
+        childCats = childCats.concat(list(e.disciplines || e.group));
+        childSubs = childSubs.concat(list(e.subgroups || e.subcategories || e.subgroup));
+      });
+    }
+    return {
+      cats: Array.from(new Set(ownCats.concat(childCats))),
+      subs: Array.from(new Set(ownSubs.concat(childSubs)))
+    };
+  }
+
+  function canSeeResource(d, profile){
+    if (!profile) return false;
+    var role = String(profile.role || '').toLowerCase();
+    if (role === 'admin') return true;
+    var lists = profileLists(profile);
+    var cat = d.cat || d.category || '';
+    var sub = d.subcat || d.subcategory || '';
+    if (cat && lists.cats.map(norm).indexOf(norm(cat)) === -1) return false;
+    if (sub && lists.subs.length && lists.subs.map(norm).indexOf(norm(sub)) === -1) return false;
+    return true;
+  }
+
+  function resourceDownloadUrl(url){
+    if (!url) return '';
+    if (url.indexOf('/upload/') !== -1 && url.indexOf('/fl_attachment') === -1) return url.replace('/upload/', '/upload/fl_attachment/');
+    return url;
+  }
+
+  function ensureDocumentsModal(){
+    var existing = document.getElementById('fts-docs-modal');
+    if (existing) return existing;
+    var div = document.createElement('div');
+    div.className = 'fts-docs-modal hidden';
+    div.id = 'fts-docs-modal';
+    div.setAttribute('aria-hidden', 'true');
+    div.innerHTML = '<div class="fts-docs-box" role="dialog" aria-modal="true" aria-labelledby="fts-docs-title">'
+      + '<div class="fts-docs-head"><div><div class="fts-docs-kicker">Espace membre</div><h2 id="fts-docs-title">Mes documents</h2></div>'
+      + '<button type="button" class="fts-docs-close" data-action="close-documents-modal" aria-label="Fermer">✕</button></div>'
+      + '<div class="fts-docs-tools"><input type="search" id="fts-docs-search" placeholder="🔍 Rechercher un document…"></div>'
+      + '<div class="fts-docs-list" id="fts-docs-list"><div class="fts-docs-empty">Chargement…</div></div>'
+      + '</div>';
+    document.body.appendChild(div);
+    return div;
+  }
+
+  function groupResources(rows){
+    var groups = {};
+    rows.forEach(function(r){
+      var k = r.cat || 'Documents';
+      if (!groups[k]) groups[k] = [];
+      groups[k].push(r);
+    });
+    return groups;
+  }
+
+  function renderDocuments(rows, term){
+    var list = document.getElementById('fts-docs-list');
+    if (!list) return;
+    var q = norm(term || '');
+    var filtered = rows.filter(function(r){ return !q || norm([r.name, r.cat, r.sub, r.type].join(' ')).indexOf(q) !== -1; });
+    if (!filtered.length) {
+      list.innerHTML = '<div class="fts-docs-empty"><strong>Aucun document trouvé.</strong><span>Les ressources visibles selon ton profil apparaîtront ici.</span></div>';
+      return;
+    }
+    var groups = groupResources(filtered);
+    list.innerHTML = Object.keys(groups).sort().map(function(cat){
+      var items = groups[cat].map(function(r){
+        var icon = r.icon || (r.type === 'pdf' ? '▩' : r.type.indexOf('audio') >= 0 || r.type === 'mp3' ? '♪' : r.type.indexOf('video') >= 0 ? '▶' : '□');
+        var safeUrl = esc(r.url || '#');
+        var dl = esc(resourceDownloadUrl(r.url || ''));
+        var sub = r.sub ? '<small>' + esc(r.sub) + '</small>' : '<small>' + esc(r.type || 'document') + '</small>';
+        return '<div class="fts-doc-row"><a class="fts-doc-open" href="' + safeUrl + '" target="_blank" rel="noopener"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document') + '</strong>' + sub + '</span></a><a class="fts-doc-dl" href="' + dl + '" target="_blank" rel="noopener" download>⬇</a></div>';
+      }).join('');
+      return '<section class="fts-doc-group"><h3>' + catIcon(cat) + ' ' + esc(cat) + '</h3>' + items + '</section>';
+    }).join('');
+  }
+
+  function openDocumentsModal(){
+    var modal = ensureDocumentsModal();
+    modal.classList.remove('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    var list = document.getElementById('fts-docs-list');
+    if (list) list.innerHTML = '<div class="fts-docs-empty">Chargement des documents…</div>';
+
+    try {
+      var db = initFirebaseSafe();
+      var user = window.firebase && firebase.auth && firebase.auth().currentUser;
+      if (!db || !user) {
+        if (list) list.innerHTML = '<div class="fts-docs-empty"><strong>Connexion nécessaire.</strong><span>Retourne sur l’espace membre pour te reconnecter.</span></div>';
+        return;
+      }
+      Promise.all([
+        db.ref('fts_users/' + user.uid).once('value'),
+        db.ref('fts_ressources').once('value')
+      ]).then(function(res){
+        var profile = res[0].val() || {};
+        var snap = res[1];
+        var rows = [];
+        snap.forEach(function(child){
+          var d = child.val() || {};
+          if (d.active === false || d.status === 'inactive') return;
+          var name = d.name || d.nom || d.title || d.titre || '';
+          var url = d.url || d.content || d.contenu || d.link || d.lien || '';
+          if (!name || !url) return;
+          if (!canSeeResource(d, profile)) return;
+          rows.push({
+            name: name,
+            url: url,
+            cat: d.cat || d.category || 'Documents',
+            sub: d.subcat || d.subcategory || '',
+            type: String(d.type || 'doc').toLowerCase().trim(),
+            icon: d.icon || '',
+            ts: Number(d.createdAt || d.updatedAt || 0)
+          });
+        });
+        rows.sort(function(a,b){ return Number(b.ts || 0) - Number(a.ts || 0); });
+        window.FTSNav._documentsRows = rows;
+        renderDocuments(rows, '');
+      }).catch(function(err){
+        console.warn('[FTSNav] documents:', err);
+        if (list) list.innerHTML = '<div class="fts-docs-empty">Impossible de charger les documents.</div>';
+      });
+    } catch(e) {
+      if (list) list.innerHTML = '<div class="fts-docs-empty">Impossible de charger les documents.</div>';
+    }
+  }
+
+  function closeDocumentsModal(){
+    var modal = document.getElementById('fts-docs-modal');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function bindDocumentsModal(){
+    document.addEventListener('click', function(e){
+      var open = e.target.closest('[data-action="open-documents-modal"]');
+      if (open) { e.preventDefault(); openDocumentsModal(); return; }
+      if (e.target && e.target.id === 'fts-docs-modal') { closeDocumentsModal(); return; }
+      var close = e.target.closest('[data-action="close-documents-modal"]');
+      if (close) { closeDocumentsModal(); return; }
+    });
+    document.addEventListener('input', function(e){
+      if (e.target && e.target.id === 'fts-docs-search') renderDocuments(window.FTSNav._documentsRows || [], e.target.value || '');
+    });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeDocumentsModal(); });
+  }
+
   window.FTSNav = {
     setBadge: setBadge,
     updateBadges: updateBadges,
     updateRoleNavigation: applyRoleNavigation,
+    openDocumentsModal: openDocumentsModal,
+    _documentsRows: [],
     refresh: function(){ updateActiveNav(); updateBadges(); initRoleNavigation(); }
   };
 
@@ -136,5 +337,6 @@
     updateActiveNav();
     updateBadges();
     initRoleNavigation();
+    bindDocumentsModal();
   });
 })();
