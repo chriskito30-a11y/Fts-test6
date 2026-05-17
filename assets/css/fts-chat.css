@@ -528,30 +528,33 @@ html, body {
 .msg-audio-card { display:grid; gap:.45rem; min-width:min(280px, 70vw); }
 .msg-audio-title { font-size:.78rem; font-weight:700; color:var(--white); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .msg-file-card {
-  display:grid; gap:.55rem; min-width:min(310px, 74vw); margin-top:.25rem;
-  padding:.7rem; border:1px solid rgba(255,255,255,.09); border-radius:14px;
-  background:rgba(255,255,255,.045);
+  display:grid; gap:.6rem; min-width:min(330px, 76vw); margin-top:.35rem;
+  padding:.8rem; border:1px solid rgba(248,231,2,.16); border-radius:16px;
+  background:linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.03));
+  box-shadow: 0 12px 30px rgba(0,0,0,.22);
 }
 .msg-file-visible-title {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
   width: 100%;
   color: var(--white);
   font-size: .9rem;
   font-weight: 900;
   line-height: 1.25;
-  margin-bottom: .45rem;
+  margin-bottom: .15rem;
   overflow-wrap: anywhere;
 }
-.msg-file-main { display:flex; align-items:center; gap:.65rem; color:var(--white); text-decoration:none; min-width:0; }
+.msg-file-main { display:flex; align-items:center; gap:.7rem; color:var(--white); text-decoration:none; min-width:0; padding:.55rem; border-radius:13px; background:rgba(0,0,0,.18); border:1px solid rgba(255,255,255,.055); }
 .msg-file-main:hover .msg-file-title { color:var(--gold); }
-.msg-file-icon { width:36px; height:36px; display:grid; place-items:center; flex-shrink:0; border-radius:10px; background:rgba(248,231,2,.09); font-size:1.15rem; }
+.msg-file-icon { width:40px; height:40px; display:grid; place-items:center; flex-shrink:0; border-radius:12px; background:rgba(248,231,2,.12); font-size:1.2rem; box-shadow: inset 0 0 0 1px rgba(248,231,2,.12); }
 .msg-file-info { display:grid; gap:.12rem; min-width:0; flex:1; max-width:100%; }
-.msg-file-title { display:block; color:var(--white); font-size:.82rem; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
-.msg-file-sub { font-size:.68rem; color:var(--muted); }
+.msg-file-title { display:block; color:var(--white); font-size:.84rem; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
+.msg-file-sub { font-size:.68rem; color:var(--muted); font-weight:700; }
 .msg-file-download {
   display:inline-flex; align-items:center; justify-content:center; gap:.35rem; width:fit-content;
-  padding:.42rem .65rem; border-radius:999px; border:1px solid rgba(248,231,2,.35);
-  color:var(--gold); background:rgba(248,231,2,.08); text-decoration:none; font-size:.72rem; font-weight:800;
+  padding:.46rem .72rem; border-radius:999px; border:1px solid rgba(248,231,2,.38);
+  color:var(--gold); background:rgba(248,231,2,.09); text-decoration:none; font-size:.72rem; font-weight:900;
 }
 .msg-file-download:hover { border-color:var(--gold); background:rgba(248,231,2,.14); }
 .msg-file-download.compact { margin-top:.05rem; }
@@ -869,4 +872,20 @@ body.fts-chat-modern .btn-attach:hover {
   body.fts-chat-modern .modal-overlay {
     z-index: 130;
   }
+}
+
+
+/* Patch UX v19 — lisibilité forum/messages */
+body.fts-chat-modern .msg-wrap { animation: ftsMsgIn .18s ease both; }
+@keyframes ftsMsgIn { from { opacity: .72; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+body.fts-chat-modern .msg-bubble { box-shadow: 0 10px 26px rgba(0,0,0,.18); }
+body.fts-chat-modern .msg-sender { opacity: .86; font-weight: 900; letter-spacing: .01em; }
+body.fts-chat-modern .conv-item { transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+body.fts-chat-modern .conv-item:hover { transform: translateY(-1px); }
+body.fts-chat-modern .conv-item.active { box-shadow: inset 0 0 0 1px rgba(248,231,2,.12); }
+body.fts-chat-modern .chat-hdr { box-shadow: 0 12px 28px rgba(0,0,0,.12); }
+body.fts-chat-modern .input-area { box-shadow: 0 -14px 28px rgba(0,0,0,.16); }
+@media (max-width: 700px) {
+  .msg-file-card { min-width: min(320px, 84vw); }
+  body.fts-chat-modern .msg-bubble { max-width: 86vw; }
 }
