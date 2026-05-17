@@ -255,3 +255,38 @@ body.fts-chat-modern .msg-audio-title { font-weight: 900; }
   color:#fff !important;
   border-color:rgba(255,200,220,.34) !important;
 }
+
+
+/* Correctif v36 — badges forum lisibles sur tous les fonds */
+body.fts-chat-modern .msg-sender .msg-author-name-inline{
+  color:#fff !important;
+  text-shadow:0 1px 3px rgba(0,0,0,.75) !important;
+  font-weight:900 !important;
+}
+body.fts-chat-modern .msg-sender .msg-badge-slot .fts-public-badge,
+body.fts-chat-modern .msg-sender .fts-public-badge,
+body.fts-chat-modern .msg-badge-slot .fts-public-badge{
+  background:
+    radial-gradient(circle at 18% 20%, rgba(248,231,2,.22), transparent 35%),
+    linear-gradient(135deg, rgba(16,16,16,.98), rgba(42,35,8,.96)) !important;
+  color:#fff !important;
+  border:1px solid rgba(248,231,2,.50) !important;
+  box-shadow:
+    0 8px 22px rgba(0,0,0,.42),
+    inset 0 0 0 1px rgba(255,255,255,.07) !important;
+  text-shadow:0 1px 4px rgba(0,0,0,.75) !important;
+}
+body.fts-chat-modern .msg-sender .msg-badge-slot .fts-public-badge--artist,
+body.fts-chat-modern .msg-sender .fts-public-badge--artist,
+body.fts-chat-modern .msg-badge-slot .fts-public-badge--artist{
+  background:linear-gradient(135deg, rgba(70,58,0,.98), rgba(12,12,12,.98)) !important;
+  color:#fff7b5 !important;
+  border-color:rgba(248,231,2,.72) !important;
+}
+body.fts-chat-modern .msg-sender .msg-badge-slot .fts-public-badge--rare,
+body.fts-chat-modern .msg-sender .fts-public-badge--rare,
+body.fts-chat-modern .msg-badge-slot .fts-public-badge--rare{
+  background:linear-gradient(135deg, rgba(92,12,30,.98), rgba(12,12,12,.98)) !important;
+  color:#ffdbe8 !important;
+  border-color:rgba(255,200,220,.58) !important;
+}

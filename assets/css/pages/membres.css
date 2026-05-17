@@ -2462,3 +2462,125 @@ button.profile-pill:focus-visible {
     padding:.32rem .48rem !important;
   }
 }
+
+
+/* Correctif v36 — badge membre premium fiable depuis le dossier déployé (34)
+   Le badge est maintenant dans .account-actions : ligne du haut à droite,
+   même gabarit que "Notifs activées", sans prendre toute la carte. */
+.welcome-card.smart-hero .welcome-head{
+  align-items:flex-start !important;
+}
+
+.welcome-card.smart-hero .account-actions{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  gap:.55rem !important;
+  align-items:center !important;
+  justify-content:stretch !important;
+  width:min(100%, 520px) !important;
+  margin-left:auto !important;
+}
+
+.welcome-card.smart-hero .account-actions .btn-account,
+.welcome-card.smart-hero .account-actions .member-public-badge--hero{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:40px !important;
+  box-sizing:border-box !important;
+  border-radius:999px !important;
+  padding:.48rem .68rem !important;
+  font-size:.74rem !important;
+  line-height:1.1 !important;
+}
+
+.welcome-card.smart-hero .btn-notif-hero{
+  grid-column:1 !important;
+  grid-row:1 !important;
+  justify-self:stretch !important;
+  display:inline-flex !important;
+  justify-content:center !important;
+  gap:.35rem !important;
+}
+
+.welcome-card.smart-hero .member-public-badge--hero{
+  grid-column:2 !important;
+  grid-row:1 !important;
+  justify-self:stretch !important;
+  align-self:center !important;
+  margin:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  text-align:center !important;
+  overflow:hidden !important;
+  background:
+    radial-gradient(circle at 18% 20%, rgba(248,231,2,.30), transparent 36%),
+    linear-gradient(135deg, rgba(32,28,8,.92), rgba(10,10,10,.94)) !important;
+  border:1px solid rgba(248,231,2,.52) !important;
+  color:#fff !important;
+  box-shadow:
+    0 10px 24px rgba(0,0,0,.28),
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    inset 0 -10px 22px rgba(248,231,2,.045) !important;
+  backdrop-filter:blur(12px);
+}
+
+.welcome-card.smart-hero .member-public-badge--hero .fts-public-badge,
+.welcome-card.smart-hero .member-public-badge--hero .fts-public-badge--artist,
+.welcome-card.smart-hero .member-public-badge--hero .fts-public-badge--rare{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  min-width:0 !important;
+  max-width:100% !important;
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  color:#fff !important;
+  font-size:.74rem !important;
+  font-weight:900 !important;
+  line-height:1.05 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  text-shadow:0 1px 4px rgba(0,0,0,.7) !important;
+}
+
+.welcome-card.smart-hero .member-public-badge--hero .fts-public-badge--artist{
+  color:#fff7b5 !important;
+}
+.welcome-card.smart-hero .member-public-badge--hero .fts-public-badge--rare{
+  color:#ffdbe8 !important;
+}
+
+.welcome-card.smart-hero .btn-notif-hero .quick-ico{
+  font-size:1rem !important;
+  line-height:1 !important;
+}
+
+.welcome-card.smart-hero .account-actions #btn-open-account{
+  grid-column:1 !important;
+  grid-row:2 !important;
+}
+.welcome-card.smart-hero .account-actions #btn-open-guide{
+  grid-column:2 !important;
+  grid-row:2 !important;
+}
+
+@media (max-width:560px){
+  .welcome-card.smart-hero .welcome-head{
+    flex-direction:column !important;
+  }
+  .welcome-card.smart-hero .account-actions{
+    width:100% !important;
+    margin-left:0 !important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  }
+  .welcome-card.smart-hero .account-actions .btn-account,
+  .welcome-card.smart-hero .account-actions .member-public-badge--hero{
+    min-height:38px !important;
+    font-size:.70rem !important;
+    padding:.42rem .52rem !important;
+  }
+}
