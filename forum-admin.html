@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=2" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=3" rel="stylesheet"/>
 
 <!-- Firebase SDK — Auth ajouté -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -46,6 +46,9 @@
 <button class="tab-btn" data-fts-handler-4="">
       💬 Messages
     </button>
+<button class="tab-btn" data-fts-click="showTab('rewards', this)">
+      🏅 Récompenses
+    </button>
 </div>
 <div class="dash-body">
 <div class="tab-content active" id="tab-pending">
@@ -67,6 +70,45 @@
   </div>
 </section>
 <div id="members-list"></div>
+</div>
+
+<div class="tab-content" id="tab-rewards">
+<div class="sec-title">Badges temporaires & Artiste de la semaine</div>
+<section class="admin-card rewards-card">
+  <div class="admin-card-head">
+    <div>
+      <h2>🏅 Valoriser un membre</h2>
+      <p>Le badge temporaire remplace le badge XP dans le forum pendant la durée choisie.</p>
+    </div>
+  </div>
+  <div class="rewards-grid">
+    <label>
+      <span>Membre</span>
+      <select id="reward-user"></select>
+    </label>
+    <label>
+      <span>Badge temporaire</span>
+      <select id="reward-badge"></select>
+    </label>
+    <label>
+      <span>Durée</span>
+      <select id="reward-days">
+        <option value="7">7 jours</option>
+        <option value="14">14 jours</option>
+        <option value="30">30 jours</option>
+      </select>
+    </label>
+    <label class="rewards-full">
+      <span>Motif privé / note interne</span>
+      <input id="reward-reason" placeholder="Ex : belle progression, entraide, présence…" />
+    </label>
+  </div>
+  <div class="rewards-actions">
+    <button class="btn-confirm" data-fts-click="assignSpecialBadge()">Attribuer le badge temporaire</button>
+    <button class="btn-action btn-approve" data-fts-click="assignArtistOfWeek()">⭐ Définir Artiste de la semaine</button>
+  </div>
+  <div class="empty-msg rewards-note">Un message automatique sera publié dans le forum général.</div>
+</section>
 </div>
 <div class="tab-content" id="tab-messages">
 <div class="sec-title">Modération messages</div>
@@ -102,6 +144,7 @@
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/fts-pwa.js"></script>
+<script src="assets/js/fts-gamification.js?v=1"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/resources.service.js?v=1"></script>
@@ -111,6 +154,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/forum-admin.js?v=4"></script>
+<script src="assets/js/pages/forum-admin.js?v=5"></script>
 </body>
 </html>

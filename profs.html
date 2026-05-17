@@ -101,6 +101,44 @@
       <button class="tab-lnk" id="tab-btn-students" onclick="switchTab('students')">
         👥 Élèves <span class="tab-badge" id="students-count" style="background:#2a5a2a">0</span>
       </button>
+      <button class="tab-lnk" id="tab-btn-rewards" onclick="switchTab('rewards')">
+        🏅 Récompenser
+      </button>
+    </div>
+
+
+    <!-- ── ONGLET RÉCOMPENSER ── -->
+    <div class="tab-pane" id="tab-rewards">
+      <div class="form-card">
+        <div class="card-title">Valoriser un élève</div>
+        <p class="profs-card-subtitle">Attribue un badge temporaire ou l’Artiste de la semaine. Il remplacera le badge XP dans le forum pendant la durée choisie.</p>
+        <div class="profs-form-grid">
+          <div class="field">
+            <label>Élève / membre</label>
+            <select id="reward-user"><option value="">Chargement…</option></select>
+          </div>
+          <div class="field">
+            <label>Badge temporaire</label>
+            <select id="reward-badge"></select>
+          </div>
+          <div class="field">
+            <label>Durée</label>
+            <select id="reward-days">
+              <option value="7">7 jours</option>
+              <option value="14">14 jours</option>
+              <option value="30">30 jours</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>Motif / note</label>
+            <input id="reward-reason" type="text" placeholder="Ex : belle progression, entraide, présence…">
+          </div>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;margin-top:14px">
+          <button class="btn-save" onclick="assignSpecialBadgeFromProfs()">Attribuer le badge</button>
+          <button class="btn-save" onclick="assignArtistOfWeekFromProfs()">⭐ Artiste de la semaine</button>
+        </div>
+      </div>
     </div>
 
     <!-- ── ONGLET PUBLIER ── -->
@@ -319,9 +357,10 @@
 
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
+<script src="assets/js/fts-gamification.js?v=1"></script>
 
 <script src="assets/js/fts-nav.js?v=16"></script>
-<script src="assets/js/pages/profs.js?v=3"></script>
+<script src="assets/js/pages/profs.js?v=4"></script>
 
 <script src="assets/js/fts-pwa.js?v=12"></script>
 
