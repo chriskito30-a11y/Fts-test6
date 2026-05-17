@@ -348,20 +348,32 @@ function parseMediaPayload(payload){
   return { url, name: cleanMediaName(fromPayload || fallback, fallback) };
 }
 
-function renderFileCard(icon, title, url, label){
+function fileKindFromExt(ext){
+  if(ext === 'pdf') return { cls:'pdf', icon:'📄', label:'PDF' };
+  if(['mp3','wav','ogg','aac','m4a'].includes(ext)) return { cls:'audio', icon:'🎵', label:'Audio' };
+  if(['mp4','mov','webm'].includes(ext)) return { cls:'video', icon:'🎬', label:'Vidéo' };
+  if(['jpg','jpeg','png','gif','webp'].includes(ext)) return { cls:'image', icon:'🖼️', label:'Image' };
+  return { cls:'file', icon:'📎', label:'Fichier' };
+}
+
+function renderFileCard(icon, title, url, label, kind){
   const safeUrl = esc(url);
   const dlUrl = esc(mediaDownloadUrl(url));
   const safeTitle = esc(title || 'Fichier joint');
-  return `<div class="msg-file-card">
-    <div class="msg-file-visible-title">${icon} ${safeTitle}</div>
-    <a class="msg-file-main" href="${safeUrl}" target="_blank" rel="noopener" title="${safeTitle}">
+  const safeLabel = esc(label || 'Fichier joint');
+  const safeKind = esc(kind || 'file');
+  return `<div class="msg-file-card msg-file-card--${safeKind}">
+    <a class="msg-file-main" href="${safeUrl}" target="_blank" rel="noopener" title="${safeTitle}" aria-label="Ouvrir ${safeTitle}">
       <span class="msg-file-icon" aria-hidden="true">${icon}</span>
       <span class="msg-file-info">
         <span class="msg-file-title">${safeTitle}</span>
-        <span class="msg-file-sub">${label}</span>
+        <span class="msg-file-sub">${safeLabel}</span>
       </span>
     </a>
-    <a class="msg-file-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${safeTitle}">⬇ Télécharger</a>
+    <div class="msg-file-actions">
+      <a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener" aria-label="Ouvrir ${safeTitle}">Ouvrir</a>
+      <a class="msg-file-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${safeTitle}">⬇ Télécharger</a>
+    </div>
   </div>`;
 }
 
@@ -370,15 +382,35 @@ function renderMedia(payload){
   const url = media.url;
   const title = media.name;
   const ext = url.split('?')[0].split('.').pop().toLowerCase();
+  const kind = fileKindFromExt(ext);
+  const dl = esc(mediaDownloadUrl(url));
+  const safeUrl = esc(url);
+  const safeTitle = esc(title || 'Fichier joint');
   const isImg = url.includes('/image/upload/') && !['pdf'].includes(ext) || ['jpg','jpeg','png','gif','webp'].includes(ext);
   const isVideo = (url.includes('/video/upload/') && !['mp3','wav','ogg','aac','m4a'].includes(ext)) || ['mp4','mov','webm'].includes(ext);
   const isAudio = ['mp3','wav','ogg','aac','m4a'].includes(ext);
   const isPdf = ext === 'pdf';
-  if(isImg) return `<div class="msg-media-wrap"><img class="msg-img" src="${esc(url)}" data-fts-click="window.open('${esc(url)}')"><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
-  if(isVideo) return `<div class="msg-media-wrap"><video class="msg-video" src="${esc(url)}" controls playsinline></video><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>`;
-  if(isAudio) return `<div class="msg-audio-card"><div class="msg-audio-title">🎵 ${esc(title)}</div><audio class="msg-audio" controls preload="none"><source src="${esc(url)}"></audio><a class="msg-file-download compact" href="${esc(mediaDownloadUrl(url))}" target="_blank" rel="noopener" download>⬇ Télécharger le fichier</a></div>`;
-  if(isPdf) return renderFileCard('📄', title, url, 'PDF · ouvrir ou télécharger');
-  return renderFileCard('📎', title, url, 'Fichier joint · ouvrir ou télécharger');
+
+  if(isImg) return `<div class="msg-media-wrap msg-media-wrap--image">
+    <div class="msg-media-title"><span>🖼️</span><strong>${safeTitle}</strong></div>
+    <img class="msg-img" src="${safeUrl}" data-fts-click="window.open('${safeUrl}')" alt="${safeTitle}">
+    <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
+  </div>`;
+
+  if(isVideo) return `<div class="msg-media-wrap msg-media-wrap--video">
+    <div class="msg-media-title"><span>🎬</span><strong>${safeTitle}</strong></div>
+    <video class="msg-video" src="${safeUrl}" controls playsinline></video>
+    <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
+  </div>`;
+
+  if(isAudio) return `<div class="msg-audio-card msg-file-card--audio">
+    <div class="msg-media-title"><span>🎵</span><strong>${safeTitle}</strong></div>
+    <audio class="msg-audio" controls preload="none"><source src="${safeUrl}"></audio>
+    <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
+  </div>`;
+
+  if(isPdf) return renderFileCard('📄', title, url, 'PDF · ouvrir ou télécharger', 'pdf');
+  return renderFileCard(kind.icon, title, url, kind.label + ' · ouvrir ou télécharger', kind.cls);
 }
 
 function listenUnreadBadge(uid){
