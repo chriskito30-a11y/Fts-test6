@@ -12,13 +12,13 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="./assets/css/fts-chat.css?v=15" rel="stylesheet"/>
+<link href="./assets/css/fts-chat.css?v=20" rel="stylesheet"/>
 <link href="./assets/css/fts-nav.css?v=16" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<link href="assets/css/pages/messages.css?v=15" rel="stylesheet"/></head>
+<link href="assets/css/pages/messages.css?v=20" rel="stylesheet"/></head>
 
 <body class="fts-chat-modern">
 <!-- ═══ AUTH LOADING ════════════════════════════════════════════ -->
@@ -34,6 +34,16 @@
 <div class="sb-avatar" id="my-avatar">?</div>
 <div class="sb-title fts-brand-title" data-subtitle="Discussions privées">MESSAGES <span>FAIS TON SHOW</span></div>
 <button class="btn-compose" data-fts-handler-1="" title="Nouveau message">✏️</button>
+</div>
+<div class="discussion-switch" aria-label="Navigation discussions">
+  <a class="discussion-switch-item is-active" href="messages.html" aria-current="page">
+    <span class="discussion-switch-ico">💬</span>
+    <span class="discussion-switch-text">Messages</span>
+  </a>
+  <a class="discussion-switch-item " href="forum.html" aria-current="false">
+    <span class="discussion-switch-ico">👥</span>
+    <span class="discussion-switch-text">Forum</span>
+  </a>
 </div>
 <div class="sb-search">
 <input class="search-inp" data-fts-handler-2="" placeholder="Rechercher une conversation…" type="text"/>
