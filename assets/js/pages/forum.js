@@ -23,6 +23,10 @@ let currentChannel = null, currentListener = null, lastMsgDate = null;
 let adminMode = false;
 let deepLinkHandled = false;
 let forumReadTimer = null;
+let forumUserCache = {};
+let forumUserListeners = {};
+let artistOfWeek = null;
+let currentMessages = {};
 
 function norm(s){ return FTS.norm(s); }
 function normList(arr){
@@ -90,6 +94,8 @@ window.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('admin-bar').classList.add('show');
       }
       await loadUserData();
+      listenArtistOfWeek();
+      FTSGamification.awardXp(db, uid, 'daily_login', 5, { maxPerDay:1 }).catch(()=>{});
       document.getElementById('auth-loading').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
       const label = userProfile.firstName || userProfile.name || userProfile.email || '?';
@@ -133,7 +139,10 @@ async function loadUserData(){
     subgroups,
     status: userData.status || userProfile.status || 'active',
     role: userData.role || userProfile.role || 'member',
-    ts: userData.ts || Date.now()
+    ts: userData.ts || Date.now(),
+    uid: uid,
+    xp: Number(userData.xp || userProfile.xp || 0),
+    specialBadge: userData.specialBadge || userProfile.specialBadge || null
   };
   db.ref('fts_forum/users/'+uid).update({
     name: userData.name,
@@ -143,7 +152,10 @@ async function loadUserData(){
     subgroups: userData.subgroups,
     status: userData.status,
     role: userData.role,
-    ts: Date.now()
+    ts: Date.now(),
+    uid: uid,
+    xp: Number(userData.xp || 0),
+    specialBadge: userData.specialBadge || null
   }).catch(e => console.warn('[FTS Forum] Synchro profil forum impossible', e));
 
   db.ref('fts_forum/users/'+uid+'/status').on('value', snap => {
@@ -266,6 +278,7 @@ function closeChat(){
 function loadMessages(id){
   const ref = db.ref('fts_forum/messages/'+id).limitToLast(80);
   ref.on('child_added', snap => addForumMsg(snap.val(), snap.key));
+  ref.on('child_changed', snap => updateForumMsg(snap.val(), snap.key));
   ref.on('child_removed', snap => document.getElementById('msg-'+snap.key)?.remove());
   currentListener = () => ref.off();
 }
@@ -277,10 +290,91 @@ async function sendMessage(){
   input.value = ''; input.style.height = '';
   const msg = { uid, name:userData.name || userProfile.name || userProfile.email, text, ts:Date.now() };
   const ref = await db.ref('fts_forum/messages/'+currentChannel).push(msg);
+  FTSGamification.awardXp(db, uid, 'forum_post', 5, { maxPerDay:3 }).catch(()=>{});
   notifyChannel(currentChannel, msg.name + ' : ' + text.substring(0,80), ref.key);
 }
 
+
+function listenArtistOfWeek(){
+  db.ref('fts_community/artistOfWeek').on('value', snap => {
+    artistOfWeek = snap.val() || null;
+    refreshAllVisibleBadges();
+  });
+}
+
+function ensureForumUser(uidToLoad){
+  if(!uidToLoad || uidToLoad === 'system') return;
+  if(forumUserListeners[uidToLoad]) return;
+  forumUserListeners[uidToLoad] = db.ref('fts_forum/users/' + uidToLoad).on('value', snap => {
+    const val = snap.val() || {};
+    val.uid = uidToLoad;
+    forumUserCache[uidToLoad] = val;
+    refreshBadgesForUser(uidToLoad);
+  });
+}
+
+function getMessagePublicBadge(m){
+  const messageUid = m && m.uid;
+  const forumUser = (messageUid && forumUserCache[messageUid]) || { uid:messageUid, name:m?.name, xp:0 };
+  return FTSGamification.getPublicBadge(forumUser, artistOfWeek);
+}
+
+function renderSenderLine(m){
+  if(m && m.system) return `<div class="msg-sender msg-sender-system">${esc(m.name || 'Fais Ton Show')}</div>`;
+  const b = getMessagePublicBadge(m);
+  return `<div class="msg-sender"><span class="msg-author-name-inline">${esc(m.name || 'Membre')}</span> <span class="msg-badge-slot" data-uid="${esc(m.uid || '')}">${FTSGamification.renderBadge(b.label, b.kind)}</span></div>`;
+}
+
+function refreshBadgesForUser(uidToRefresh){
+  if(!uidToRefresh) return;
+  document.querySelectorAll('.msg-badge-slot').forEach(el => {
+    if(el.getAttribute('data-uid') !== uidToRefresh) return;
+    const u = forumUserCache[uidToRefresh] || { uid:uidToRefresh, xp:0 };
+    const b = FTSGamification.getPublicBadge(u, artistOfWeek);
+    el.innerHTML = FTSGamification.renderBadge(b.label, b.kind);
+  });
+}
+function refreshAllVisibleBadges(){ Object.keys(forumUserCache || {}).forEach(refreshBadgesForUser); }
+
+function reactionCount(reactions, emoji){
+  const bucket = reactions && reactions[emoji];
+  return bucket && typeof bucket === 'object' ? Object.keys(bucket).length : 0;
+}
+function hasReacted(reactions, emoji){ return !!(uid && reactions && reactions[emoji] && reactions[emoji][uid]); }
+function renderReactions(m, key){
+  const reactions = (m && m.reactions) || {};
+  return `<div class="msg-reactions" id="react-${esc(key)}">${FTSGamification.REACTIONS.map(emoji => {
+    const count = reactionCount(reactions, emoji);
+    const active = hasReacted(reactions, emoji);
+    return `<button type="button" class="msg-react ${active?'active':''}" data-fts-click="toggleForumReaction('${esc(key)}','${emoji}')" aria-label="Réagir ${emoji}"><span>${emoji}</span>${count ? `<b>${count}</b>` : ''}</button>`;
+  }).join('')}</div>`;
+}
+
+async function toggleForumReaction(msgKey, emoji){
+  if(!currentChannel || !uid || !msgKey || !emoji) return;
+  const msg = currentMessages[msgKey] || {};
+  const ref = db.ref('fts_forum/messages/' + currentChannel + '/' + msgKey + '/reactions/' + emoji + '/' + uid);
+  const snap = await ref.once('value');
+  if(snap.exists()){
+    await ref.remove();
+  }else{
+    await ref.set(true);
+    if(msg.uid && msg.uid !== uid){
+      FTSGamification.awardXp(db, msg.uid, 'reaction_received', 2, { maxPerDay:10 }).catch(()=>{});
+      FTSGamification.awardXp(db, uid, 'reaction_given', 1, { maxPerDay:5 }).catch(()=>{});
+    }
+  }
+}
+
+function updateForumMsg(m, key){
+  currentMessages[key] = m || {};
+  const react = document.getElementById('react-' + key);
+  if(react){ react.outerHTML = renderReactions(m, key); }
+}
+
 function addForumMsg(m, key){
+  currentMessages[key] = m || {};
+  if(m && m.uid) ensureForumUser(m.uid);
   const wrap = document.getElementById('messages');
   const own = (m.uid && m.uid === uid) || (!m.uid && m.name === userData?.name);
   const dStr = new Date(m.ts).toDateString();
@@ -291,8 +385,9 @@ function addForumMsg(m, key){
   const div = document.createElement('div'); div.id = 'msg-'+key; div.className = 'msg-wrap ' + (own ? 'own' : 'other');
   const isMedia = m.text && m.text.startsWith('[media]');
   const body = isMedia ? renderMedia(m.text.slice(7)) : esc(m.text || '').replace(/\n/g,'<br>');
-  div.innerHTML = `${!own ? `<div class="msg-sender">${esc(m.name || 'Membre')}</div>` : ''}
+  div.innerHTML = `${renderSenderLine(m)}
     <div class="msg-bubble">${body}<div class="msg-foot"><span class="msg-time">${FTSChat.fmtFull(m.ts)}</span>${own ? '<span class="msg-check">✓✓</span>' : ''}</div></div>
+    ${renderReactions(m, key)}
     ${adminMode ? `<button class="btn-del-msg" data-fts-click="deleteMsg('${key}')">Supprimer</button>` : ''}`;
   wrap.appendChild(div); FTSChat.scrollBottom();
   if(currentChannel){
@@ -318,7 +413,7 @@ function uploadMedia(file){
       setTimeout(() => bar.classList.remove('show'), 1600);
       document.getElementById('file-input').value = '';
       const mediaMsg = { uid, name:userData.name, text:'[media]'+url+'|'+encodeURIComponent(file.name || 'fichier'), ts:Date.now() };
-      db.ref('fts_forum/messages/'+currentChannel).push(mediaMsg).then(ref => notifyChannel(currentChannel, (userData.name || 'Membre') + ' a envoyé un fichier', ref.key));
+      db.ref('fts_forum/messages/'+currentChannel).push(mediaMsg).then(ref => { FTSGamification.awardXp(db, uid, 'forum_post', 5, { maxPerDay:3 }).catch(()=>{}); notifyChannel(currentChannel, (userData.name || 'Membre') + ' a envoyé un fichier', ref.key); });
     })
     .catch(() => { txt.textContent='Erreur upload'; setTimeout(() => bar.classList.remove('show'), 2500); });
 }

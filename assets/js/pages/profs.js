@@ -189,6 +189,7 @@ function switchTab(name) {
   document.getElementById("tab-" + name).classList.add("active");
   document.getElementById("tab-btn-" + name).classList.add("active");
   if (name === "students") loadStudents();
+  if (name === "rewards") loadRewardsPanel();
 }
 
 /* ── LISTE DES ÉLÈVES ─────────────────────────────────────────── */
@@ -860,4 +861,70 @@ function clearMsg() { document.getElementById("msg").style.display = "none"; }
 
 function doSignOut() {
   auth.signOut().then(() => window.location.href = "auth.html");
+}
+
+/* ── RÉCOMPENSES PROFS / ADMIN ───────────────────────────────── */
+async function getRewardVisibleStudents() {
+  const snap = await db.ref("fts_users").orderByChild("status").equalTo("active").once("value");
+  const allowedDiscs = userProfile.role === "admin" ? null : (userProfile.disciplines || []).map(d => normAccess(d));
+  const students = [];
+  if (snap.exists()) {
+    snap.forEach(child => {
+      const u = child.val() || {};
+      if (u.role === "admin" || u.role === "prof") return;
+      const accountDiscs = Array.isArray(u.disciplines) ? u.disciplines : String(u.group || "").split(",").map(x => x.trim()).filter(Boolean);
+      const childDiscs = (u.hasEnfant && Array.isArray(u.enfants)) ? u.enfants.flatMap(e => Array.isArray(e.disciplines) ? e.disciplines : []) : [];
+      const allDiscs = [...new Set([...accountDiscs, ...childDiscs])];
+      if (allowedDiscs && !allDiscs.some(d => allowedDiscs.includes(normAccess(d)))) return;
+      students.push({ uid: child.key, ...u });
+    });
+  }
+  students.sort((a, b) => (a.name || "").localeCompare(b.name || "", "fr"));
+  return students;
+}
+
+async function loadRewardsPanel() {
+  const userSel = document.getElementById('reward-user');
+  const badgeSel = document.getElementById('reward-badge');
+  if (!userSel || !badgeSel || !window.FTSGamification) return;
+  userSel.innerHTML = '<option value="">Chargement…</option>';
+  const students = await getRewardVisibleStudents();
+  userSel.innerHTML = students.length
+    ? students.map(u => `<option value="${FTS.esc(u.uid)}">${FTS.esc([u.firstName,u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre')}</option>`).join('')
+    : '<option value="">Aucun élève accessible</option>';
+  if (!badgeSel.dataset.ready) {
+    badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
+    badgeSel.dataset.ready = '1';
+  }
+}
+
+async function assignSpecialBadgeFromProfs() {
+  const targetUid = document.getElementById('reward-user')?.value;
+  const badge = document.getElementById('reward-badge')?.value;
+  const days = document.getElementById('reward-days')?.value || 7;
+  const reason = document.getElementById('reward-reason')?.value || '';
+  const current = firebase.auth().currentUser;
+  if (!targetUid || !badge) { alert('Choisis un élève et un badge.'); return; }
+  try {
+    await FTSGamification.setSpecialBadge(db, targetUid, badge, days, current && current.uid, reason);
+    alert('Badge temporaire attribué.');
+  } catch (e) {
+    console.warn('[FTS Profs Rewards]', e);
+    alert('Impossible d’attribuer le badge : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function assignArtistOfWeekFromProfs() {
+  const targetUid = document.getElementById('reward-user')?.value;
+  const reason = document.getElementById('reward-reason')?.value || '';
+  const current = firebase.auth().currentUser;
+  if (!targetUid) { alert('Choisis un élève.'); return; }
+  if (!confirm('Définir cet élève comme Artiste de la semaine ?')) return;
+  try {
+    await FTSGamification.setArtistOfWeek(db, targetUid, current && current.uid, reason, 7);
+    alert('Artiste de la semaine défini.');
+  } catch (e) {
+    console.warn('[FTS Profs Rewards]', e);
+    alert('Impossible de définir l’artiste : ' + (e && e.message ? e.message : e));
+  }
 }

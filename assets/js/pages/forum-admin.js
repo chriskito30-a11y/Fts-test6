@@ -171,6 +171,7 @@ function listenUsers() {
     renderPending();
     renderMembers();
     renderCategorySummary();
+    renderRewardsPanel();
   });
 }
 
@@ -665,6 +666,61 @@ async function saveModification() {
 }
 
 function closeModModal() { document.getElementById("mod-modal").classList.add("hidden"); }
+
+
+/* ── RÉCOMPENSES / GAMIFICATION ─────────────────────────────── */
+function activeMembersForRewards() {
+  return Object.entries(allUsers || {})
+    .filter(([id, u]) => u && u.status === 'active')
+    .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'fr'));
+}
+
+function renderRewardsPanel() {
+  const userSel = document.getElementById('reward-user');
+  const badgeSel = document.getElementById('reward-badge');
+  if (!userSel || !badgeSel || !window.FTSGamification) return;
+  const currentUser = userSel.value;
+  const users = activeMembersForRewards();
+  userSel.innerHTML = users.length
+    ? users.map(([id, u]) => `<option value="${FTS.esc(id)}">${FTS.esc(u.name || u.email || 'Membre')}</option>`).join('')
+    : '<option value="">Aucun membre actif</option>';
+  if (currentUser && allUsers[currentUser]) userSel.value = currentUser;
+  if (!badgeSel.dataset.ready) {
+    badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
+    badgeSel.dataset.ready = '1';
+  }
+}
+
+async function assignSpecialBadge() {
+  const targetUid = document.getElementById('reward-user')?.value;
+  const badge = document.getElementById('reward-badge')?.value;
+  const days = document.getElementById('reward-days')?.value || 7;
+  const reason = document.getElementById('reward-reason')?.value || '';
+  const current = firebase.auth().currentUser;
+  if (!targetUid || !badge) { alert('Choisis un membre et un badge.'); return; }
+  try {
+    await FTSGamification.setSpecialBadge(db, targetUid, badge, days, current && current.uid, reason);
+    alert('Badge temporaire attribué.');
+  } catch (e) {
+    console.warn('[FTS Rewards] Attribution impossible', e);
+    alert('Impossible d’attribuer le badge : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function assignArtistOfWeek() {
+  const targetUid = document.getElementById('reward-user')?.value;
+  const reason = document.getElementById('reward-reason')?.value || '';
+  const current = firebase.auth().currentUser;
+  if (!targetUid) { alert('Choisis un membre.'); return; }
+  if (!confirm('Définir ce membre comme Artiste de la semaine ?')) return;
+  try {
+    await FTSGamification.setArtistOfWeek(db, targetUid, current && current.uid, reason, 7);
+    alert('Artiste de la semaine défini.');
+  } catch (e) {
+    console.warn('[FTS Rewards] Artiste de la semaine impossible', e);
+    alert('Impossible de définir l’artiste de la semaine : ' + (e && e.message ? e.message : e));
+  }
+}
 
 /* ── ONGLET MESSAGES ─────────────────────────────────────────── */
 function buildChannelSelector() {
