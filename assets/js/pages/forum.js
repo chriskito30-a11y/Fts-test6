@@ -22,6 +22,7 @@ let openCats = {};
 let currentChannel = null, currentListener = null, lastMsgDate = null;
 let adminMode = false;
 let deepLinkHandled = false;
+let forumReadTimer = null;
 
 function norm(s){ return FTS.norm(s); }
 function normList(arr){
@@ -232,8 +233,14 @@ function renderChannelBubble(ch){
 
 function toggleCategory(id){ openCats[id] = !openCats[id]; renderForumList(document.getElementById('forum-search').value || ''); }
 
+function markForumChannelRead(channel){
+  if(!uid || !channel || !db) return;
+  db.ref('fts_users/' + uid + '/forumReads/' + channel).set({ ts: Date.now() }).catch(() => {});
+}
+
 function selectForumChannel(id, name, icon, desc){
   currentChannel = id; lastMsgDate = null;
+  markForumChannelRead(id);
   FTSChat.setAvatar(document.getElementById('chat-av'), name, {type:'category', icon});
   document.getElementById('chat-name').textContent = name;
   document.getElementById('chat-sub').textContent = desc || '';
@@ -288,6 +295,10 @@ function addForumMsg(m, key){
     <div class="msg-bubble">${body}<div class="msg-foot"><span class="msg-time">${FTSChat.fmtFull(m.ts)}</span>${own ? '<span class="msg-check">✓✓</span>' : ''}</div></div>
     ${adminMode ? `<button class="btn-del-msg" data-fts-click="deleteMsg('${key}')">Supprimer</button>` : ''}`;
   wrap.appendChild(div); FTSChat.scrollBottom();
+  if(currentChannel){
+    clearTimeout(forumReadTimer);
+    forumReadTimer = setTimeout(() => markForumChannelRead(currentChannel), 450);
+  }
 }
 
 function deleteMsg(k){ if(confirm('Supprimer ce message ?')) db.ref('fts_forum/messages/'+currentChannel+'/'+k).remove(); }

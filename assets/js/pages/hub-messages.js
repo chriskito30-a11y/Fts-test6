@@ -1,16 +1,140 @@
-/* Hub Messages — auth légère, sans logique chat/forum */
+/* Hub Messages — auth légère + compteurs MP / Forum */
 (function(){
   'use strict';
   var db = FTS.initFirebase();
+  var currentUid = null;
+  var currentProfile = null;
+
+  function norm(v){ return (window.FTS && FTS.norm) ? FTS.norm(v) : String(v || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+  function list(v){ return (Array.isArray(v) ? v : String(v || '').split(',')).map(function(x){ return String(x || '').trim(); }).filter(Boolean); }
+  function uniq(arr){ var seen = {}; return arr.filter(function(v){ var k = norm(v); if(!k || seen[k]) return false; seen[k] = true; return true; }); }
+
+  function setHubBadge(id, count){
+    var badge = document.getElementById(id);
+    if (!badge) return;
+    var n = Math.max(0, Number(count || 0));
+    var card = badge.closest('.hub-card');
+    if (!n) {
+      badge.hidden = true;
+      badge.textContent = '0';
+      if (card) card.classList.remove('has-unread');
+      return;
+    }
+    badge.hidden = false;
+    badge.textContent = n > 20 ? '20+' : String(n);
+    if (card) card.classList.add('has-unread');
+  }
+
+  function profileGroups(profile){
+    var parent = list(profile && (profile.disciplines || profile.groups || profile.group));
+    var children = [];
+    if (profile && profile.hasEnfant && Array.isArray(profile.enfants)) {
+      profile.enfants.forEach(function(e){ children = children.concat(list(e.disciplines || e.groups || e.group)); });
+    }
+    return uniq(parent.concat(children)).map(norm);
+  }
+
+  function profileSubgroups(profile){
+    var parent = list(profile && (profile.subgroups || profile.subcategories || profile.subgroup));
+    var children = [];
+    if (profile && profile.hasEnfant && Array.isArray(profile.enfants)) {
+      profile.enfants.forEach(function(e){ children = children.concat(list(e.subgroups || e.subcategories || e.subgroup)); });
+    }
+    return uniq(parent.concat(children)).map(norm);
+  }
+
+  async function getForumChannels(profile){
+    var isAdmin = String((profile && profile.role) || '').toLowerCase() === 'admin';
+    var channels = ['general'];
+    var groups = profileGroups(profile);
+    var subs = profileSubgroups(profile);
+    try {
+      var structure = FTS.getCategoryStructureAsync ? await FTS.getCategoryStructureAsync(db) : (FTS.getCategoryStructure ? FTS.getCategoryStructure() : []);
+      (structure || []).forEach(function(cat){
+        var catNorm = norm(cat.category);
+        if (isAdmin || groups.indexOf(catNorm) !== -1) channels.push(catNorm);
+        (cat.subs || []).forEach(function(sub){
+          var subNorm = norm(sub.name);
+          if (isAdmin || subs.indexOf(subNorm) !== -1) channels.push(subNorm);
+        });
+      });
+    } catch(e) {
+      groups.forEach(function(g){ channels.push(g); });
+      subs.forEach(function(s){ channels.push(s); });
+    }
+    return Object.keys(channels.reduce(function(acc, ch){ if(ch) acc[ch] = true; return acc; }, {}));
+  }
+
+  function listenPrivateUnread(uid){
+    db.ref('fts_dm/userConvs/' + uid).on('value', function(snap){
+      var convIds = snap.val() ? Object.keys(snap.val()) : [];
+      if (!convIds.length) { setHubBadge('hub-dm-badge', 0); return; }
+      var total = 0;
+      Promise.all(convIds.map(function(id){
+        return db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
+          .then(function(s){ total += Number(s.val() || 0) || 0; })
+          .catch(function(){});
+      })).then(function(){ setHubBadge('hub-dm-badge', total); });
+    });
+  }
+
+  async function refreshForumUnread(){
+    if (!currentUid || !currentProfile) { setHubBadge('hub-forum-badge', 0); return; }
+    try {
+      var channels = await getForumChannels(currentProfile);
+      if (!channels.length) { setHubBadge('hub-forum-badge', 0); return; }
+      var readsSnap = await db.ref('fts_users/' + currentUid + '/forumReads').once('value');
+      var reads = readsSnap.val() || {};
+      var total = 0;
+      await Promise.all(channels.map(function(ch){
+        var lastRead = Number((reads[ch] && reads[ch].ts) || reads[ch] || 0);
+        if (!lastRead) return Promise.resolve();
+        return db.ref('fts_forum/messages/' + ch).orderByChild('ts').startAt(lastRead + 1).limitToLast(50).once('value')
+          .then(function(snap){
+            snap.forEach(function(child){
+              var msg = child.val() || {};
+              if (msg.uid && msg.uid === currentUid) return;
+              total += 1;
+            });
+          }).catch(function(){});
+      }));
+      setHubBadge('hub-forum-badge', total);
+    } catch(e) {
+      console.warn('[FTS Hub Messages] compteur forum:', e);
+      setHubBadge('hub-forum-badge', 0);
+    }
+  }
+
+  function listenForumUnread(uid, profile){
+    currentUid = uid;
+    currentProfile = profile || {};
+    refreshForumUnread();
+    db.ref('fts_forum/messages').on('value', refreshForumUnread);
+    db.ref('fts_users/' + uid + '/forumReads').on('value', refreshForumUnread);
+  }
+
   firebase.auth().onAuthStateChanged(function(user){
     if (!user) {
       location.href = 'auth.html';
       return;
     }
-    var loader = document.getElementById('auth-loading');
-    var page = document.getElementById('page-content');
-    if (loader) loader.style.display = 'none';
-    if (page) page.classList.remove('u-initial-hidden');
-    if (window.FTSNav) window.FTSNav.updateBadges();
+    db.ref('fts_users/' + user.uid).once('value').then(function(snap){
+      currentProfile = snap.val() || {};
+      var loader = document.getElementById('auth-loading');
+      var page = document.getElementById('page-content');
+      if (loader) loader.style.display = 'none';
+      if (page) page.classList.remove('u-initial-hidden');
+      listenPrivateUnread(user.uid);
+      listenForumUnread(user.uid, currentProfile);
+      if (window.FTSNav) window.FTSNav.updateBadges();
+    }).catch(function(){
+      var loader = document.getElementById('auth-loading');
+      var page = document.getElementById('page-content');
+      if (loader) loader.style.display = 'none';
+      if (page) page.classList.remove('u-initial-hidden');
+      listenPrivateUnread(user.uid);
+      listenForumUnread(user.uid, {});
+      if (window.FTSNav) window.FTSNav.updateBadges();
+    });
   });
 })();
