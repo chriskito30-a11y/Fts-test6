@@ -513,6 +513,18 @@ button.profile-pill:hover {
   transition: all .2s;
 }
 .btn-account:hover { border-color: var(--gold); background: rgba(248,231,2,.13); color: var(--white); }
+.btn-notif-hero {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  white-space: nowrap;
+}
+.btn-notif-hero.on {
+  background: rgba(248,231,2,.16);
+  border-color: rgba(248,231,2,.65);
+  color: var(--white);
+}
 .welcome-head {
   display: flex;
   align-items: flex-start;
@@ -590,7 +602,11 @@ button.profile-pill:hover {
 .profile-enfant-dob  { font-size: .72rem; color: var(--muted); margin-bottom: .4rem; }
 @media(max-width:560px){
   .welcome-head { flex-direction: column; }
-  .account-actions, .account-actions .btn-account { width: 100%; }
+  .account-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+  .account-actions .btn-account { width: 100%; min-height: 42px; }
+}
+@media(max-width:380px){
+  .account-actions { grid-template-columns: 1fr; }
 }
 
 /* Utilitaires page membres */
