@@ -407,9 +407,7 @@ function memberNewsCountStorageKey() {
 
 function saveMemberNewsCount(count) {
   try { localStorage.setItem(memberNewsCountStorageKey(), String(Math.max(0, Number(count || 0)))); } catch(e) {}
-  if (window.FTSNav && typeof window.FTSNav.setBadge === 'function') {
-    window.FTSNav.setBadge('fts-news-badge', count);
-  }
+  // Le badge de la topbar est désormais réservé aux messages non lus.
 }
 
 function newsItemId(item) {
@@ -1262,10 +1260,14 @@ function listenUnreadBadge(uid) {
 function updateMsgBadge(count) {
   latestUnreadMessages = Number(count || 0) || 0;
   const el = document.getElementById('msg-badge');
-  if (!el) return;
   const dash = document.getElementById('dash-msg-count');
   if (dash) dash.textContent = count > 99 ? '99+' : String(count);
 
+  if (window.FTSNav && typeof window.FTSNav.setBadge === 'function') {
+    window.FTSNav.setBadge('fts-member-badge', latestUnreadMessages);
+  }
+
+  if (!el) return;
   if (count > 0) {
     el.textContent = count > 99 ? '99+' : count;
     el.style.display = 'inline-block';
