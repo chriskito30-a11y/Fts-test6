@@ -13,7 +13,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="./assets/css/fts-chat.css?v=15" rel="stylesheet"/>
-<link href="./assets/css/fts-nav.css?v=15" rel="stylesheet"/>
+<link href="./assets/css/fts-nav.css?v=16" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -81,12 +81,11 @@
 </div><!-- /app -->
 <nav class="fts-bottom-nav fts-nav-3" aria-label="Navigation principale">
   <a href="membres.html" class="fts-nav-item" data-nav="membres">
-    <span class="fts-nav-icon">👤</span><span class="fts-nav-label">Membres</span>
+    <span class="fts-nav-icon-wrap"><span class="fts-nav-icon">👤</span><span class="fts-nav-badge" id="fts-member-badge"></span></span><span class="fts-nav-label">Membres</span>
   </a>
-  <a href="membres.html#member-news-panel" class="fts-nav-item" data-nav="unread">
-    <span class="fts-nav-icon-wrap"><span class="fts-nav-icon">📬</span><span class="fts-nav-badge" id="fts-news-badge"></span></span>
-    <span class="fts-nav-label">Non lus</span>
-  </a>
+  <button type="button" class="fts-nav-item fts-nav-button" data-nav="documents" data-action="open-documents-modal">
+    <span class="fts-nav-icon">📄</span><span class="fts-nav-label">Docs</span>
+  </button>
   <a href="hub-messages.html" class="fts-nav-item" data-nav="messages">
     <span class="fts-nav-icon">💬</span><span class="fts-nav-label">Messages</span>
   </a>
@@ -138,7 +137,7 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/fts-nav.js?v=15"></script>
+<script src="assets/js/fts-nav.js?v=16"></script>
 <script src="assets/js/pages/messages.js?v=1"></script>
 </body>
 </html>
