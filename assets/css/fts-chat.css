@@ -524,6 +524,27 @@ html, body {
 .btn-attach { width:42px; height:42px; border-radius:50%; background:var(--grey); border:1px solid var(--border); color:var(--muted); cursor:pointer; flex-shrink:0; }
 .btn-attach:hover { color:var(--gold); border-color:var(--gold); }
 .msg-img, .msg-video { max-width:100%; max-height:260px; border-radius:10px; margin-top:.25rem; display:block; cursor:pointer; }
+.msg-media-wrap { display:grid; gap:.45rem; margin-top:.25rem; }
+.msg-audio-card { display:grid; gap:.45rem; min-width:min(280px, 70vw); }
+.msg-audio-title { font-size:.78rem; font-weight:700; color:var(--white); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.msg-file-card {
+  display:grid; gap:.55rem; min-width:min(310px, 74vw); margin-top:.25rem;
+  padding:.7rem; border:1px solid rgba(255,255,255,.09); border-radius:14px;
+  background:rgba(255,255,255,.045);
+}
+.msg-file-main { display:flex; align-items:center; gap:.65rem; color:var(--white); text-decoration:none; min-width:0; }
+.msg-file-main:hover .msg-file-title { color:var(--gold); }
+.msg-file-icon { width:36px; height:36px; display:grid; place-items:center; flex-shrink:0; border-radius:10px; background:rgba(248,231,2,.09); font-size:1.15rem; }
+.msg-file-info { display:grid; gap:.12rem; min-width:0; }
+.msg-file-title { font-size:.82rem; font-weight:800; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.msg-file-sub { font-size:.68rem; color:var(--muted); }
+.msg-file-download {
+  display:inline-flex; align-items:center; justify-content:center; gap:.35rem; width:fit-content;
+  padding:.42rem .65rem; border-radius:999px; border:1px solid rgba(248,231,2,.35);
+  color:var(--gold); background:rgba(248,231,2,.08); text-decoration:none; font-size:.72rem; font-weight:800;
+}
+.msg-file-download:hover { border-color:var(--gold); background:rgba(248,231,2,.14); }
+.msg-file-download.compact { margin-top:.05rem; }
 .msg-pdf { display:inline-flex; align-items:center; gap:.45rem; color:var(--gold); text-decoration:none; margin-top:.25rem; }
 .msg-pdf:hover { text-decoration:underline; }
 .btn-del-msg { margin-top:.25rem; background:transparent; border:none; color:#777; font-size:.7rem; cursor:pointer; padding:.15rem .4rem; }
