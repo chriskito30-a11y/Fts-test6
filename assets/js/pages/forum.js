@@ -345,16 +345,17 @@ function renderReactionSummary(reactions){
   const used = FTSGamification.REACTIONS
     .map(emoji => ({ emoji, count:reactionCount(reactions, emoji) }))
     .filter(r => r.count > 0);
-  if(!used.length) return '<span class="msg-reaction-empty">Sois le premier à réagir</span>';
+  if(!used.length) return '';
   const total = used.reduce((sum, r) => sum + r.count, 0);
   const icons = used.slice(0, 3).map(r => `<span>${r.emoji}</span>`).join('');
   return `<span class="msg-reaction-icons">${icons}</span><span class="msg-reaction-total">${total}</span>`;
 }
 function renderReactions(m, key){
   const reactions = (m && m.reactions) || {};
+  const summary = renderReactionSummary(reactions);
   return `<div class="msg-reactions msg-reactions-compact" id="react-${esc(key)}">
-    <button type="button" class="msg-reaction-summary" data-fts-click="toggleReactionPicker('${esc(key)}')" aria-label="Voir ou ajouter une réaction">${renderReactionSummary(reactions)}</button>
-    <button type="button" class="msg-react-open" data-fts-click="toggleReactionPicker('${esc(key)}')" aria-label="Réagir">Réagir</button>
+    ${summary ? `<button type="button" class="msg-reaction-summary" data-fts-click="toggleReactionPicker('${esc(key)}')" aria-label="Voir ou ajouter une réaction">${summary}</button>` : ''}
+    <button type="button" class="msg-react-open" data-fts-click="toggleReactionPicker('${esc(key)}')" aria-label="Réagir">👍</button>
     <div class="msg-reaction-picker" id="react-picker-${esc(key)}" aria-hidden="true">${FTSGamification.REACTIONS.map(emoji => {
       const count = reactionCount(reactions, emoji);
       const active = hasReacted(reactions, emoji);
