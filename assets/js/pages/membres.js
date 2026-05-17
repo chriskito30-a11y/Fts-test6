@@ -305,7 +305,7 @@ function renderAccountRewardsPanel(){
   const metaEl = document.getElementById('account-rewards-meta');
   const postsEl = document.getElementById('account-stat-posts');
   const reactsEl = document.getElementById('account-stat-reactions');
-  const source = Object.assign({ uid: currentUser && currentUser.uid, xp:0, stats:{} }, memberForumUser || {});
+  const source = Object.assign({ uid: (currentUid || (firebase.auth().currentUser && firebase.auth().currentUser.uid)), xp:0, stats:{} }, memberForumUser || {});
   const badge = FTSGamification.getPublicBadge(source, memberArtistOfWeek);
   if(badgeEl) badgeEl.innerHTML = FTSGamification.renderBadge(badge.label, badge.kind);
   if(metaEl){
@@ -325,7 +325,7 @@ function renderAccountRewardsPanel(){
 function renderMemberPublicBadge(){
   const el = document.getElementById('member-public-badge');
   if(!el || !window.FTSGamification) return;
-  const source = Object.assign({ uid: currentUser && currentUser.uid, xp:0 }, memberForumUser || {});
+  const source = Object.assign({ uid: (currentUid || (firebase.auth().currentUser && firebase.auth().currentUser.uid)), xp:0 }, memberForumUser || {});
   const badge = FTSGamification.getPublicBadge(source, memberArtistOfWeek);
   el.innerHTML = FTSGamification.renderBadge(badge.label, badge.kind);
   el.classList.remove('is-empty');
@@ -1406,11 +1406,17 @@ function updateAccountNotifStatus(on) {
 function openAccountModal() {
   const m = document.getElementById('account-modal');
   if (!m) return;
-  clearAccountMsg('account-pwd-msg');
-  clearAccountMsg('profile-msg');
-  fillAccountIdentity();
-  renderAccountRewardsPanel();
-  checkNotifStatus();
+
+  // On ouvre d'abord la modale : les panneaux secondaires ne doivent jamais bloquer le clic.
+  m.classList.remove('hidden');
+  m.setAttribute('aria-hidden', 'false');
+
+  try { clearAccountMsg('account-pwd-msg'); } catch(e) {}
+  try { clearAccountMsg('profile-msg'); } catch(e) {}
+  try { fillAccountIdentity(); } catch(e) { console.warn('[FTS] Mon compte identité non chargée :', e); }
+  try { renderAccountRewardsPanel(); } catch(e) { console.warn('[FTS] Mon compte récompenses non chargées :', e); }
+  try { checkNotifStatus(); } catch(e) { console.warn('[FTS] Mon compte notifications non chargées :', e); }
+
   const p1 = document.getElementById('account-new-pwd');
   const p2 = document.getElementById('account-new-pwd2');
   if (p1) p1.value = '';
@@ -1419,10 +1425,7 @@ function openAccountModal() {
   // Pré-remplir le profil
   const tel = document.getElementById('profile-tel');
   if (tel) tel.value = (userProfile && userProfile.telephone) || '';
-  renderProfileEnfants();
-
-  m.classList.remove('hidden');
-  m.setAttribute('aria-hidden', 'false');
+  try { renderProfileEnfants(); } catch(e) { console.warn('[FTS] Mon compte enfants non chargés :', e); }
 }
 
 function renderProfileEnfants() {
