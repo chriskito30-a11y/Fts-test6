@@ -233,3 +233,25 @@ body.fts-chat-modern .msg-audio-title { font-weight: 900; }
 .forum-subchannel .forum-unread-badge{ margin-left:auto; flex:0 0 auto; }
 .conv-row1 .forum-unread-badge{ margin-left:auto; }
 .forum-chevron{ margin-left:.35rem; }
+
+/* Correctif v35 — badges forum lisibles sur fond sombre */
+.msg-badge-slot .fts-public-badge,
+.msg-sender .fts-public-badge{
+  background:linear-gradient(135deg, rgba(18,18,18,.96), rgba(48,42,18,.92)) !important;
+  color:#fff !important;
+  border:1px solid rgba(248,231,2,.38) !important;
+  box-shadow:0 8px 22px rgba(0,0,0,.34), inset 0 0 0 1px rgba(255,255,255,.06) !important;
+  text-shadow:0 1px 3px rgba(0,0,0,.65) !important;
+}
+.msg-badge-slot .fts-public-badge--artist,
+.msg-sender .fts-public-badge--artist{
+  background:linear-gradient(135deg, rgba(248,231,2,.28), rgba(18,18,18,.96)) !important;
+  color:#fff !important;
+  border-color:rgba(248,231,2,.68) !important;
+}
+.msg-badge-slot .fts-public-badge--rare,
+.msg-sender .fts-public-badge--rare{
+  background:linear-gradient(135deg, rgba(191,22,34,.35), rgba(18,18,18,.96)) !important;
+  color:#fff !important;
+  border-color:rgba(255,200,220,.34) !important;
+}

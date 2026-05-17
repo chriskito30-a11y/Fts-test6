@@ -2402,3 +2402,63 @@ button.profile-pill:focus-visible {
   .account-actions .btn-account,
   .account-actions .member-public-badge--hero{ font-size:.7rem !important; padding:.34rem .5rem !important; }
 }
+
+/* Correctif v35 — badge membre premium, discret et aligné à droite */
+.account-actions{
+  display:grid !important;
+  grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
+  gap:.5rem !important;
+  align-items:center !important;
+}
+.account-actions .btn-account,
+.account-actions .member-public-badge--hero{
+  min-height:34px !important;
+  border-radius:999px !important;
+  font-size:.74rem !important;
+  padding:.36rem .62rem !important;
+}
+.member-public-badge--hero{
+  justify-self:end !important;
+  align-self:center !important;
+  width:auto !important;
+  max-width:100% !important;
+  margin:0 !important;
+  display:inline-flex !important;
+  justify-content:center !important;
+  background:linear-gradient(135deg, rgba(248,231,2,.18), rgba(20,20,20,.62)) !important;
+  border:1px solid rgba(248,231,2,.42) !important;
+  color:#fff !important;
+  box-shadow:0 10px 24px rgba(0,0,0,.24), inset 0 0 0 1px rgba(255,255,255,.07) !important;
+  backdrop-filter:blur(12px);
+}
+.member-public-badge--hero .fts-public-badge,
+.member-public-badge--hero .fts-public-badge--artist,
+.member-public-badge--hero .fts-public-badge--rare{
+  padding:0 !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  color:#fff !important;
+  font-size:.74rem !important;
+  line-height:1.05 !important;
+  text-shadow:0 1px 3px rgba(0,0,0,.55) !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+.btn-notif-hero{
+  justify-self:start !important;
+  width:auto !important;
+}
+@media (max-width:720px){
+  .member-public-badge--hero{
+    width:auto !important;
+    min-width:0 !important;
+  }
+}
+@media (max-width:380px){
+  .account-actions .btn-account,
+  .account-actions .member-public-badge--hero{
+    font-size:.68rem !important;
+    padding:.32rem .48rem !important;
+  }
+}
