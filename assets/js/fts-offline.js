@@ -301,6 +301,39 @@
     catch(e){ return new Date(ts).toLocaleString(); }
   }
 
+  function statusLabel(){
+    return state.isOnline ? 'En ligne' : 'Hors ligne';
+  }
+
+  function statusMessage(){
+    if (state.isOnline) {
+      return state.lastSync ? 'Dernière synchro : ' + formatSync(state.lastSync) : 'Dernière synchro : pas encore synchronisé';
+    }
+    return 'Dernières infos sauvegardées : ' + formatSync(state.lastSync);
+  }
+
+  function renderInlineStatus(){
+    var card = document.getElementById('dash-offline-card');
+    if (!card) return;
+    var title = document.getElementById('dash-offline-state');
+    var detail = document.getElementById('dash-offline-sync');
+    card.classList.toggle('is-offline', !state.isOnline);
+    card.classList.toggle('is-online', !!state.isOnline);
+    var icon = card.querySelector('.focus-icon');
+    if (icon) icon.textContent = state.isOnline ? '📶' : '📴';
+    if (title) title.textContent = statusLabel();
+    if (detail) detail.textContent = statusMessage();
+  }
+
+  function emitStatus(){
+    renderInlineStatus();
+    try {
+      window.dispatchEvent(new CustomEvent('fts:offline-status', {
+        detail: { isOnline: !!state.isOnline, lastSync: state.lastSync || 0, label: statusLabel(), message: statusMessage() }
+      }));
+    } catch(e){}
+  }
+
   function ensureBanner(){
     var el = document.getElementById('fts-offline-banner');
     if (el) return el;
@@ -330,6 +363,7 @@
     } else {
       el.classList.remove('is-visible');
     }
+    emitStatus();
   }
 
   function showOfflineToast(message){
@@ -401,6 +435,7 @@
     hasFile: hasFile,
     showOfflineToast: showOfflineToast,
     updateBanner: updateBanner,
+    getStatus: function(){ return { isOnline: !!state.isOnline, lastSync: state.lastSync || 0, label: statusLabel(), message: statusMessage() }; },
     patchFirebase: patchFirebase
   };
 
