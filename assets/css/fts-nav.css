@@ -348,3 +348,129 @@
   }
 }
 
+
+
+/* ================================================================
+   PATCH 40 — bottom nav admin mobile-first
+   ================================================================ */
+.fts-admin-pagehead {
+  width: min(1180px, calc(100% - 28px));
+  margin: 14px auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 22px;
+  background: rgba(255,255,255,.055);
+  box-shadow: 0 14px 38px rgba(0,0,0,.20);
+  backdrop-filter: blur(14px);
+}
+.fts-admin-pagehead .fts-admin-brand { min-width: 0; }
+.fts-admin-pagehead .fts-admin-logo {
+  font-family: var(--font-title, 'Bebas Neue', sans-serif);
+  font-size: clamp(1.45rem, 5vw, 2rem);
+  line-height: .95;
+  letter-spacing: .03em;
+  color: var(--white, #fff);
+}
+.fts-admin-pagehead .fts-admin-logo span { color: var(--gold, #f8e702); }
+.fts-admin-pagehead .fts-admin-sub {
+  margin-top: 4px;
+  font-size: .82rem;
+  color: var(--muted, rgba(255,255,255,.62));
+}
+.fts-admin-pagehead .fts-admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fts-admin-pagehead .fts-admin-actions a,
+.fts-admin-pagehead .fts-admin-actions button {
+  min-height: 38px;
+}
+
+.fts-admin-bottom-nav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 180;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(5,5,5,.72), rgba(5,5,5,.98));
+  border-top: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 -16px 42px rgba(0,0,0,.46);
+  backdrop-filter: blur(16px);
+}
+.fts-admin-bottom-track {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.fts-admin-bottom-track::-webkit-scrollbar { display: none; }
+.fts-admin-bottom-item {
+  flex: 0 0 auto;
+  min-width: 74px;
+  min-height: 54px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+  background: rgba(255,255,255,.055);
+  color: var(--muted, rgba(255,255,255,.68));
+  text-decoration: none;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.fts-admin-bottom-icon { font-size: 1.08rem; line-height: 1; }
+.fts-admin-bottom-item.active {
+  color: var(--white, #fff);
+  border-color: rgba(248,231,2,.38);
+  background: linear-gradient(180deg, rgba(248,231,2,.16), rgba(255,255,255,.055));
+  box-shadow: 0 0 0 1px rgba(248,231,2,.10), 0 0 22px rgba(248,231,2,.16);
+}
+.fts-admin-bottom-spacer { height: calc(84px + env(safe-area-inset-bottom)); }
+
+@media (max-width: 560px) {
+  .fts-admin-pagehead {
+    width: calc(100% - 22px);
+    align-items: flex-start;
+    flex-direction: column;
+    margin-top: 10px;
+    padding: 13px;
+  }
+  .fts-admin-pagehead .fts-admin-actions { width: 100%; justify-content: flex-start; }
+  .fts-admin-pagehead .fts-admin-actions a,
+  .fts-admin-pagehead .fts-admin-actions button { flex: 1 1 auto; }
+  .fts-admin-bottom-item { min-width: 70px; min-height: 52px; font-size: .56rem; }
+}
+
+@media (min-width: 900px) {
+  .fts-admin-bottom-nav {
+    left: 50%;
+    right: auto;
+    bottom: 14px;
+    transform: translateX(-50%);
+    width: min(780px, calc(100% - 32px));
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 28px;
+    padding: 8px;
+  }
+  .fts-admin-bottom-spacer { height: 104px; }
+}
