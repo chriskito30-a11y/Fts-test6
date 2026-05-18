@@ -504,7 +504,6 @@ function newsItemId(item) {
   if (type === 'event' && key) return 'event|' + key;
   if (type === 'announcement') return 'announcement|current|' + String(item.ts || '0').trim();
   if (type === 'messages') return 'messages|unread';
-  if (type === 'poll' && key) return 'poll|' + key;
 
   const base = key || item.action || item.title || '';
   return [type, base].map(v => String(v || '').trim()).join('|');
@@ -728,41 +727,43 @@ async function collectNewAnnouncement(sinceTs) {
 }
 
 
-async function collectPendingPolls(uid) {
+async function collectUnreadPollItems(uid) {
   if (!uid) return [];
-  try {
-    const unreadSnap = await db.ref('fts_poll_unread/' + uid).once('value');
-    const unread = unreadSnap.val() || {};
-    const ids = Object.keys(unread).filter(Boolean);
-    if (!ids.length) return [];
+  const snap = await db.ref('fts_poll_unread/' + uid).once('value');
+  const unread = snap.val() || {};
+  const ids = Object.keys(unread).filter(Boolean).slice(0, 8);
+  if (!ids.length) return [];
 
-    const polls = await Promise.all(ids.map(id =>
-      db.ref('fts_polls/' + id).once('value')
-        .then(s => ({ id, poll: s.val() || null }))
-        .catch(() => ({ id, poll: null }))
-    ));
-
-    return polls
-      .filter(x => x.poll && x.poll.active !== false && !pollNewsClosed(x.poll))
-      .map(x => ({
+  const polls = await Promise.all(ids.map(async id => {
+    try {
+      const pollSnap = await db.ref('fts_polls/' + id).once('value');
+      const p = pollSnap.val() || {};
+      const title = p.title || p.titre || p.question || 'Sondage à répondre';
+      const end = p.endDate || p.endsAt || p.deadline || '';
+      return {
         type: 'poll',
         icon: '📊',
-        title: x.poll.title || 'Sondage à compléter',
-        meta: 'Réponse attendue',
-        ts: Number(x.poll.createdAt || 0) || Date.now(),
-        action: 'poll',
-        key: x.id,
+        title,
+        meta: end ? ('Réponse attendue · fin ' + end) : 'Réponse attendue',
+        ts: Number((unread[id] && unread[id].ts) || p.createdAt || p.ts || Date.now()),
+        action: 'polls',
+        key: id,
         skipSeenFilter: true
-      }));
-  } catch(e) {
-    console.warn('[FTS] Sondages à faire indisponibles :', e);
-    return [];
-  }
-}
-
-function pollNewsClosed(poll) {
-  const close = Number(poll && poll.closesAt || 0);
-  return close > 0 && close < Date.now();
+      };
+    } catch(e) {
+      return {
+        type: 'poll',
+        icon: '📊',
+        title: 'Sondage à répondre',
+        meta: 'Réponse attendue',
+        ts: Date.now(),
+        action: 'polls',
+        key: id,
+        skipSeenFilter: true
+      };
+    }
+  }));
+  return polls.filter(Boolean);
 }
 
 async function loadMemberNews() {
@@ -777,12 +778,12 @@ async function loadMemberNews() {
   try {
     await loadSeenNewsMap();
 
-    const [resources, events, announcement, polls, unread] = await Promise.all([
+    const [resources, events, announcement, unread, polls] = await Promise.all([
       collectNewResources(sinceTs).catch(() => []),
       collectNewEvents(sinceTs).catch(() => []),
       collectNewAnnouncement(sinceTs).catch(() => []),
-      collectPendingPolls(currentUid).catch(() => []),
-      getUnreadMessageCount(currentUid)
+      getUnreadMessageCount(currentUid),
+      collectUnreadPollItems(currentUid).catch(() => [])
     ]);
 
     latestUnreadMessages = unread;
@@ -800,7 +801,7 @@ async function loadMemberNews() {
         skipSeenFilter: true
       });
     }
-    items.push(...polls, ...resources, ...events, ...announcement);
+    items.push(...(polls || []), ...resources, ...events, ...announcement);
 
     const unique = [];
     const seenIds = new Set();
@@ -812,8 +813,8 @@ async function loadMemberNews() {
       unique.push({ ...item, newsId: id });
     });
 
-    renderMemberNews(unique.slice(0, 5), false);
-    if (hint) hint.textContent = unique.length ? (unique.length + ' action' + (unique.length > 1 ? 's' : '') + ' utile' + (unique.length > 1 ? 's' : '')) : 'Tout est à jour';
+    renderMemberNews(unique.slice(0, 6), false);
+    if (hint) hint.textContent = unique.length ? 'Actions prioritaires' : 'Tout est à jour';
   } catch(e) {
     console.warn('[FTS] Nouveautés indisponibles :', e);
     panel.classList.add('u-initial-hidden');
@@ -849,7 +850,7 @@ function renderMemberNews(items) {
         <strong>${FTS.esc(item.title || 'Nouvelle information')}</strong>
         <small>${FTS.esc(item.meta || '')}${newsLabelDate(item.ts) ? ' · ' + FTS.esc(newsLabelDate(item.ts)) : ''}</small>
       </span>
-      <span class="smart-item-action">${item.action === 'poll' ? 'Répondre' : 'Voir'}</span>
+      <span class="smart-item-action">Voir</span>
     </button>`).join('');
 }
 
@@ -873,7 +874,7 @@ function openMemberNewsItem(btn) {
 
   // Les messages restent pilotés par le vrai compteur non-lu Firebase.
   // Les autres nouveautés sont marquées comme lues localement, une par une.
-  if (action !== 'messages' && action !== 'poll' && newsId) {
+  if (action !== 'messages' && newsId) {
     markNewsSeen(newsId);
     refreshNewsPanelAfterSeen(btn);
   }
@@ -882,9 +883,8 @@ function openMemberNewsItem(btn) {
     window.location.href = 'hub-messages.html';
     return;
   }
-  if (action === 'poll') {
-    const key = btn.dataset.newsKey || '';
-    window.location.href = key ? ('sondages.html?poll=' + encodeURIComponent(key)) : 'sondages.html';
+  if (action === 'polls') {
+    window.location.href = 'sondages.html';
     return;
   }
   if (action === 'announcement') {
@@ -922,15 +922,18 @@ function updateNextEventSummary(events) {
   const date  = document.getElementById('dash-next-event-date');
   if (!title || !date) return;
 
+  const card = title.closest ? title.closest('.focus-card') : null;
   if (!events || !events.length) {
     title.textContent = 'Aucun événement';
     date.textContent  = 'Pour le moment';
+    if (card) card.classList.remove('has-action');
     return;
   }
 
   const e = events[0];
   title.textContent = e.n || 'Événement';
   date.textContent  = `${e.d || ''}${e.h ? ' · ' + e.h : ''}`;
+  if (card) card.classList.add('has-action');
 }
 
 /* ── FILTRAGE PAR DISCIPLINES ────────────────────────────────── */
@@ -1449,7 +1452,11 @@ function updateMsgBadge(count) {
   latestUnreadMessages = Number(count || 0) || 0;
   const el = document.getElementById('msg-badge');
   const dash = document.getElementById('dash-msg-count');
+  const status = document.getElementById('dash-msg-status');
+  const card = dash ? dash.closest('.focus-card') : null;
   if (dash) dash.textContent = count > 99 ? '99+' : String(count);
+  if (status) status.textContent = count > 0 ? (count === 1 ? '1 message à lire' : count + ' messages à lire') : 'Rien à lire';
+  if (card) card.classList.toggle('has-action', count > 0);
 
   if (window.FTSNav && typeof window.FTSNav.setBadge === 'function') {
     window.FTSNav.setBadge('fts-member-badge', latestUnreadMessages);
@@ -2085,6 +2092,8 @@ function doSignOut() {
     n = Math.max(0, Number(n || 0));
     count.textContent = n ? String(n) : '0';
     status.textContent = n ? (n + ' réponse' + (n > 1 ? 's' : '') + ' attendue' + (n > 1 ? 's' : '')) : 'Aucune réponse attendue';
+    var card = count.closest ? count.closest('.focus-card') : null;
+    if (card) card.classList.toggle('has-action', n > 0);
   }
   function start(uid){
     try {
