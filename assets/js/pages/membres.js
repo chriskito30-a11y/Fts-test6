@@ -502,7 +502,7 @@ function newsItemId(item) {
   // au rafraîchissement simplement parce qu'un timestamp ou un libellé a changé.
   if (type === 'resource' && key) return 'resource|' + key;
   if (type === 'event' && key) return 'event|' + key;
-  if (type === 'announcement') return 'announcement|current|' + String(item.ts || '0').trim();
+  if (type === 'announcement') return 'announcement|' + String(item.source || 'current') + '|' + String(key || 'current') + '|' + String(item.ts || '0').trim();
   if (type === 'messages') return 'messages|unread';
 
   const base = key || item.action || item.title || '';
@@ -777,6 +777,7 @@ async function collectNewAnnouncement(sinceTs) {
       title: a.title || a.titre || 'Nouvelle annonce importante',
       meta: a.source === 'targeted' ? 'Annonce ciblée' : 'Information importante',
       ts: itemTs(a),
+      source: a.source || 'current',
       action: 'announcement',
       key: a.key
     }));
@@ -1376,38 +1377,121 @@ document.getElementById('mo').addEventListener('click', function(e) {
   if (e.target.id === 'mo') closeMo();
 });
 
-/* ── ANNONCE DYNAMIQUE ───────────────────────────────────────── */
-async function loadAnnonce() {
-  const el = document.getElementById('annonce-dyn');
-  if (!el) return;
-
-  try {
-    const snap = await db.ref('fts_content/annonces/current').once('value');
-    const a = snap.val() || {};
-    if (a.active === false || a.status === 'inactive' || announcementExpired(a)) return;
-
-    const title = a.title || a.titre || '';
-    const body  = a.body || a.text || a.texte || '';
-    const btn   = a.buttonText || a.btn || '';
-    const url   = a.buttonUrl || a.url || '';
-
-    if (!title && !body) return;
-
-    el.innerHTML = `
-      ${title ? `<strong>${FTS.esc(title)}</strong><br>` : ''}
-      ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
-      ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
-    `;
-    const panel = document.getElementById('priority-panel');
-    if (panel) {
-      panel.classList.remove('u-initial-hidden');
-      panel.style.display = 'block';
-    }
-  } catch(e) {
-    console.warn('[FTS] Annonce Firebase indisponible :', e);
+/* ── ANNONCES DYNAMIQUES ─────────────────────────────────────── */
+function announcementSeenId(a) {
+  const source = a && a.source ? String(a.source) : 'current';
+  const key = a && a.key ? String(a.key) : 'current';
+  const ts = itemTs(a) || Number(a && (a.updatedAt || a.createdAt || 0)) || 0;
+  return 'announcement|' + source + '|' + key + '|' + String(ts || '0');
+}
+function announcementDisplayMode(a) {
+  const raw = String((a && (a.displayMode || a.display || a.mode)) || 'card').toLowerCase();
+  if (raw === 'banner' || raw === 'ticker' || raw === 'banderole') return 'ticker';
+  if (raw === 'both' || raw === 'all' || raw === 'carte+banderole') return 'both';
+  return 'card';
+}
+function hideAlertTicker() {
+  const ticker = document.getElementById('fts-alert-ticker');
+  if (ticker) {
+    ticker.classList.add('u-initial-hidden');
+    ticker.style.display = 'none';
+    ticker.dataset.announcementIds = '';
   }
 }
+function renderAlertTicker(announcements) {
+  const ticker = document.getElementById('fts-alert-ticker');
+  const text = document.getElementById('fts-alert-text');
+  const btn = document.getElementById('fts-alert-read');
+  if (!ticker || !text) return;
 
+  const rows = (announcements || []).filter(a => {
+    const id = announcementSeenId(a);
+    return id && !isNewsSeen(id);
+  });
+  if (!rows.length) { hideAlertTicker(); return; }
+
+  text.textContent = rows.map(a => {
+    const title = a.title || a.titre || 'Annonce importante';
+    const body = a.body || a.text || a.texte || '';
+    return [title, body].filter(Boolean).join(' — ');
+  }).join('   •   ');
+  ticker.dataset.announcementIds = rows.map(announcementSeenId).join('||');
+  ticker.classList.remove('u-initial-hidden');
+  ticker.style.display = 'flex';
+
+  if (btn && !btn.__ftsAlertBound) {
+    btn.__ftsAlertBound = true;
+    btn.addEventListener('click', function(){
+      const ids = String(ticker.dataset.announcementIds || '').split('||').filter(Boolean);
+      ids.forEach(markNewsSeen);
+      hideAlertTicker();
+      loadAnnonce();
+      loadMemberNews();
+    });
+  }
+}
+function renderAnnouncementCards(rows) {
+  const el = document.getElementById('annonce-dyn');
+  const panel = document.getElementById('priority-panel');
+  if (!el || !panel) return;
+
+  const cards = (rows || []).filter(a => !isNewsSeen(announcementSeenId(a)));
+  if (!cards.length) {
+    panel.classList.add('u-initial-hidden');
+    panel.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+
+  el.innerHTML = cards.map(a => {
+    const id = announcementSeenId(a);
+    const title = a.title || a.titre || '';
+    const body = a.body || a.text || a.texte || '';
+    const btn = a.buttonText || a.btn || '';
+    const url = a.buttonUrl || a.url || '';
+    const badge = a.source === 'targeted' ? 'Annonce ciblée' : 'Information générale';
+    return `<div class="annonce-item" data-annonce-id="${FTS.esc(id)}">
+      <div class="annonce-card-body">
+        <small class="annonce-card-badge">${FTS.esc(badge)}</small>
+        ${title ? `<strong>${FTS.esc(title)}</strong><br>` : ''}
+        ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
+        ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
+      </div>
+      <div class="annonce-actions"><button type="button" class="annonce-read-btn" data-annonce-read="${FTS.esc(id)}">J’ai lu</button></div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('[data-annonce-read]').forEach(button => {
+    button.addEventListener('click', function(){
+      const id = this.getAttribute('data-annonce-read') || '';
+      if (id) markNewsSeen(id);
+      loadAnnonce();
+      loadMemberNews();
+    });
+  });
+
+  panel.classList.remove('u-initial-hidden');
+  panel.style.display = 'block';
+}
+async function loadAnnonce() {
+  try {
+    const visible = await getVisibleAnnouncements();
+    const tickerRows = [];
+    const cardRows = [];
+
+    visible.forEach(a => {
+      const mode = announcementDisplayMode(a);
+      if (mode === 'ticker' || mode === 'both') tickerRows.push(a);
+      if (mode === 'card' || mode === 'both') cardRows.push(a);
+    });
+
+    renderAlertTicker(tickerRows);
+    renderAnnouncementCards(cardRows);
+  } catch(e) {
+    console.warn('[FTS] Annonces Firebase indisponibles :', e);
+    hideAlertTicker();
+  }
+}
 
 /* ── NOTIFICATIONS PUSH RESSOURCES / FORUM / MESSAGES ────────── */
 function urlBase64ToUint8Array(b64){
