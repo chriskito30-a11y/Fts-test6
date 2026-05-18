@@ -2940,23 +2940,71 @@ button.profile-pill:focus-visible {
 }
 
 
-/* PATCH 42 — état réseau/offline discret dans le hub membre */
-.focus-card-offline{
-  cursor:default;
+/* PATCH 42b — statut réseau en mini bulle discrète dans la carte membre */
+.welcome-card.smart-hero{
+  position:relative !important;
 }
-.focus-card-offline.is-online .focus-icon{
-  filter:saturate(1.05);
+.member-network-pill{
+  position:absolute;
+  top:.78rem;
+  right:.82rem;
+  z-index:9;
+  display:inline-flex;
+  align-items:center;
+  gap:.22rem;
+  max-width:42%;
+  min-height:24px;
+  padding:.22rem .48rem;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(6,6,6,.42);
+  color:rgba(255,255,255,.86);
+  box-shadow:0 8px 18px rgba(0,0,0,.20), inset 0 0 0 1px rgba(255,255,255,.035);
+  backdrop-filter:blur(10px);
+  font-size:.58rem;
+  font-weight:800;
+  line-height:1;
+  white-space:nowrap;
+  pointer-events:none;
 }
-.focus-card-offline.is-offline{
-  border-color:rgba(244,197,66,.55);
-  background:linear-gradient(135deg, rgba(244,197,66,.14), rgba(255,255,255,.9));
+.member-network-dot{
+  font-size:.58rem;
+  line-height:1;
 }
-.focus-card-offline.is-offline small{
-  color:#6f5310;
-  font-weight:700;
+.member-network-sync{
+  position:absolute !important;
+  width:1px !important;
+  height:1px !important;
+  padding:0 !important;
+  margin:-1px !important;
+  overflow:hidden !important;
+  clip:rect(0,0,0,0) !important;
+  white-space:nowrap !important;
+  border:0 !important;
 }
-@media(max-width:520px){
-  .focus-card-offline{
-    grid-column:1 / -1;
+.member-network-pill.is-online{
+  border-color:rgba(74,222,128,.26);
+}
+.member-network-pill.is-weak{
+  border-color:rgba(244,197,66,.42);
+  color:#fff5bf;
+}
+.member-network-pill.is-offline{
+  border-color:rgba(255,93,93,.34);
+  color:#ffd4d4;
+}
+@media(max-width:560px){
+  .member-network-pill{
+    top:.72rem;
+    right:.72rem;
+    max-width:38%;
+    padding:.2rem .42rem;
+    font-size:.55rem;
+  }
+}
+@media(max-width:380px){
+  .member-network-pill{
+    transform:scale(.94);
+    transform-origin:top right;
   }
 }
