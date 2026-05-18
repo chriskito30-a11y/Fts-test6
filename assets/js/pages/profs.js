@@ -864,6 +864,27 @@ function doSignOut() {
 }
 
 /* ── RÉCOMPENSES PROFS / ADMIN ───────────────────────────────── */
+function rewardDisplayName(u) {
+  return [u && u.firstName, u && u.lastName].filter(Boolean).join(' ') || (u && u.name) || (u && u.email) || 'Membre';
+}
+
+function rewardChildName(e) {
+  return [e && e.prenom, e && e.nom].filter(Boolean).join(' ') || [e && e.firstName, e && e.lastName].filter(Boolean).join(' ') || (e && e.name) || 'Enfant';
+}
+
+function rewardDiscsFrom(value) {
+  return Array.isArray(value) ? value : String(value || '').split(',').map(x => x.trim()).filter(Boolean);
+}
+
+function makeRewardOptionValue(uid, childId) {
+  return childId ? `${uid}::${childId}` : uid;
+}
+
+function parseRewardOptionValue(value) {
+  const parts = String(value || '').split('::');
+  return { uid: parts[0] || '', childId: parts[1] || '' };
+}
+
 async function getRewardVisibleStudents() {
   const snap = await db.ref("fts_users").orderByChild("status").equalTo("active").once("value");
   const allowedDiscs = userProfile.role === "admin" ? null : (userProfile.disciplines || []).map(d => normAccess(d));
@@ -872,11 +893,42 @@ async function getRewardVisibleStudents() {
     snap.forEach(child => {
       const u = child.val() || {};
       if (u.role === "admin" || u.role === "prof") return;
-      const accountDiscs = Array.isArray(u.disciplines) ? u.disciplines : String(u.group || "").split(",").map(x => x.trim()).filter(Boolean);
-      const childDiscs = (u.hasEnfant && Array.isArray(u.enfants)) ? u.enfants.flatMap(e => Array.isArray(e.disciplines) ? e.disciplines : []) : [];
-      const allDiscs = [...new Set([...accountDiscs, ...childDiscs])];
-      if (allowedDiscs && !allDiscs.some(d => allowedDiscs.includes(normAccess(d)))) return;
-      students.push({ uid: child.key, ...u });
+
+      const parentName = rewardDisplayName(u);
+      const accountDiscs = rewardDiscsFrom(u.disciplines || u.group);
+      const children = (u.hasEnfant && Array.isArray(u.enfants)) ? u.enfants : [];
+
+      // Compte principal : utile pour les adultes / élèves avec leur propre compte.
+      if (!allowedDiscs || accountDiscs.some(d => allowedDiscs.includes(normAccess(d)))) {
+        students.push({
+          uid: child.key,
+          optionValue: makeRewardOptionValue(child.key, ''),
+          label: parentName,
+          isChild: false,
+          parentName,
+          ...u
+        });
+      }
+
+      // Enfants rattachés : ligne séparée pour pouvoir récompenser Emma, Lucas, etc.
+      children.forEach((e, index) => {
+        const childDiscs = rewardDiscsFrom(e.disciplines || e.group || e.groups);
+        if (allowedDiscs && !childDiscs.some(d => allowedDiscs.includes(normAccess(d)))) return;
+        const childId = e.id || `enfant_${index + 1}`;
+        const childName = rewardChildName(e);
+        students.push({
+          uid: child.key,
+          optionValue: makeRewardOptionValue(child.key, childId),
+          childId,
+          childName,
+          parentName,
+          label: `${childName} · enfant de ${parentName}`,
+          isChild: true,
+          disciplines: childDiscs,
+          specialBadge: u.specialBadge || null,
+          stats: u.stats || {}
+        });
+      });
     });
   }
   // Fusion douce avec le profil forum : les badges temporaires y sont la source la plus fiable.
@@ -887,7 +939,7 @@ async function getRewardVisibleStudents() {
     if (fu.specialBadge) u.specialBadge = fu.specialBadge;
     if (fu.stats) u.stats = Object.assign({}, u.stats || {}, fu.stats);
   });
-  students.sort((a, b) => (a.name || "").localeCompare(b.name || "", "fr"));
+  students.sort((a, b) => (a.label || rewardDisplayName(a)).localeCompare(b.label || rewardDisplayName(b), "fr"));
   return students;
 }
 
@@ -946,9 +998,9 @@ async function loadRewardsPanel() {
   const students = await getRewardVisibleStudents();
   rewardVisibleStudentsCache = students;
   userSel.innerHTML = students.length
-    ? students.map(u => `<option value="${FTS.esc(u.uid)}">${FTS.esc([u.firstName,u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre')}</option>`).join('')
+    ? students.map(u => `<option value="${FTS.esc(u.optionValue || u.uid)}">${FTS.esc(u.label || rewardDisplayName(u))}</option>`).join('')
     : '<option value="">Aucun élève accessible</option>';
-  if (previousValue && students.some(u => u.uid === previousValue)) userSel.value = previousValue;
+  if (previousValue && students.some(u => (u.optionValue || u.uid) === previousValue)) userSel.value = previousValue;
   if (!badgeSel.dataset.ready) {
     badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
     badgeSel.dataset.ready = '1';
@@ -957,10 +1009,16 @@ async function loadRewardsPanel() {
 }
 
 async function assignSpecialBadgeFromProfs() {
-  const targetUid = document.getElementById('reward-user')?.value;
+  const selectedRewardValue = document.getElementById('reward-user')?.value;
+  const parsedRewardTarget = parseRewardOptionValue(selectedRewardValue);
+  const targetUid = parsedRewardTarget.uid;
+  const selectedRewardStudent = (rewardVisibleStudentsCache || []).find(u => (u.optionValue || u.uid) === selectedRewardValue);
   const badge = document.getElementById('reward-badge')?.value;
   const days = document.getElementById('reward-days')?.value || 7;
-  const reason = document.getElementById('reward-reason')?.value || '';
+  let reason = document.getElementById('reward-reason')?.value || '';
+  if (selectedRewardStudent && selectedRewardStudent.isChild && selectedRewardStudent.childName) {
+    reason = reason ? `Pour ${selectedRewardStudent.childName} · ${reason}` : `Pour ${selectedRewardStudent.childName}`;
+  }
   const current = firebase.auth().currentUser;
   if (!targetUid || !badge) { alert('Choisis un élève et un badge.'); return; }
   try {
@@ -974,8 +1032,14 @@ async function assignSpecialBadgeFromProfs() {
 }
 
 async function assignArtistOfWeekFromProfs() {
-  const targetUid = document.getElementById('reward-user')?.value;
-  const reason = document.getElementById('reward-reason')?.value || '';
+  const selectedRewardValue = document.getElementById('reward-user')?.value;
+  const parsedRewardTarget = parseRewardOptionValue(selectedRewardValue);
+  const targetUid = parsedRewardTarget.uid;
+  const selectedRewardStudent = (rewardVisibleStudentsCache || []).find(u => (u.optionValue || u.uid) === selectedRewardValue);
+  let reason = document.getElementById('reward-reason')?.value || '';
+  if (selectedRewardStudent && selectedRewardStudent.isChild && selectedRewardStudent.childName) {
+    reason = reason ? `Pour ${selectedRewardStudent.childName} · ${reason}` : `Pour ${selectedRewardStudent.childName}`;
+  }
   const current = firebase.auth().currentUser;
   if (!targetUid) { alert('Choisis un élève.'); return; }
   if (!confirm('Définir cet élève comme Artiste de la semaine ?')) return;
