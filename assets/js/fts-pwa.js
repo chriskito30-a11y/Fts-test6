@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v38-stabilisation-simplification';
+  const RELOAD_KEY = 'fts-sw-reload-v39-hub-membre-clair';
   let refreshing = false;
 
 
