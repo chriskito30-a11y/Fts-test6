@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=2" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=46" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -78,21 +78,51 @@
   </div>
 </section>
 
-<div class="section-lbl">Modules principaux</div>
-<section aria-label="Modules administrateur" class="admin-grid">
-<a class="admin-card" href="forum-admin.html"><div class="admin-ico">👥</div><div class="admin-title">Membres &amp; accès</div><div class="admin-desc">Valider les inscriptions, modifier les rôles, disciplines et sous-catégories, gérer les membres actifs.</div><div class="admin-meta">forum-admin.html</div></a>
-<a class="admin-card" href="contenus-admin.html"><div class="admin-ico">📁</div><div class="admin-title">Contenus</div><div class="admin-desc">Gérer les annonces, le questionnaire, les ressources et les catégories Firebase.</div><div class="admin-meta">contenus-admin.html</div></a>
-<a class="admin-card" href="calendrier-admin.html"><div class="admin-ico">📅</div><div class="admin-title">Calendrier</div><div class="admin-desc">Ajouter, modifier, masquer ou supprimer les événements affichés dans l’espace membres.</div><div class="admin-meta">calendrier-admin.html</div></a>
-<a class="admin-card" href="saison-admin.html"><div class="admin-ico">🎭</div><div class="admin-title">Saison</div><div class="admin-desc">Modifier la page saison, les activités, parcours, tarifs et liens d’inscription.</div><div class="admin-meta">saison-admin.html</div></a>
-<a class="admin-card" href="profs.html"><div class="admin-ico">🎓</div><div class="admin-title">Espace profs</div><div class="admin-desc">Publier ou gérer des ressources comme un professeur, avec accès complet côté admin.</div><div class="admin-meta">profs.html</div></a>
-<a class="admin-card" href="sondages.html"><div class="admin-ico">📊</div><div class="admin-title">Sondages</div><div class="admin-desc">Créer des votes ciblés par catégories ou sous-catégories, suivre les réponses et relancer les non-répondants via badge.</div><div class="admin-meta">sondages.html</div></a>
-<a class="admin-card" href="forum.html"><div class="admin-ico">💬</div><div class="admin-title">Voir le forum</div><div class="admin-desc">Contrôler l’expérience forum côté utilisateur, avec accès admin aux catégories.</div><div class="admin-meta">forum.html</div></a>
-</section>
-<div class="section-lbl">Accès rapides</div>
-<section aria-label="Accès rapides" class="quick-row">
-<a class="quick-link" href="membres.html"><span>👤</span><span>Retour espace membres</span></a>
-<a class="quick-link" href="messages.html"><span>✉️</span><span>Tester messages</span></a>
-<a class="quick-link" href="saison.html"><span>👀</span><span>Voir page saison</span></a>
+<section class="admin-action-groups" aria-label="Actions administrateur">
+  <div class="admin-action-group admin-action-group-priority">
+    <div class="admin-group-head">
+      <div class="section-lbl compact">À traiter</div>
+      <p>Les actions qui demandent ton attention avant le reste.</p>
+    </div>
+    <div class="admin-grid admin-grid-focused">
+      <a class="admin-card" href="forum-admin.html"><div class="admin-ico">👥</div><div class="admin-title">Membres &amp; accès</div><div class="admin-desc">Valider les inscriptions, modifier les rôles, disciplines et sous-catégories, gérer les membres actifs.</div><div class="admin-meta">forum-admin.html</div></a>
+    </div>
+  </div>
+
+  <div class="admin-action-group">
+    <div class="admin-group-head">
+      <div class="section-lbl compact">Publier</div>
+      <p>Annonces, ressources, calendrier, saison et sondages.</p>
+    </div>
+    <div class="admin-grid">
+      <a class="admin-card" href="contenus-admin.html"><div class="admin-ico">📁</div><div class="admin-title">Contenus</div><div class="admin-desc">Gérer les annonces, le questionnaire, les ressources et les catégories Firebase.</div><div class="admin-meta">contenus-admin.html</div></a>
+      <a class="admin-card" href="calendrier-admin.html"><div class="admin-ico">📅</div><div class="admin-title">Calendrier</div><div class="admin-desc">Ajouter, modifier, masquer ou supprimer les événements affichés dans l’espace membres.</div><div class="admin-meta">calendrier-admin.html</div></a>
+      <a class="admin-card" href="saison-admin.html"><div class="admin-ico">🎭</div><div class="admin-title">Saison</div><div class="admin-desc">Modifier la page saison, les activités, parcours, tarifs et liens d’inscription.</div><div class="admin-meta">saison-admin.html</div></a>
+      <a class="admin-card" href="sondages.html"><div class="admin-ico">📊</div><div class="admin-title">Sondages</div><div class="admin-desc">Créer des votes ciblés par catégories ou sous-catégories, suivre les réponses et relancer les non-répondants via badge.</div><div class="admin-meta">sondages.html</div></a>
+    </div>
+  </div>
+
+  <div class="admin-action-group">
+    <div class="admin-group-head">
+      <div class="section-lbl compact">Vérifier</div>
+      <p>Contrôler ce que voient les adhérents, sans modifier les données.</p>
+    </div>
+    <section aria-label="Vérifications rapides" class="quick-row">
+      <a class="quick-link" href="forum.html"><span>💬</span><span>Voir le forum</span></a>
+      <a class="quick-link" href="messages.html"><span>✉️</span><span>Tester messages</span></a>
+      <a class="quick-link" href="saison.html"><span>👀</span><span>Voir page saison</span></a>
+    </section>
+  </div>
+
+  <div class="admin-action-group">
+    <div class="admin-group-head">
+      <div class="section-lbl compact">Outils</div>
+      <p>Accès utiles pour publier ou vérifier comme un profil spécialisé.</p>
+    </div>
+    <div class="admin-grid admin-grid-focused">
+      <a class="admin-card" href="profs.html"><div class="admin-ico">🎓</div><div class="admin-title">Espace profs</div><div class="admin-desc">Publier ou gérer des ressources comme un professeur, avec accès complet côté admin.</div><div class="admin-meta">profs.html</div></a>
+    </div>
+  </div>
 </section>
 <footer class="page-footer u-admin-inline-1">Fais Ton Show — Administration centralisée V1</footer>
 </main>
