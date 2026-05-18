@@ -88,43 +88,20 @@ html,body{max-width:100%;overflow-x:hidden}
 }
 
 
-/* UX v6 — ciblage annonce importante */
-.annonce-target-box {
-  display: grid;
-  gap: .65rem;
-  padding: .75rem;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 18px;
-  background: rgba(255,255,255,.045);
-}
-.admin-target-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .45rem;
-}
-.admin-target-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: .35rem;
-  padding: .45rem .62rem;
-  border: 1px solid rgba(255,255,255,.13);
-  border-radius: 999px;
-  background: rgba(255,255,255,.07);
-  color: var(--white, #f5f2ee);
-  font-size: .82rem;
-  cursor: pointer;
-}
-.admin-target-pill input { accent-color: var(--gold, #f8e702); }
-.admin-target-subs {
-  display: grid;
-  gap: .55rem;
-}
-.admin-target-subgroup {
-  display: grid;
-  gap: .35rem;
-  padding: .58rem;
-  border-radius: 16px;
-  background: rgba(0,0,0,.22);
-}
-.admin-target-subgroup > div { display: flex; flex-wrap: wrap; gap: .4rem; }
-.target-help { color: var(--muted, #aaa); font-size: .8rem; }
+/* === Correctif annonces ciblées — ciblage lisible catégorie puis sous-catégorie === */
+.targeted-annonce-panel{margin-top:1rem}
+.targeted-annonce-grid{grid-template-columns:minmax(260px,320px) 1fr}
+.targeted-list-panel{position:static;padding:1rem;background:rgba(8,8,8,.38)}
+.targeting-box{margin:1rem 0;padding:1rem;border:1px solid rgba(248,231,2,.14);border-radius:22px;background:rgba(0,0,0,.22)}
+.targeting-title{font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);font-weight:800;margin-bottom:.35rem}
+.target-picker{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.75rem}
+.subtarget-picker{display:block;margin-top:.9rem}
+.target-chip{display:inline-flex;align-items:center;gap:.35rem;min-height:38px;padding:.42rem .62rem;border:1px solid rgba(255,255,255,.1);border-radius:999px;background:rgba(255,255,255,.045);color:rgba(255,255,255,.8);font-size:.78rem;cursor:pointer;transition:.16s ease;user-select:none}
+.target-chip input{width:auto!important;margin:0;accent-color:#f8e702}
+.target-chip:has(input:checked){border-color:rgba(248,231,2,.55);background:rgba(248,231,2,.14);color:#fff;box-shadow:0 10px 24px rgba(0,0,0,.18)}
+.target-chip.sub{font-size:.74rem;min-height:34px;background:rgba(255,255,255,.035)}
+.target-subgroup{margin-top:.75rem;padding:.8rem;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(8,8,8,.42)}
+.target-subgroup strong{display:block;color:#fff;font-size:.86rem;margin-bottom:.5rem}
+.target-subgroup small,.target-empty{display:block;color:rgba(255,255,255,.55);font-size:.74rem;line-height:1.4;margin-top:.5rem}
+.target-subchips{display:flex;flex-wrap:wrap;gap:.4rem}
+@media(max-width:900px){.targeted-annonce-grid{grid-template-columns:1fr}.target-chip{width:100%;justify-content:flex-start}.target-subchips .target-chip{width:auto}}
