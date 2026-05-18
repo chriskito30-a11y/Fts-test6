@@ -563,3 +563,14 @@ body { overflow-x: hidden; }
   .reward-history-item{ grid-template-columns:1fr; align-items:stretch; }
   .reward-history-actions{ justify-content:flex-start; }
 }
+
+/* FTS v49 — détails utiles enfant dans Accès admin */
+.enfant-info {
+  color: var(--muted);
+  font-weight: 400;
+}
+.modal-enfant-title .enfant-info {
+  font-size: .72rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
