@@ -1447,6 +1447,23 @@ function renderAnnouncementCards(rows) {
   const read = cards.filter(a => isNewsSeen(announcementSeenId(a)));
   const ordered = unread.concat(read);
 
+  // UX : quand toutes les annonces sont lues, elles restent consultables,
+  // mais le bloc ne doit plus donner une impression d'urgence.
+  const kicker = panel.querySelector('.priority-kicker');
+  const titleEl = panel.querySelector('.priority-title');
+  const icon = panel.querySelector('.priority-icon');
+  if (unread.length) {
+    if (icon) icon.textContent = '⚠️';
+    if (kicker) kicker.textContent = 'Information importante';
+    if (titleEl) titleEl.textContent = 'À lire maintenant';
+    panel.setAttribute('aria-label', 'Information importante');
+  } else {
+    if (icon) icon.textContent = '🎉';
+    if (kicker) kicker.textContent = 'Annonces consultées';
+    if (titleEl) titleEl.textContent = 'Tout est à jour 🎉';
+    panel.setAttribute('aria-label', 'Annonces à jour');
+  }
+
   el.innerHTML = ordered.map(a => {
     const id = announcementSeenId(a);
     const isRead = isNewsSeen(id);
