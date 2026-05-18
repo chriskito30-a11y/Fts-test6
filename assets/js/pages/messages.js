@@ -230,7 +230,9 @@ async function sendMessage(){
 function isGroupConv(){ const c=allConvs.find(x=>x.id===currentConvId); return c&&c.data&&c.data.type==="group"; }
 
 function msgTextHtml(m){
-  return FTS.esc(m.text || '').replace(/\n/g,"<br>");
+  const text = m && m.text ? String(m.text) : '';
+  if(text.startsWith('[media]')) return FTSChat.renderMedia(text.slice(7));
+  return FTS.esc(text).replace(/\n/g,"<br>");
 }
 
 function addMsg(key, m, own){

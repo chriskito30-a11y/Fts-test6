@@ -1264,6 +1264,18 @@ function resourceDownloadUrl(url) {
   return url;
 }
 
+function resourceKindFromDoc(d) {
+  const type = String(d.type || '').toLowerCase().trim();
+  const url = String(d.url || '').split('?')[0].toLowerCase();
+  const ext = url.split('.').pop();
+  const value = type || ext || 'doc';
+  if (value === 'pdf' || ext === 'pdf') return { cls:'pdf', icon:'📄', label:'PDF' };
+  if (['mp3','wav','ogg','aac','m4a','audio'].includes(value) || ['mp3','wav','ogg','aac','m4a'].includes(ext)) return { cls:'audio', icon:'🎵', label:'Audio' };
+  if (['mp4','mov','webm','video'].includes(value) || ['mp4','mov','webm'].includes(ext)) return { cls:'video', icon:'🎬', label:'Vidéo' };
+  if (['jpg','jpeg','png','gif','webp','image'].includes(value) || ['jpg','jpeg','png','gif','webp'].includes(ext)) return { cls:'image', icon:'🖼️', label:'Image' };
+  return { cls:'file', icon:ICONS[type] || '📎', label:'Document' };
+}
+
 /* ── AFFICHAGE DOCUMENTS ─────────────────────────────────────── */
 function showDocs(docs, idx) {
   const el = document.getElementById('dc-' + idx);
@@ -1285,19 +1297,23 @@ function showDocs(docs, idx) {
               </div>`;
     }
 
-    const icon = ICONS[t] || '□';
+    const kind = resourceKindFromDoc(d);
     const safeUrl = FTS.esc(d.url);
     const dlUrl = FTS.esc(resourceDownloadUrl(d.url));
     const title = FTS.esc(d.name || 'Document');
-    return `<div class="doc-file-row" id="doc-${FTS.esc(d.key || '')}" data-doc-key="${FTS.esc(d.key || '')}">
-              <a href="${safeUrl}" target="_blank" rel="noopener" class="doc-link">
-                <span class="doc-icon">${icon}</span>
+    const sub = d.sub ? ` · ${FTS.esc(d.sub)}` : '';
+    return `<div class="doc-file-row doc-file-row--${FTS.esc(kind.cls)}" id="doc-${FTS.esc(d.key || '')}" data-doc-key="${FTS.esc(d.key || '')}">
+              <a href="${safeUrl}" target="_blank" rel="noopener" class="doc-link" aria-label="Ouvrir ${title}">
+                <span class="doc-icon" aria-hidden="true">${kind.icon}</span>
                 <span class="doc-name">
-                  ${title}
-                  ${d.sub ? `<span class="doc-sub">— ${FTS.esc(d.sub)}</span>` : ''}
+                  <strong>${title}</strong>
+                  <span class="doc-sub">${FTS.esc(kind.label)}${sub}</span>
                 </span>
               </a>
-              <a class="doc-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${title}">⬇ Télécharger</a>
+              <div class="doc-actions">
+                <a class="doc-open" href="${safeUrl}" target="_blank" rel="noopener" aria-label="Ouvrir ${title}">Ouvrir</a>
+                <a class="doc-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${title}">⬇ Télécharger</a>
+              </div>
             </div>`;
   }).join('');
   revealPendingResource(idx);
