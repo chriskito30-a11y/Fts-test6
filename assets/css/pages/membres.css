@@ -3008,3 +3008,69 @@ button.profile-pill:focus-visible {
     transform-origin:top right;
   }
 }
+
+/* ── PATCH 48 — Mon compte : profil éditable + ajout enfant ───── */
+.account-edit-grid,
+.profile-child-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .6rem;
+  margin-bottom: .35rem;
+}
+.profile-family-wrap {
+  display: block;
+  margin: .85rem 0 .85rem;
+}
+.profile-enfants-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .8rem;
+  margin-bottom: .65rem;
+}
+.profile-enfants-head p {
+  margin: .18rem 0 0 !important;
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+.account-btn-small {
+  min-height: 34px !important;
+  padding: .45rem .65rem !important;
+  border-radius: 14px !important;
+  font-size: .72rem !important;
+  white-space: nowrap;
+}
+.profile-family-empty {
+  background: rgba(255,255,255,.035);
+  border: 1px dashed rgba(255,255,255,.13);
+  border-radius: 16px;
+  color: var(--muted);
+  font-size: .78rem;
+  padding: .8rem;
+  margin-bottom: .6rem;
+}
+.profile-enfant-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+}
+.profile-child-remove {
+  border: 1px solid rgba(255,255,255,.13);
+  background: rgba(255,255,255,.045);
+  color: #ffb3b3;
+  border-radius: 999px;
+  padding: .28rem .5rem;
+  font: inherit;
+  font-size: .68rem;
+  cursor: pointer;
+}
+.profile-child-remove:hover { border-color: rgba(255,138,138,.45); }
+.child-disciplines-muted { color: rgba(255,255,255,.48) !important; }
+@media (max-width: 560px) {
+  .account-edit-grid,
+  .profile-child-grid { grid-template-columns: 1fr; }
+  .profile-enfants-head { flex-direction: column; align-items: stretch; }
+  .account-btn-small { width: 100%; }
+}
