@@ -1910,7 +1910,9 @@ async function saveProfileInfo() {
     userProfile = { ...userProfile, ...updates };
     fillAccountIdentity();
     renderProfileEnfants();
-    renderWelcome(userProfile, firebase.auth().currentUser ? firebase.auth().currentUser.email : '');
+    if (typeof renderDashboard === 'function') {
+      renderDashboard(userProfile, firebase.auth().currentUser ? firebase.auth().currentUser.email : '');
+    }
     setAccountMsg('profile-msg', '✓ Profil enregistré.', 'ok');
   } catch(e) {
     console.warn('[FTS] Sauvegarde profil impossible :', e);
