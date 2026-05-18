@@ -504,6 +504,7 @@ function newsItemId(item) {
   if (type === 'event' && key) return 'event|' + key;
   if (type === 'announcement') return 'announcement|current|' + String(item.ts || '0').trim();
   if (type === 'messages') return 'messages|unread';
+  if (type === 'poll' && key) return 'poll|' + key;
 
   const base = key || item.action || item.title || '';
   return [type, base].map(v => String(v || '').trim()).join('|');
@@ -726,6 +727,44 @@ async function collectNewAnnouncement(sinceTs) {
   }];
 }
 
+
+async function collectPendingPolls(uid) {
+  if (!uid) return [];
+  try {
+    const unreadSnap = await db.ref('fts_poll_unread/' + uid).once('value');
+    const unread = unreadSnap.val() || {};
+    const ids = Object.keys(unread).filter(Boolean);
+    if (!ids.length) return [];
+
+    const polls = await Promise.all(ids.map(id =>
+      db.ref('fts_polls/' + id).once('value')
+        .then(s => ({ id, poll: s.val() || null }))
+        .catch(() => ({ id, poll: null }))
+    ));
+
+    return polls
+      .filter(x => x.poll && x.poll.active !== false && !pollNewsClosed(x.poll))
+      .map(x => ({
+        type: 'poll',
+        icon: '📊',
+        title: x.poll.title || 'Sondage à compléter',
+        meta: 'Réponse attendue',
+        ts: Number(x.poll.createdAt || 0) || Date.now(),
+        action: 'poll',
+        key: x.id,
+        skipSeenFilter: true
+      }));
+  } catch(e) {
+    console.warn('[FTS] Sondages à faire indisponibles :', e);
+    return [];
+  }
+}
+
+function pollNewsClosed(poll) {
+  const close = Number(poll && poll.closesAt || 0);
+  return close > 0 && close < Date.now();
+}
+
 async function loadMemberNews() {
   const panel = document.getElementById('member-news-panel');
   const list = document.getElementById('member-news-list');
@@ -738,10 +777,11 @@ async function loadMemberNews() {
   try {
     await loadSeenNewsMap();
 
-    const [resources, events, announcement, unread] = await Promise.all([
+    const [resources, events, announcement, polls, unread] = await Promise.all([
       collectNewResources(sinceTs).catch(() => []),
       collectNewEvents(sinceTs).catch(() => []),
       collectNewAnnouncement(sinceTs).catch(() => []),
+      collectPendingPolls(currentUid).catch(() => []),
       getUnreadMessageCount(currentUid)
     ]);
 
@@ -760,7 +800,7 @@ async function loadMemberNews() {
         skipSeenFilter: true
       });
     }
-    items.push(...resources, ...events, ...announcement);
+    items.push(...polls, ...resources, ...events, ...announcement);
 
     const unique = [];
     const seenIds = new Set();
@@ -773,7 +813,7 @@ async function loadMemberNews() {
     });
 
     renderMemberNews(unique.slice(0, 5), false);
-    if (hint) hint.textContent = 'Non consultées · selon vos cours';
+    if (hint) hint.textContent = unique.length ? (unique.length + ' action' + (unique.length > 1 ? 's' : '') + ' utile' + (unique.length > 1 ? 's' : '')) : 'Tout est à jour';
   } catch(e) {
     console.warn('[FTS] Nouveautés indisponibles :', e);
     panel.classList.add('u-initial-hidden');
@@ -795,7 +835,7 @@ function renderMemberNews(items) {
   panel.style.display = 'block';
   saveMemberNewsCount(items.length);
   const title = panel.querySelector('.smart-section-head h2');
-  if (title) title.textContent = 'Nouveautés à consulter';
+  if (title) title.textContent = 'À faire maintenant';
 
   list.innerHTML = items.map(item => `
     <button type="button" class="smart-item member-news-item" data-news-action="${FTS.esc(item.action || '')}"
@@ -809,7 +849,7 @@ function renderMemberNews(items) {
         <strong>${FTS.esc(item.title || 'Nouvelle information')}</strong>
         <small>${FTS.esc(item.meta || '')}${newsLabelDate(item.ts) ? ' · ' + FTS.esc(newsLabelDate(item.ts)) : ''}</small>
       </span>
-      <span class="smart-item-action">Voir</span>
+      <span class="smart-item-action">${item.action === 'poll' ? 'Répondre' : 'Voir'}</span>
     </button>`).join('');
 }
 
@@ -833,13 +873,18 @@ function openMemberNewsItem(btn) {
 
   // Les messages restent pilotés par le vrai compteur non-lu Firebase.
   // Les autres nouveautés sont marquées comme lues localement, une par une.
-  if (action !== 'messages' && newsId) {
+  if (action !== 'messages' && action !== 'poll' && newsId) {
     markNewsSeen(newsId);
     refreshNewsPanelAfterSeen(btn);
   }
 
   if (action === 'messages') {
     window.location.href = 'hub-messages.html';
+    return;
+  }
+  if (action === 'poll') {
+    const key = btn.dataset.newsKey || '';
+    window.location.href = key ? ('sondages.html?poll=' + encodeURIComponent(key)) : 'sondages.html';
     return;
   }
   if (action === 'announcement') {
