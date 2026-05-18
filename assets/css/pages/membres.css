@@ -2752,3 +2752,76 @@ button.profile-pill:focus-visible {
 .annonce-ticker span{display:inline-block;padding:.65rem 1rem;animation:ftsTicker 18s linear infinite;min-width:100%}
 @keyframes ftsTicker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
 @media(max-width:600px){.annonce-item{border-radius:16px;padding:.78rem}.annonce-ticker{margin:-.78rem -.78rem .7rem}.annonce-ticker span{animation-duration:14s}}
+
+
+/* UX v33 — banderole d'annonce globale/ciblée + carte "J'ai lu" */
+.fts-alert-ticker {
+  position: sticky;
+  top: 0;
+  z-index: 180;
+  align-items: center;
+  gap: .7rem;
+  min-height: 42px;
+  padding: .48rem max(.8rem, env(safe-area-inset-left)) .48rem max(.8rem, env(safe-area-inset-right));
+  background: linear-gradient(90deg, rgba(248,231,2,.98), rgba(244,197,66,.98));
+  color: #050505;
+  border-bottom: 1px solid rgba(0,0,0,.22);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  overflow: hidden;
+}
+.fts-alert-track {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.fts-alert-icon { flex: 0 0 auto; }
+.fts-alert-text {
+  display: inline-block;
+  min-width: max-content;
+  font-weight: 900;
+  letter-spacing: .01em;
+  animation: ftsTopTicker 18s linear infinite;
+}
+.fts-alert-read,
+.annonce-read-btn {
+  appearance: none;
+  border: 1px solid rgba(0,0,0,.18);
+  border-radius: 999px;
+  padding: .42rem .68rem;
+  background: rgba(5,5,5,.9);
+  color: #fff;
+  font: inherit;
+  font-size: .78rem;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.annonce-actions { margin-top: .75rem; }
+.annonce-card-badge {
+  display:inline-flex;
+  width:max-content;
+  margin-bottom:.45rem;
+  padding:.18rem .48rem;
+  border-radius:999px;
+  background:rgba(248,231,2,.12);
+  border:1px solid rgba(248,231,2,.22);
+  color:rgba(255,255,255,.82);
+  font-weight:800;
+  font-size:.72rem;
+}
+@keyframes ftsTopTicker {
+  0% { transform: translateX(18%); }
+  100% { transform: translateX(-100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fts-alert-text { animation: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 520px) {
+  .fts-alert-ticker { min-height: 38px; padding: .42rem .58rem; gap: .5rem; }
+  .fts-alert-read { padding: .34rem .52rem; font-size: .7rem; }
+  .fts-alert-text { font-size: .82rem; animation-duration: 15s; }
+}
