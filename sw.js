@@ -1,4 +1,4 @@
-const CACHE = 'fts-v35-pwa-cache-stabilisation';
+const CACHE = 'fts-v36-pwa-cache-sondages';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -8,6 +8,7 @@ const FILES = [
   './messages.html',
   './faq.html',
   './hub-messages.html',
+  './sondages.html',
   './profs.html',
   './admin.html',
   './contenus-admin.html',
@@ -32,6 +33,7 @@ const FILES = [
   './assets/css/pages/saison.css',
   './assets/css/fts-nav.css',
   './assets/css/pages/hub-messages.css',
+  './assets/css/pages/sondages.css',
   './assets/css/pages/faq.css',
   './assets/js/fts-chat.js',
   './assets/js/fts-firebase.js',
@@ -60,6 +62,7 @@ const FILES = [
   './assets/js/pages/saison.js',
   './assets/js/fts-nav.js',
   './assets/js/pages/hub-messages.js',
+  './assets/js/pages/sondages.js',
   './assets/js/pages/faq.js',
   './assets/img/fts-any-192.png',
   './assets/img/fts-maskable-192.png',
