@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v43-hub-clean';
+  const RELOAD_KEY = 'fts-sw-reload-v44-notification-cleanup';
   let refreshing = false;
 
 
@@ -24,6 +24,22 @@
       navigator.serviceWorker.controller.postMessage(msg);
     }
   }
+
+
+  function clearServiceWorkerNotifications(payload){
+    if (!('serviceWorker' in navigator)) return;
+    const msg = { type: 'FTS_CLEAR_NOTIFICATIONS', payload: payload || {} };
+    navigator.serviceWorker.ready.then(function(reg){
+      if (reg.active) reg.active.postMessage(msg);
+      if (reg.waiting) reg.waiting.postMessage(msg);
+      if (reg.installing) reg.installing.postMessage(msg);
+    }).catch(function(){});
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage(msg);
+    }
+  }
+
+  window.FTSClearNotifications = clearServiceWorkerNotifications;
 
   function bindFirebaseAuthToServiceWorker(){
     if (typeof firebase === 'undefined' || !firebase.auth) return;
