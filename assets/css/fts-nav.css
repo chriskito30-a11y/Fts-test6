@@ -234,7 +234,7 @@
 }
 .fts-doc-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 42px;
+  grid-template-columns: minmax(0, 1fr) minmax(92px, 112px);
   gap: 8px;
   align-items: stretch;
   margin: 8px 0;
@@ -264,7 +264,10 @@
   background: rgba(201,168,76,.14);
   color: var(--gold, #c9a84c);
   font-weight: 900;
+  gap: 4px;
+  font-size: .78rem;
 }
+.fts-doc-dl span { display: inline; }
 .fts-doc-open strong {
   display: block;
   max-width: 100%;
@@ -296,6 +299,11 @@
 }
 .fts-docs-empty strong, .fts-docs-empty span { display: block; }
 .fts-docs-empty span { margin-top: 4px; font-size: .86rem; }
+
+@media (max-width: 420px) {
+  .fts-doc-row { grid-template-columns: minmax(0, 1fr) 48px; }
+  .fts-doc-dl span { display: none; }
+}
 
 @media (min-width: 760px) {
   .fts-docs-modal { align-items: center; }
