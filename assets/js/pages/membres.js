@@ -554,7 +554,7 @@ function isAfterLastVisit(ts, sinceTs) {
   return Number(ts || 0) > Number(sinceTs || 0);
 }
 
-async function getUnreadMessageCount(uid) {
+async function getPrivateUnreadMessageCount(uid) {
   if (!uid) return 0;
   try {
     const snap = await db.ref('fts_dm/userConvs/' + uid).once('value');
@@ -568,9 +568,69 @@ async function getUnreadMessageCount(uid) {
     ));
     return total;
   } catch(e) {
-    console.warn('[FTS] Compteur messages nouveautés indisponible :', e);
+    console.warn('[FTS] Compteur messages privés indisponible :', e);
     return 0;
   }
+}
+
+async function getVisibleForumChannelsForProfile() {
+  const channels = ['general'];
+  const isAdmin = profileIsAdmin();
+  const groups = userDisciplines().map(FTS.norm);
+  const subs = userSubgroups().map(FTS.norm);
+  try {
+    const structure = FTS.getCategoryStructureAsync
+      ? await FTS.getCategoryStructureAsync(db)
+      : (FTS.getCategoryStructure ? FTS.getCategoryStructure() : C.categories);
+    (structure || []).forEach(cat => {
+      const catName = cat.name || cat.category || '';
+      const catNorm = FTS.norm(catName);
+      if (isAdmin || groups.includes(catNorm)) channels.push(catNorm);
+      (cat.subs || cat.subcats || []).forEach(sub => {
+        const subName = typeof sub === 'string' ? sub : (sub && (sub.name || sub.label));
+        const subNorm = FTS.norm(subName);
+        if (isAdmin || subs.includes(subNorm)) channels.push(subNorm);
+      });
+    });
+  } catch(e) {
+    groups.forEach(g => channels.push(g));
+    subs.forEach(s => channels.push(s));
+  }
+  return [...new Set(channels.filter(Boolean))];
+}
+
+async function getForumUnreadMessageCount(uid) {
+  if (!uid) return 0;
+  try {
+    const channels = await getVisibleForumChannelsForProfile();
+    const readsSnap = await db.ref('fts_users/' + uid + '/forumReads').once('value');
+    const reads = readsSnap.val() || {};
+    let total = 0;
+    await Promise.all(channels.map(ch => {
+      const lastRead = Number((reads[ch] && reads[ch].ts) || reads[ch] || 0);
+      if (!lastRead) return Promise.resolve();
+      return db.ref('fts_forum/messages/' + ch).orderByChild('ts').startAt(lastRead + 1).limitToLast(50).once('value')
+        .then(snap => {
+          snap.forEach(child => {
+            const msg = child.val() || {};
+            if (msg.uid && msg.uid === uid) return;
+            total += 1;
+          });
+        }).catch(() => {});
+    }));
+    return total;
+  } catch(e) {
+    console.warn('[FTS] Compteur forum indisponible :', e);
+    return 0;
+  }
+}
+
+async function getUnreadMessageCount(uid) {
+  const [dm, forum] = await Promise.all([
+    getPrivateUnreadMessageCount(uid),
+    getForumUnreadMessageCount(uid)
+  ]);
+  return Number(dm || 0) + Number(forum || 0);
 }
 
 function newsLabelDate(ts) {
