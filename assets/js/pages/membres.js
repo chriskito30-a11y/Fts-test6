@@ -1435,7 +1435,7 @@ function renderAnnouncementCards(rows) {
   const panel = document.getElementById('priority-panel');
   if (!el || !panel) return;
 
-  const cards = (rows || []).filter(a => !isNewsSeen(announcementSeenId(a)));
+  const cards = (rows || []).filter(Boolean);
   if (!cards.length) {
     panel.classList.add('u-initial-hidden');
     panel.style.display = 'none';
@@ -1443,21 +1443,31 @@ function renderAnnouncementCards(rows) {
     return;
   }
 
-  el.innerHTML = cards.map(a => {
+  const unread = cards.filter(a => !isNewsSeen(announcementSeenId(a)));
+  const read = cards.filter(a => isNewsSeen(announcementSeenId(a)));
+  const ordered = unread.concat(read);
+
+  el.innerHTML = ordered.map(a => {
     const id = announcementSeenId(a);
+    const isRead = isNewsSeen(id);
     const title = a.title || a.titre || '';
     const body = a.body || a.text || a.texte || '';
     const btn = a.buttonText || a.btn || '';
     const url = a.buttonUrl || a.url || '';
     const badge = a.source === 'targeted' ? 'Annonce ciblée' : 'Information générale';
-    return `<div class="annonce-item" data-annonce-id="${FTS.esc(id)}">
+    const dateLabel = newsLabelDate(itemTs(a));
+    return `<div class="annonce-item ${isRead ? 'annonce-item-read' : 'annonce-item-unread'}" data-annonce-id="${FTS.esc(id)}">
       <div class="annonce-card-body">
-        <small class="annonce-card-badge">${FTS.esc(badge)}</small>
+        <div class="annonce-card-topline">
+          <small class="annonce-card-badge">${FTS.esc(badge)}</small>
+          ${isRead ? '<small class="annonce-read-state">Déjà lu</small>' : '<small class="annonce-read-state annonce-read-state-new">À lire</small>'}
+        </div>
         ${title ? `<strong>${FTS.esc(title)}</strong><br>` : ''}
         ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
+        ${dateLabel ? `<div class="annonce-date">${FTS.esc(dateLabel)}</div>` : ''}
         ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
       </div>
-      <div class="annonce-actions"><button type="button" class="annonce-read-btn" data-annonce-read="${FTS.esc(id)}">J’ai lu</button></div>
+      ${isRead ? '' : `<div class="annonce-actions"><button type="button" class="annonce-read-btn" data-annonce-read="${FTS.esc(id)}">J’ai lu</button></div>`}
     </div>`;
   }).join('');
 
@@ -1473,6 +1483,7 @@ function renderAnnouncementCards(rows) {
   panel.classList.remove('u-initial-hidden');
   panel.style.display = 'block';
 }
+
 async function loadAnnonce() {
   try {
     const visible = await getVisibleAnnouncements();
@@ -1481,8 +1492,12 @@ async function loadAnnonce() {
 
     visible.forEach(a => {
       const mode = announcementDisplayMode(a);
-      if (mode === 'ticker' || mode === 'both') tickerRows.push(a);
-      if (mode === 'card' || mode === 'both') cardRows.push(a);
+      const alreadyRead = isNewsSeen(announcementSeenId(a));
+
+      // Non lu : on respecte le mode choisi dans l'admin.
+      // Lu : l'annonce reste consultable en carte discrète, même si elle était en banderole seule.
+      if (!alreadyRead && (mode === 'ticker' || mode === 'both')) tickerRows.push(a);
+      if (mode === 'card' || mode === 'both' || alreadyRead) cardRows.push(a);
     });
 
     renderAlertTicker(tickerRows);
