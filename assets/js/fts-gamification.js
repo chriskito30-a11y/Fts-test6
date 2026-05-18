@@ -45,11 +45,7 @@
     if(artistOfWeek && artistOfWeek.uid && artistOfWeek.uid === user.uid && isActiveTimed(artistOfWeek)){
       return { label: artistOfWeek.label || '⭐ Artiste de la semaine', kind:'artist' };
     }
-    if(isActiveTimed(user.specialBadge)){
-      const lbl = String(user.specialBadge.label || '');
-      const k = user.specialBadge.kind || user.specialBadge.type || (lbl.includes('Artiste de la semaine') ? 'artist' : 'rare');
-      return { label:user.specialBadge.label, kind:k };
-    }
+    if(isActiveTimed(user.specialBadge)) return { label:user.specialBadge.label, kind:(user.specialBadge.kind || user.specialBadge.type || 'rare') };
     return { label:getXpBadge(user.xp).label, kind:'xp' };
   }
   function renderBadge(label, kind){
@@ -146,13 +142,12 @@
     await awardXp(db, targetUid, 'special_badge_received', 30, { maxPerDay:2 }).catch(()=>{});
   }
   async function setArtistOfWeek(db, targetUid, assignedBy, text, days){
+    if(!db || !targetUid) throw new Error('Membre introuvable.');
     const until = now() + Math.max(1, Number(days || 7)) * 86400000;
-    const snap = await db.ref('fts_forum/users/' + targetUid).once('value').catch(()=>null);
-    const u = snap && snap.val ? snap.val() : {};
 
-    // IMPORTANT : on écrit d'abord dans specialBadge avec EXACTEMENT la même structure
-    // qu'un badge temporaire classique. Certaines rules Firebase refusent les champs
-    // supplémentaires (uid/kind/text/name), ce qui provoquait permission_denied.
+    // ÉCRITURE PRINCIPALE UNIQUE ET OBLIGATOIRE.
+    // Même chemin que les badges temporaires, mais avec une structure minimale.
+    // Aucun autre chemin Firebase ne doit pouvoir bloquer cette action.
     const payload = {
       label:'⭐ Artiste de la semaine',
       until,
@@ -161,16 +156,23 @@
       ts:now()
     };
 
-    // Écriture principale : même chemin que les badges temporaires, déjà autorisé.
     await db.ref(`fts_forum/users/${targetUid}/specialBadge`).set(payload);
 
-    // Toutes les écritures confort sont facultatives et ne doivent JAMAIS bloquer
-    // l'attribution si une rule les refuse.
-    db.ref(`fts_users/${targetUid}/specialBadge`).set(payload).catch(()=>{});
-    db.ref('fts_community/artistOfWeek').set(Object.assign({ uid:targetUid, kind:'artist', name:publicName(u), text:text || '' }, payload)).catch(()=>{});
-    writeRewardHistory(db, { type:'artist_of_week', targetUid, label:payload.label, until, assignedBy:assignedBy || '', reason:text || '', name:publicName(u) }).catch(()=>{});
-    pushGeneralMessage(db, `🎉 Bravo à ${publicName(u)} qui devient Artiste de la semaine !`, { gamification:true, type:'artist_of_week', targetUid }).catch(()=>{});
-    awardXp(db, targetUid, 'artist_of_week', 100, { maxPerDay:1 }).catch(()=>{});
+    // Tout ce qui suit est volontairement non bloquant : si les rules refusent,
+    // l'artiste de la semaine reste quand même attribué.
+    let u = {};
+    db.ref('fts_forum/users/' + targetUid).once('value')
+      .then(snap => {
+        u = snap && snap.val ? (snap.val() || {}) : {};
+        return Promise.allSettled([
+          db.ref(`fts_users/${targetUid}/specialBadge`).set(payload),
+          db.ref('fts_community/artistOfWeek').set(Object.assign({ uid:targetUid, kind:'artist', name:publicName(u), text:text || '' }, payload)),
+          writeRewardHistory(db, { type:'artist_of_week', targetUid, label:payload.label, until, assignedBy:assignedBy || '', reason:text || '', name:publicName(u) }),
+          pushGeneralMessage(db, `🎉 Bravo à ${publicName(u)} qui devient Artiste de la semaine !`, { gamification:true, type:'artist_of_week', targetUid }),
+          awardXp(db, targetUid, 'artist_of_week', 100, { maxPerDay:1 })
+        ]);
+      })
+      .catch(()=>{});
   }
 
   window.FTSGamification = { XP_BADGES, RARE_BADGES, REACTIONS, getXpBadge, getPublicBadge, renderBadge, awardXp, setSpecialBadge, setArtistOfWeek, clearSpecialBadge, extendSpecialBadge, pushGeneralMessage, writeRewardHistory, isActiveTimed };
