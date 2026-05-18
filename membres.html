@@ -15,8 +15,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css?v=32">
 
-<link rel="stylesheet" href="assets/css/fts-nav.css?v=17">
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=31">
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=18">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=32">
 </head>
 
 <body class="has-glow">
@@ -32,6 +32,15 @@
 
 <!-- ── CONTENU PRINCIPAL (caché jusqu'à auth OK) ──────────────── -->
 <div id="page-content" class="u-initial-hidden">
+
+  <!-- ANNONCE IMPORTANTE CIBLÉE — affichée uniquement si elle concerne le membre -->
+  <section class="fts-alert-ticker u-initial-hidden" id="fts-alert-ticker" aria-label="Annonce importante">
+    <div class="fts-alert-track" id="fts-alert-track">
+      <span class="fts-alert-icon">📣</span>
+      <span class="fts-alert-text" id="fts-alert-text"></span>
+    </div>
+    <button type="button" class="fts-alert-read" id="fts-alert-read">J’ai lu</button>
+  </section>
 
   <!-- BOTTOM NAV -->
   <nav class="fts-bottom-nav fts-nav-3" aria-label="Navigation principale">
@@ -424,8 +433,8 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/fts-nav.js?v=17"></script>
+<script src="assets/js/fts-nav.js?v=18"></script>
 <script src="assets/js/fts-gamification.js?v=3"></script>
-<script src="assets/js/pages/membres.js?v=31"></script>
+<script src="assets/js/pages/membres.js?v=32"></script>
 </body>
 </html>
