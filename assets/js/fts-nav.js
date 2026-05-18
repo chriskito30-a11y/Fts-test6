@@ -8,6 +8,9 @@
   var unreadTotalByConv = {};
   var unreadUserConvsRef = null;
   var currentForumProfile = null;
+  var pollUnreadTotal = 0;
+  var pollUnreadRef = null;
+  var pollUnreadCb = null;
   var forumUnreadTotal = 0;
   var forumUnreadTimer = null;
   var forumMessagesRef = null;
@@ -130,7 +133,7 @@
       var nav = a.getAttribute('data-nav');
       var active = false;
       if (nav === 'membres' && page === 'membres.html') active = true;
-      if (nav === 'messages' && (page === 'hub-messages.html' || page === 'messages.html' || page === 'forum.html')) active = true;
+      if (nav === 'messages' && (page === 'hub-messages.html' || page === 'messages.html' || page === 'forum.html' || page === 'sondages.html')) active = true;
       if (nav === 'prof' && page === 'profs.html') active = true;
       if (nav === 'admin' && page === 'admin.html') active = true;
       a.classList.toggle('active', active);
@@ -151,7 +154,7 @@
   }
 
   function renderMemberUnreadTotal(){
-    var total = privateUnreadTotal() + Number(forumUnreadTotal || 0);
+    var total = privateUnreadTotal() + Number(forumUnreadTotal || 0) + Number(pollUnreadTotal || 0);
     ensureMessagesBadge();
     // Historique : certaines pages avaient la pastille sur Membres. On la garde.
     setBadge('fts-member-badge', total);
@@ -250,6 +253,23 @@
     forumMessagesRef = null; forumReadsRef = null; forumMessagesCb = null; forumReadsCb = null; forumUnreadTotal = 0;
   }
 
+  function clearPollUnreadListener(){
+    try { if (pollUnreadRef && pollUnreadCb) pollUnreadRef.off('value', pollUnreadCb); } catch(e) {}
+    pollUnreadRef = null; pollUnreadCb = null; pollUnreadTotal = 0;
+  }
+
+  function listenPollUnread(uid){
+    var db = initFirebaseSafe();
+    if (!uid || !db) return;
+    clearPollUnreadListener();
+    pollUnreadRef = db.ref('fts_poll_unread/' + uid);
+    pollUnreadCb = function(snap){
+      pollUnreadTotal = snap.exists() ? Object.keys(snap.val() || {}).length : 0;
+      renderMemberUnreadTotal();
+    };
+    pollUnreadRef.on('value', pollUnreadCb);
+  }
+
   function listenForumUnread(uid, profile){
     var db = initFirebaseSafe();
     if (!uid || !db) return;
@@ -276,6 +296,7 @@
     unreadTotalByConv = {};
     unreadUserConvsRef = null;
     clearForumUnreadListeners();
+    clearPollUnreadListener();
   }
 
   function listenUnreadMessages(uid){
@@ -329,6 +350,7 @@
       return;
     }
     listenUnreadMessages(user.uid);
+    listenPollUnread(user.uid);
     var db = initFirebaseSafe();
     if (db) {
       db.ref('fts_users/' + user.uid).once('value')
