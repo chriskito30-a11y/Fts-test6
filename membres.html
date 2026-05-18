@@ -252,20 +252,26 @@
           <p>Les informations utiles pour l’administration et les professeurs.</p>
         </div>
       </div>
-      <div class="account-readonly-grid">
-        <div class="account-readonly-field">
-          <small>Prénom</small>
-          <strong id="account-firstname">—</strong>
+      <div class="account-edit-grid">
+        <div>
+          <label class="account-label" for="profile-firstname">Prénom</label>
+          <input class="account-field" id="profile-firstname" type="text" placeholder="Prénom" autocomplete="given-name">
         </div>
-        <div class="account-readonly-field">
-          <small>Nom</small>
-          <strong id="account-lastname">—</strong>
+        <div>
+          <label class="account-label" for="profile-lastname">Nom</label>
+          <input class="account-field" id="profile-lastname" type="text" placeholder="Nom" autocomplete="family-name">
         </div>
       </div>
       <label class="account-label" for="profile-tel">Téléphone</label>
       <input class="account-field" id="profile-tel" type="tel" placeholder="06 12 34 56 78" autocomplete="tel">
-      <div id="profile-enfants-wrap" class="u-initial-hidden">
-        <div class="profile-enfants-label">Enfant(s) associé(s)</div>
+      <div id="profile-enfants-wrap" class="profile-family-wrap">
+        <div class="profile-enfants-head">
+          <div>
+            <div class="profile-enfants-label">Enfant(s) associé(s)</div>
+            <p>Ajoute un enfant si l’inscription a été faite sans lui. Les groupes et disciplines restent gérés par l’administration.</p>
+          </div>
+          <button type="button" class="account-btn account-btn-small" id="btn-add-profile-child">+ Ajouter</button>
+        </div>
         <div id="profile-enfants-list"></div>
       </div>
       <button class="account-btn account-btn-primary" id="btn-save-profile">Enregistrer</button>
