@@ -1258,3 +1258,47 @@ body.fts-chat-modern .msg-file-download:hover {
   }
 }
 
+
+
+/* ================================================================
+   PATCH TYPO MARQUE v32 — Messages + Forum alignés sur index
+   Aucune logique JS/Firebase modifiée.
+   ================================================================ */
+body.fts-chat-modern .sb-title.fts-brand-title,
+body.fts-chat-modern .chat-empty-title.fts-brand-title {
+  font-family: "FTS Budmo", "Bebas Neue", Impact, sans-serif !important;
+  font-weight: 400 !important;
+  text-transform: uppercase;
+  letter-spacing: .035em;
+  line-height: .86 !important;
+  color: var(--white);
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.fts-chat-modern .sb-title.fts-brand-title {
+  font-size: clamp(2.25rem, 8vw, 3.1rem) !important;
+}
+
+body.fts-chat-modern .chat-empty-title.fts-brand-title {
+  font-size: clamp(3.2rem, 13vw, 6rem) !important;
+}
+
+body.fts-chat-modern .sb-title.fts-brand-title span,
+body.fts-chat-modern .chat-empty-title.fts-brand-title span {
+  display: block;
+  font-family: inherit !important;
+  color: var(--red);
+  line-height: .86;
+  font-size: .86em;
+}
+
+body.fts-chat-modern .chat-empty-title.fts-brand-title::before {
+  content: none !important;
+}
+
+@media (max-width: 720px) {
+  body.fts-chat-modern .sb-title.fts-brand-title {
+    font-size: clamp(2rem, 8vw, 2.75rem) !important;
+  }
+}
