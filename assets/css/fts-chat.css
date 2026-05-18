@@ -551,12 +551,15 @@ html, body {
 .msg-file-info { display:grid; gap:.12rem; min-width:0; flex:1; max-width:100%; }
 .msg-file-title { display:block; color:var(--white); font-size:.84rem; font-weight:900; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%; }
 .msg-file-sub { font-size:.68rem; color:var(--muted); font-weight:700; }
+.msg-file-actions { display:flex; flex-wrap:wrap; align-items:center; gap:.45rem; }
+.msg-file-open,
 .msg-file-download {
-  display:inline-flex; align-items:center; justify-content:center; gap:.35rem; width:fit-content;
-  padding:.46rem .72rem; border-radius:999px; border:1px solid rgba(248,231,2,.38);
-  color:var(--gold); background:rgba(248,231,2,.09); text-decoration:none; font-size:.72rem; font-weight:900;
+  display:inline-flex; align-items:center; justify-content:center; gap:.35rem; width:fit-content; min-height:34px;
+  padding:.46rem .72rem; border-radius:999px; text-decoration:none; font-size:.72rem; font-weight:900; line-height:1;
 }
-.msg-file-download:hover { border-color:var(--gold); background:rgba(248,231,2,.14); }
+.msg-file-open { color:var(--white); border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.07); }
+.msg-file-download { color:var(--gold); border:1px solid rgba(248,231,2,.38); background:rgba(248,231,2,.09); }
+.msg-file-open:hover, .msg-file-download:hover { border-color:var(--gold); background:rgba(248,231,2,.14); }
 .msg-file-download.compact { margin-top:.05rem; }
 .msg-pdf { display:inline-flex; align-items:center; gap:.45rem; color:var(--gold); text-decoration:none; margin-top:.25rem; }
 .msg-pdf:hover { text-decoration:underline; }
