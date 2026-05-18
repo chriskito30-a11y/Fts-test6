@@ -872,8 +872,24 @@ function rewardChildName(e) {
   return [e && e.prenom, e && e.nom].filter(Boolean).join(' ') || [e && e.firstName, e && e.lastName].filter(Boolean).join(' ') || (e && e.name) || 'Enfant';
 }
 
-function rewardDiscsFrom(value) {
-  return Array.isArray(value) ? value : String(value || '').split(',').map(x => x.trim()).filter(Boolean);
+function rewardDiscsFrom(...values) {
+  const out = [];
+  values.forEach(value => {
+    if (!value) return;
+    if (Array.isArray(value)) {
+      value.forEach(v => { if (v) out.push(String(v).trim()); });
+      return;
+    }
+    if (typeof value === 'object') {
+      Object.values(value).forEach(v => { if (v) out.push(String(v).trim()); });
+      return;
+    }
+    String(value || '').split(',').forEach(v => {
+      const clean = v.trim();
+      if (clean) out.push(clean);
+    });
+  });
+  return [...new Set(out.filter(Boolean))];
 }
 
 function makeRewardOptionValue(uid, childId) {
@@ -895,11 +911,12 @@ async function getRewardVisibleStudents() {
       if (u.role === "admin" || u.role === "prof") return;
 
       const parentName = rewardDisplayName(u);
-      const accountDiscs = rewardDiscsFrom(u.disciplines || u.group);
-      const children = (u.hasEnfant && Array.isArray(u.enfants)) ? u.enfants : [];
+      const accountDiscs = rewardDiscsFrom(u.disciplines, u.group, u.groups, u.categories, u.category);
+      const children = Array.isArray(u.enfants) ? u.enfants : [];
+      const parentMatches = !allowedDiscs || accountDiscs.some(d => allowedDiscs.includes(normAccess(d)));
 
       // Compte principal : utile pour les adultes / élèves avec leur propre compte.
-      if (!allowedDiscs || accountDiscs.some(d => allowedDiscs.includes(normAccess(d)))) {
+      if (parentMatches) {
         students.push({
           uid: child.key,
           optionValue: makeRewardOptionValue(child.key, ''),
@@ -912,9 +929,11 @@ async function getRewardVisibleStudents() {
 
       // Enfants rattachés : ligne séparée pour pouvoir récompenser Emma, Lucas, etc.
       children.forEach((e, index) => {
-        const childDiscs = rewardDiscsFrom(e.disciplines || e.group || e.groups);
-        if (allowedDiscs && !childDiscs.some(d => allowedDiscs.includes(normAccess(d)))) return;
-        const childId = e.id || `enfant_${index + 1}`;
+        const childDiscs = rewardDiscsFrom(e.disciplines, e.group, e.groups, e.categories, e.category, e.subgroups, e.subgroup, e.subcategories, e.subcategory);
+        const childMatches = !allowedDiscs || childDiscs.some(d => allowedDiscs.includes(normAccess(d)));
+        // Sécurité UX : si l'enfant n'a pas de discipline propre renseignée, on se base sur le compte parent.
+        if (allowedDiscs && !childMatches && !(parentMatches && !childDiscs.length)) return;
+        const childId = e.id || e.uid || e.key || `enfant_${index + 1}`;
         const childName = rewardChildName(e);
         students.push({
           uid: child.key,
@@ -972,7 +991,7 @@ function renderRewardsHistoryForProfs(students) {
       ${active.map(u => {
         const b = u.specialBadge || {};
         const isArtist = b.kind === 'artist' || String(b.label || '').includes('Artiste de la semaine');
-        const name = [u.firstName,u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre';
+        const name = u.label || [u.firstName,u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre';
         return `
           <div class="reward-history-item ${isArtist ? 'is-artist' : ''}">
             <div class="reward-history-main">
