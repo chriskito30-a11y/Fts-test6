@@ -18,7 +18,6 @@ const FILES = [
   './saison-admin.html',
   './assets/css/fts-chat.css',
   './assets/css/fts.css',
-  './assets/css/style.css',
   './assets/css/pages/admin.css',
   './assets/css/pages/auth.css',
   './assets/css/pages/calendrier-admin.css',
