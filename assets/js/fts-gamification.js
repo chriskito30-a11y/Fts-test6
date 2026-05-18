@@ -117,6 +117,91 @@
     ) || 'Un membre';
   }
 
+  async function notifyGeneralForumMessage(db, msg, msgId){
+    // Notification forum générale pour les messages automatiques de gamification.
+    // Important : non bloquant, pour ne jamais casser l'attribution du badge.
+    try{
+      if(!db || !msg || !msgId) return;
+
+      const senderUid = msg.uid || '';
+      const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
+      const recipients = [];
+      if(snap && snap.exists && snap.exists()){
+        snap.forEach(child => {
+          if(!child || !child.key) return;
+          if(senderUid && child.key === senderUid) return;
+          recipients.push(child.key);
+        });
+      }
+      if(!recipients.length) return;
+
+      const url = './forum.html?channel=general&msg=' + encodeURIComponent(msgId);
+      const body = String(msg.text || '').substring(0, 160);
+      const title = 'FTS — Forum';
+      const notificationKey = 'forum-general-' + msgId;
+
+      // Trace côté application : utile pour audit/debug, sans dépendre du worker push.
+      const fanout = {};
+      recipients.forEach(uid => {
+        const nref = db.ref('fts_user_notifications/' + uid).push();
+        fanout['fts_user_notifications/' + uid + '/' + nref.key] = {
+          type: 'forum',
+          channel: 'general',
+          title,
+          body,
+          url,
+          read: false,
+          msgId,
+          notificationKey,
+          senderUid,
+          createdAt: now()
+        };
+      });
+      db.ref().update(fanout).catch(() => {});
+
+      if(!window.FTS || !FTS.PUSH || !FTS.PUSH.workerUrl) return;
+
+      await Promise.allSettled(recipients.map(uid =>
+        fetch(FTS.PUSH.workerUrl + '/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'forum',
+            channel: 'general',
+            title,
+            body,
+            url,
+            uid,
+            uids: [uid],
+            recipientUid: uid,
+            recipientUids: [uid],
+            recipients: [uid],
+            expectedUid: uid,
+            requiresUidMatch: true,
+            forceUid: true,
+            senderUid,
+            msgId,
+            tag: notificationKey + '-' + uid,
+            collapseKey: notificationKey + '-' + uid
+          })
+        }).catch(() => null)
+      ));
+
+      db.ref('fts_debug_notifications/' + notificationKey).set({
+        ok: true,
+        type: 'forum',
+        channel: 'general',
+        msgId,
+        recipientCount: recipients.length,
+        recipients,
+        senderUid,
+        createdAt: now()
+      }).catch(() => {});
+    }catch(e){
+      try{ console.warn('[FTS Gamification] Notification forum générale non envoyée', e); }catch(_){ }
+    }
+  }
+
   async function pushGeneralMessage(db, text, extra){
     if(!db || !text) return null;
 
@@ -128,7 +213,9 @@
       system: true
     }, extra || {});
 
-    return db.ref('fts_forum/messages/general').push(msg);
+    const ref = await db.ref('fts_forum/messages/general').push(msg);
+    notifyGeneralForumMessage(db, msg, ref && ref.key).catch(() => {});
+    return ref;
   }
 
   async function writeRewardHistory(db, payload){
