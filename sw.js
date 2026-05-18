@@ -1,4 +1,4 @@
-const CACHE = 'fts-v44-notification-cleanup';
+const CACHE = 'fts-v45-member-news-sync';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -184,7 +184,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v44-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v45-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v1';
 
 function isFirebaseOrAuthRequest(url){
