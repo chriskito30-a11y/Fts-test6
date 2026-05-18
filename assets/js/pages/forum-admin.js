@@ -14,6 +14,7 @@ let db, firebaseOk    = false;
 let allUsers          = {};
 let allGroups         = [];
 let currentMsgChannel = "general";
+const adminBusyActions = {};
 
 
 /* ── EMAILS AUTOMATIQUES MAKE/BREVO ────────────────────────────
@@ -400,32 +401,59 @@ async function syncForumUser(id, statusOverride) {
 }
 
 async function approveUser(id) {
-  const u = allUsers[id] || {};
-  // Source officielle : fts_users
-  await db.ref("fts_users/" + id + "/status").set("active");
-  // Compatibilité forum : création/mise à jour du profil forum au moment de la validation
-  await syncForumUser(id, "active");
+  const busyKey = 'approveUser:' + id;
+  if(adminBusyActions[busyKey]) return;
+  adminBusyActions[busyKey] = true;
+  try{
+    const u = allUsers[id] || {};
+    // Source officielle : fts_users
+    await db.ref("fts_users/" + id + "/status").set("active");
+    // Compatibilité forum : création/mise à jour du profil forum au moment de la validation
+    await syncForumUser(id, "active");
 
-  // Mail membre : compte validé
-  if (u.email) {
-    sendFtsEmailAutomation('account_validated', {
-      uid: id,
-      name: u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || 'membre',
-      email: u.email,
-    });
+    // Mail membre : compte validé
+    if (u.email) {
+      sendFtsEmailAutomation('account_validated', {
+        uid: id,
+        name: u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || 'membre',
+        email: u.email,
+      });
+    }
+  }catch(e){
+    alert('Impossible de valider cet utilisateur : ' + (e && e.message ? e.message : e));
+  }finally{
+    adminBusyActions[busyKey] = false;
   }
 }
 
 async function refuseUser(id) {
   if (!confirm("Refuser cet utilisateur ?")) return;
-  await db.ref("fts_users/" + id + "/status").set("refused");
-  await syncForumUser(id, "refused");
+  const busyKey = 'refuseUser:' + id;
+  if(adminBusyActions[busyKey]) return;
+  adminBusyActions[busyKey] = true;
+  try{
+    await db.ref("fts_users/" + id + "/status").set("refused");
+    await syncForumUser(id, "refused");
+  }catch(e){
+    alert('Impossible de refuser cet utilisateur : ' + (e && e.message ? e.message : e));
+  }finally{
+    adminBusyActions[busyKey] = false;
+  }
 }
 
 async function revokeUser(id) {
   if (!confirm("Révoquer cet utilisateur ?")) return;
-  await db.ref("fts_users/" + id + "/status").set("refused");
-  await syncForumUser(id, "refused");
+  const busyKey = 'revokeUser:' + id;
+  if(adminBusyActions[busyKey]) return;
+  adminBusyActions[busyKey] = true;
+  try{
+    await db.ref("fts_users/" + id + "/status").set("refused");
+    await syncForumUser(id, "refused");
+  }catch(e){
+    alert('Impossible de révoquer cet utilisateur : ' + (e && e.message ? e.message : e));
+  }finally{
+    adminBusyActions[busyKey] = false;
+  }
 }
 
 /* ── RÔLES ───────────────────────────────────────────────────── */
@@ -940,11 +968,15 @@ function loadMsgChannel(ch) {
 }
 
 function delMsg(ch, mid) {
-  if (confirm("Supprimer ce message ?")) {
-    db.ref("fts_forum/messages/" + ch + "/" + mid)
-      .remove()
-      .then(() => loadMsgChannel(ch));
-  }
+  if (!confirm("Supprimer ce message ?")) return;
+  const busyKey = 'delMsg:' + ch + ':' + mid;
+  if(adminBusyActions[busyKey]) return;
+  adminBusyActions[busyKey] = true;
+  db.ref("fts_forum/messages/" + ch + "/" + mid)
+    .remove()
+    .then(() => loadMsgChannel(ch))
+    .catch(e => alert('Impossible de supprimer le message : ' + (e && e.message ? e.message : e)))
+    .finally(() => { adminBusyActions[busyKey] = false; });
 }
 
 /* ── NAVIGATION ONGLETS ──────────────────────────────────────── */

@@ -8,6 +8,7 @@ let categoryStructure = [];
 let selectedTargetCategories = new Set();
 let selectedTargetSubgroups = {};
 let isSavingEvent = false;
+let isDeletingEvent = false;
 let eventReloadTimer = null;
 let hasBootSyncedEventsMirror = false;
 let isSyncingEventsMirror = false;
@@ -595,18 +596,27 @@ async function saveEvent(){
   }
 }
 async function deleteEvent(){
+  if(isDeletingEvent) return;
   const key=$('e-key').value;
   if(!key){ msg('Sélectionne un événement à supprimer', false); return; }
   const selected = events.find(x => x.key === key || x.eventKey === key);
   const eventKey = (selected && selected.eventKey) || key;
   if(!confirm('Supprimer définitivement cet événement ?')) return;
-  const updates = {};
-  updates['fts_events/' + eventKey] = null;
-  updates['fts_content/questionnaire/options/' + questionEventKey(eventKey)] = null;
-  if(selected && selected.qKey) updates['fts_content/questionnaire/options/' + selected.qKey] = null;
-  await db.ref().update(updates);
-  newEvent();
-  msg('Événement supprimé');
+  isDeletingEvent = true;
+  try{
+    const updates = {};
+    updates['fts_events/' + eventKey] = null;
+    updates['fts_content/questionnaire/options/' + questionEventKey(eventKey)] = null;
+    if(selected && selected.qKey) updates['fts_content/questionnaire/options/' + selected.qKey] = null;
+    await db.ref().update(updates);
+    newEvent();
+    msg('Événement supprimé');
+  }catch(e){
+    console.warn('[FTS Calendrier] deleteEvent', e);
+    msg('Erreur suppression : ' + (e && e.message ? e.message : e), false);
+  }finally{
+    isDeletingEvent = false;
+  }
 }
 
 init();

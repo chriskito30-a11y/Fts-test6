@@ -4,7 +4,7 @@
    ================================================================ */
 
 const DEFAULT_SAISON={meta:{eyebrow:"Association culturelle",title:"SAISON",year:"2026/2027",slogan:"Deux parcours, une passion — trouvez votre place sur scène"},parcoursIntro:[{key:"loisir",icon:"🎈",tag:"Parcours Loisir",title:"À ton rythme",desc:"1 cours hebdomadaire pour découvrir, s'amuser et progresser librement."},{key:"perf",icon:"🚀",tag:"Parcours Performance",title:"Aller plus loin",desc:"Plus de technique, plusieurs spectacles dans l'année — et l'Atelier Improvisation offert toute l'année."}],inscriptionDefault:"",items:[]};
-let db,auth,saison=JSON.parse(JSON.stringify(DEFAULT_SAISON)),selectedIndex=0,loadedCategories=[];
+let db,auth,saison=JSON.parse(JSON.stringify(DEFAULT_SAISON)),selectedIndex=0,loadedCategories=[],isPublishingSeason=false;
 const FALLBACK_ITEMS=[
 {id:"theatre",active:true,order:10,icon:"🎭",name:"Théâtre",subtitle:"Mercredi · Lundi",badge:"",offers:[{key:"loisir",label:"🎈 Loisir",style:"loisir",main:"1 cours hebdomadaire le <strong>mercredi</strong>.",bullets:["Plusieurs ateliers de théâtre dans la saison inclus","Plusieurs ateliers d'expression corporelle inclus"],price:"270€",priceNote:"Tarif saison",link:""},{key:"perf",label:"🚀 Performance",style:"perf",main:"1 cours hebdomadaire le <strong>mercredi</strong> + entraînements supplémentaires.",bullets:["Nouveau : entraînement jeudi dès octobre","Atelier Improvisation offert toute l'année"],price:"",priceNote:"Tarif à compléter",link:""}]},
 {id:"danse",active:true,order:20,icon:"💃",name:"Danse",subtitle:"Mardi · Jeudi",badge:"",offers:[{key:"loisir",label:"🎈 Loisir",style:"loisir",main:"1 cours hebdomadaire. Groupes : Baby Show, Junior, Ados/Adultes.",bullets:[],price:"180€ / 200€",priceNote:"Enfants : 180€ · Adultes : 200€",link:""}]},
@@ -60,8 +60,21 @@ function renderPreview(){
   box.innerHTML='<div class="preview-title">Aperçu public</div><div class="public-tile-preview"><div class="preview-icon">'+FTS.esc(a.icon||'🎭')+'</div><div><div class="preview-name">'+FTS.esc(a.name||'Sans titre')+'</div><div class="preview-sub">'+FTS.esc(a.subtitle||'Sous-titre')+'</div>'+(a.badge?'<div class="preview-badge">'+FTS.esc(a.badge)+'</div>':'')+'</div><span class="preview-status '+(a.active===false?'off':'')+'">'+(a.active===false?'Brouillon':'Visible')+'</span></div><div class="preview-offers-list">'+offersHtml+'</div>';
 }
 
-async function saveAll(){try{readMeta();readActivity();await db.ref('fts_saison/config').set({...saison,updatedAt:Date.now()});showMsg('ok','Saison publiée. La page publique se mettra à jour automatiquement.')}catch(e){showMsg('err','Erreur publication : '+e.message)}}
-function exportJson(){readMeta();document.getElementById('json-area').value=JSON.stringify(saison,null,2);showMsg('ok','Export JSON généré.')}function importJson(){try{saison=JSON.parse(document.getElementById('json-area').value);ensureData();bindMeta();renderList();selectActivity(0);showMsg('ok','JSON importé. Clique sur Publier pour l’envoyer en ligne.')}catch(e){showMsg('err','JSON invalide : '+e.message)}}
+async function saveAll(){
+  if(isPublishingSeason) return;
+  isPublishingSeason = true;
+  try{
+    readMeta();
+    readActivity();
+    await db.ref('fts_saison/config').set({...saison,updatedAt:Date.now()});
+    showMsg('ok','Saison publiée. La page publique se mettra à jour automatiquement.');
+  }catch(e){
+    showMsg('err','Erreur publication : '+(e && e.message ? e.message : e));
+  }finally{
+    isPublishingSeason = false;
+  }
+}
+function exportJson(){readMeta();document.getElementById('json-area').value=JSON.stringify(saison,null,2);showMsg('ok','Export JSON généré.')}function importJson(){try{if(!confirm('Importer ce JSON dans l’éditeur ? Les modifications non publiées seront remplacées.'))return;saison=JSON.parse(document.getElementById('json-area').value);ensureData();bindMeta();renderList();selectActivity(0);showMsg('ok','JSON importé. Clique sur Publier pour l’envoyer en ligne.')}catch(e){showMsg('err','JSON invalide : '+e.message)}}
 function showMsg(cls,txt){const m=document.getElementById('msg');m.className='msg '+cls;m.textContent=txt;setTimeout(()=>m.className='msg',4500)}function doLogout(){firebase.auth().signOut().then(()=>location.href='auth.html')}
 init();
 

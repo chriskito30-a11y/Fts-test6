@@ -21,6 +21,21 @@ function msg(id, txt, ok=true){
   setTimeout(()=>{ el.className='msg'; }, 3000);
 }
 
+const adminActionBusy = {};
+function errText(e){ return (e && e.message) ? e.message : String(e || 'Erreur inconnue'); }
+async function safeAdminAction(key, msgId, action){
+  if(adminActionBusy[key]) return;
+  adminActionBusy[key] = true;
+  try{
+    await action();
+  }catch(e){
+    console.warn('[FTS Contenus Admin]', key, e);
+    msg(msgId, 'Erreur : ' + errText(e), false);
+  }finally{
+    adminActionBusy[key] = false;
+  }
+}
+
 function escText(v){ return FTS.esc(String(v||'').trim()); }
 function dtLocalFromTs(ts){
   const n = Number(ts || 0);
@@ -140,16 +155,18 @@ async function loadAnnonce(){
   renderAnnoncePreview();
 }
 async function saveAnnonce(){
-  await db.ref('fts_content/annonces/current').set({
-    active:$('a-active').value==='true',
-    title:$('a-title').value.trim(),
-    body:$('a-body').value.trim(),
-    buttonText:$('a-btn').value.trim(),
-    buttonUrl:$('a-url').value.trim(),
-    expiresAt:tsFromDtLocal('a-expires'),
-    updatedAt:Date.now()
+  return safeAdminAction('saveAnnonce', 'msg-annonce', async function(){
+    await db.ref('fts_content/annonces/current').set({
+      active:$('a-active').value==='true',
+      title:$('a-title').value.trim(),
+      body:$('a-body').value.trim(),
+      buttonText:$('a-btn').value.trim(),
+      buttonUrl:$('a-url').value.trim(),
+      expiresAt:tsFromDtLocal('a-expires'),
+      updatedAt:Date.now()
+    });
+    msg('msg-annonce','Annonce enregistrée');
   });
-  msg('msg-annonce','Annonce enregistrée');
 }
 
 
@@ -283,42 +300,46 @@ function editTargetedAnnonce(key){
   renderTargetedAnnoncePreview();
 }
 async function saveTargetedAnnonce(){
-  const title=$('ta-title').value.trim();
-  const body=$('ta-body').value.trim();
-  if(!title && !body){ msg('msg-targeted-annonce','Ajoute au moins un titre ou un message.',false); return; }
-  const groups=taSelectedGroups();
-  const cats=taSelectedCats();
-  const now=Date.now();
-  const data={
-    active:$('ta-active').value==='true',
-    status:$('ta-active').value==='true'?'active':'inactive',
-    title, body,
-    text:body,
-    buttonText:$('ta-btn').value.trim(),
-    buttonUrl:$('ta-url').value.trim(),
-    displayMode:$('ta-display').value||'card',
-    expiresAt:tsFromDtLocal('ta-expires'),
-    targetCategories:cats,
-    categories:cats,
-    targetGroups:groups,
-    targetSubgroups:taFlattenSubs(groups),
-    updatedAt:now
-  };
-  const key=$('ta-key').value;
-  const ref=key ? db.ref('fts_content/annonces/targeted/'+key) : db.ref('fts_content/annonces/targeted').push();
-  if(!key) data.createdAt=now;
-  await ref.update(data);
-  $('ta-key').value=ref.key;
-  selectedTargetedAnnonce=ref.key;
-  msg('msg-targeted-annonce','Annonce ciblée enregistrée');
+  return safeAdminAction('saveTargetedAnnonce', 'msg-targeted-annonce', async function(){
+    const title=$('ta-title').value.trim();
+    const body=$('ta-body').value.trim();
+    if(!title && !body){ msg('msg-targeted-annonce','Ajoute au moins un titre ou un message.',false); return; }
+    const groups=taSelectedGroups();
+    const cats=taSelectedCats();
+    const now=Date.now();
+    const data={
+      active:$('ta-active').value==='true',
+      status:$('ta-active').value==='true'?'active':'inactive',
+      title, body,
+      text:body,
+      buttonText:$('ta-btn').value.trim(),
+      buttonUrl:$('ta-url').value.trim(),
+      displayMode:$('ta-display').value||'card',
+      expiresAt:tsFromDtLocal('ta-expires'),
+      targetCategories:cats,
+      categories:cats,
+      targetGroups:groups,
+      targetSubgroups:taFlattenSubs(groups),
+      updatedAt:now
+    };
+    const key=$('ta-key').value;
+    const ref=key ? db.ref('fts_content/annonces/targeted/'+key) : db.ref('fts_content/annonces/targeted').push();
+    if(!key) data.createdAt=now;
+    await ref.update(data);
+    $('ta-key').value=ref.key;
+    selectedTargetedAnnonce=ref.key;
+    msg('msg-targeted-annonce','Annonce ciblée enregistrée');
+  });
 }
 async function deleteTargetedAnnonce(){
-  const key=$('ta-key').value;
-  if(!key){ newTargetedAnnonce(); return; }
-  if(!confirm('Supprimer cette annonce ciblée ?')) return;
-  await db.ref('fts_content/annonces/targeted/'+key).remove();
-  newTargetedAnnonce();
-  msg('msg-targeted-annonce','Annonce ciblée supprimée');
+  return safeAdminAction('deleteTargetedAnnonce', 'msg-targeted-annonce', async function(){
+    const key=$('ta-key').value;
+    if(!key){ newTargetedAnnonce(); return; }
+    if(!confirm('Supprimer cette annonce ciblée ?')) return;
+    await db.ref('fts_content/annonces/targeted/'+key).remove();
+    newTargetedAnnonce();
+    msg('msg-targeted-annonce','Annonce ciblée supprimée');
+  });
 }
 
 /* ═══ QUESTIONNAIRE ═══════════════════════════════════════════
@@ -447,52 +468,58 @@ function editQuestionnaire(key, legacyPath=''){
   renderQuestionnairePreview();
 }
 async function saveQuestionnaire(){
-  const existingKey=$('q-key').value;
-  const legacyPath=$('q-key').dataset.legacy||'';
-  const details=[];
-  [['q-d1k','q-d1v'],['q-d2k','q-d2v']].forEach(([k,v])=>{
-    const detailKey=$(k).value.trim();
-    const val=$(v).value.trim();
-    if(detailKey && val) details.push({key:detailKey,value:val});
+  return safeAdminAction('saveQuestionnaire', 'msg-q', async function(){
+    const existingKey=$('q-key').value;
+    const legacyPath=$('q-key').dataset.legacy||'';
+    const details=[];
+    [['q-d1k','q-d1v'],['q-d2k','q-d2v']].forEach(([k,v])=>{
+      const detailKey=$(k).value.trim();
+      const val=$(v).value.trim();
+      if(detailKey && val) details.push({key:detailKey,value:val});
+    });
+    const title=$('q-title').value.trim();
+    const description=$('q-desc').value.trim();
+    const link=$('q-link').value.trim();
+    const destTitle=$('q-dtitle').value.trim();
+    const destDesc=$('q-ddesc').value.trim();
+    if(!title){ msg('msg-q','Titre requis',false); return; }
+    const data={
+      type:($('q-type').value==='event'?'adhesion':$('q-type').value),
+      order:Number($('q-order').value||0),
+      icon:$('q-icon').value.trim(),
+      active:$('q-active').value==='true',
+      status:$('q-active').value==='true'?'active':'inactive',
+      title,titre:title,
+      description,desc:description,
+      link,lien:link,
+      destTitle,dest_titre:destTitle,
+      destDesc,dest_desc:destDesc,
+      details,
+      detail1_cle:details[0]?.key||'', detail1_valeur:details[0]?.value||'',
+      detail2_cle:details[1]?.key||'', detail2_valeur:details[1]?.value||'',
+      updatedAt:Date.now()
+    };
+    const ref=(existingKey && !legacyPath) ? db.ref('fts_content/questionnaire/options/'+existingKey) : db.ref('fts_content/questionnaire/options').push();
+    if(!existingKey || legacyPath) data.createdAt=Date.now();
+    await ref.set(data);
+    if(legacyPath) await db.ref(legacyPath).remove();
+    $('q-key').value=ref.key;
+    $('q-key').dataset.legacy='';
+    msg('msg-q','Option enregistrée');
+  
   });
-  const title=$('q-title').value.trim();
-  const description=$('q-desc').value.trim();
-  const link=$('q-link').value.trim();
-  const destTitle=$('q-dtitle').value.trim();
-  const destDesc=$('q-ddesc').value.trim();
-  if(!title){ msg('msg-q','Titre requis',false); return; }
-  const data={
-    type:($('q-type').value==='event'?'adhesion':$('q-type').value),
-    order:Number($('q-order').value||0),
-    icon:$('q-icon').value.trim(),
-    active:$('q-active').value==='true',
-    status:$('q-active').value==='true'?'active':'inactive',
-    title,titre:title,
-    description,desc:description,
-    link,lien:link,
-    destTitle,dest_titre:destTitle,
-    destDesc,dest_desc:destDesc,
-    details,
-    detail1_cle:details[0]?.key||'', detail1_valeur:details[0]?.value||'',
-    detail2_cle:details[1]?.key||'', detail2_valeur:details[1]?.value||'',
-    updatedAt:Date.now()
-  };
-  const ref=(existingKey && !legacyPath) ? db.ref('fts_content/questionnaire/options/'+existingKey) : db.ref('fts_content/questionnaire/options').push();
-  if(!existingKey || legacyPath) data.createdAt=Date.now();
-  await ref.set(data);
-  if(legacyPath) await db.ref(legacyPath).remove();
-  $('q-key').value=ref.key;
-  $('q-key').dataset.legacy='';
-  msg('msg-q','Option enregistrée');
 }
+
 async function deleteQuestionnaire(){
-  const key=$('q-key').value;
-  const legacyPath=$('q-key').dataset.legacy||'';
-  if(!key || !confirm('Supprimer cette option ?')) return;
-  if(legacyPath) await db.ref(legacyPath).remove();
-  else await db.ref('fts_content/questionnaire/options/'+key).remove();
-  newQuestionnaire();
-  msg('msg-q','Option supprimée');
+  return safeAdminAction('deleteQuestionnaire', 'msg-q', async function(){
+    const key=$('q-key').value;
+    const legacyPath=$('q-key').dataset.legacy||'';
+    if(!key || !confirm('Supprimer cette option ?')) return;
+    if(legacyPath) await db.ref(legacyPath).remove();
+    else await db.ref('fts_content/questionnaire/options/'+key).remove();
+    newQuestionnaire();
+    msg('msg-q','Option supprimée');
+  });
 }
 
 /* ═══ CATÉGORIES ══════════════════════════════════════════════ */
@@ -574,23 +601,25 @@ function editCategory(key){
   renderCList();
 }
 async function saveCategory(){
-  const oldKey=$('c-key').value;
-  const name=$('c-name').value.trim();
-  if(!name){ msg('msg-c','Nom requis',false); return; }
-  const key=FTS.norm(name);
-  const lines=$('c-subcats').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-  const subcats={};
-  lines.forEach(x=>subcats[FTS.norm(x)]={name:x,active:true,updatedAt:Date.now()});
-  const icon=$('c-icon').value.trim()||FTS.catIcon(name);
-  const data={name,category:name,icon,emoji:icon,order:Number($('c-order').value||999),active:$('c-active').value==='true',subcats,updatedAt:Date.now()};
-  if(!oldKey) data.createdAt=Date.now();
-  const updates={};
-  updates['fts_content/categories/'+key]=data;
-  if(oldKey&&oldKey!==key) updates['fts_content/categories/'+oldKey]=null;
-  await db.ref().update(updates);
-  await syncResourcesCategoryRename(oldKey,key,name);
-  $('c-key').value=key;
-  msg('msg-c','Catégorie enregistrée');
+  return safeAdminAction('saveCategory', 'msg-c', async function(){
+    const oldKey=$('c-key').value;
+    const name=$('c-name').value.trim();
+    if(!name){ msg('msg-c','Nom requis',false); return; }
+    const key=FTS.norm(name);
+    const lines=$('c-subcats').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+    const subcats={};
+    lines.forEach(x=>subcats[FTS.norm(x)]={name:x,active:true,updatedAt:Date.now()});
+    const icon=$('c-icon').value.trim()||FTS.catIcon(name);
+    const data={name,category:name,icon,emoji:icon,order:Number($('c-order').value||999),active:$('c-active').value==='true',subcats,updatedAt:Date.now()};
+    if(!oldKey) data.createdAt=Date.now();
+    const updates={};
+    updates['fts_content/categories/'+key]=data;
+    if(oldKey&&oldKey!==key) updates['fts_content/categories/'+oldKey]=null;
+    await db.ref().update(updates);
+    await syncResourcesCategoryRename(oldKey,key,name);
+    $('c-key').value=key;
+    msg('msg-c','Catégorie enregistrée');
+  });
 }
 async function syncResourcesCategoryRename(oldKey,newKey,newName){
   if(!oldKey || oldKey===newKey) return;
@@ -608,21 +637,23 @@ async function syncResourcesCategoryRename(oldKey,newKey,newName){
   if(Object.keys(updates).length) await db.ref().update(updates);
 }
 async function deleteCategory(){
-  const key=$('c-key').value;
-  const name=$('c-name').value.trim();
-  if(!key||!name){ msg('msg-c','Sélectionne une catégorie à supprimer',false); return; }
-  if(!confirm('Supprimer définitivement cette catégorie ET toutes les ressources liées dans Firebase ?')) return;
-  const snap=await db.ref('fts_ressources').once('value');
-  const updates={};
-  updates['fts_content/categories/'+key]=null;
-  if(snap.exists()) snap.forEach(ch=>{
-    const r=ch.val()||{};
-    const cat=r.cat||r.category;
-    if(FTS.norm(cat)===key) updates['fts_ressources/'+ch.key]=null;
+  return safeAdminAction('deleteCategory', 'msg-c', async function(){
+    const key=$('c-key').value;
+    const name=$('c-name').value.trim();
+    if(!key||!name){ msg('msg-c','Sélectionne une catégorie à supprimer',false); return; }
+    if(!confirm('Supprimer définitivement cette catégorie ET toutes les ressources liées dans Firebase ?')) return;
+    const snap=await db.ref('fts_ressources').once('value');
+    const updates={};
+    updates['fts_content/categories/'+key]=null;
+    if(snap.exists()) snap.forEach(ch=>{
+      const r=ch.val()||{};
+      const cat=r.cat||r.category;
+      if(FTS.norm(cat)===key) updates['fts_ressources/'+ch.key]=null;
+    });
+    await db.ref().update(updates);
+    newCategory();
+    msg('msg-c','Catégorie et ressources liées supprimées');
   });
-  await db.ref().update(updates);
-  newCategory();
-  msg('msg-c','Catégorie et ressources liées supprimées');
 }
 
 /* ═══ RESSOURCES ══════════════════════════════════════════════ */
@@ -680,28 +711,32 @@ function editResource(key){
   renderResourcePreview();
 }
 async function saveResource(){
-  const key=$('r-key').value;
-  const cat=($('r-cat-new').value.trim() || $('r-cat').value || '').trim();
-  const subcat=($('r-subcat-new').value.trim() || $('r-subcat').value || '').trim();
-  const active=$('r-active').value==='true';
-  const content=$('r-url').value.trim();
-  const name=$('r-name').value.trim();
-  const now=Date.now();
-  if(!cat||!name){ msg('msg-r','Catégorie et nom requis',false); return; }
-  const data={cat,category:cat,subcat,subcategory:subcat,type:$('r-type').value,active,status:active?'active':'inactive',visibility:'members',name,url:content,content,updatedAt:now};
-  if(!key) data.createdAt=now;
-  const ref=key?db.ref('fts_ressources/'+key):db.ref('fts_ressources').push();
-  await ref.update(data);
-  if(FTS.ensureResourceCategory) await FTS.ensureResourceCategory(db,data);
-  $('r-key').value=ref.key;
-  msg('msg-r','Ressource enregistrée');
+  return safeAdminAction('saveResource', 'msg-r', async function(){
+    const key=$('r-key').value;
+    const cat=($('r-cat-new').value.trim() || $('r-cat').value || '').trim();
+    const subcat=($('r-subcat-new').value.trim() || $('r-subcat').value || '').trim();
+    const active=$('r-active').value==='true';
+    const content=$('r-url').value.trim();
+    const name=$('r-name').value.trim();
+    const now=Date.now();
+    if(!cat||!name){ msg('msg-r','Catégorie et nom requis',false); return; }
+    const data={cat,category:cat,subcat,subcategory:subcat,type:$('r-type').value,active,status:active?'active':'inactive',visibility:'members',name,url:content,content,updatedAt:now};
+    if(!key) data.createdAt=now;
+    const ref=key?db.ref('fts_ressources/'+key):db.ref('fts_ressources').push();
+    await ref.update(data);
+    if(FTS.ensureResourceCategory) await FTS.ensureResourceCategory(db,data);
+    $('r-key').value=ref.key;
+    msg('msg-r','Ressource enregistrée');
+  });
 }
 async function deleteResource(){
-  const key=$('r-key').value;
-  if(!key || !confirm('Supprimer cette ressource dans Firebase ?')) return;
-  await db.ref('fts_ressources/'+key).remove();
-  newResource();
-  msg('msg-r','Ressource supprimée');
+  return safeAdminAction('deleteResource', 'msg-r', async function(){
+    const key=$('r-key').value;
+    if(!key || !confirm('Supprimer cette ressource dans Firebase ?')) return;
+    await db.ref('fts_ressources/'+key).remove();
+    newResource();
+    msg('msg-r','Ressource supprimée');
+  });
 }
 
 init();
