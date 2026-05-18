@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v40-admin-bottom-nav';
+  const RELOAD_KEY = 'fts-sw-reload-v41-files-docs';
   let refreshing = false;
 
 

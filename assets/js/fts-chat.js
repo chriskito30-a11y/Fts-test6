@@ -117,4 +117,100 @@ window.FTSChat = window.FTSChat || {};
     if (!el) return;
     requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
   };
+
+
+  /* ── Rendu fichiers/médias partagé Forum + Messages ─────────────
+     Supporte le format existant : [media]URL|nom-encode.
+     N'altère pas l'upload ni la structure Firebase. */
+  Chat.mediaDownloadUrl = function(url = '') {
+    const clean = String(url || '');
+    if (clean.includes('/upload/') && !clean.includes('/fl_attachment')) {
+      return clean.replace('/upload/', '/upload/fl_attachment/');
+    }
+    return clean;
+  };
+
+  Chat.cleanMediaName = function(raw = '', fallback = 'Fichier joint') {
+    let name = '';
+    try { name = decodeURIComponent(raw || ''); }
+    catch(e) { name = raw || ''; }
+    name = String(name || '').split('/').pop().split('?')[0].trim();
+    if (!name) name = fallback || 'Fichier joint';
+    return name.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  };
+
+  Chat.parseMediaPayload = function(payload = '') {
+    const parts = String(payload || '').split('|');
+    const url = parts.shift() || '';
+    const fromPayload = parts.join('|');
+    const fallback = url.split('?')[0].split('/').pop() || 'Fichier joint';
+    return { url, name: Chat.cleanMediaName(fromPayload || fallback, fallback) };
+  };
+
+  Chat.fileKindFromUrl = function(url = '') {
+    const ext = String(url || '').split('?')[0].split('.').pop().toLowerCase();
+    if (ext === 'pdf') return { ext, cls:'pdf', icon:'📄', label:'PDF' };
+    if (['mp3','wav','ogg','aac','m4a'].includes(ext)) return { ext, cls:'audio', icon:'🎵', label:'Audio' };
+    if (['mp4','mov','webm'].includes(ext)) return { ext, cls:'video', icon:'🎬', label:'Vidéo' };
+    if (['jpg','jpeg','png','gif','webp'].includes(ext)) return { ext, cls:'image', icon:'🖼️', label:'Image' };
+    return { ext, cls:'file', icon:'📎', label:'Fichier' };
+  };
+
+  Chat.renderFileCard = function(icon, title, url, label, kind) {
+    const safeUrl = Chat.escape(url);
+    const dlUrl = Chat.escape(Chat.mediaDownloadUrl(url));
+    const safeTitle = Chat.escape(title || 'Fichier joint');
+    const safeLabel = Chat.escape(label || 'Fichier joint');
+    const safeKind = Chat.escape(kind || 'file');
+    return `<div class="msg-file-card msg-file-card--${safeKind}">
+      <a class="msg-file-main" href="${safeUrl}" target="_blank" rel="noopener" title="${safeTitle}" aria-label="Ouvrir ${safeTitle}">
+        <span class="msg-file-icon" aria-hidden="true">${icon}</span>
+        <span class="msg-file-info">
+          <span class="msg-file-title">${safeTitle}</span>
+          <span class="msg-file-sub">${safeLabel}</span>
+        </span>
+      </a>
+      <div class="msg-file-actions">
+        <a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener" aria-label="Ouvrir ${safeTitle}">Ouvrir</a>
+        <a class="msg-file-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${safeTitle}">⬇ Télécharger</a>
+      </div>
+    </div>`;
+  };
+
+  Chat.renderMedia = function(payload = '') {
+    const media = Chat.parseMediaPayload(payload);
+    const url = media.url;
+    const title = media.name || 'Fichier joint';
+    const kind = Chat.fileKindFromUrl(url);
+    const dl = Chat.escape(Chat.mediaDownloadUrl(url));
+    const safeUrl = Chat.escape(url);
+    const safeTitle = Chat.escape(title);
+    const ext = kind.ext;
+    const isImg = (url.includes('/image/upload/') && ext !== 'pdf') || ['jpg','jpeg','png','gif','webp'].includes(ext);
+    const isVideo = (url.includes('/video/upload/') && !['mp3','wav','ogg','aac','m4a'].includes(ext)) || ['mp4','mov','webm'].includes(ext);
+    const isAudio = ['mp3','wav','ogg','aac','m4a'].includes(ext);
+    const isPdf = ext === 'pdf';
+
+    if (isImg) return `<div class="msg-media-wrap msg-media-wrap--image">
+      <div class="msg-media-title"><span>🖼️</span><strong>${safeTitle}</strong></div>
+      <img class="msg-img" src="${safeUrl}" data-fts-click="window.open('${safeUrl}')" alt="${safeTitle}">
+      <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
+    </div>`;
+
+    if (isVideo) return `<div class="msg-media-wrap msg-media-wrap--video">
+      <div class="msg-media-title"><span>🎬</span><strong>${safeTitle}</strong></div>
+      <video class="msg-video" src="${safeUrl}" controls playsinline></video>
+      <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
+    </div>`;
+
+    if (isAudio) return `<div class="msg-audio-card msg-file-card--audio">
+      <div class="msg-media-title"><span>🎵</span><strong>${safeTitle}</strong></div>
+      <audio class="msg-audio" controls preload="none"><source src="${safeUrl}"></audio>
+      <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
+    </div>`;
+
+    if (isPdf) return Chat.renderFileCard('📄', title, url, 'PDF · ouvrir ou télécharger', 'pdf');
+    return Chat.renderFileCard(kind.icon, title, url, kind.label + ' · ouvrir ou télécharger', kind.cls);
+  };
+
 })(window.FTSChat);
