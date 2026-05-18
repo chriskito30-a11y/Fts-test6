@@ -35,13 +35,11 @@
     'fts_events',
     'fts_ressources',
     'fts_saison',
-    'fts_forum/messages',
     'fts_forum/users',
     'fts_polls',
     'fts_poll_unread',
     'fts_user_notifications',
-    'fts_dm/userConvs',
-    'fts_dm/conversations'
+    'fts_dm/userConvs'
   ];
   var essentialExact = [];
 
@@ -283,7 +281,6 @@
       'fts_ressources',
       'fts_saison/config',
       'fts_forum/users/' + uid,
-      'fts_forum/messages',
       'fts_user_notifications/' + uid,
       'fts_dm/userConvs/' + uid,
       'fts_polls',

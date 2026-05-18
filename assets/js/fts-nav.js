@@ -13,9 +13,8 @@
   var pollUnreadCb = null;
   var forumUnreadTotal = 0;
   var forumUnreadTimer = null;
-  var forumMessagesRef = null;
+  var forumChannelListeners = [];
   var forumReadsRef = null;
-  var forumMessagesCb = null;
   var forumReadsCb = null;
 
   function esc(v){
@@ -247,10 +246,15 @@
 
   function clearForumUnreadListeners(){
     try {
-      if (forumMessagesRef && forumMessagesCb) forumMessagesRef.off('value', forumMessagesCb);
+      forumChannelListeners.forEach(function(entry){
+        if (entry && entry.ref && entry.cb) entry.ref.off('value', entry.cb);
+      });
       if (forumReadsRef && forumReadsCb) forumReadsRef.off('value', forumReadsCb);
     } catch(e) {}
-    forumMessagesRef = null; forumReadsRef = null; forumMessagesCb = null; forumReadsCb = null; forumUnreadTotal = 0;
+    forumChannelListeners = [];
+    forumReadsRef = null;
+    forumReadsCb = null;
+    forumUnreadTotal = 0;
   }
 
   function clearPollUnreadListener(){
@@ -270,17 +274,28 @@
     pollUnreadRef.on('value', pollUnreadCb);
   }
 
-  function listenForumUnread(uid, profile){
+  async function listenForumUnread(uid, profile){
     var db = initFirebaseSafe();
     if (!uid || !db) return;
     currentForumProfile = profile || {};
     clearForumUnreadListeners();
-    forumMessagesRef = db.ref('fts_forum/messages');
     forumReadsRef = db.ref('fts_users/' + uid + '/forumReads');
-    forumMessagesCb = function(){ scheduleForumUnreadRefresh(uid); };
     forumReadsCb = function(){ scheduleForumUnreadRefresh(uid); };
-    forumMessagesRef.on('value', forumMessagesCb);
     forumReadsRef.on('value', forumReadsCb);
+
+    // Stabilisation : ne plus écouter tout fts_forum/messages en temps réel.
+    // On écoute seulement les derniers changements des salons visibles pour garder les pastilles réactives
+    // sans télécharger tout l'historique forum sur chaque page.
+    try {
+      var channels = await getVisibleForumChannels(db, currentForumProfile);
+      channels.forEach(function(ch){
+        var ref = db.ref('fts_forum/messages/' + ch).orderByChild('ts').limitToLast(1);
+        var cb = function(){ scheduleForumUnreadRefresh(uid); };
+        forumChannelListeners.push({ ref:ref, cb:cb });
+        ref.on('value', cb);
+      });
+    } catch(e) {}
+
     scheduleForumUnreadRefresh(uid);
   }
 
@@ -473,7 +488,7 @@
         var safeUrl = esc(r.url || '#');
         var dl = esc(resourceDownloadUrl(r.url || ''));
         var sub = r.sub ? '<small>' + esc(r.sub) + '</small>' : '<small>' + esc(r.type || 'document') + '</small>';
-        return '<div class="fts-doc-row"><a class="fts-doc-open" href="' + safeUrl + '" target="_blank" rel="noopener"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document') + '</strong>' + sub + '</span></a><a class="fts-doc-dl" href="' + dl + '" target="_blank" rel="noopener" download>⬇</a></div>';
+        return '<div class="fts-doc-row"><a class="fts-doc-open" href="' + safeUrl + '" target="_blank" rel="noopener"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document') + '</strong>' + sub + '</span></a><a class="fts-doc-dl" href="' + dl + '" target="_blank" rel="noopener" download aria-label="Télécharger ' + esc(r.name || 'Document') + '">⬇ <span>Télécharger</span></a></div>';
       }).join('');
       return '<section class="fts-doc-group"><h3>' + catIcon(cat) + ' ' + esc(cat) + '</h3>' + items + '</section>';
     }).join('');
