@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=5" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=6" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -26,6 +26,7 @@
 <div class="card-admin form-panel"><div class="mini-title">Annonce affichée dans l’espace membres</div><p class="field-help top-help">Ce message apparaît en haut de l’espace membre. Utilise-le pour une information générale courte.</p>
 <div class="form-grid">
 <div class="field"><label>Visibilité de l’annonce</label><select id="a-active"><option value="true">Visible dans l’espace membres</option><option value="false">Masquée pour les membres</option></select><small>Permet de préparer une annonce sans l’afficher tout de suite.</small></div>
+<div class="field"><label>Affichage</label><select id="a-display"><option value="card">Carte uniquement</option><option value="ticker">Banderole défilante</option><option value="both">Carte + banderole</option></select><small>Choisis comment l’annonce apparaît côté membre.</small></div>
 <div class="field"><label>Titre court</label><input id="a-title" placeholder="Ex : Répétition générale dimanche"/><small>Ce titre doit être lisible en un coup d’œil.</small></div>
 <div class="field full"><label>Message affiché</label><textarea id="a-body" placeholder="Message affiché aux membres…"></textarea><small>Écris uniquement l’information essentielle : quoi, quand, où.</small></div>
 <div class="field"><label>Texte du bouton</label><input id="a-btn" placeholder="Voir la saison"/><small>Optionnel. Exemple : Voir les infos.</small></div>
@@ -148,6 +149,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/contenus-admin.js?v=4"></script>
+<script src="assets/js/pages/contenus-admin.js?v=6"></script>
 </body>
 </html>
