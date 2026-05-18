@@ -282,12 +282,14 @@
     return { ok:true, before, after };
   }
 
-  async function setSpecialBadge(db, targetUid, badgeLabel, days, assignedBy, reason){
+  async function setSpecialBadge(db, targetUid, badgeLabel, days, assignedBy, reason, options){
     if(!db || !targetUid || !badgeLabel){
       throw new Error('Badge ou membre introuvable.');
     }
 
     const until = now() + Math.max(1, Number(days || 7)) * 86400000;
+    options = options || {};
+    const publicTargetName = String(options.publicName || options.childName || '').trim();
 
     const payload = {
       label: badgeLabel,
@@ -310,6 +312,7 @@
       .catch(() => null);
 
     const u = snap && snap.val ? snap.val() : {};
+    const displayTargetName = publicTargetName || publicName(u);
 
     writeRewardHistory(db, {
       type: 'special_badge',
@@ -318,12 +321,12 @@
       until,
       assignedBy: assignedBy || '',
       reason: reason || '',
-      name: publicName(u)
+      name: displayTargetName
     }).catch(() => {});
 
     pushGeneralMessage(
       db,
-      `🌟 ${publicName(u)} reçoit le badge temporaire « ${badgeLabel} » !`,
+      `🌟 ${displayTargetName} reçoit le badge temporaire « ${badgeLabel} » !`,
       {
         gamification: true,
         type: 'special_badge',
@@ -338,12 +341,14 @@
     return true;
   }
 
-  async function setArtistOfWeek(db, targetUid, assignedBy, text, days){
+  async function setArtistOfWeek(db, targetUid, assignedBy, text, days, options){
     if(!db || !targetUid){
       throw new Error('Membre introuvable.');
     }
 
     const until = now() + Math.max(1, Number(days || 7)) * 86400000;
+    options = options || {};
+    const publicTargetName = String(options.publicName || options.childName || '').trim();
 
     const payload = {
       label: '⭐ Artiste de la semaine',
@@ -362,6 +367,7 @@
       .once('value')
       .then(snap => {
         const u = snap && snap.val ? (snap.val() || {}) : {};
+        const displayTargetName = publicTargetName || publicName(u);
 
         db.ref(`fts_users/${targetUid}/specialBadge`)
           .set(payload)
@@ -371,7 +377,7 @@
           .set(Object.assign({
             uid: targetUid,
             kind: 'artist',
-            name: publicName(u),
+            name: displayTargetName,
             text: text || ''
           }, payload))
           .catch(() => {});
@@ -383,12 +389,12 @@
           until,
           assignedBy: assignedBy || '',
           reason: text || '',
-          name: publicName(u)
+          name: displayTargetName
         }).catch(() => {});
 
         pushGeneralMessage(
           db,
-          `🎉 Bravo à ${publicName(u)} qui devient Artiste de la semaine !`,
+          `🎉 Bravo à ${displayTargetName} qui devient Artiste de la semaine !`,
           {
             gamification: true,
             type: 'artist_of_week',
