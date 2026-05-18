@@ -823,6 +823,21 @@ async function collectUnreadPollItems(uid) {
   return polls.filter(Boolean);
 }
 
+
+let memberNewsRefreshTimer = null;
+let memberNewsIsRefreshing = false;
+function scheduleMemberNewsRefresh(delay) {
+  if (!currentUid) return;
+  clearTimeout(memberNewsRefreshTimer);
+  memberNewsRefreshTimer = setTimeout(async function(){
+    if (memberNewsIsRefreshing) return;
+    memberNewsIsRefreshing = true;
+    try { await loadMemberNews(); }
+    catch(e) { console.warn('[FTS] Rafraîchissement À faire maintenant indisponible :', e); }
+    finally { memberNewsIsRefreshing = false; }
+  }, Number.isFinite(Number(delay)) ? Number(delay) : 250);
+}
+
 async function loadMemberNews() {
   const panel = document.getElementById('member-news-panel');
   const list = document.getElementById('member-news-list');
@@ -1626,13 +1641,18 @@ function listenResourceNotificationFallback(uid){
 function listenUnreadBadge(uid) {
   db.ref('fts_dm/userConvs/' + uid).on('value', async snap => {
     const convIds = snap.val() ? Object.keys(snap.val()) : [];
-    if (!convIds.length) { updateMsgBadge(0); return; }
+    if (!convIds.length) {
+      updateMsgBadge(0);
+      scheduleMemberNewsRefresh(200);
+      return;
+    }
     let total = 0;
     await Promise.all(convIds.map(id =>
       db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
         .then(s => { total += (s.val() || 0); })
     ));
     updateMsgBadge(total);
+    scheduleMemberNewsRefresh(250);
   });
 }
 
@@ -2264,6 +2284,14 @@ if (document.readyState === 'loading') {
   bindMembresUiEvents();
 }
 
+// Quand l'utilisateur revient sur l'espace membre après avoir lu un MP, un forum,
+// un sondage ou une ressource dans une autre page, le bloc dynamique doit se nettoyer
+// sans obliger à recharger manuellement.
+window.addEventListener('focus', function(){ scheduleMemberNewsRefresh(250); });
+document.addEventListener('visibilitychange', function(){
+  if (!document.hidden) scheduleMemberNewsRefresh(250);
+});
+
 /* ── DÉCONNEXION ─────────────────────────────────────────────── */
 function doSignOut() {
   firebase.auth().signOut().then(() => {
@@ -2290,6 +2318,7 @@ function doSignOut() {
       if (!db || !uid) return;
       db.ref('fts_poll_unread/' + uid).on('value', function(snap){
         renderPollDash(snap.exists() ? Object.keys(snap.val() || {}).length : 0);
+        if (typeof scheduleMemberNewsRefresh === 'function') scheduleMemberNewsRefresh(350);
       });
     } catch(e) {}
   }
