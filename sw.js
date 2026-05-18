@@ -1,4 +1,4 @@
-const CACHE = 'fts-v42-offline-visible';
+const CACHE = 'fts-v42b-offline-pill';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -144,7 +144,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v42-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v42b-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v1';
 
 function isFirebaseOrAuthRequest(url){
