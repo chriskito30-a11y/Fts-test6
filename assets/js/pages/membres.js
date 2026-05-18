@@ -1903,22 +1903,32 @@ async function saveProfileInfo() {
     enfants
   };
 
+  let saved = false;
   try {
     if (btn) btn.disabled = true;
     setAccountMsg('profile-msg', 'Enregistrement…', '');
     await db.ref('fts_users/' + currentUid).update(updates);
+    saved = true;
     userProfile = { ...userProfile, ...updates };
-    fillAccountIdentity();
-    renderProfileEnfants();
-    if (typeof renderDashboard === 'function') {
-      renderDashboard(userProfile, firebase.auth().currentUser ? firebase.auth().currentUser.email : '');
-    }
-    setAccountMsg('profile-msg', '✓ Profil enregistré.', 'ok');
   } catch(e) {
     console.warn('[FTS] Sauvegarde profil impossible :', e);
     setAccountMsg('profile-msg', 'Erreur lors de la sauvegarde. Réessaie.', 'err');
+    return;
   } finally {
     if (btn) btn.disabled = false;
+  }
+
+  if (saved) {
+    setAccountMsg('profile-msg', '✓ Profil enregistré.', 'ok');
+    try { fillAccountIdentity(); } catch(e) { console.warn('[FTS] Rafraîchissement identité impossible :', e); }
+    try { renderProfileEnfants(); } catch(e) { console.warn('[FTS] Rafraîchissement enfants impossible :', e); }
+    try {
+      if (typeof renderDashboard === 'function') {
+        renderDashboard(userProfile, firebase.auth().currentUser ? firebase.auth().currentUser.email : '');
+      }
+    } catch(e) {
+      console.warn('[FTS] Rafraîchissement tableau de bord impossible :', e);
+    }
   }
 }
 

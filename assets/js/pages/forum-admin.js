@@ -163,6 +163,28 @@ function normalizeAdminUser(id, u) {
   };
 }
 
+function fmtChildBirthDate(value) {
+  if (!value) return '';
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const parts = raw.split('-');
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+  return raw;
+}
+function childInfoBits(e) {
+  const bits = [];
+  const date = fmtChildBirthDate(e && (e.dateNaissance || e.birthDate || e.dateNaissanceEnfant));
+  if (date) bits.push('🎂 ' + date);
+  if (e && e.telephone) bits.push('📞 ' + e.telephone);
+  return bits;
+}
+function childInfoHtml(e) {
+  const bits = childInfoBits(e);
+  return bits.length ? '<span class="enfant-info"> · ' + FTS.esc(bits.join(' · ')) + '</span>' : '';
+}
+
 /* ── ÉCOUTE TEMPS RÉEL ───────────────────────────────────────── */
 function listenUsers() {
   // Source officielle : fts_users.
@@ -227,7 +249,7 @@ function renderPending() {
           ${FTS.esc(u.group || "Aucune discipline")}${u.subgroup ? " — " + FTS.esc(u.subgroup) : ""}
         </div>
         ${u.hasEnfant && u.enfants.length ? u.enfants.map(e =>
-          `<span class="enfant-tag">🎩 ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${e.disciplines && e.disciplines.length ? ' · ' + FTS.esc(e.disciplines.join(', ')) : ''}</span>`
+          `<span class="enfant-tag">🎩 ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${childInfoHtml(e)}${e.disciplines && e.disciplines.length ? ' · ' + FTS.esc(e.disciplines.join(', ')) : ''}</span>`
         ).join('') : ''}
       </div>
       <div class="user-actions">
@@ -261,7 +283,7 @@ function renderMembers() {
           ${FTS.esc(u.group || "—")}${u.subgroup ? " — " + FTS.esc(u.subgroup) : ""}
         </div>
         ${u.hasEnfant && u.enfants.length ? u.enfants.map(e =>
-          `<span class="enfant-tag">🎩 ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${e.disciplines && e.disciplines.length ? ' · ' + FTS.esc(e.disciplines.join(', ')) : ''}</span>`
+          `<span class="enfant-tag">🎩 ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${childInfoHtml(e)}${e.disciplines && e.disciplines.length ? ' · ' + FTS.esc(e.disciplines.join(', ')) : ''}</span>`
         ).join('') : ''}
       </div>
       <div class="user-actions">
@@ -527,7 +549,7 @@ function openModModal(id) {
       const eCats = Array.isArray(e.disciplines) ? e.disciplines : [];
       return `
         <div class="modal-enfant-block">
-          <div class="modal-enfant-title">🎩 Enfant ${i+1} — ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}</div>
+          <div class="modal-enfant-title">🎩 Enfant ${i+1} — ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${childInfoHtml(e)}</div>
           <div class="pill-container mod-enfant-pills" id="mod-enfant-pills-${i}">
             ${cats.map(c => `<div class="pill ${eCats.includes(c) ? 'active' : ''}"
               data-value="${FTS.esc(c)}" data-enfant="${i}"

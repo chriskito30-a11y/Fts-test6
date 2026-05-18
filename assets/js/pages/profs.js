@@ -268,7 +268,7 @@ async function loadStudents() {
             ${e.disciplines && e.disciplines.length
               ? `<span style="color:var(--gold)"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
               : ""}
-            ${e.telephone ? `<span style="color:#555"> · 📞 ${FTS.esc(e.telephone)}</span>` : ""}
+            ${profChildMetaHtml(e)}
           </div>`).join("");
       }
 
@@ -558,6 +558,24 @@ function splitAccessList(v) {
 
 function normAccess(v) {
   return FTS.norm ? FTS.norm(v || '') : String(v || '').toLowerCase().trim();
+}
+
+function profFmtChildBirthDate(value) {
+  if (!value) return '';
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const p = raw.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+  return raw;
+}
+function profChildMetaHtml(e) {
+  const bits = [];
+  const birth = profFmtChildBirthDate(e && (e.dateNaissance || e.birthDate || e.dateNaissanceEnfant));
+  if (birth) bits.push('🎂 ' + birth);
+  if (e && e.telephone) bits.push('📞 ' + e.telephone);
+  return bits.length ? `<span style="color:#555"> · ${FTS.esc(bits.join(' · '))}</span>` : '';
 }
 
 function resourceTargetPayload(data) {
