@@ -2142,6 +2142,7 @@ function bindMembresUiEvents() {
 
   bindClick('btn-open-account', openAccountModal);
   bindClick('btn-open-guide', openGuideModal);
+  bindClick('btn-open-guide-inline', openGuideModal);
   bindClick('btn-account-guide', function(){ closeAccountModal(); openGuideModal(); });
   bindClick('btn-notif', toggleNotifications);
   bindClick('btg', toggleEvts);
