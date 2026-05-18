@@ -2825,3 +2825,14 @@ button.profile-pill:focus-visible {
   .fts-alert-read { padding: .34rem .52rem; font-size: .7rem; }
   .fts-alert-text { font-size: .82rem; animation-duration: 15s; }
 }
+
+
+/* === Annonces lues : restent consultables sans rester urgentes === */
+.annonce-card-topline{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-bottom:.35rem}
+.annonce-read-state{display:inline-flex;align-items:center;gap:.25rem;padding:.2rem .5rem;border-radius:999px;font-size:.72rem;font-weight:800;letter-spacing:.01em;border:1px solid rgba(255,255,255,.10);color:rgba(255,255,255,.70);background:rgba(255,255,255,.055)}
+.annonce-read-state-new{color:#111;background:linear-gradient(135deg,var(--gold),#fff0a8);border-color:rgba(248,231,2,.55)}
+.annonce-item-read{opacity:.72;border-color:rgba(255,255,255,.055);background:rgba(255,255,255,.035)}
+.annonce-item-read .annonce-card-body{color:rgba(255,255,255,.66)}
+.annonce-item-read .annonce-card-body strong{color:rgba(255,255,255,.84)}
+.annonce-item-read:hover{opacity:1;border-color:rgba(248,231,2,.18);background:rgba(248,231,2,.045)}
+.annonce-date{margin-top:.35rem;color:rgba(255,255,255,.48);font-size:.78rem}
