@@ -1041,7 +1041,7 @@ async function assignSpecialBadgeFromProfs() {
   const current = firebase.auth().currentUser;
   if (!targetUid || !badge) { alert('Choisis un élève et un badge.'); return; }
   try {
-    await FTSGamification.setSpecialBadge(db, targetUid, badge, days, current && current.uid, reason, selectedRewardStudent && selectedRewardStudent.isChild ? { childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
+    await FTSGamification.setSpecialBadge(db, targetUid, badge, days, current && current.uid, reason, selectedRewardStudent && selectedRewardStudent.isChild ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
     await loadRewardsPanel();
     alert('Badge temporaire attribué.');
   } catch (e) {
@@ -1063,7 +1063,7 @@ async function assignArtistOfWeekFromProfs() {
   if (!targetUid) { alert('Choisis un élève.'); return; }
   if (!confirm('Définir cet élève comme Artiste de la semaine ?')) return;
   try {
-    await FTSGamification.setArtistOfWeek(db, targetUid, current && current.uid, reason, 7, selectedRewardStudent && selectedRewardStudent.isChild ? { childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
+    await FTSGamification.setArtistOfWeek(db, targetUid, current && current.uid, reason, 7, selectedRewardStudent && selectedRewardStudent.isChild ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
     await loadRewardsPanel();
     alert('Artiste de la semaine défini.');
   } catch (e) {

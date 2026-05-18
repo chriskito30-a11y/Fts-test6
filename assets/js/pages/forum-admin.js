@@ -696,44 +696,65 @@ function closeModModal() { document.getElementById("mod-modal").classList.add("h
 
 
 /* ── RÉCOMPENSES / GAMIFICATION ─────────────────────────────── */
-function rewardChildName(e) {
-  return [e && e.prenom, e && e.nom].filter(Boolean).join(' ') || [e && e.firstName, e && e.lastName].filter(Boolean).join(' ') || (e && e.name) || 'Enfant';
+function activeMembersForRewards() {
+  return Object.entries(allUsers || {})
+    .filter(([id, u]) => u && u.status === 'active')
+    .sort((a, b) => (a[1].name || '').localeCompare(b[1].name || '', 'fr'));
 }
+
 function makeRewardOptionValue(uid, childId) {
   return childId ? `${uid}::${childId}` : uid;
 }
+
 function parseRewardOptionValue(value) {
   const parts = String(value || '').split('::');
   return { uid: parts[0] || '', childId: parts[1] || '' };
 }
-function activeMembersForRewards() {
-  const out = [];
-  Object.entries(allUsers || {}).forEach(([id, u]) => {
-    if (!u || u.status !== 'active') return;
-    out.push([makeRewardOptionValue(id, ''), Object.assign({}, u, {
-      uid: id,
-      optionValue: makeRewardOptionValue(id, ''),
-      rewardTargetUid: id,
-      label: u.name || u.email || 'Membre',
-      isChild: false
-    })]);
-    if (u.hasEnfant && Array.isArray(u.enfants)) {
-      u.enfants.forEach((e, index) => {
-        const childId = e.id || `enfant_${index + 1}`;
-        const childName = rewardChildName(e);
-        out.push([makeRewardOptionValue(id, childId), Object.assign({}, u, {
-          uid: id,
-          optionValue: makeRewardOptionValue(id, childId),
-          rewardTargetUid: id,
-          childId,
-          childName,
-          label: `${childName} · enfant de ${u.name || u.email || 'parent'}`,
-          isChild: true
-        })]);
+
+function rewardChildName(e) {
+  e = e || {};
+  return (
+    e.name ||
+    [e.firstName, e.lastName].filter(Boolean).join(' ') ||
+    [e.prenom, e.nom].filter(Boolean).join(' ') ||
+    e.fullName ||
+    e.label ||
+    'Enfant'
+  );
+}
+
+function rewardDisplayNameForAdmin(u) {
+  u = u || {};
+  return u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || 'Membre';
+}
+
+function buildRewardOptionsForAdmin() {
+  const rows = [];
+  activeMembersForRewards().forEach(([uid, u]) => {
+    if (!u || u.role === 'admin' || u.role === 'prof') return;
+    const parentName = rewardDisplayNameForAdmin(u);
+    rows.push({ uid, optionValue: makeRewardOptionValue(uid, ''), label: parentName, parentName, isChild: false, specialBadge: u.specialBadge || null });
+    const children = Array.isArray(u.enfants) ? u.enfants : [];
+    children.forEach((e, index) => {
+      const childId = e.id || e.uid || e.key || `enfant_${index + 1}`;
+      const childName = rewardChildName(e);
+      rows.push({
+        uid, childId, childName, optionValue: makeRewardOptionValue(uid, childId),
+        label: `${childName} · enfant de ${parentName}`, parentName, isChild: true, specialBadge: u.specialBadge || null
       });
-    }
+    });
   });
-  return out.sort((a, b) => (a[1].label || '').localeCompare(b[1].label || '', 'fr'));
+  return rows.sort((a, b) => (a.label || '').localeCompare(b.label || '', 'fr'));
+}
+
+function rewardNameFromBadge(uid, u) {
+  const b = (u && u.specialBadge) || {};
+  if (b.publicName) return b.publicName;
+  if (b.childName) return b.childName;
+  const reason = String(b.reason || '');
+  const m = reason.match(/^Pour\s+([^·]+)/i);
+  if (m && m[1]) return m[1].trim();
+  return (u && (u.name || u.email)) || 'Membre';
 }
 
 function rewardUntilText(until) {
@@ -771,7 +792,7 @@ function renderRewardHistoryPanel() {
           <div class="reward-history-item ${isArtist ? 'is-artist' : ''}">
             <div class="reward-history-main">
               <span class="reward-history-badge">${FTS.esc(b.label || 'Badge')}</span>
-              <strong>${FTS.esc(u.name || u.email || 'Membre')}</strong>
+              <strong>${FTS.esc(rewardNameFromBadge(uid, u))}</strong>
               <small>${FTS.esc(rewardUntilText(b.until))}${b.reason ? ' · ' + FTS.esc(b.reason) : ''}</small>
             </div>
             <div class="reward-history-actions">
@@ -788,11 +809,11 @@ function renderRewardsPanel() {
   const badgeSel = document.getElementById('reward-badge');
   if (!userSel || !badgeSel || !window.FTSGamification) return;
   const currentUser = userSel.value;
-  const users = activeMembersForRewards();
-  userSel.innerHTML = users.length
-    ? users.map(([id, u]) => `<option value="${FTS.esc(id)}">${FTS.esc(u.label || u.name || u.email || 'Membre')}</option>`).join('')
+  const rows = buildRewardOptionsForAdmin();
+  userSel.innerHTML = rows.length
+    ? rows.map(u => `<option value="${FTS.esc(u.optionValue || u.uid)}">${FTS.esc(u.label || 'Membre')}</option>`).join('')
     : '<option value="">Aucun membre actif</option>';
-  if (currentUser && users.some(([id]) => id === currentUser)) userSel.value = currentUser;
+  if (currentUser && rows.some(u => (u.optionValue || u.uid) === currentUser)) userSel.value = currentUser;
   if (!badgeSel.dataset.ready) {
     badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
     badgeSel.dataset.ready = '1';
@@ -804,17 +825,22 @@ async function assignSpecialBadge() {
   const selectedRewardValue = document.getElementById('reward-user')?.value;
   const parsedRewardTarget = parseRewardOptionValue(selectedRewardValue);
   const targetUid = parsedRewardTarget.uid;
-  const selectedRewardUser = activeMembersForRewards().find(([id]) => id === selectedRewardValue)?.[1] || null;
+  const selectedRewardStudent = buildRewardOptionsForAdmin().find(u => (u.optionValue || u.uid) === selectedRewardValue);
   const badge = document.getElementById('reward-badge')?.value;
   const days = document.getElementById('reward-days')?.value || 7;
   let reason = document.getElementById('reward-reason')?.value || '';
-  if (selectedRewardUser && selectedRewardUser.isChild && selectedRewardUser.childName) {
-    reason = reason ? `Pour ${selectedRewardUser.childName} · ${reason}` : `Pour ${selectedRewardUser.childName}`;
+  if (selectedRewardStudent && selectedRewardStudent.isChild && selectedRewardStudent.childName) {
+    reason = reason ? `Pour ${selectedRewardStudent.childName} · ${reason}` : `Pour ${selectedRewardStudent.childName}`;
   }
   const current = firebase.auth().currentUser;
   if (!targetUid || !badge) { alert('Choisis un membre et un badge.'); return; }
   try {
-    await FTSGamification.setSpecialBadge(db, targetUid, badge, days, current && current.uid, reason);
+    await FTSGamification.setSpecialBadge(
+      db, targetUid, badge, days, current && current.uid, reason,
+      selectedRewardStudent && selectedRewardStudent.isChild
+        ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName }
+        : {}
+    );
     await refreshAdminUsersOnce();
     alert('Badge temporaire attribué.');
   } catch (e) {
@@ -827,16 +853,21 @@ async function assignArtistOfWeek() {
   const selectedRewardValue = document.getElementById('reward-user')?.value;
   const parsedRewardTarget = parseRewardOptionValue(selectedRewardValue);
   const targetUid = parsedRewardTarget.uid;
-  const selectedRewardUser = activeMembersForRewards().find(([id]) => id === selectedRewardValue)?.[1] || null;
+  const selectedRewardStudent = buildRewardOptionsForAdmin().find(u => (u.optionValue || u.uid) === selectedRewardValue);
   let reason = document.getElementById('reward-reason')?.value || '';
-  if (selectedRewardUser && selectedRewardUser.isChild && selectedRewardUser.childName) {
-    reason = reason ? `Pour ${selectedRewardUser.childName} · ${reason}` : `Pour ${selectedRewardUser.childName}`;
+  if (selectedRewardStudent && selectedRewardStudent.isChild && selectedRewardStudent.childName) {
+    reason = reason ? `Pour ${selectedRewardStudent.childName} · ${reason}` : `Pour ${selectedRewardStudent.childName}`;
   }
   const current = firebase.auth().currentUser;
   if (!targetUid) { alert('Choisis un membre.'); return; }
   if (!confirm('Définir ce membre comme Artiste de la semaine ?')) return;
   try {
-    await FTSGamification.setArtistOfWeek(db, targetUid, current && current.uid, reason, 7);
+    await FTSGamification.setArtistOfWeek(
+      db, targetUid, current && current.uid, reason, 7,
+      selectedRewardStudent && selectedRewardStudent.isChild
+        ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName }
+        : {}
+    );
     await refreshAdminUsersOnce();
     alert('Artiste de la semaine défini.');
   } catch (e) {
