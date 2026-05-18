@@ -710,7 +710,7 @@ async function collectNewEvents(sinceTs) {
 async function collectNewAnnouncement(sinceTs) {
   const snap = await db.ref('fts_content/annonces/current').once('value');
   const a = snap.val() || {};
-  if (!a || a.active === false || a.status === 'inactive') return [];
+  if (!canSeeAnnouncement(a)) return [];
   const title = a.title || a.titre || '';
   const body = a.body || a.text || a.texte || '';
   if (!title && !body) return [];
@@ -725,7 +725,6 @@ async function collectNewAnnouncement(sinceTs) {
     action: 'announcement'
   }];
 }
-
 
 async function collectUnreadPollItems(uid) {
   if (!uid) return [];
@@ -828,7 +827,17 @@ function renderMemberNews(items) {
 
   if (!items.length) {
     saveMemberNewsCount(0);
-    panel.classList.add('u-initial-hidden');
+    panel.classList.remove('u-initial-hidden');
+    panel.style.display = 'block';
+    const title = panel.querySelector('.smart-section-head h2');
+    if (title) title.textContent = 'À faire maintenant';
+    const hint = document.getElementById('member-news-hint');
+    if (hint) hint.textContent = 'Tout est à jour';
+    list.innerHTML = `
+      <div class="empty-state-card empty-state-card--success">
+        <strong>Tout est à jour 🎉</strong>
+        <span>Aucun message, sondage ou document important à traiter pour le moment.</span>
+      </div>`;
     return;
   }
 
@@ -862,8 +871,7 @@ function refreshNewsPanelAfterSeen(btn) {
     var remaining = list.querySelectorAll('.member-news-item').length;
     saveMemberNewsCount(remaining);
     if (!remaining) {
-      panel.classList.add('u-initial-hidden');
-      panel.style.display = 'none';
+      renderMemberNews([]);
     }
   }
 }
@@ -1321,37 +1329,136 @@ document.getElementById('mo').addEventListener('click', function(e) {
 });
 
 /* ── ANNONCE DYNAMIQUE ───────────────────────────────────────── */
+function announcementTargets(a) {
+  const cats = normList(a && (a.targetCategories || a.categories || a.groups));
+  const subs = normList(a && (a.targetSubgroups || a.targetSubcategories || a.subgroups || a.subcategories));
+  const groups = {};
+  if (a && a.targetGroups && typeof a.targetGroups === 'object' && !Array.isArray(a.targetGroups)) {
+    Object.entries(a.targetGroups).forEach(([cat, list]) => {
+      if (!cat) return;
+      groups[cat] = normList(list);
+    });
+  } else {
+    cats.forEach(cat => { groups[cat] = []; });
+    subs.forEach(sub => {
+      const cat = C.categories.find(c => (c.subcats || []).some(s => FTS.norm(s) === FTS.norm(sub)));
+      if (cat && cat.name) {
+        if (!groups[cat.name]) groups[cat.name] = [];
+        groups[cat.name].push(sub);
+      }
+    });
+  }
+  return { cats, subs, groups };
+}
+
+function canSeeAnnouncement(a) {
+  if (!a || a.active === false || a.status === 'inactive') return false;
+  if (profileIsAdmin()) return true;
+  const t = announcementTargets(a);
+  if (!t.cats.length && !t.subs.length && !Object.keys(t.groups).length) return true;
+  const myCats = userDisciplines().map(FTS.norm);
+  const mySubs = userSubgroups().map(FTS.norm);
+  for (const [cat, subs] of Object.entries(t.groups)) {
+    const catOk = myCats.includes(FTS.norm(cat));
+    const cleanSubs = normList(subs);
+    if (catOk && !cleanSubs.length) return true;
+    if (catOk && cleanSubs.some(sub => mySubs.includes(FTS.norm(sub)))) return true;
+  }
+  if (!Object.keys(t.groups).length) {
+    if (t.cats.length && !t.subs.length) return t.cats.some(c => myCats.includes(FTS.norm(c)));
+    if (t.subs.length) return t.subs.some(sub => mySubs.includes(FTS.norm(sub)));
+  }
+  return false;
+}
+
+function announcementSeenId(a) {
+  const ts = itemTs(a) || Date.now();
+  return 'announcement|current|' + String(ts);
+}
+
+function hideAlertTicker() {
+  const ticker = document.getElementById('fts-alert-ticker');
+  if (ticker) {
+    ticker.classList.add('u-initial-hidden');
+    ticker.style.display = 'none';
+  }
+}
+
+function renderAlertTicker(a, id) {
+  const ticker = document.getElementById('fts-alert-ticker');
+  const text = document.getElementById('fts-alert-text');
+  const btn = document.getElementById('fts-alert-read');
+  if (!ticker || !text) return;
+  if (isNewsSeen(id)) { hideAlertTicker(); return; }
+  const title = a.title || a.titre || 'Annonce importante';
+  const body = a.body || a.text || a.texte || '';
+  const label = [title, body].filter(Boolean).join(' — ');
+  text.textContent = label;
+  ticker.dataset.announcementId = id;
+  ticker.classList.remove('u-initial-hidden');
+  ticker.style.display = 'flex';
+  if (btn && !btn.__ftsAlertBound) {
+    btn.__ftsAlertBound = true;
+    btn.addEventListener('click', function(){
+      const currentId = ticker.dataset.announcementId || id;
+      markNewsSeen(currentId);
+      hideAlertTicker();
+      loadMemberNews();
+    });
+  }
+}
+
 async function loadAnnonce() {
   const el = document.getElementById('annonce-dyn');
-  if (!el) return;
+  const panel = document.getElementById('priority-panel');
 
   try {
     const snap = await db.ref('fts_content/annonces/current').once('value');
     const a = snap.val() || {};
-    if (a.active === false || a.status === 'inactive') return;
+    if (!canSeeAnnouncement(a)) {
+      if (panel) panel.classList.add('u-initial-hidden');
+      hideAlertTicker();
+      return;
+    }
 
     const title = a.title || a.titre || '';
     const body  = a.body || a.text || a.texte || '';
     const btn   = a.buttonText || a.btn || '';
     const url   = a.buttonUrl || a.url || '';
+    const mode  = a.displayMode || a.mode || 'panel';
+    const seenId = announcementSeenId(a);
 
     if (!title && !body) return;
 
-    el.innerHTML = `
-      ${title ? `<strong>${FTS.esc(title)}</strong><br>` : ''}
-      ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
-      ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
-    `;
-    const panel = document.getElementById('priority-panel');
-    if (panel) {
-      panel.classList.remove('u-initial-hidden');
-      panel.style.display = 'block';
+    if (mode === 'banner' || mode === 'both') renderAlertTicker(a, seenId);
+    else hideAlertTicker();
+
+    if (mode !== 'banner' && el) {
+      el.innerHTML = `
+        ${title ? `<strong>${FTS.esc(title)}</strong><br>` : ''}
+        ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
+        ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
+        <div class="annonce-actions"><button type="button" class="annonce-read-btn" id="annonce-read-btn">J’ai lu</button></div>
+      `;
+      if (panel) {
+        panel.classList.remove('u-initial-hidden');
+        panel.style.display = 'block';
+      }
+      const readBtn = document.getElementById('annonce-read-btn');
+      if (readBtn) readBtn.addEventListener('click', function(){
+        markNewsSeen(seenId);
+        if (panel) panel.style.display = 'none';
+        hideAlertTicker();
+        loadMemberNews();
+      });
+    } else if (panel) {
+      panel.classList.add('u-initial-hidden');
+      panel.style.display = 'none';
     }
   } catch(e) {
     console.warn('[FTS] Annonce Firebase indisponible :', e);
   }
 }
-
 
 /* ── NOTIFICATIONS PUSH RESSOURCES / FORUM / MESSAGES ────────── */
 function urlBase64ToUint8Array(b64){

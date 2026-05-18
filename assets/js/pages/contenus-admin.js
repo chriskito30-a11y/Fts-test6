@@ -31,7 +31,9 @@ function renderAnnoncePreview(){
   const title=$('a-title')?.value.trim() || 'Info importante';
   const body=$('a-body')?.value.trim() || 'Ton annonce apparaîtra ici.';
   const btn=$('a-btn')?.value.trim();
-  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card ${active?'':'is-muted'}"><strong>${escText(title)}</strong><p>${escText(body)}</p>${btn?`<span class="preview-button">${escText(btn)}</span>`:''}</div>`;
+  const mode=$('a-mode')?.value || 'panel';
+  const modeLabel=mode==='banner'?' · banderole':(mode==='both'?' · carte + banderole':'');
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?modeLabel:'· masqué'}</div><div class="preview-card ${active?'':'is-muted'}"><strong>${escText(title)}</strong><p>${escText(body)}</p>${btn?`<span class="preview-button">${escText(btn)}</span>`:''}</div>`;
 }
 function renderQuestionnairePreview(){
   const box=$('questionnaire-preview'); if(!box) return;
@@ -53,10 +55,10 @@ function renderResourcePreview(){
   const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || 'Catégorie');
   const sub=($('r-subcat-new')?.value.trim() || $('r-subcat')?.value || 'Sous-catégorie');
   const active=$('r-active')?.value!=='false';
-  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?modeLabel:'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
 }
 function bindPreviewInputs(){
-  ['a-active','a-title','a-body','a-btn','a-url','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
+  ['a-active','a-mode','a-title','a-body','a-btn','a-url','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
     const el=$(id); if(!el || el.__ftsPreviewBound) return;
     el.__ftsPreviewBound=true;
     el.addEventListener('input', renderAdminPreviews);
@@ -95,24 +97,92 @@ function init(){
   });
 }
 
+
+function normListAdmin(v){
+  return (Array.isArray(v) ? v : String(v || '').split(',')).map(x => String(x || '').trim()).filter(Boolean);
+}
+function selectedAnnouncementTargets(){
+  const groups = {};
+  document.querySelectorAll('[data-a-target-cat]:checked').forEach(i => { groups[i.value] = []; });
+  document.querySelectorAll('[data-a-target-sub]:checked').forEach(i => {
+    const cat = i.getAttribute('data-parent') || '';
+    if (!cat) return;
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(i.value);
+  });
+  return groups;
+}
+function renderAnnouncementTargets(savedGroups){
+  const catBox = $('a-target-cats');
+  const subBox = $('a-target-subs');
+  if(!catBox || !subBox) return;
+  const groups = savedGroups && typeof savedGroups === 'object' ? savedGroups : {};
+  catBox.innerHTML = (categoryStructure || []).map(c => {
+    const checked = Object.prototype.hasOwnProperty.call(groups, c.category) ? 'checked' : '';
+    return `<label class="admin-target-pill"><input type="checkbox" data-a-target-cat value="${FTS.esc(c.category)}" ${checked}> ${FTS.esc((c.icon?c.icon+' ':'')+c.category)}</label>`;
+  }).join('') || '<span class="hint">Aucune catégorie configurée.</span>';
+  renderAnnouncementSubTargets(groups);
+}
+function renderAnnouncementSubTargets(savedGroups){
+  const subBox = $('a-target-subs');
+  if(!subBox) return;
+  const groups = savedGroups && typeof savedGroups === 'object' ? savedGroups : selectedAnnouncementTargets();
+  const selectedCats = Object.keys(groups);
+  if(!selectedCats.length){
+    subBox.innerHTML = '<span class="target-help">Annonce générale : aucune catégorie sélectionnée.</span>';
+    return;
+  }
+  const html=[];
+  (categoryStructure || []).forEach(c => {
+    if(!selectedCats.includes(c.category)) return;
+    const subs = c.subs || [];
+    if(!subs.length) return;
+    html.push(`<div class="admin-target-subgroup"><strong>${FTS.esc((c.icon?c.icon+' ':'')+c.category)}</strong><div>` + subs.map(s => {
+      const name = s.name || s.label || s;
+      const checked = (groups[c.category] || []).includes(name) ? 'checked' : '';
+      return `<label class="admin-target-pill"><input type="checkbox" data-a-target-sub data-parent="${FTS.esc(c.category)}" value="${FTS.esc(name)}" ${checked}> ${FTS.esc(name)}</label>`;
+    }).join('') + '</div></div>');
+  });
+  subBox.innerHTML = html.join('') || '<span class="target-help">Catégorie entière sélectionnée.</span>';
+}
+function normalizeAnnouncementGroups(a){
+  if(a && a.targetGroups && typeof a.targetGroups === 'object' && !Array.isArray(a.targetGroups)) return a.targetGroups;
+  const groups = {};
+  normListAdmin(a && (a.targetCategories || a.categories || a.groups)).forEach(c => { groups[c] = []; });
+  normListAdmin(a && (a.targetSubgroups || a.targetSubcategories || a.subgroups || a.subcategories)).forEach(sub => {
+    const cat = (categoryStructure || []).find(c => (c.subs || []).some(s => (s.name || s) === sub));
+    if(cat){ if(!groups[cat.category]) groups[cat.category]=[]; groups[cat.category].push(sub); }
+  });
+  return groups;
+}
+
 /* ═══ ANNONCE ═══════════════════════════════════════════════ */
 async function loadAnnonce(){
   const s=await db.ref('fts_content/annonces/current').once('value');
   const a=s.val()||{};
   $('a-active').value=String(a.active!==false);
+  if($('a-mode')) $('a-mode').value=a.displayMode||a.mode||'panel';
   $('a-title').value=a.title||'';
   $('a-body').value=a.body||a.text||'';
   $('a-btn').value=a.buttonText||'';
   $('a-url').value=a.buttonUrl||'';
+  renderAnnouncementTargets(normalizeAnnouncementGroups(a));
   renderAnnoncePreview();
 }
 async function saveAnnonce(){
+  const targetGroups = selectedAnnouncementTargets();
+  const targetCategories = Object.keys(targetGroups);
+  const targetSubgroups = Object.values(targetGroups).flat();
   await db.ref('fts_content/annonces/current').set({
     active:$('a-active').value==='true',
+    displayMode:$('a-mode') ? $('a-mode').value : 'panel',
     title:$('a-title').value.trim(),
     body:$('a-body').value.trim(),
     buttonText:$('a-btn').value.trim(),
     buttonUrl:$('a-url').value.trim(),
+    targetGroups,
+    targetCategories,
+    targetSubgroups,
     updatedAt:Date.now()
   });
   msg('msg-annonce','Annonce enregistrée');
@@ -328,6 +398,7 @@ function listenCategories(){
     }));
     fillCats();
     renderCList();
+    renderAnnouncementTargets(normalizeAnnouncementGroups({ targetGroups:selectedAnnouncementTargets() }));
   }, err=>console.warn('[FTS Contenus] categories', err));
 }
 function fillCats(){
@@ -496,6 +567,11 @@ async function deleteResource(){
   newResource();
   msg('msg-r','Ressource supprimée');
 }
+
+
+document.addEventListener('change', function(e){
+  if(e.target && e.target.matches('[data-a-target-cat]')) renderAnnouncementSubTargets();
+});
 
 init();
 
