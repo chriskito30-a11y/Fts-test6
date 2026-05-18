@@ -2,7 +2,7 @@
 (function(){
 'use strict';
 let db, auth, currentUser, profile, cats=[], currentFilter='pending';
-const state={polls:{}, responses:{}, unread:{}, users:{}, saving:{}};
+const state={polls:{}, responses:{}, unread:{}, users:{}, saving:{}, responseListeners:{}};
 function esc(v){return FTS.esc(String(v==null?'':v));}
 function norm(v){return FTS.norm ? FTS.norm(v) : String(v||'').toLowerCase().trim();}
 function list(v){return (Array.isArray(v)?v:String(v||'').split(',')).map(x=>String(x||'').trim()).filter(Boolean);}
@@ -22,9 +22,30 @@ function selectedTargets(){ const catsObj={}, subsObj={}; document.querySelector
 function setMsg(txt,type){const el=document.getElementById('poll-create-msg'); if(!el)return; el.textContent=txt; el.className='poll-msg '+(type==='ok'?'ok':'err');}
 async function createPoll(){ if(!isStaff())return; const title=document.getElementById('poll-title').value.trim(); const desc=document.getElementById('poll-desc').value.trim(); const multiple=document.getElementById('poll-multiple').value==='multiple'; const closes=document.getElementById('poll-closes').value; const options=[...document.querySelectorAll('#poll-options input')].map(i=>i.value.trim()).filter(Boolean); const targets=selectedTargets(); if(!title){setMsg('Ajoute un titre au sondage.','err');return;} if(options.length<2){setMsg('Ajoute au moins 2 choix.','err');return;} if(!Object.keys(targets.categories).length&&!Object.keys(targets.subcategories).length){setMsg('Choisis au moins une catégorie ou sous-catégorie destinataire.','err');return;} const btn=document.getElementById('poll-submit'); if(btn)btn.disabled=true; try{ const users=await db.ref('fts_users').orderByChild('status').equalTo('active').once('value'); const recipients={}; users.forEach(ch=>{ if(ch.key!==currentUser.uid && canReceivePoll(ch.val()||{},targets)) recipients[ch.key]=true; }); if(isAdmin()) recipients[currentUser.uid]=true; const pollRef=db.ref('fts_polls').push(); const key=pollRef.key; const now=Date.now(); const opts=options.map((label,i)=>({key:'o'+(i+1),label})); const poll={title,description:desc,multiple,options:opts,targets,recipients,createdAt:now,createdByUid:currentUser.uid,createdByName:(profile.firstName||profile.name||currentUser.email||'FTS'),closesAt:closes?new Date(closes+'T23:59:59').getTime():0,active:true}; const updates={}; updates['fts_polls/'+key]=poll; Object.keys(recipients).forEach(uid=>{updates['fts_poll_unread/'+uid+'/'+key]=true; const n=db.ref('fts_user_notifications/'+uid).push(); updates['fts_user_notifications/'+uid+'/'+n.key]={type:'poll',pollId:key,title:'Nouveau sondage',body:title,url:'./sondages.html?poll='+encodeURIComponent(key),read:false,createdAt:now,authorUid:currentUser.uid};}); await db.ref().update(updates); notifyPush(key,poll,Object.keys(recipients)); document.getElementById('poll-title').value='';document.getElementById('poll-desc').value='';document.getElementById('poll-closes').value='';document.querySelectorAll('[data-target-cat],[data-target-sub]').forEach(i=>i.checked=false); document.getElementById('poll-options').innerHTML=''; addOption();addOption(); setMsg('Sondage créé et notifications envoyées.','ok'); }catch(e){console.warn(e);setMsg('Erreur pendant la création du sondage.','err');} finally{ if(btn)btn.disabled=false; }}
 async function notifyPush(key,poll,uids){ try{ if(!FTS.PUSH||!FTS.PUSH.workerUrl||!uids.length)return; await Promise.allSettled(uids.map(uid=>fetch(FTS.PUSH.workerUrl+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid,uids:[uid],recipientUids:[uid],recipients:[uid],type:'poll',pollId:key,title:'FTS — Nouveau sondage',body:poll.title,url:'./sondages.html?poll='+encodeURIComponent(key),tag:'poll-'+key+'-'+uid})}))); }catch(e){console.warn('[FTS Polls] push non bloquant',e);} }
+function syncResponseListeners(){
+  const ids=Object.keys(state.polls||{});
+  ids.forEach(id=>{
+    if(state.responseListeners[id]) return;
+    const ref=db.ref('fts_poll_responses/'+id);
+    const cb=s=>{ state.responses[id]=s.val()||{}; renderPolls(); };
+    const err=e=>{
+      console.warn('[FTS Polls] lecture réponses refusée pour '+id, e);
+      state.responses[id]=state.responses[id]||{};
+      renderPolls();
+    };
+    ref.on('value', cb, err);
+    state.responseListeners[id]={ref,cb};
+  });
+  Object.keys(state.responseListeners).forEach(id=>{
+    if(ids.includes(id)) return;
+    const l=state.responseListeners[id];
+    try{ l.ref.off('value', l.cb); }catch(e){}
+    delete state.responseListeners[id];
+    delete state.responses[id];
+  });
+}
 function listen(){
-  db.ref('fts_polls').orderByChild('createdAt').limitToLast(80).on('value',s=>{state.polls=s.val()||{}; renderPolls();});
-  db.ref('fts_poll_responses').on('value',s=>{state.responses=s.val()||{}; renderPolls();},e=>{console.warn('[FTS Polls] lecture réponses refusée', e);});
+  db.ref('fts_polls').orderByChild('createdAt').limitToLast(80).on('value',s=>{state.polls=s.val()||{}; syncResponseListeners(); renderPolls();});
   db.ref('fts_poll_unread/'+currentUser.uid).on('value',s=>{state.unread=s.val()||{}; renderPolls(); if(window.FTSNav)window.FTSNav.updateBadges();});
   if(isStaff()) db.ref('fts_users').once('value',s=>{state.users=s.val()||{}; renderPolls();});
 }
