@@ -15,8 +15,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css?v=32">
 
-<link rel="stylesheet" href="assets/css/fts-nav.css?v=18">
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=33">
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=19">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=39">
 </head>
 
 <body class="has-glow">
@@ -68,7 +68,7 @@
       <div class="eyebrow">Espace membres</div>
       <h1 class="fts-brand-title fts-brand-title--page">Fais Ton<br><span>Show</span></h1>
       <div class="title-line"></div>
-      <p class="page-slogan">Tout est à portée de clic.</p>
+      <p class="page-slogan">Les infos importantes, les documents et les échanges au même endroit.</p>
     </div>
 
     <!-- Tableau de bord -->
@@ -88,7 +88,7 @@
             <button type="button" class="btn-account" id="btn-open-guide">❔ Où trouver quoi ?</button>
           </div>
         </div>
-        <div class="welcome-sub" id="welcome-sub">Tes infos, tes ressources et tes échanges au même endroit.</div>
+        <div class="welcome-sub" id="welcome-sub">Commence par les infos importantes, puis accède rapidement à ce dont tu as besoin.</div>
         <div class="profile-pills" id="profile-pills" aria-label="Raccourcis vers mes ressources"></div>
       </div>
 
@@ -105,32 +105,77 @@
         </div>
       </section>
 
-      <div class="focus-grid focus-grid-priority" aria-label="Résumé rapide">
-        <a href="hub-messages.html" class="focus-card focus-card-message">
-          <span class="focus-icon">💬</span>
-          <span class="focus-content">
-            <span class="focus-label">Messages</span>
-            <strong id="dash-msg-count">0</strong>
-            <small id="dash-msg-status">Rien à lire</small>
-          </span>
-        </a>
-        <a href="sondages.html" class="focus-card focus-card-message">
-          <span class="focus-icon">📊</span>
-          <span class="focus-content">
-            <span class="focus-label">Sondages</span>
-            <strong id="dash-poll-count">0</strong>
-            <small id="dash-poll-status">Aucune réponse attendue</small>
-          </span>
-        </a>
-        <a href="#membres-events" class="focus-card focus-card-event">
-          <span class="focus-icon">📅</span>
-          <span class="focus-content">
-            <span class="focus-label">À venir</span>
-            <strong id="dash-next-event">Chargement…</strong>
-            <small id="dash-next-event-date"></small>
-          </span>
-        </a>
-      </div>
+      <section class="hub-block hub-block-primary" aria-label="Résumé important">
+        <div class="hub-block-head">
+          <div>
+            <div class="smart-kicker">Aujourd’hui</div>
+            <h2>À surveiller</h2>
+          </div>
+          <button type="button" class="hub-help-btn" id="btn-open-guide-inline">Où trouver quoi ?</button>
+        </div>
+        <div class="focus-grid focus-grid-priority" aria-label="Résumé rapide">
+          <a href="hub-messages.html" class="focus-card focus-card-message">
+            <span class="focus-icon">💬</span>
+            <span class="focus-content">
+              <span class="focus-label">Messages</span>
+              <strong id="dash-msg-count">0</strong>
+              <small id="dash-msg-status">Rien à lire</small>
+            </span>
+          </a>
+          <a href="sondages.html" class="focus-card focus-card-message">
+            <span class="focus-icon">📊</span>
+            <span class="focus-content">
+              <span class="focus-label">Sondages</span>
+              <strong id="dash-poll-count">0</strong>
+              <small id="dash-poll-status">Aucune réponse attendue</small>
+            </span>
+          </a>
+          <a href="#membres-events" class="focus-card focus-card-event">
+            <span class="focus-icon">📅</span>
+            <span class="focus-content">
+              <span class="focus-label">À venir</span>
+              <strong id="dash-next-event">Chargement…</strong>
+              <small id="dash-next-event-date"></small>
+            </span>
+          </a>
+        </div>
+      </section>
+
+      <section class="hub-block hub-block-actions" aria-label="Accès rapides">
+        <div class="hub-block-head">
+          <div>
+            <div class="smart-kicker">Accès rapides</div>
+            <h2>Je cherche…</h2>
+          </div>
+          <span class="smart-hint">Les raccourcis essentiels</span>
+        </div>
+        <div class="hub-actions-grid">
+          <button type="button" class="hub-action-card" data-action="open-documents-modal">
+            <span class="hub-action-icon">📄</span>
+            <span><strong>Mes documents</strong><small>Textes, partitions, audios, PDF</small></span>
+          </button>
+          <a href="hub-messages.html" class="hub-action-card">
+            <span class="hub-action-icon">💬</span>
+            <span><strong>Messages</strong><small>Privés, groupes et discussions</small></span>
+          </a>
+          <a href="forum.html" class="hub-action-card">
+            <span class="hub-action-icon">👥</span>
+            <span><strong>Forum</strong><small>Vie de groupe et fichiers partagés</small></span>
+          </a>
+          <a href="#membres-events" class="hub-action-card">
+            <span class="hub-action-icon">📅</span>
+            <span><strong>Planning</strong><small>Cours, répétitions, spectacles</small></span>
+          </a>
+          <a href="sondages.html" class="hub-action-card">
+            <span class="hub-action-icon">📊</span>
+            <span><strong>Sondages</strong><small>Répondre rapidement</small></span>
+          </a>
+          <button type="button" class="hub-action-card" data-action="open-account-modal">
+            <span class="hub-action-icon">⚙️</span>
+            <span><strong>Mon compte</strong><small>Notifications, profil, installation</small></span>
+          </button>
+        </div>
+      </section>
     </section>
 
     <!-- Info importante : source actuelle = annonce générale administrée -->
@@ -434,8 +479,8 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/fts-nav.js?v=18"></script>
+<script src="assets/js/fts-nav.js?v=19"></script>
 <script src="assets/js/fts-gamification.js?v=3"></script>
-<script src="assets/js/pages/membres.js?v=33"></script>
+<script src="assets/js/pages/membres.js?v=39"></script>
 </body>
 </html>

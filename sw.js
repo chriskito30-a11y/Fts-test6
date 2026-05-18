@@ -1,4 +1,4 @@
-const CACHE = 'fts-v38-stabilisation-simplification';
+const CACHE = 'fts-v39-hub-membre-clair';
 const FILES = [
   './manifest.json',
   './index.html',
