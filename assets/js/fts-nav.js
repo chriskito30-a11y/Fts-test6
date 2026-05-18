@@ -7,6 +7,13 @@
   var unreadConvListeners = {};
   var unreadTotalByConv = {};
   var unreadUserConvsRef = null;
+  var currentForumProfile = null;
+  var forumUnreadTotal = 0;
+  var forumUnreadTimer = null;
+  var forumMessagesRef = null;
+  var forumReadsRef = null;
+  var forumMessagesCb = null;
+  var forumReadsCb = null;
 
   function esc(v){
     if (window.FTS && typeof FTS.esc === 'function') return FTS.esc(v);
@@ -48,6 +55,29 @@
     el.hidden = !visible;
     el.setAttribute('aria-hidden', visible ? 'false' : 'true');
     el.style.display = visible ? 'flex' : 'none';
+  }
+
+  function ensureMessagesBadge(){
+    var link = document.querySelector('.fts-nav-item[data-nav="messages"]');
+    if (!link) return null;
+    var badge = document.getElementById('fts-messages-badge');
+    if (badge) return badge;
+
+    var icon = link.querySelector('.fts-nav-icon');
+    if (!icon) return null;
+    var wrap = icon.closest('.fts-nav-icon-wrap');
+    if (!wrap) {
+      wrap = document.createElement('span');
+      wrap.className = 'fts-nav-icon-wrap';
+      icon.parentNode.insertBefore(wrap, icon);
+      wrap.appendChild(icon);
+    }
+    badge = document.createElement('span');
+    badge.className = 'fts-nav-badge';
+    badge.id = 'fts-messages-badge';
+    badge.style.display = 'none';
+    wrap.appendChild(badge);
+    return badge;
   }
 
   function ensureRoleLinks(nav){
@@ -116,9 +146,122 @@
     return null;
   }
 
+  function privateUnreadTotal(){
+    return Object.keys(unreadTotalByConv).reduce(function(sum, id){ return sum + (Number(unreadTotalByConv[id] || 0) || 0); }, 0);
+  }
+
   function renderMemberUnreadTotal(){
-    var total = Object.keys(unreadTotalByConv).reduce(function(sum, id){ return sum + (Number(unreadTotalByConv[id] || 0) || 0); }, 0);
+    var total = privateUnreadTotal() + Number(forumUnreadTotal || 0);
+    ensureMessagesBadge();
+    // Historique : certaines pages avaient la pastille sur Membres. On la garde.
     setBadge('fts-member-badge', total);
+    // Nouveau comportement attendu : pastille aussi sur le bouton Messages, partout.
+    setBadge('fts-messages-badge', total);
+  }
+
+  function list(v){
+    return (Array.isArray(v) ? v : String(v || '').split(',')).map(function(x){ return String(x || '').trim(); }).filter(Boolean);
+  }
+
+  function profileGroups(profile){
+    var own = list(profile && (profile.disciplines || profile.groups || profile.group));
+    var kids = [];
+    if (profile && profile.hasEnfant && Array.isArray(profile.enfants)) {
+      profile.enfants.forEach(function(e){ kids = kids.concat(list(e.disciplines || e.groups || e.group || e.categories)); });
+    }
+    return own.concat(kids).map(norm);
+  }
+
+  function profileSubgroups(profile){
+    var own = list(profile && (profile.subgroups || profile.subcategories || profile.subgroup));
+    var kids = [];
+    if (profile && profile.hasEnfant && Array.isArray(profile.enfants)) {
+      profile.enfants.forEach(function(e){ kids = kids.concat(list(e.subgroups || e.subcategories || e.subgroup || e.groupes)); });
+    }
+    return own.concat(kids).map(norm);
+  }
+
+  async function getVisibleForumChannels(db, profile){
+    var role = String((profile && profile.role) || '').toLowerCase();
+    var isAdmin = role === 'admin';
+    var channels = ['general'];
+    var groups = profileGroups(profile);
+    var subs = profileSubgroups(profile);
+    try {
+      var structure = window.FTS && FTS.getCategoryStructureAsync
+        ? await FTS.getCategoryStructureAsync(db)
+        : (window.FTS && FTS.getCategoryStructure ? FTS.getCategoryStructure() : []);
+      (structure || []).forEach(function(cat){
+        var catName = cat.name || cat.category || '';
+        var catNorm = norm(catName);
+        if (isAdmin || groups.indexOf(catNorm) !== -1) channels.push(catNorm);
+        (cat.subs || cat.subcats || []).forEach(function(sub){
+          var subName = typeof sub === 'string' ? sub : (sub && (sub.name || sub.label));
+          var subNorm = norm(subName);
+          if (isAdmin || subs.indexOf(subNorm) !== -1) channels.push(subNorm);
+        });
+      });
+    } catch(e) {
+      groups.forEach(function(g){ channels.push(g); });
+      subs.forEach(function(g){ channels.push(g); });
+    }
+    var uniq = {};
+    channels.forEach(function(ch){ if (ch) uniq[ch] = true; });
+    return Object.keys(uniq);
+  }
+
+  function scheduleForumUnreadRefresh(uid){
+    if (forumUnreadTimer) clearTimeout(forumUnreadTimer);
+    forumUnreadTimer = setTimeout(function(){ refreshForumUnreadTotal(uid); }, 160);
+  }
+
+  async function refreshForumUnreadTotal(uid){
+    var db = initFirebaseSafe();
+    if (!uid || !db || !currentForumProfile) { forumUnreadTotal = 0; renderMemberUnreadTotal(); return; }
+    try {
+      var channels = await getVisibleForumChannels(db, currentForumProfile);
+      var readsSnap = await db.ref('fts_users/' + uid + '/forumReads').once('value');
+      var reads = readsSnap.val() || {};
+      var total = 0;
+      await Promise.all(channels.map(function(ch){
+        var lastRead = Number((reads[ch] && reads[ch].ts) || reads[ch] || 0);
+        if (!lastRead) return Promise.resolve();
+        return db.ref('fts_forum/messages/' + ch).orderByChild('ts').startAt(lastRead + 1).limitToLast(50).once('value')
+          .then(function(snap){
+            snap.forEach(function(child){
+              var msg = child.val() || {};
+              if (msg.uid && msg.uid === uid) return;
+              total += 1;
+            });
+          }).catch(function(){});
+      }));
+      forumUnreadTotal = total;
+    } catch(e) {
+      forumUnreadTotal = 0;
+    }
+    renderMemberUnreadTotal();
+  }
+
+  function clearForumUnreadListeners(){
+    try {
+      if (forumMessagesRef && forumMessagesCb) forumMessagesRef.off('value', forumMessagesCb);
+      if (forumReadsRef && forumReadsCb) forumReadsRef.off('value', forumReadsCb);
+    } catch(e) {}
+    forumMessagesRef = null; forumReadsRef = null; forumMessagesCb = null; forumReadsCb = null; forumUnreadTotal = 0;
+  }
+
+  function listenForumUnread(uid, profile){
+    var db = initFirebaseSafe();
+    if (!uid || !db) return;
+    currentForumProfile = profile || {};
+    clearForumUnreadListeners();
+    forumMessagesRef = db.ref('fts_forum/messages');
+    forumReadsRef = db.ref('fts_users/' + uid + '/forumReads');
+    forumMessagesCb = function(){ scheduleForumUnreadRefresh(uid); };
+    forumReadsCb = function(){ scheduleForumUnreadRefresh(uid); };
+    forumMessagesRef.on('value', forumMessagesCb);
+    forumReadsRef.on('value', forumReadsCb);
+    scheduleForumUnreadRefresh(uid);
   }
 
   function clearUnreadListeners(){
@@ -132,6 +275,7 @@
     unreadConvListeners = {};
     unreadTotalByConv = {};
     unreadUserConvsRef = null;
+    clearForumUnreadListeners();
   }
 
   function listenUnreadMessages(uid){
@@ -177,16 +321,30 @@
     });
   }
 
+  function startUnreadForUser(user){
+    if (!user) {
+      setBadge('fts-member-badge', 0);
+      setBadge('fts-messages-badge', 0);
+      clearUnreadListeners();
+      return;
+    }
+    listenUnreadMessages(user.uid);
+    var db = initFirebaseSafe();
+    if (db) {
+      db.ref('fts_users/' + user.uid).once('value')
+        .then(function(snap){ listenForumUnread(user.uid, snap.val() || {}); })
+        .catch(function(){ listenForumUnread(user.uid, {}); });
+    }
+  }
+
   function updateBadges(){
     try {
+      ensureMessagesBadge();
       if (window.FTS && typeof FTS.initFirebase === 'function') FTS.initFirebase();
       if (window.firebase && firebase.auth) {
         var user = firebase.auth().currentUser;
-        if (user) { listenUnreadMessages(user.uid); return; }
-        firebase.auth().onAuthStateChanged(function(u){
-          if (u) listenUnreadMessages(u.uid);
-          else setBadge('fts-member-badge', 0);
-        });
+        if (user) { startUnreadForUser(user); return; }
+        firebase.auth().onAuthStateChanged(function(u){ startUnreadForUser(u); });
       }
     } catch(e) {}
   }

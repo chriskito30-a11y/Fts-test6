@@ -117,88 +117,86 @@
     ) || 'Un membre';
   }
 
-  async function notifyGeneralForumMessage(db, msg, msgId){
-    // Notification forum générale pour les messages automatiques de gamification.
-    // Important : non bloquant, pour ne jamais casser l'attribution du badge.
+  async function getActiveForumRecipients(db, excludeUid){
+    const out = [];
+    if(!db) return out;
     try{
-      if(!db || !msg || !msgId) return;
-
-      const senderUid = msg.uid || '';
       const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
-      const recipients = [];
-      if(snap && snap.exists && snap.exists()){
-        snap.forEach(child => {
-          if(!child || !child.key) return;
-          if(senderUid && child.key === senderUid) return;
-          recipients.push(child.key);
-        });
-      }
-      if(!recipients.length) return;
+      snap.forEach(child => {
+        if(child.key && child.key !== excludeUid) out.push(child.key);
+      });
+    }catch(e){
+      console.warn('[FTS Gamification] destinataires forum général indisponibles:', e);
+    }
+    return out;
+  }
 
-      const url = './forum.html?channel=general&msg=' + encodeURIComponent(msgId);
-      const body = String(msg.text || '').substring(0, 160);
-      const title = 'FTS — Forum';
-      const notificationKey = 'forum-general-' + msgId;
+  async function notifyGeneralForumMessage(db, msg, msgId){
+    if(!db || !msgId || !msg) return;
 
-      // Trace côté application : utile pour audit/debug, sans dépendre du worker push.
+    const senderUid = String(msg.uid || '').trim();
+    const recipients = await getActiveForumRecipients(db, senderUid);
+    if(!recipients.length) return;
+
+    const text = String(msg.text || 'Nouvelle annonce Fais Ton Show');
+    const body = text.length > 110 ? text.slice(0, 107) + '…' : text;
+    const url = './forum.html?channel=general&msg=' + encodeURIComponent(msgId);
+    const notificationKey = 'forum-general-' + msgId;
+
+    // Trace/inbox Firebase : confort uniquement, jamais bloquant.
+    try{
       const fanout = {};
       recipients.forEach(uid => {
         const nref = db.ref('fts_user_notifications/' + uid).push();
         fanout['fts_user_notifications/' + uid + '/' + nref.key] = {
           type: 'forum',
           channel: 'general',
-          title,
+          title: 'FTS — Forum',
           body,
           url,
-          read: false,
           msgId,
-          notificationKey,
           senderUid,
+          notificationKey,
+          read: false,
           createdAt: now()
         };
       });
       db.ref().update(fanout).catch(() => {});
+      db.ref('fts_debug_notifications/' + notificationKey).set({
+        type: 'forum',
+        channel: 'general',
+        msgId,
+        senderUid,
+        recipientCount: recipients.length,
+        recipients,
+        createdAt: now()
+      }).catch(() => {});
+    }catch(e){}
 
-      if(!window.FTS || !FTS.PUSH || !FTS.PUSH.workerUrl) return;
-
-      await Promise.allSettled(recipients.map(uid =>
+    // Push réelle : même logique que forum.js, forcée par UID.
+    if(window.FTS && FTS.PUSH && FTS.PUSH.workerUrl && window.fetch){
+      Promise.allSettled(recipients.map(uid =>
         fetch(FTS.PUSH.workerUrl + '/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'forum',
             channel: 'general',
-            title,
+            title: 'FTS — Forum',
             body,
             url,
+            msgId,
+            senderUid,
             uid,
             uids: [uid],
-            recipientUid: uid,
             recipientUids: [uid],
             recipients: [uid],
-            expectedUid: uid,
-            requiresUidMatch: true,
             forceUid: true,
-            senderUid,
-            msgId,
             tag: notificationKey + '-' + uid,
             collapseKey: notificationKey + '-' + uid
           })
-        }).catch(() => null)
-      ));
-
-      db.ref('fts_debug_notifications/' + notificationKey).set({
-        ok: true,
-        type: 'forum',
-        channel: 'general',
-        msgId,
-        recipientCount: recipients.length,
-        recipients,
-        senderUid,
-        createdAt: now()
-      }).catch(() => {});
-    }catch(e){
-      try{ console.warn('[FTS Gamification] Notification forum générale non envoyée', e); }catch(_){ }
+        }).catch(() => {})
+      )).catch(() => {});
     }
   }
 
@@ -214,7 +212,11 @@
     }, extra || {});
 
     const ref = await db.ref('fts_forum/messages/general').push(msg);
+
+    // Le message automatique doit se comporter comme un vrai message du forum général :
+    // il déclenche aussi les notifications et les compteurs non lus. Non bloquant.
     notifyGeneralForumMessage(db, msg, ref && ref.key).catch(() => {});
+
     return ref;
   }
 
