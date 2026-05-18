@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=4" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=4" rel="stylesheet"/>
 
 <!-- Firebase SDK — Auth ajouté -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -26,15 +26,13 @@
 </div>
 <!-- ── DASHBOARD ─────────────────────────────────────────────── -->
 <div class="dashboard" id="dashboard">
-<div class="fts-admin-topbar" role="navigation" aria-label="Navigation administrateur">
-  <a class="fts-admin-return" href="membres.html"><span>←</span><strong>Membres</strong></a>
+<header class="fts-admin-pagehead" aria-label="En-tête administrateur">
   <div class="fts-admin-brand">
-    <div class="fts-admin-logo">ADMIN <span>FTS</span></div>
+    <div class="fts-admin-logo">ADMIN <span>ACCÈS</span></div>
     <div class="fts-admin-sub">Membres · accès · groupes · récompenses</div>
   </div>
-  <div class="fts-admin-nav"><a class="fts-admin-nav-link" href="admin.html"><span>🛡️</span>Admin hub</a><a class="fts-admin-nav-link is-active" href="forum-admin.html"><span>👥</span>Accès</a><a class="fts-admin-nav-link" href="contenus-admin.html"><span>📁</span>Contenus</a><a class="fts-admin-nav-link" href="calendrier-admin.html"><span>📅</span>Calendrier</a><a class="fts-admin-nav-link" href="saison-admin.html"><span>🎭</span>Saison</a><a class="fts-admin-nav-link" href="sondages.html"><span>📊</span>Sondages</a></div>
   <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
-</div>
+</header>
 <div class="tabs-bar">
 <button class="tab-btn active" data-fts-handler-2="">
       ⏳ En attente <span class="badge" id="badge-pending">0</span>
@@ -141,6 +139,19 @@
 </div>
 </div>
 </div>
+<nav class="fts-admin-bottom-nav" aria-label="Navigation administrateur">
+  <div class="fts-admin-bottom-track">
+    <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
+    <a class="fts-admin-bottom-item" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
+    <a class="fts-admin-bottom-item" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
+    <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
+    <a class="fts-admin-bottom-item active" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
+    <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
+    <a class="fts-admin-bottom-item" href="sondages.html"><span class="fts-admin-bottom-icon">📊</span><span>Sondages</span></a>
+  </div>
+</nav>
+<div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
+
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/fts-pwa.js"></script>

@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=2" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=2" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -19,15 +19,13 @@
 <body class="has-glow">
 <div class="auth-loading" id="auth-loading"><div class="logo">ADMIN <span>FTS</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div><div class="empty-error" id="auth-error"></div></div>
 <div class="admin-shell" id="admin-shell">
-<div class="fts-admin-topbar" role="navigation" aria-label="Navigation administrateur">
-  <a class="fts-admin-return" href="membres.html"><span>←</span><strong>Membres</strong></a>
+<header class="fts-admin-pagehead" aria-label="En-tête administrateur">
   <div class="fts-admin-brand">
     <div class="fts-admin-logo">ADMIN <span>FTS</span></div>
     <div class="fts-admin-sub">Hub de gestion — Fais Ton Show</div>
   </div>
-  <div class="fts-admin-nav"><a class="fts-admin-nav-link is-active" href="admin.html"><span>🛡️</span>Admin hub</a><a class="fts-admin-nav-link" href="forum-admin.html"><span>👥</span>Accès</a><a class="fts-admin-nav-link" href="contenus-admin.html"><span>📁</span>Contenus</a><a class="fts-admin-nav-link" href="calendrier-admin.html"><span>📅</span>Calendrier</a><a class="fts-admin-nav-link" href="saison-admin.html"><span>🎭</span>Saison</a><a class="fts-admin-nav-link" href="sondages.html"><span>📊</span>Sondages</a></div>
   <div class="fts-admin-actions"><a class="fts-admin-ghost" href="index.html">Accueil public</a><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
-</div>
+</header>
 <main class="admin-wrap">
 <section class="hello-card">
 <div class="hello-kicker">Tableau de bord admin</div>
@@ -99,6 +97,19 @@
 <footer class="page-footer u-admin-inline-1">Fais Ton Show — Administration centralisée V1</footer>
 </main>
 </div>
+<nav class="fts-admin-bottom-nav" aria-label="Navigation administrateur">
+  <div class="fts-admin-bottom-track">
+    <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
+    <a class="fts-admin-bottom-item active" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
+    <a class="fts-admin-bottom-item" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
+    <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
+    <a class="fts-admin-bottom-item" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
+    <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
+    <a class="fts-admin-bottom-item" href="sondages.html"><span class="fts-admin-bottom-icon">📊</span><span>Sondages</span></a>
+  </div>
+</nav>
+<div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
+
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
