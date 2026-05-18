@@ -1,4 +1,4 @@
-const CACHE = 'fts-v48b-profil-save-fix';
+const CACHE = 'fts-v49-profil-admin-infos';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -184,7 +184,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v48b-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v49-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v1';
 
 function isFirebaseOrAuthRequest(url){
