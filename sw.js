@@ -1,4 +1,4 @@
-const CACHE = 'fts-v40-admin-bottom-nav';
+const CACHE = 'fts-v41-files-docs';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -144,7 +144,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v40-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v41-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v1';
 
 function isFirebaseOrAuthRequest(url){
