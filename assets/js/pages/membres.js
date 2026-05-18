@@ -2029,3 +2029,26 @@ function doSignOut() {
     window.location.href = 'auth.html';
   });
 }
+
+
+/* ── SONDAGES : compteur tableau de bord ─────────────────────── */
+(function(){
+  function renderPollDash(n){
+    var count = document.getElementById('dash-poll-count');
+    var status = document.getElementById('dash-poll-status');
+    if (!count || !status) return;
+    n = Math.max(0, Number(n || 0));
+    count.textContent = n ? String(n) : '0';
+    status.textContent = n ? (n + ' réponse' + (n > 1 ? 's' : '') + ' attendue' + (n > 1 ? 's' : '')) : 'Aucune réponse attendue';
+  }
+  function start(uid){
+    try {
+      var db = window.FTS && FTS.initFirebase ? FTS.initFirebase() : (firebase && firebase.database ? firebase.database() : null);
+      if (!db || !uid) return;
+      db.ref('fts_poll_unread/' + uid).on('value', function(snap){
+        renderPollDash(snap.exists() ? Object.keys(snap.val() || {}).length : 0);
+      });
+    } catch(e) {}
+  }
+  if (window.firebase && firebase.auth) firebase.auth().onAuthStateChanged(function(user){ if(user) start(user.uid); });
+})();

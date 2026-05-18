@@ -16,13 +16,13 @@
     if (!badge) return;
     var n = Math.max(0, Number(count || 0));
     var card = badge.closest('.hub-card');
-    var statusId = id === 'hub-dm-badge' ? 'hub-dm-status' : (id === 'hub-forum-badge' ? 'hub-forum-status' : '');
+    var statusId = id === 'hub-dm-badge' ? 'hub-dm-status' : (id === 'hub-forum-badge' ? 'hub-forum-status' : (id === 'hub-polls-badge' ? 'hub-polls-status' : '')); 
     var status = statusId ? document.getElementById(statusId) : null;
     if (!n) {
       badge.hidden = true;
       badge.textContent = '0';
       if (card) card.classList.remove('has-unread');
-      if (status) status.textContent = id === 'hub-dm-badge' ? 'Aucun message privé à lire' : 'Aucune nouveauté groupe';
+      if (status) status.textContent = id === 'hub-dm-badge' ? 'Aucun message privé à lire' : (id === 'hub-polls-badge' ? 'Aucun sondage en attente' : 'Aucune nouveauté groupe');
       return;
     }
     badge.hidden = false;
@@ -137,6 +137,14 @@
     }
   }
 
+
+  function listenPollUnread(uid){
+    db.ref('fts_poll_unread/' + uid).on('value', function(snap){
+      var total = snap.exists() ? Object.keys(snap.val() || {}).length : 0;
+      setHubBadge('hub-polls-badge', total);
+    });
+  }
+
   function listenForumUnread(uid, profile){
     currentUid = uid;
     currentProfile = profile || {};
@@ -158,6 +166,7 @@
       if (page) page.classList.remove('u-initial-hidden');
       listenPrivateUnread(user.uid);
       listenForumUnread(user.uid, currentProfile);
+      listenPollUnread(user.uid);
       if (window.FTSNav) window.FTSNav.updateBadges();
     }).catch(function(){
       var loader = document.getElementById('auth-loading');
@@ -166,6 +175,7 @@
       if (page) page.classList.remove('u-initial-hidden');
       listenPrivateUnread(user.uid);
       listenForumUnread(user.uid, {});
+      listenPollUnread(user.uid);
       if (window.FTSNav) window.FTSNav.updateBadges();
     });
   });
