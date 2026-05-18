@@ -87,7 +87,7 @@ function renderResourcePreview(){
   box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
 }
 function bindPreviewInputs(){
-  ['a-active','a-display','a-title','a-body','a-btn','a-url','a-expires','ta-active','ta-title','ta-body','ta-btn','ta-url','ta-expires','ta-display','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
+  ['a-active','a-title','a-body','a-btn','a-url','a-expires','ta-active','ta-title','ta-body','ta-btn','ta-url','ta-expires','ta-display','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
     const el=$(id); if(!el || el.__ftsPreviewBound) return;
     el.__ftsPreviewBound=true;
     el.addEventListener('input', renderAdminPreviews);
@@ -132,7 +132,6 @@ async function loadAnnonce(){
   const s=await db.ref('fts_content/annonces/current').once('value');
   const a=s.val()||{};
   $('a-active').value=String(a.active!==false);
-  if($('a-display')) $('a-display').value=a.displayMode||a.display||a.mode||'card';
   $('a-title').value=a.title||'';
   $('a-body').value=a.body||a.text||'';
   $('a-btn').value=a.buttonText||'';
@@ -147,7 +146,6 @@ async function saveAnnonce(){
     body:$('a-body').value.trim(),
     buttonText:$('a-btn').value.trim(),
     buttonUrl:$('a-url').value.trim(),
-    displayMode: $('a-display') ? ($('a-display').value || 'card') : 'card',
     expiresAt:tsFromDtLocal('a-expires'),
     updatedAt:Date.now()
   });
@@ -157,6 +155,16 @@ async function saveAnnonce(){
 
 /* ═══ ANNONCES CIBLÉES SUPPLÉMENTAIRES ════════════════════════ */
 function taNorm(v){ return String(v||'').trim(); }
+function normList(arr){
+  if(!arr) return [];
+  const source = Array.isArray(arr) ? arr : (typeof arr === 'object' ? Object.keys(arr) : [arr]);
+  const out = [];
+  source.forEach(v => {
+    const t = String(v || '').trim();
+    if(t && !out.some(x => FTS.norm(x) === FTS.norm(t))) out.push(t);
+  });
+  return out;
+}
 function taSelectedCats(){ return Array.from(document.querySelectorAll('#ta-cat-picker input[type="checkbox"]:checked')).map(x=>x.value).filter(Boolean); }
 function taSelectedGroups(){
   const groups = {};
@@ -523,6 +531,10 @@ function listenCategories(){
     }));
     fillCats();
     renderCList();
+    // Important : le sélecteur des annonces ciblées dépend des catégories.
+    // Sans ce rendu après chargement Firebase, l'admin reste bloqué sur "Chargement des catégories…".
+    const currentTargeted = selectedTargetedAnnonce ? targetedAnnonces.find(x => x.key === selectedTargetedAnnonce) : null;
+    renderTargetPickers(currentTargeted || { targetCategories: taSelectedCats(), targetGroups: taSelectedGroups() });
   }, err=>console.warn('[FTS Contenus] categories', err));
 }
 function fillCats(){
