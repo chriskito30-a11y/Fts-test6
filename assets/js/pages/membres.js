@@ -356,18 +356,13 @@ function initMemberGamificationBadge(memberUid, profile, email){
     renderMemberPublicBadge();
   });
 
-  memberBadgeArtistRef = db.ref('fts_forum/artistOfWeek');
+  // Artiste de la semaine : chemin officiel unique.
+  // Important : ne pas réécouter l'ancien chemin fts_forum/artistOfWeek,
+  // sinon on risque un affichage incohérent ou une écoute non nettoyée.
+  memberBadgeArtistRef = db.ref('fts_community/artistOfWeek');
   memberBadgeArtistRef.on('value', snap => {
     memberArtistOfWeek = snap.val() || null;
     renderMemberPublicBadge();
-  });
-  // Compat ancienne version : si l'ancien chemin existe encore, il peut hydrater l'affichage.
-  db.ref('fts_community/artistOfWeek').on('value', snap => {
-    const legacy = snap.val() || null;
-    if(legacy && (!memberArtistOfWeek || Number(legacy.ts||0) >= Number(memberArtistOfWeek.ts||0))){
-      memberArtistOfWeek = legacy;
-      renderMemberPublicBadge();
-    }
   }, ()=>{});
 }
 
