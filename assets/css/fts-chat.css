@@ -1302,3 +1302,24 @@ body.fts-chat-modern .chat-empty-title.fts-brand-title::before {
     font-size: clamp(2rem, 8vw, 2.75rem) !important;
   }
 }
+
+
+/* Correctif v33 — navigation globale visible sur PC dans Messages / Forum
+   Avant : fts-chat.css masquait complètement .fts-bottom-nav dès 701px.
+   Résultat : sur ordinateur, impossible de revenir facilement vers Membres / Docs / Hub messages.
+   On garde le comportement mobile actuel : la nav se masque quand une conversation est ouverte. */
+@media (min-width: 701px) {
+  body.fts-chat-modern .fts-bottom-nav,
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav {
+    display: grid !important;
+  }
+
+  body.fts-chat-modern .fts-bottom-spacer,
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-spacer {
+    display: block !important;
+  }
+
+  body.fts-chat-modern .app {
+    min-height: calc(100vh - 104px);
+  }
+}
