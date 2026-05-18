@@ -299,6 +299,12 @@
       ts: now()
     };
 
+    // Si la récompense concerne un enfant rattaché à un compte parent,
+    // on garde son nom dans le badge pour l'affichage admin/prof/forum.
+    if (publicTargetName) payload.publicName = publicTargetName;
+    if (options.childName) payload.childName = String(options.childName).trim();
+    if (options.childId) payload.childId = String(options.childId).trim();
+
     // Écriture principale obligatoire.
     await db.ref(`fts_forum/users/${targetUid}/specialBadge`).set(payload);
 
@@ -328,6 +334,11 @@
       db,
       `🌟 ${displayTargetName} reçoit le badge temporaire « ${badgeLabel} » !`,
       {
+        // Important : les rules Firebase du forum exigent uid === auth.uid pour un prof.
+        // On publie donc le message automatique avec l'uid du prof/admin qui attribue.
+        uid: assignedBy || targetUid,
+        name: 'Fais Ton Show',
+        system: true,
         gamification: true,
         type: 'special_badge',
         targetUid
@@ -357,6 +368,12 @@
       reason: text || '',
       ts: now()
     };
+
+    // Même logique pour l'artiste de la semaine : si c'est un enfant,
+    // l'admin/prof doit voir le nom de l'enfant et pas seulement le parent.
+    if (publicTargetName) payload.publicName = publicTargetName;
+    if (options.childName) payload.childName = String(options.childName).trim();
+    if (options.childId) payload.childId = String(options.childId).trim();
 
     // ÉCRITURE PRINCIPALE UNIQUE ET OBLIGATOIRE.
     // Même chemin que les badges temporaires.
@@ -396,6 +413,11 @@
           db,
           `🎉 Bravo à ${displayTargetName} qui devient Artiste de la semaine !`,
           {
+            // Important : les rules Firebase du forum exigent uid === auth.uid pour un prof.
+            // On publie donc le message automatique avec l'uid du prof/admin qui attribue.
+            uid: assignedBy || targetUid,
+            name: 'Fais Ton Show',
+            system: true,
             gamification: true,
             type: 'artist_of_week',
             targetUid
