@@ -26,3 +26,60 @@
   color:#fff;
   font-weight:900;
 }
+
+/* UX ciblage sondages : catégories puis sous-catégories contextuelles */
+.poll-targets{
+  grid-template-columns:1fr !important;
+}
+.poll-target-help{
+  margin:6px 0 0;
+  color:rgba(255,255,255,.58);
+  font-size:.82rem;
+  line-height:1.35;
+}
+.poll-target-empty{
+  width:100%;
+  border:1px dashed rgba(255,255,255,.18);
+  border-radius:18px;
+  padding:12px 14px;
+  color:rgba(255,255,255,.62);
+  background:rgba(255,255,255,.045);
+  font-weight:750;
+  line-height:1.35;
+}
+.poll-target-empty.small{
+  padding:10px 12px;
+  font-size:.84rem;
+}
+.poll-target-subs-wrap{
+  display:grid;
+  gap:10px;
+}
+.poll-subgroup-block{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:20px;
+  padding:12px;
+  background:rgba(255,255,255,.045);
+}
+.poll-subgroup-title{
+  margin-bottom:9px;
+  color:#f4c542;
+  font-weight:1000;
+  letter-spacing:.01em;
+}
+.poll-subchecks{
+  gap:7px;
+}
+.poll-cat-pill,
+.poll-sub-pill{
+  user-select:none;
+}
+.poll-cat-pill:has(input:checked){
+  box-shadow:0 10px 22px rgba(244,197,66,.12);
+}
+.poll-sub-pill{
+  background:rgba(255,255,255,.06);
+}
+@media(min-width:760px){
+  .poll-targets{grid-template-columns:1fr !important;}
+}
