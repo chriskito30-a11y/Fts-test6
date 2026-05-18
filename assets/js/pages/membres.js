@@ -1738,9 +1738,59 @@ function openAccountModal() {
   if (p2) p2.value = '';
 
   // Pré-remplir le profil
-  const tel = document.getElementById('profile-tel');
-  if (tel) tel.value = (userProfile && userProfile.telephone) || '';
+  try { fillProfileForm(); } catch(e) { console.warn('[FTS] Mon compte formulaire non chargé :', e); }
   try { renderProfileEnfants(); } catch(e) { console.warn('[FTS] Mon compte enfants non chargés :', e); }
+}
+
+let profileNewChildCounter = 0;
+
+function getProfileInputValue(id) {
+  const el = document.getElementById(id);
+  return el ? String(el.value || '').trim() : '';
+}
+
+function fillProfileForm() {
+  const first = document.getElementById('profile-firstname');
+  const last = document.getElementById('profile-lastname');
+  const tel = document.getElementById('profile-tel');
+  if (first) first.value = (userProfile && userProfile.firstName) || '';
+  if (last) last.value = (userProfile && userProfile.lastName) || '';
+  if (tel) tel.value = (userProfile && userProfile.telephone) || '';
+}
+
+function buildProfileChildCard(child, index, opts) {
+  const options = opts || {};
+  const idx = options.idx || String(index);
+  const isNew = !!options.isNew;
+  const safeChild = child || {};
+  const title = isNew ? 'Nouvel enfant' : `Enfant ${Number(index) + 1}`;
+  const removeBtn = isNew ? '<button type="button" class="profile-child-remove" data-action="remove-profile-child">Retirer</button>' : '';
+  const disciplines = Array.isArray(safeChild.disciplines) && safeChild.disciplines.length
+    ? `<div class="child-disciplines">Disciplines : ${FTS.esc(safeChild.disciplines.join(', '))}</div>`
+    : '<div class="child-disciplines child-disciplines-muted">Groupes et disciplines à définir par l’administration.</div>';
+
+  return `
+    <div class="profile-enfant-card" data-profile-child-card data-child-idx="${FTS.esc(idx)}"${isNew ? ' data-child-new="1"' : ''}>
+      <div class="profile-enfant-card-title"><span>🎩 ${title}</span>${removeBtn}</div>
+      <div class="profile-child-grid">
+        <div>
+          <label class="account-label">Prénom</label>
+          <input class="account-field" type="text" placeholder="Emma" autocomplete="off"
+            data-child-field="prenom" value="${FTS.esc(safeChild.prenom || '')}">
+        </div>
+        <div>
+          <label class="account-label">Nom</label>
+          <input class="account-field" type="text" placeholder="Dupont" autocomplete="off"
+            data-child-field="nom" value="${FTS.esc(safeChild.nom || '')}">
+        </div>
+      </div>
+      <label class="account-label">Date de naissance</label>
+      <input class="account-field" type="date" data-child-field="dateNaissance" value="${FTS.esc(safeChild.dateNaissance || '')}">
+      <label class="account-label">Téléphone de l’enfant</label>
+      <input class="account-field" type="tel" placeholder="Optionnel — 06 12 34 56 78"
+        data-child-field="telephone" value="${FTS.esc(safeChild.telephone || '')}">
+      ${disciplines}
+    </div>`;
 }
 
 function renderProfileEnfants() {
@@ -1748,45 +1798,122 @@ function renderProfileEnfants() {
   const list = document.getElementById('profile-enfants-list');
   if (!wrap || !list || !userProfile) return;
 
-  if (!userProfile.hasEnfant || !Array.isArray(userProfile.enfants) || !userProfile.enfants.length) {
-    wrap.style.display = 'none';
+  wrap.style.display = 'block';
+  profileNewChildCounter = 0;
+  const enfants = Array.isArray(userProfile.enfants) ? userProfile.enfants : [];
+
+  if (!enfants.length) {
+    list.innerHTML = '<div class="profile-family-empty">Aucun enfant associé pour le moment.</div>';
     return;
   }
+
+  list.innerHTML = enfants.map((e, i) => buildProfileChildCard(e, i, { idx: String(i) })).join('');
+}
+
+function addProfileChildCard() {
+  const wrap = document.getElementById('profile-enfants-wrap');
+  const list = document.getElementById('profile-enfants-list');
+  if (!wrap || !list) return;
   wrap.style.display = 'block';
-  list.innerHTML = userProfile.enfants.map((e, i) => `
-    <div class="profile-enfant-card">
-      <div class="profile-enfant-card-title">🎩 Enfant ${i + 1}</div>
-      <div class="profile-enfant-name">${FTS.esc((e.prenom || '') + ' ' + (e.nom || ''))}</div>
-      ${e.dateNaissance ? `<div class="profile-enfant-dob">Né(e) le ${FTS.esc(e.dateNaissance)}</div>` : ''}
-      ${e.disciplines && e.disciplines.length ? `<div class="child-disciplines">Disciplines : ${FTS.esc(e.disciplines.join(', '))}</div>` : ''}
-      <input class="account-field" type="tel" placeholder="Téléphone — 06 12 34 56 78"
-        data-enfant-idx="${i}" value="${FTS.esc(e.telephone || '')}"
-        class="u-mt-sm">
-    </div>`).join('');
+
+  const empty = list.querySelector('.profile-family-empty');
+  if (empty) empty.remove();
+
+  profileNewChildCounter += 1;
+  const id = 'new_' + profileNewChildCounter;
+  list.insertAdjacentHTML('beforeend', buildProfileChildCard({}, 0, { idx: id, isNew: true }));
+  const card = list.querySelector(`[data-child-idx="${id}"]`);
+  const firstInput = card && card.querySelector('[data-child-field="prenom"]');
+  if (firstInput) firstInput.focus();
+}
+
+function removeProfileChildCard(btn) {
+  const card = btn && btn.closest('[data-profile-child-card]');
+  if (!card || !card.hasAttribute('data-child-new')) return;
+  card.remove();
+  const list = document.getElementById('profile-enfants-list');
+  if (list && !list.querySelector('[data-profile-child-card]')) {
+    list.innerHTML = '<div class="profile-family-empty">Aucun enfant associé pour le moment.</div>';
+  }
+}
+
+function collectProfileChildren() {
+  const existing = Array.isArray(userProfile.enfants) ? userProfile.enfants : [];
+  const children = [];
+  const cards = Array.from(document.querySelectorAll('[data-profile-child-card]'));
+
+  for (const card of cards) {
+    const rawIdx = card.dataset.childIdx;
+    const isNew = card.hasAttribute('data-child-new');
+    const base = (!isNew && existing[Number(rawIdx)]) ? { ...existing[Number(rawIdx)] } : {};
+    const prenom = (card.querySelector('[data-child-field="prenom"]')?.value || '').trim();
+    const nom = (card.querySelector('[data-child-field="nom"]')?.value || '').trim();
+    const dateNaissance = (card.querySelector('[data-child-field="dateNaissance"]')?.value || '').trim();
+    const telephone = (card.querySelector('[data-child-field="telephone"]')?.value || '').trim();
+
+    if (!prenom && !nom && !dateNaissance && !telephone && isNew) continue;
+    if (!prenom || !nom) {
+      throw new Error('child-name-required');
+    }
+
+    children.push({
+      ...base,
+      id: base.id || ('enfant_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
+      prenom,
+      nom,
+      dateNaissance,
+      telephone,
+      disciplines: Array.isArray(base.disciplines) ? base.disciplines : [],
+      subgroups: Array.isArray(base.subgroups) ? base.subgroups : [],
+      subgroup: typeof base.subgroup === 'string' ? base.subgroup : (Array.isArray(base.subgroups) ? base.subgroups.join(', ') : '')
+    });
+  }
+
+  return children;
 }
 
 async function saveProfileInfo() {
   const btn = document.getElementById('btn-save-profile');
-  const tel = (document.getElementById('profile-tel').value || '').trim();
-  const updates = { telephone: tel };
+  const firstName = getProfileInputValue('profile-firstname');
+  const lastName = getProfileInputValue('profile-lastname');
+  const tel = getProfileInputValue('profile-tel');
 
-  if (userProfile.hasEnfant && Array.isArray(userProfile.enfants)) {
-    const enfants = userProfile.enfants.map((e, i) => ({ ...e }));
-    document.querySelectorAll('[data-enfant-idx]').forEach(input => {
-      const idx = parseInt(input.dataset.enfantIdx, 10);
-      if (enfants[idx]) enfants[idx].telephone = input.value.trim();
-    });
-    updates.enfants = enfants;
+  if (!firstName || !lastName) {
+    setAccountMsg('profile-msg', 'Prénom et nom sont nécessaires.', 'err');
+    return;
   }
+
+  let enfants = [];
+  try {
+    enfants = collectProfileChildren();
+  } catch(e) {
+    if (e && e.message === 'child-name-required') {
+      setAccountMsg('profile-msg', 'Pour ajouter un enfant, indique au minimum son prénom et son nom.', 'err');
+      return;
+    }
+    throw e;
+  }
+
+  const updates = {
+    firstName,
+    lastName,
+    name: `${firstName} ${lastName}`.trim(),
+    telephone: tel,
+    hasEnfant: enfants.length > 0,
+    enfants
+  };
 
   try {
     if (btn) btn.disabled = true;
     setAccountMsg('profile-msg', 'Enregistrement…', '');
     await db.ref('fts_users/' + currentUid).update(updates);
-    userProfile.telephone = tel;
-    if (updates.enfants) userProfile.enfants = updates.enfants;
+    userProfile = { ...userProfile, ...updates };
+    fillAccountIdentity();
+    renderProfileEnfants();
+    renderWelcome(userProfile, firebase.auth().currentUser ? firebase.auth().currentUser.email : '');
     setAccountMsg('profile-msg', '✓ Profil enregistré.', 'ok');
   } catch(e) {
+    console.warn('[FTS] Sauvegarde profil impossible :', e);
     setAccountMsg('profile-msg', 'Erreur lors de la sauvegarde. Réessaie.', 'err');
   } finally {
     if (btn) btn.disabled = false;
@@ -2183,6 +2310,7 @@ function bindMembresUiEvents() {
   bindClick('btn-notif', toggleNotifications);
   bindClick('btg', toggleEvts);
   bindClick('btn-save-profile', saveProfileInfo);
+  bindClick('btn-add-profile-child', addProfileChildCard);
   bindClick('btn-account-pwd', changeAccountPassword);
   bindClick('btn-account-signout', doSignOut);
   bindClick('btn-account-notifs', toggleNotifications);
@@ -2192,6 +2320,13 @@ function bindMembresUiEvents() {
   bindClick('pwa-install-main', triggerAndroidInstallPrompt);
 
   document.addEventListener('click', function(e) {
+
+    const removeProfileChild = e.target.closest('[data-action="remove-profile-child"]');
+    if (removeProfileChild) {
+      e.preventDefault();
+      removeProfileChildCard(removeProfileChild);
+      return;
+    }
 
     const pwaTab = e.target.closest('[data-pwa-tab]');
     if (pwaTab) {
