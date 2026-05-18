@@ -86,3 +86,45 @@ html,body{max-width:100%;overflow-x:hidden}
   .calendar-source-icon{width:44px;height:44px;flex-basis:44px;border-radius:16px}
   .calendar-source-btn{width:100%;justify-content:center;text-align:center;margin-left:0}
 }
+
+
+/* UX v6 — ciblage annonce importante */
+.annonce-target-box {
+  display: grid;
+  gap: .65rem;
+  padding: .75rem;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,.045);
+}
+.admin-target-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+.admin-target-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  padding: .45rem .62rem;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 999px;
+  background: rgba(255,255,255,.07);
+  color: var(--white, #f5f2ee);
+  font-size: .82rem;
+  cursor: pointer;
+}
+.admin-target-pill input { accent-color: var(--gold, #f8e702); }
+.admin-target-subs {
+  display: grid;
+  gap: .55rem;
+}
+.admin-target-subgroup {
+  display: grid;
+  gap: .35rem;
+  padding: .58rem;
+  border-radius: 16px;
+  background: rgba(0,0,0,.22);
+}
+.admin-target-subgroup > div { display: flex; flex-wrap: wrap; gap: .4rem; }
+.target-help { color: var(--muted, #aaa); font-size: .8rem; }
