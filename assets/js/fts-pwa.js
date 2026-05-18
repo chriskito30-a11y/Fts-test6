@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v48-profil-membre';
+  const RELOAD_KEY = 'fts-sw-reload-v48b-profil-save-fix';
   let refreshing = false;
 
 
