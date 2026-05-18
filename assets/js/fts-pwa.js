@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v45-member-news-sync';
+  const RELOAD_KEY = 'fts-sw-reload-v46-admin-center';
   let refreshing = false;
 
 
