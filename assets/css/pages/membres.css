@@ -2681,3 +2681,69 @@ button.profile-pill:focus-visible {
   z-index: 6 !important;
   pointer-events: none !important;
 }
+
+
+/* ── PATCH UX ACTIONS MEMBRE V34 ───────────────────────────────
+   Transforme le bloc “Nouveautés” en vrai mini centre d’actions.
+   Ne crée aucune nouvelle donnée : réutilise messages, sondages, ressources,
+   événements et annonce existants.
+──────────────────────────────────────────────────────────────── */
+.member-news-panel .smart-kicker::before {
+  content: '✅ ';
+}
+
+.member-news-panel .smart-section-head h2 {
+  font-size: clamp(1.35rem, 4vw, 2rem);
+}
+
+.member-news-list .smart-item {
+  min-height: 72px;
+  grid-template-columns: 44px 1fr auto;
+  gap: .78rem;
+}
+
+.member-news-list .smart-item-main strong {
+  font-size: .96rem;
+  line-height: 1.22;
+}
+
+.member-news-list .smart-item-main small {
+  color: rgba(255,255,255,.66);
+}
+
+.member-news-poll {
+  color: #f8e702;
+}
+
+.member-news-list .smart-item:has(.member-news-poll) {
+  border-color: rgba(248,231,2,.30);
+  background:
+    radial-gradient(circle at 0 0, rgba(248,231,2,.12), transparent 32%),
+    rgba(10,10,10,.56);
+}
+
+.member-news-list .smart-item:has(.member-news-poll) .smart-item-action {
+  color: #050505;
+  background: var(--gold);
+  border-color: rgba(248,231,2,.9);
+}
+
+.member-news-list .smart-item-action {
+  border: 1px solid rgba(248,231,2,.26);
+  border-radius: 999px;
+  padding: .38rem .68rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 560px) {
+  .member-news-list .smart-item {
+    grid-template-columns: 38px 1fr;
+    align-items: start;
+  }
+  .member-news-list .smart-item-action {
+    grid-column: 2;
+    justify-self: start;
+    margin-top: .15rem;
+  }
+}
