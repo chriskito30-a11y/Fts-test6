@@ -1,4 +1,4 @@
-const CACHE = 'fts-v43-hub-clean';
+const CACHE = 'fts-v44-notification-cleanup';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -137,14 +137,54 @@ async function getSwState(key){
   }catch(e){ return null; }
 }
 
+function notificationMatchesClearRequest(notification, req){
+  const data = (notification && notification.data) || {};
+  const tag = notification && notification.tag ? String(notification.tag) : '';
+  const wantedTypes = Array.isArray(req.types) ? req.types : (req.kind === 'dm' ? ['dm_direct', 'dm_group'] : (req.type ? [req.type] : []));
+
+  if (req.conversationId && data.conversationId !== req.conversationId && !tag.includes('dm-' + req.conversationId + '-')) return false;
+  if (req.channel && data.channel !== req.channel && !tag.includes('forum-' + req.channel + '-')) return false;
+  if (req.pollId && data.pollId !== req.pollId && !tag.includes('poll-' + req.pollId + '-')) return false;
+  if (req.resourceId && data.resourceId !== req.resourceId && !tag.includes('resource-' + req.resourceId + '-')) return false;
+  if (req.eventId && data.eventId !== req.eventId && !tag.includes('event-' + req.eventId)) return false;
+
+  if (req.recipientUid && data.recipientUid && data.recipientUid !== req.recipientUid) return false;
+  if (req.recipientUid && data.expectedUid && data.expectedUid !== req.recipientUid) return false;
+
+  if (wantedTypes.length) {
+    const dataType = String(data.type || '');
+    if (!wantedTypes.includes(dataType)) return false;
+  }
+  return true;
+}
+
+async function clearMatchingNotifications(req){
+  if (!self.registration || !self.registration.getNotifications) return 0;
+  try {
+    const list = await self.registration.getNotifications({ includeTriggered: true }).catch(() => self.registration.getNotifications());
+    let closed = 0;
+    (list || []).forEach(n => {
+      if (notificationMatchesClearRequest(n, req || {})) {
+        n.close();
+        closed += 1;
+      }
+    });
+    return closed;
+  } catch(e) { return 0; }
+}
+
 self.addEventListener('message', function(event){
   if(event.data && event.data.type === 'SKIP_WAITING') { self.skipWaiting(); return; }
   if(event.data && event.data.type === 'FTS_SET_ACTIVE_UID') {
     event.waitUntil(setSwState('activeUid', event.data.uid || null));
+    return;
+  }
+  if(event.data && event.data.type === 'FTS_CLEAR_NOTIFICATIONS') {
+    event.waitUntil(clearMatchingNotifications(event.data.payload || {}));
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v43-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v44-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v1';
 
 function isFirebaseOrAuthRequest(url){
