@@ -26,15 +26,14 @@
 </div>
 <!-- ── DASHBOARD ─────────────────────────────────────────────── -->
 <div class="dashboard" id="dashboard">
-<div class="dash-hdr">
-<div>
-<div class="dash-logo">FAIS TON SHOW</div>
-<div class="dash-sub">Admin Forum</div>
-</div>
-<div class="dash-actions"><a class="btn-admin-link" href="admin.html">🛡 Admin hub</a>
-<a class="btn-admin-link" href="calendrier-admin.html">📅 Admin calendrier</a><a class="btn-admin-link" href="saison-admin.html">📅 Admin saison</a>
-<button class="btn-logout" data-fts-handler-1="">Déconnexion</button>
-</div>
+<div class="fts-admin-topbar" role="navigation" aria-label="Navigation administrateur">
+  <a class="fts-admin-return" href="membres.html"><span>←</span><strong>Membres</strong></a>
+  <div class="fts-admin-brand">
+    <div class="fts-admin-logo">ADMIN <span>FTS</span></div>
+    <div class="fts-admin-sub">Membres · accès · groupes · récompenses</div>
+  </div>
+  <div class="fts-admin-nav"><a class="fts-admin-nav-link" href="admin.html"><span>🛡️</span>Admin hub</a><a class="fts-admin-nav-link is-active" href="forum-admin.html"><span>👥</span>Accès</a><a class="fts-admin-nav-link" href="contenus-admin.html"><span>📁</span>Contenus</a><a class="fts-admin-nav-link" href="calendrier-admin.html"><span>📅</span>Calendrier</a><a class="fts-admin-nav-link" href="saison-admin.html"><span>🎭</span>Saison</a><a class="fts-admin-nav-link" href="sondages.html"><span>📊</span>Sondages</a></div>
+  <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
 </div>
 <div class="tabs-bar">
 <button class="tab-btn active" data-fts-handler-2="">

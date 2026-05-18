@@ -19,14 +19,14 @@
 <body class="has-glow">
 <div class="auth-loading" id="auth-loading"><div class="logo">ADMIN <span>CALENDRIER</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div></div>
 <div class="admin-shell" id="admin-shell">
-<div class="topbar">
-<div><div class="logo">ADMIN <span>CALENDRIER</span></div><div class="sub">Événements affichés dans l’espace membres</div></div>
-<div class="actions"><a class="btn btn-sm btn-dark" href="admin.html">Admin hub</a>
-<a class="btn btn-sm btn-dark" href="membres.html">Membres</a>
-<a class="btn btn-sm btn-dark" href="contenus-admin.html">Admin contenus</a>
-<a class="btn btn-sm btn-dark" href="saison-admin.html">Admin saison</a>
-<button class="btn-outline" data-fts-handler-1="">Déconnexion</button>
-</div>
+<div class="fts-admin-topbar" role="navigation" aria-label="Navigation administrateur">
+  <a class="fts-admin-return" href="membres.html"><span>←</span><strong>Membres</strong></a>
+  <div class="fts-admin-brand">
+    <div class="fts-admin-logo">ADMIN <span>FTS</span></div>
+    <div class="fts-admin-sub">Événements affichés dans l’espace membres</div>
+  </div>
+  <div class="fts-admin-nav"><a class="fts-admin-nav-link" href="admin.html"><span>🛡️</span>Admin hub</a><a class="fts-admin-nav-link" href="forum-admin.html"><span>👥</span>Accès</a><a class="fts-admin-nav-link" href="contenus-admin.html"><span>📁</span>Contenus</a><a class="fts-admin-nav-link is-active" href="calendrier-admin.html"><span>📅</span>Calendrier</a><a class="fts-admin-nav-link" href="saison-admin.html"><span>🎭</span>Saison</a><a class="fts-admin-nav-link" href="sondages.html"><span>📊</span>Sondages</a></div>
+  <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
 </div>
 <div class="layout">
 <div class="grid">

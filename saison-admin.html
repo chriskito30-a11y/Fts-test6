@@ -19,7 +19,15 @@
 <body class="has-glow">
 <div class="auth-loading" id="auth-loading"><div class="logo">FAIS TON <span>SHOW</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div></div>
 <div class="admin-shell" id="admin-shell">
-<div class="topbar"><div><div class="logo">ADMIN <span>SAISON</span></div><div class="sub">Tarifs · liens d’inscription · contenus publics</div></div><div class="actions"><a class="btn btn-sm btn-dark" href="admin.html">Admin hub</a><a class="btn btn-sm btn-dark" href="saison.html">Voir la page</a><a class="btn btn-sm btn-dark" href="contenus-admin.html">Admin contenus</a><a class="btn btn-sm btn-dark" href="calendrier-admin.html">Admin calendrier</a><button class="btn btn-sm btn-dark" data-fts-handler-1="">Exporter JSON</button><button class="btn btn-sm" data-fts-handler-2="">Publier</button><button class="btn-outline" data-fts-handler-3="">Déconnexion</button></div></div>
+<div class="fts-admin-topbar" role="navigation" aria-label="Navigation administrateur">
+  <a class="fts-admin-return" href="membres.html"><span>←</span><strong>Membres</strong></a>
+  <div class="fts-admin-brand">
+    <div class="fts-admin-logo">ADMIN <span>FTS</span></div>
+    <div class="fts-admin-sub">Tarifs · liens d’inscription · contenus publics</div>
+  </div>
+  <div class="fts-admin-nav"><a class="fts-admin-nav-link" href="admin.html"><span>🛡️</span>Admin hub</a><a class="fts-admin-nav-link" href="forum-admin.html"><span>👥</span>Accès</a><a class="fts-admin-nav-link" href="contenus-admin.html"><span>📁</span>Contenus</a><a class="fts-admin-nav-link" href="calendrier-admin.html"><span>📅</span>Calendrier</a><a class="fts-admin-nav-link is-active" href="saison-admin.html"><span>🎭</span>Saison</a><a class="fts-admin-nav-link" href="sondages.html"><span>📊</span>Sondages</a></div>
+  <div class="fts-admin-actions"><a class="fts-admin-ghost" href="saison.html">Voir la page</a><button class="fts-admin-ghost" data-fts-handler-1="">Exporter JSON</button><button class="fts-admin-primary" data-fts-handler-2="">Publier</button><button class="fts-admin-logout" data-fts-handler-3="">Déconnexion</button></div>
+</div>
 <div class="layout saison-modern">
 <div class="season-admin-hero">
   <div>
