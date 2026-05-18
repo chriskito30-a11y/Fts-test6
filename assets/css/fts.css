@@ -1058,3 +1058,127 @@ textarea {
     font-size: clamp(3.35rem, 18vw, 5.3rem);
   }
 }
+
+
+/* ================================================================
+   PATCH ADMIN TOPBAR v34 — navigation admin commune
+   Objectif : accéder vite aux pages admin sans impacter les pages membres.
+   ================================================================ */
+.fts-admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 80;
+  display: grid;
+  grid-template-columns: auto minmax(130px, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: calc(10px + env(safe-area-inset-top)) clamp(12px, 2vw, 22px) 10px;
+  border-bottom: 1px solid rgba(248,231,2,.22);
+  background: linear-gradient(135deg, rgba(8,8,8,.97), rgba(22,22,22,.94));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 16px 42px rgba(0,0,0,.38);
+}
+.fts-admin-return,
+.fts-admin-nav-link,
+.fts-admin-ghost,
+.fts-admin-primary,
+.fts-admin-logout {
+  min-height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 12px;
+  color: var(--white);
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: .84rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+  background: rgba(255,255,255,.06);
+  cursor: pointer;
+  transition: var(--t);
+}
+.fts-admin-return {
+  background: var(--gold);
+  color: var(--brand-ink);
+  border-color: transparent;
+  box-shadow: 0 10px 24px rgba(248,231,2,.16);
+}
+.fts-admin-return span { font-size: 1.05rem; }
+.fts-admin-brand { min-width: 0; }
+.fts-admin-logo {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  letter-spacing: .04em;
+  line-height: .9;
+  color: var(--white);
+}
+.fts-admin-logo span { color: var(--gold); }
+.fts-admin-sub {
+  margin-top: 3px;
+  color: rgba(245,242,238,.64);
+  font-size: .78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fts-admin-nav,
+.fts-admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.fts-admin-nav { overflow-x: auto; scrollbar-width: none; }
+.fts-admin-nav::-webkit-scrollbar { display: none; }
+.fts-admin-nav-link.is-active {
+  color: var(--brand-ink);
+  background: var(--gold);
+  border-color: transparent;
+}
+.fts-admin-primary {
+  background: var(--gold);
+  color: var(--brand-ink);
+  border-color: transparent;
+}
+.fts-admin-logout { color: #ffb3b3; }
+.fts-admin-return:hover,
+.fts-admin-nav-link:hover,
+.fts-admin-ghost:hover,
+.fts-admin-primary:hover,
+.fts-admin-logout:hover {
+  transform: translateY(-1px);
+  border-color: rgba(248,231,2,.45);
+}
+@media (max-width: 980px) {
+  .fts-admin-topbar {
+    grid-template-columns: auto 1fr;
+  }
+  .fts-admin-nav,
+  .fts-admin-actions {
+    grid-column: 1 / -1;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+  .fts-admin-actions::-webkit-scrollbar { display: none; }
+}
+@media (max-width: 560px) {
+  .fts-admin-topbar { gap: 9px; padding-left: 10px; padding-right: 10px; }
+  .fts-admin-logo { font-size: 1.18rem; }
+  .fts-admin-sub { display: none; }
+  .fts-admin-return,
+  .fts-admin-nav-link,
+  .fts-admin-ghost,
+  .fts-admin-primary,
+  .fts-admin-logout {
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: .78rem;
+  }
+}
