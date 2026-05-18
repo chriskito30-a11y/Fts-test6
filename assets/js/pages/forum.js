@@ -308,11 +308,20 @@ function renderChannelBubble(ch){
 
 function toggleCategory(id){ openCats[id] = !openCats[id]; renderForumList(document.getElementById('forum-search').value || ''); }
 
+function clearForumSystemNotifications(channel){
+  try {
+    if (window.FTSClearNotifications) {
+      window.FTSClearNotifications({ type:'forum', channel: channel, recipientUid: uid });
+    }
+  } catch(e) {}
+}
+
 function markForumChannelRead(channel){
   if(!uid || !channel || !db) return;
   forumUnreadCounts[channel] = 0;
   renderForumList(document.getElementById('forum-search')?.value || '');
   db.ref('fts_users/' + uid + '/forumReads/' + channel).set({ ts: Date.now() }).catch(() => {});
+  clearForumSystemNotifications(channel);
 }
 
 function selectForumChannel(id, name, icon, desc){

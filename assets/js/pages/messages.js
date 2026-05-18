@@ -25,6 +25,14 @@ let deepLinkConvId = null, deepLinkMsgId = null, deepLinkHandled = false;
 function avColor(s){ return FTSChat.avColor(s); }
 function setAv(el, name, isGroup){ FTSChat.setAvatar(el, name, { type: isGroup ? "group" : "person", icon: "👥" }); }
 
+function clearDmSystemNotifications(convId){
+  try {
+    if (window.FTSClearNotifications) {
+      window.FTSClearNotifications({ kind:'dm', conversationId: convId, recipientUid: myUid });
+    }
+  } catch(e) {}
+}
+
 /* ── INIT ────────────────────────────────────────────────────── */
 window.addEventListener("DOMContentLoaded", () => {
   if("serviceWorker" in navigator){ navigator.serviceWorker.register("./sw.js", {scope:"./"}).catch(()=>{}); }
@@ -171,6 +179,7 @@ async function selectConv(id){
 
   /* Marquer lu + nettoyer immédiatement la bulle rouge sans attendre un refresh */
   await db.ref("fts_dm/conversations/"+id+"/unread/"+myUid).set(0);
+  clearDmSystemNotifications(id);
   const localConv = allConvs.find(c => c.id === id);
   if(localConv && localConv.data){
     localConv.data.unread = localConv.data.unread || {};
@@ -189,6 +198,16 @@ function closeChat(){
   if(currentListener){ currentListener(); currentListener = null; }
   document.querySelectorAll(".conv-item").forEach(el => el.classList.remove("active"));
 }
+
+
+function clearCurrentDmNotificationsIfOpen(){
+  if (!currentConvId || !myUid) return;
+  clearDmSystemNotifications(currentConvId);
+}
+window.addEventListener('focus', clearCurrentDmNotificationsIfOpen);
+document.addEventListener('visibilitychange', function(){
+  if (!document.hidden) clearCurrentDmNotificationsIfOpen();
+});
 
 /* ── ENVOI ───────────────────────────────────────────────────── */
 async function sendMessage(){
