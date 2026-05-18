@@ -1,4 +1,4 @@
-const CACHE = 'fts-v36-pwa-cache-sondages';
+const CACHE = 'fts-v37-pwa-cache-offline';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -37,6 +37,7 @@ const FILES = [
   './assets/css/pages/faq.css',
   './assets/js/fts-chat.js',
   './assets/js/fts-firebase.js',
+  './assets/js/fts-offline.js',
   './assets/js/fts-pwa.js',
   './assets/js/fts-utils.js',
   './assets/js/services/auth.service.js',
@@ -83,7 +84,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v1' && k !== 'fts-v37-runtime' && k !== 'fts-notification-dedupe-v1').map(k => caches.delete(k)))
     )
   );
   self.clients.claim();
@@ -135,13 +136,57 @@ self.addEventListener('message', function(event){
   }
 });
 
+const FTS_RUNTIME_CACHE = 'fts-v37-runtime';
+const FTS_FILES_CACHE = 'fts-offline-files-v1';
+
+function isFirebaseOrAuthRequest(url){
+  return /firebaseio\.com|googleapis\.com\/identitytoolkit|securetoken\.googleapis\.com|gstatic\.com\/firebasejs/.test(url.hostname + url.pathname);
+}
+function isDocumentAsset(url){
+  return /\.(pdf|mp3|m4a|wav|ogg|mp4|webm|jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url.pathname);
+}
+function isAppShellRequest(url){
+  return url.origin === self.location.origin;
+}
+
 self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+
+  // Ne jamais mettre les appels Firebase/Auth en cache HTTP : les données sont gérées par fts-offline.js.
+  if(isFirebaseOrAuthRequest(url)) return;
+
+  // Documents/médias : cache-first si déjà téléchargé, puis réseau.
+  if(isDocumentAsset(url)) {
+    e.respondWith(
+      caches.open(FTS_FILES_CACHE).then(cache =>
+        cache.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+          if(res && res.ok) cache.put(e.request, res.clone()).catch(()=>{});
+          return res;
+        }))
+      ).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // App shell local : réseau d'abord, fallback cache.
+  if(isAppShellRequest(url)) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if(res && res.ok) caches.open(CACHE).then(cache => cache.put(e.request, res.clone())).catch(()=>{});
+          return res;
+        })
+        .catch(() => caches.match(e.request).then(hit => hit || caches.match('./membres.html')))
+    );
+    return;
+  }
+
+  // Externe : réseau avec fallback cache, sans polluer le cache principal.
   e.respondWith(
     fetch(e.request)
       .then(res => {
-        const clone = res.clone();
-        caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        if(res && res.ok && res.type !== 'opaque') caches.open(FTS_RUNTIME_CACHE).then(cache => cache.put(e.request, res.clone())).catch(()=>{});
         return res;
       })
       .catch(() => caches.match(e.request))
