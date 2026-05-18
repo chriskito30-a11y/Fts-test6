@@ -301,8 +301,20 @@
     catch(e){ return new Date(ts).toLocaleString(); }
   }
 
+  function isWeakNetwork(){
+    if (!state.isOnline) return false;
+    var c = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (!c) return false;
+    var type = String(c.effectiveType || '').toLowerCase();
+    if (type === 'slow-2g' || type === '2g') return true;
+    if (typeof c.downlink === 'number' && c.downlink > 0 && c.downlink < 0.8) return true;
+    if (typeof c.rtt === 'number' && c.rtt > 900) return true;
+    return false;
+  }
+
   function statusLabel(){
-    return state.isOnline ? 'En ligne' : 'Hors ligne';
+    if (!state.isOnline) return 'Hors ligne';
+    return isWeakNetwork() ? 'Faible réseau' : 'En ligne';
   }
 
   function statusMessage(){
@@ -317,10 +329,13 @@
     if (!card) return;
     var title = document.getElementById('dash-offline-state');
     var detail = document.getElementById('dash-offline-sync');
+    var weak = isWeakNetwork();
     card.classList.toggle('is-offline', !state.isOnline);
-    card.classList.toggle('is-online', !!state.isOnline);
-    var icon = card.querySelector('.focus-icon');
-    if (icon) icon.textContent = state.isOnline ? '📶' : '📴';
+    card.classList.toggle('is-online', !!state.isOnline && !weak);
+    card.classList.toggle('is-weak', !!state.isOnline && weak);
+    card.setAttribute('title', statusMessage());
+    var icon = card.querySelector('.member-network-dot') || card.querySelector('.focus-icon');
+    if (icon) icon.textContent = !state.isOnline ? '🔴' : (weak ? '🟠' : '🟢');
     if (title) title.textContent = statusLabel();
     if (detail) detail.textContent = statusMessage();
   }
@@ -405,6 +420,10 @@
     updateBanner();
     window.addEventListener('online', function(){ state.isOnline = true; updateBanner(); tryAutoSync(); });
     window.addEventListener('offline', function(){ state.isOnline = false; updateBanner(); });
+    var connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (connection && typeof connection.addEventListener === 'function') {
+      connection.addEventListener('change', emitStatus);
+    }
     document.addEventListener('visibilitychange', function(){ if (!document.hidden) tryAutoSync(); });
     if (typeof firebase !== 'undefined' && firebase.auth) {
       try {

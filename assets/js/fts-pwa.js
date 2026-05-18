@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v42-offline-visible';
+  const RELOAD_KEY = 'fts-sw-reload-v42b-offline-pill';
   let refreshing = false;
 
 
