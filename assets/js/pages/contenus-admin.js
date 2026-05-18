@@ -8,6 +8,8 @@ let questionnaire = [];
 let resources = [];
 let categoryStructure = [];
 let categoriesRaw = [];
+let targetedAnnonces = [];
+let selectedTargetedAnnonce = null;
 let resourceListenerStarted = false;
 let questionnaireListenerStarted = false;
 
@@ -20,10 +22,39 @@ function msg(id, txt, ok=true){
 }
 
 function escText(v){ return FTS.esc(String(v||'').trim()); }
+function dtLocalFromTs(ts){
+  const n = Number(ts || 0);
+  if (!n) return '';
+  const d = new Date(n);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = v => String(v).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function tsFromDtLocal(id){
+  const v = ($(id)?.value || '').trim();
+  if (!v) return null;
+  const t = new Date(v).getTime();
+  return Number.isFinite(t) ? t : null;
+}
+function expiryLabelFromInput(id){
+  const ts = tsFromDtLocal(id);
+  if (!ts) return 'permanente';
+  return 'jusqu’au ' + new Date(ts).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+function expiryLabelFromTs(ts){
+  const n = Number(ts || 0);
+  if (!n) return 'Permanente';
+  return 'Jusqu’au ' + new Date(n).toLocaleString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+function isExpiredTs(ts){
+  const n = Number(ts || 0);
+  return !!n && n <= Date.now();
+}
 function renderAdminPreviews(){
   renderAnnoncePreview();
   renderQuestionnairePreview();
   renderResourcePreview();
+  renderTargetedAnnoncePreview();
 }
 function renderAnnoncePreview(){
   const box=$('annonce-preview'); if(!box) return;
@@ -31,9 +62,7 @@ function renderAnnoncePreview(){
   const title=$('a-title')?.value.trim() || 'Info importante';
   const body=$('a-body')?.value.trim() || 'Ton annonce apparaîtra ici.';
   const btn=$('a-btn')?.value.trim();
-  const mode=$('a-mode')?.value || 'panel';
-  const modeLabel=mode==='banner'?' · banderole':(mode==='both'?' · carte + banderole':'');
-  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?modeLabel:'· masqué'}</div><div class="preview-card ${active?'':'is-muted'}"><strong>${escText(title)}</strong><p>${escText(body)}</p>${btn?`<span class="preview-button">${escText(btn)}</span>`:''}</div>`;
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'} · ${FTS.esc(expiryLabelFromInput('a-expires'))}</div><div class="preview-card ${active?'':'is-muted'}"><strong>${escText(title)}</strong><p>${escText(body)}</p>${btn?`<span class="preview-button">${escText(btn)}</span>`:''}</div>`;
 }
 function renderQuestionnairePreview(){
   const box=$('questionnaire-preview'); if(!box) return;
@@ -55,10 +84,10 @@ function renderResourcePreview(){
   const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || 'Catégorie');
   const sub=($('r-subcat-new')?.value.trim() || $('r-subcat')?.value || 'Sous-catégorie');
   const active=$('r-active')?.value!=='false';
-  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?modeLabel:'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
 }
 function bindPreviewInputs(){
-  ['a-active','a-mode','a-title','a-body','a-btn','a-url','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
+  ['a-active','a-title','a-body','a-btn','a-url','a-expires','ta-active','ta-title','ta-body','ta-btn','ta-url','ta-expires','ta-display','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
     const el=$(id); if(!el || el.__ftsPreviewBound) return;
     el.__ftsPreviewBound=true;
     el.addEventListener('input', renderAdminPreviews);
@@ -94,66 +123,8 @@ function init(){
     listenQuestionnaire();
     listenResources();
     await loadAnnonce();
+    listenTargetedAnnonces();
   });
-}
-
-
-function normListAdmin(v){
-  return (Array.isArray(v) ? v : String(v || '').split(',')).map(x => String(x || '').trim()).filter(Boolean);
-}
-function selectedAnnouncementTargets(){
-  const groups = {};
-  document.querySelectorAll('[data-a-target-cat]:checked').forEach(i => { groups[i.value] = []; });
-  document.querySelectorAll('[data-a-target-sub]:checked').forEach(i => {
-    const cat = i.getAttribute('data-parent') || '';
-    if (!cat) return;
-    if (!groups[cat]) groups[cat] = [];
-    groups[cat].push(i.value);
-  });
-  return groups;
-}
-function renderAnnouncementTargets(savedGroups){
-  const catBox = $('a-target-cats');
-  const subBox = $('a-target-subs');
-  if(!catBox || !subBox) return;
-  const groups = savedGroups && typeof savedGroups === 'object' ? savedGroups : {};
-  catBox.innerHTML = (categoryStructure || []).map(c => {
-    const checked = Object.prototype.hasOwnProperty.call(groups, c.category) ? 'checked' : '';
-    return `<label class="admin-target-pill"><input type="checkbox" data-a-target-cat value="${FTS.esc(c.category)}" ${checked}> ${FTS.esc((c.icon?c.icon+' ':'')+c.category)}</label>`;
-  }).join('') || '<span class="hint">Aucune catégorie configurée.</span>';
-  renderAnnouncementSubTargets(groups);
-}
-function renderAnnouncementSubTargets(savedGroups){
-  const subBox = $('a-target-subs');
-  if(!subBox) return;
-  const groups = savedGroups && typeof savedGroups === 'object' ? savedGroups : selectedAnnouncementTargets();
-  const selectedCats = Object.keys(groups);
-  if(!selectedCats.length){
-    subBox.innerHTML = '<span class="target-help">Annonce générale : aucune catégorie sélectionnée.</span>';
-    return;
-  }
-  const html=[];
-  (categoryStructure || []).forEach(c => {
-    if(!selectedCats.includes(c.category)) return;
-    const subs = c.subs || [];
-    if(!subs.length) return;
-    html.push(`<div class="admin-target-subgroup"><strong>${FTS.esc((c.icon?c.icon+' ':'')+c.category)}</strong><div>` + subs.map(s => {
-      const name = s.name || s.label || s;
-      const checked = (groups[c.category] || []).includes(name) ? 'checked' : '';
-      return `<label class="admin-target-pill"><input type="checkbox" data-a-target-sub data-parent="${FTS.esc(c.category)}" value="${FTS.esc(name)}" ${checked}> ${FTS.esc(name)}</label>`;
-    }).join('') + '</div></div>');
-  });
-  subBox.innerHTML = html.join('') || '<span class="target-help">Catégorie entière sélectionnée.</span>';
-}
-function normalizeAnnouncementGroups(a){
-  if(a && a.targetGroups && typeof a.targetGroups === 'object' && !Array.isArray(a.targetGroups)) return a.targetGroups;
-  const groups = {};
-  normListAdmin(a && (a.targetCategories || a.categories || a.groups)).forEach(c => { groups[c] = []; });
-  normListAdmin(a && (a.targetSubgroups || a.targetSubcategories || a.subgroups || a.subcategories)).forEach(sub => {
-    const cat = (categoryStructure || []).find(c => (c.subs || []).some(s => (s.name || s) === sub));
-    if(cat){ if(!groups[cat.category]) groups[cat.category]=[]; groups[cat.category].push(sub); }
-  });
-  return groups;
 }
 
 /* ═══ ANNONCE ═══════════════════════════════════════════════ */
@@ -161,31 +132,183 @@ async function loadAnnonce(){
   const s=await db.ref('fts_content/annonces/current').once('value');
   const a=s.val()||{};
   $('a-active').value=String(a.active!==false);
-  if($('a-mode')) $('a-mode').value=a.displayMode||a.mode||'panel';
   $('a-title').value=a.title||'';
   $('a-body').value=a.body||a.text||'';
   $('a-btn').value=a.buttonText||'';
   $('a-url').value=a.buttonUrl||'';
-  renderAnnouncementTargets(normalizeAnnouncementGroups(a));
+  if($('a-expires')) $('a-expires').value=dtLocalFromTs(a.expiresAt || a.expireAt || a.endAt || 0);
   renderAnnoncePreview();
 }
 async function saveAnnonce(){
-  const targetGroups = selectedAnnouncementTargets();
-  const targetCategories = Object.keys(targetGroups);
-  const targetSubgroups = Object.values(targetGroups).flat();
   await db.ref('fts_content/annonces/current').set({
     active:$('a-active').value==='true',
-    displayMode:$('a-mode') ? $('a-mode').value : 'panel',
     title:$('a-title').value.trim(),
     body:$('a-body').value.trim(),
     buttonText:$('a-btn').value.trim(),
     buttonUrl:$('a-url').value.trim(),
-    targetGroups,
-    targetCategories,
-    targetSubgroups,
+    expiresAt:tsFromDtLocal('a-expires'),
     updatedAt:Date.now()
   });
   msg('msg-annonce','Annonce enregistrée');
+}
+
+
+/* ═══ ANNONCES CIBLÉES SUPPLÉMENTAIRES ════════════════════════ */
+function taNorm(v){ return String(v||'').trim(); }
+function taSelectedCats(){ return Array.from(document.querySelectorAll('#ta-cat-picker input[type="checkbox"]:checked')).map(x=>x.value).filter(Boolean); }
+function taSelectedGroups(){
+  const groups = {};
+  taSelectedCats().forEach(cat => { groups[cat] = []; });
+  document.querySelectorAll('#ta-subcat-picker input[type="checkbox"]:checked').forEach(input => {
+    const cat = input.dataset.cat || '';
+    if(!cat) return;
+    if(!groups[cat]) groups[cat] = [];
+    groups[cat].push(input.value);
+  });
+  return groups;
+}
+function taFlattenSubs(groups){
+  const out=[];
+  Object.values(groups||{}).forEach(list => (Array.isArray(list)?list:[]).forEach(s => { if(s && !out.includes(s)) out.push(s); }));
+  return out;
+}
+function renderTargetPickers(data){
+  const catBox=$('ta-cat-picker');
+  const subBox=$('ta-subcat-picker');
+  if(!catBox || !subBox) return;
+  const selectedCats = normList((data && (data.targetCategories || data.categories || data.groups)) || taSelectedCats());
+  const existingGroups = (data && data.targetGroups && typeof data.targetGroups==='object') ? data.targetGroups : {};
+  catBox.innerHTML = (categoryStructure||[]).length
+    ? categoryStructure.map(c => {
+        const checked = selectedCats.some(x => FTS.norm(x)===FTS.norm(c.category));
+        return `<label class="target-chip"><input type="checkbox" value="${FTS.esc(c.category)}" ${checked?'checked':''}> <span>${FTS.esc(c.icon||FTS.catIcon(c.category))} ${FTS.esc(c.category)}</span></label>`;
+      }).join('')
+    : '<div class="hint">Aucune catégorie disponible.</div>';
+  renderTargetSubcats(existingGroups);
+  catBox.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { renderTargetSubcats(); renderTargetedAnnoncePreview(); }));
+}
+function renderTargetSubcats(existingGroups){
+  const subBox=$('ta-subcat-picker'); if(!subBox) return;
+  const selectedCats = taSelectedCats();
+  if(!selectedCats.length){
+    subBox.innerHTML = '<div class="target-empty">Aucune catégorie sélectionnée : annonce visible pour tous les membres actifs.</div>';
+    return;
+  }
+  const html = selectedCats.map(catName => {
+    const cat=(categoryStructure||[]).find(c => FTS.norm(c.category)===FTS.norm(catName));
+    const subs=((cat && cat.subs) || []).filter(s=>s && s.name);
+    if(!subs.length) return `<div class="target-subgroup"><strong>${FTS.esc(catName)}</strong><small>Aucune sous-catégorie : toute la catégorie est ciblée.</small></div>`;
+    const checkedList = normList((existingGroups && existingGroups[catName]) || []);
+    return `<div class="target-subgroup"><strong>${FTS.esc(catName)}</strong><div class="target-subchips">${subs.map(s=>{
+      const checked = checkedList.some(x => FTS.norm(x)===FTS.norm(s.name));
+      return `<label class="target-chip sub"><input type="checkbox" data-cat="${FTS.esc(catName)}" value="${FTS.esc(s.name)}" ${checked?'checked':''}> <span>${FTS.esc(s.name)}</span></label>`;
+    }).join('')}</div><small>Si tu ne coches rien ici, toute la catégorie ${FTS.esc(catName)} reçoit l’annonce.</small></div>`;
+  }).join('');
+  subBox.innerHTML = html;
+  subBox.querySelectorAll('input').forEach(i => i.addEventListener('change', renderTargetedAnnoncePreview));
+}
+function renderTargetedAnnoncePreview(){
+  const box=$('targeted-annonce-preview'); if(!box) return;
+  const active=$('ta-active')?.value==='true';
+  const title=$('ta-title')?.value.trim() || 'Annonce ciblée';
+  const body=$('ta-body')?.value.trim() || 'Ton annonce ciblée apparaîtra ici.';
+  const btn=$('ta-btn')?.value.trim();
+  const cats=taSelectedCats();
+  const groups=taSelectedGroups();
+  const subs=taFlattenSubs(groups);
+  const targetLabel = cats.length ? `${cats.length} catégorie${cats.length>1?'s':''}${subs.length?' · '+subs.length+' sous-catégorie'+(subs.length>1?'s':''):''}` : 'Tous les membres actifs';
+  const expiryLabel = expiryLabelFromInput('ta-expires');
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'} · ${FTS.esc(targetLabel)} · ${FTS.esc(expiryLabel)}</div><div class="preview-card ${active?'':'is-muted'}"><strong>${escText(title)}</strong><p>${escText(body)}</p>${btn?`<span class="preview-button">${escText(btn)}</span>`:''}</div>`;
+}
+function normalizeTargetedAnnonce(v={}, key=''){
+  const groups = (v.targetGroups && typeof v.targetGroups==='object') ? v.targetGroups : {};
+  let cats = normList(v.targetCategories || v.categories || v.groups || Object.keys(groups));
+  Object.keys(groups).forEach(cat => { if(cat && !cats.some(x=>FTS.norm(x)===FTS.norm(cat))) cats.push(cat); });
+  return {...v, key, targetCategories:cats, targetGroups:groups, active:v.active!==false && v.status!=='inactive'};
+}
+function listenTargetedAnnonces(){
+  db.ref('fts_content/annonces/targeted').on('value', snap => {
+    const rows=[];
+    snap.forEach(ch => rows.push(normalizeTargetedAnnonce(ch.val()||{}, ch.key)));
+    targetedAnnonces = rows.sort((a,b)=>Number(b.updatedAt||b.createdAt||0)-Number(a.updatedAt||a.createdAt||0));
+    renderTargetedAnnoncesList();
+    if(!selectedTargetedAnnonce && targetedAnnonces[0]) editTargetedAnnonce(targetedAnnonces[0].key);
+    else if(!targetedAnnonces.length) newTargetedAnnonce();
+  });
+}
+function renderTargetedAnnoncesList(){
+  const el=$('targeted-annonces-list'); if(!el) return;
+  el.innerHTML = targetedAnnonces.length ? targetedAnnonces.map(a => {
+    const title=a.title||a.body||'Annonce ciblée sans titre';
+    const cats=normList(a.targetCategories||[]);
+    const subs=taFlattenSubs(a.targetGroups||{});
+    const meta = cats.length ? `${cats.join(', ')}${subs.length?' · '+subs.length+' sous-catégorie'+(subs.length>1?'s':''):''}` : 'Tous les membres actifs';
+    const expiry = expiryLabelFromTs(a.expiresAt || a.expireAt || a.endAt || 0);
+    const expired = isExpiredTs(a.expiresAt || a.expireAt || a.endAt || 0);
+    return `<div class="item${selectedTargetedAnnonce===a.key?' sel':''}" data-fts-click="editTargetedAnnonce('${FTS.esc(a.key)}')"><div class="item-title">${expired?'⏱️':(a.active?'📣':'🙈')} ${FTS.esc(title)}</div><div class="item-meta">${FTS.esc(meta)} · ${FTS.esc(expiry)}${expired?' · expirée':''}</div></div>`;
+  }).join('') : '<div class="hint">Aucune annonce ciblée pour le moment.</div>';
+}
+function newTargetedAnnonce(){
+  selectedTargetedAnnonce=null;
+  ['ta-key','ta-title','ta-body','ta-btn','ta-url','ta-expires'].forEach(id=>{ if($(id)) $(id).value=''; });
+  if($('ta-active')) $('ta-active').value='true';
+  if($('ta-display')) $('ta-display').value='card';
+  renderTargetPickers({targetCategories:[],targetGroups:{}});
+  renderTargetedAnnoncesList();
+  renderTargetedAnnoncePreview();
+}
+function editTargetedAnnonce(key){
+  const a=targetedAnnonces.find(x=>x.key===key); if(!a) return;
+  selectedTargetedAnnonce=key;
+  $('ta-key').value=key;
+  $('ta-active').value=String(a.active!==false && a.status!=='inactive');
+  $('ta-display').value=a.displayMode||a.display||'card';
+  $('ta-title').value=a.title||'';
+  $('ta-body').value=a.body||a.text||'';
+  $('ta-btn').value=a.buttonText||a.btn||'';
+  $('ta-url').value=a.buttonUrl||a.url||'';
+  if($('ta-expires')) $('ta-expires').value=dtLocalFromTs(a.expiresAt || a.expireAt || a.endAt || 0);
+  renderTargetPickers(a);
+  renderTargetedAnnoncesList();
+  renderTargetedAnnoncePreview();
+}
+async function saveTargetedAnnonce(){
+  const title=$('ta-title').value.trim();
+  const body=$('ta-body').value.trim();
+  if(!title && !body){ msg('msg-targeted-annonce','Ajoute au moins un titre ou un message.',false); return; }
+  const groups=taSelectedGroups();
+  const cats=taSelectedCats();
+  const now=Date.now();
+  const data={
+    active:$('ta-active').value==='true',
+    status:$('ta-active').value==='true'?'active':'inactive',
+    title, body,
+    text:body,
+    buttonText:$('ta-btn').value.trim(),
+    buttonUrl:$('ta-url').value.trim(),
+    displayMode:$('ta-display').value||'card',
+    expiresAt:tsFromDtLocal('ta-expires'),
+    targetCategories:cats,
+    categories:cats,
+    targetGroups:groups,
+    targetSubgroups:taFlattenSubs(groups),
+    updatedAt:now
+  };
+  const key=$('ta-key').value;
+  const ref=key ? db.ref('fts_content/annonces/targeted/'+key) : db.ref('fts_content/annonces/targeted').push();
+  if(!key) data.createdAt=now;
+  await ref.update(data);
+  $('ta-key').value=ref.key;
+  selectedTargetedAnnonce=ref.key;
+  msg('msg-targeted-annonce','Annonce ciblée enregistrée');
+}
+async function deleteTargetedAnnonce(){
+  const key=$('ta-key').value;
+  if(!key){ newTargetedAnnonce(); return; }
+  if(!confirm('Supprimer cette annonce ciblée ?')) return;
+  await db.ref('fts_content/annonces/targeted/'+key).remove();
+  newTargetedAnnonce();
+  msg('msg-targeted-annonce','Annonce ciblée supprimée');
 }
 
 /* ═══ QUESTIONNAIRE ═══════════════════════════════════════════
@@ -398,7 +521,6 @@ function listenCategories(){
     }));
     fillCats();
     renderCList();
-    renderAnnouncementTargets(normalizeAnnouncementGroups({ targetGroups:selectedAnnouncementTargets() }));
   }, err=>console.warn('[FTS Contenus] categories', err));
 }
 function fillCats(){
@@ -568,17 +690,12 @@ async function deleteResource(){
   msg('msg-r','Ressource supprimée');
 }
 
-
-document.addEventListener('change', function(e){
-  if(e.target && e.target.matches('[data-a-target-cat]')) renderAnnouncementSubTargets();
-});
-
 init();
 
 /* FTS_AUTO_EXTRACTED_HANDLERS:contenus-admin.html */
 (function(){
   'use strict';
-  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doLogout()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "showTab('annonces',this)"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "showTab('questionnaire',this)"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "showTab('ressources',this)"}, {"selector": "[data-fts-handler-5]", "event": "click", "code": "showTab('categories',this)"}, {"selector": "[data-fts-handler-6]", "event": "click", "code": "saveAnnonce()"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "newQuestionnaire()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "saveQuestionnaire()"}, {"selector": "[data-fts-handler-9]", "event": "click", "code": "deleteQuestionnaire()"}, {"selector": "[data-fts-handler-10]", "event": "click", "code": "newResource()"}, {"selector": "[data-fts-handler-11]", "event": "change", "code": "updateResourceSubcats()"}, {"selector": "[data-fts-handler-12]", "event": "click", "code": "saveResource()"}, {"selector": "[data-fts-handler-13]", "event": "click", "code": "deleteResource()"}, {"selector": "[data-fts-handler-14]", "event": "click", "code": "newCategory()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "saveCategory()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "deleteCategory()"}];
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doLogout()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "showTab('annonces',this)"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "showTab('questionnaire',this)"}, {"selector": "[data-fts-handler-4]", "event": "click", "code": "showTab('ressources',this)"}, {"selector": "[data-fts-handler-5]", "event": "click", "code": "showTab('categories',this)"}, {"selector": "[data-fts-handler-6]", "event": "click", "code": "saveAnnonce()"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "newQuestionnaire()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "saveQuestionnaire()"}, {"selector": "[data-fts-handler-9]", "event": "click", "code": "deleteQuestionnaire()"}, {"selector": "[data-fts-handler-10]", "event": "click", "code": "newResource()"}, {"selector": "[data-fts-handler-11]", "event": "change", "code": "updateResourceSubcats()"}, {"selector": "[data-fts-handler-12]", "event": "click", "code": "saveResource()"}, {"selector": "[data-fts-handler-13]", "event": "click", "code": "deleteResource()"}, {"selector": "[data-fts-handler-14]", "event": "click", "code": "newCategory()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "saveCategory()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "deleteCategory()"}, {"selector": "[data-fts-handler-17]", "event": "click", "code": "newTargetedAnnonce()"}, {"selector": "[data-fts-handler-18]", "event": "click", "code": "saveTargetedAnnonce()"}, {"selector": "[data-fts-handler-19]", "event": "click", "code": "deleteTargetedAnnonce()"}];
   function bindExtractedHandlers(){
     handlers.forEach(function(h){
       document.querySelectorAll(h.selector).forEach(function(el){
