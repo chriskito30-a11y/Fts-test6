@@ -1,4 +1,4 @@
-const CACHE = 'fts-v37-pwa-cache-offline';
+const CACHE = 'fts-v38-stabilisation-simplification';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -37,6 +37,7 @@ const FILES = [
   './assets/css/pages/faq.css',
   './assets/js/fts-chat.js',
   './assets/js/fts-firebase.js',
+  './assets/js/fts-gamification.js',
   './assets/js/fts-offline.js',
   './assets/js/fts-pwa.js',
   './assets/js/fts-utils.js',
@@ -69,7 +70,9 @@ const FILES = [
   './assets/img/fts-maskable-192.png',
   './assets/img/fts-badge-96.png',
   './assets/img/fts-any-512.png',
-  './assets/img/fts-maskable-512.png'
+  './assets/img/fts-maskable-512.png',
+  './assets/img/fts192.png',
+  './assets/img/fts512.png'
 ];
 
 self.addEventListener('install', e => {
@@ -84,10 +87,16 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v1' && k !== 'fts-v37-runtime' && k !== 'fts-notification-dedupe-v1').map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v1' && k !== FTS_RUNTIME_CACHE && k !== 'fts-notification-dedupe-v1').map(k => caches.delete(k)))
     )
   );
-  self.clients.claim();
+  e.waitUntil((async function(){
+    await self.clients.claim();
+    try {
+      const clientsList = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
+      clientsList.forEach(client => client.postMessage({ type:'FTS_SW_ACTIVATED', cache:CACHE }));
+    } catch(_) {}
+  })());
 });
 
 
@@ -136,7 +145,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v37-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v38-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v1';
 
 function isFirebaseOrAuthRequest(url){
