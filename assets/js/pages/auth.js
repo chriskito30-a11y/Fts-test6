@@ -14,10 +14,40 @@ const ADMIN_EMAIL = "contact@faistonshow.fr";
 
 
 /* ── EMAILS AUTOMATIQUES ───────────────────────────────────────
-   Connecteur externe désactivé. La fonction reste présente pour ne
-   pas casser les appels existants lors de l'inscription/validation. */
+   À conserver : Make/Brevo sert uniquement aux emails transactionnels.
+   Ne pas utiliser ce connecteur pour les rappels automatiques, qui restent
+   gérés par le dispatcher natif de l'app.
+
+   Routes envoyées au scénario Make :
+   - new_signup : prévenir l'admin d'une nouvelle demande d'inscription
+   - account_validated : prévenir le membre que son compte est validé
+──────────────────────────────────────────────────────────────── */
+const FTS_EMAIL_WEBHOOK_URL = "https://hook.eu1.make.com/gvber3n4pomyxy6af5z8rzndxyja9arz";
+
 function sendFtsEmailAutomation(type, payload) {
-  return Promise.resolve({ disabled:true, type, payload });
+  const data = {
+    route: type,
+    type: type,
+    source: 'fts-pwa',
+    app: 'Fais Ton Show',
+    sentAt: new Date().toISOString(),
+    payload: payload || {},
+    // Compatibilité Make : les champs utiles sont aussi disponibles à plat.
+    ...(payload || {})
+  };
+
+  // Non bloquant : l'inscription / validation ne doit jamais échouer à cause d'un email.
+  return fetch(FTS_EMAIL_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+    keepalive: true
+  })
+    .then(() => ({ ok:true, type }))
+    .catch(err => {
+      console.warn('[FTS Email] Envoi webhook impossible', type, err);
+      return { ok:false, type, error: err && err.message ? err.message : String(err) };
+    });
 }
 
 let db, auth;
