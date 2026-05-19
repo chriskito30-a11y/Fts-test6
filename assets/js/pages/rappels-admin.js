@@ -281,6 +281,38 @@
     return [category, subcategory].filter(Boolean).join(' — ') || fallback || 'Cours';
   }
 
+  function reminderCourseKey(ownerType, ownerId, category, subcategory){
+    return [ownerType || 'self', ownerId || 'self', category || '', subcategory || ''].map(norm).join('|');
+  }
+
+  function readReminderPrefForCourse(user, course){
+    if(!user || !course) return null;
+    const prefs = user.reminderPrefs || {};
+    const keys = [
+      reminderCourseKey(course.ownerType, course.ownerType === 'child' ? (course.childId || course.ownerName) : 'self', course.category, course.subcategory),
+      reminderCourseKey(course.ownerType, course.childId || 'self', course.category, course.subcategory),
+      reminderCourseKey(course.ownerType, course.ownerName || 'self', course.category, course.subcategory)
+    ];
+    for(const k of keys){ if(prefs[k]) return prefs[k]; }
+    const rows = Object.values(prefs || {});
+    return rows.find(p => {
+      if(!p) return false;
+      const sameOwner = norm(p.ownerType) === norm(course.ownerType) && (
+        course.ownerType !== 'child' || norm(p.childId || p.ownerId || p.ownerName) === norm(course.childId || course.ownerName)
+      );
+      return sameOwner && norm(p.category) === norm(course.category) && norm(p.subcategory) === norm(course.subcategory);
+    }) || null;
+  }
+
+  function applyReminderPrefsForSelectedCourse(course){
+    const uid = $('reminder-user')?.value || '';
+    const user = uid ? users[uid] : null;
+    const prefs = readReminderPrefForCourse(user, course);
+    if(!prefs) return;
+    if($('reminder-24h')) $('reminder-24h').checked = !!prefs.reminder24h;
+    if($('reminder-1h')) $('reminder-1h').checked = !!prefs.reminder1h;
+  }
+
   function collectCoursesForOwner(owner){
     const cats = uniqueList(normList(owner.disciplines || owner.group || owner.groups || owner.categories));
     const subs = uniqueList(normList(owner.subgroups || owner.subgroup || owner.subcategories || owner.subcategory));
@@ -297,6 +329,8 @@
           category: cat,
           subcategory: sub,
           courseLabel: makeCourseLabel(cat, sub),
+          courseKey: reminderCourseKey(owner.ownerType, owner.childId || 'self', cat, sub),
+          reminderPrefs: null,
           label: makeCourseLabel(cat, sub) + ' — ' + owner.ownerName
         });
       });
@@ -314,6 +348,8 @@
           category: cat,
           subcategory: '',
           courseLabel: cat,
+          courseKey: reminderCourseKey(owner.ownerType, owner.childId || 'self', cat, ''),
+          reminderPrefs: null,
           label: cat + ' — ' + owner.ownerName
         });
       }
@@ -358,10 +394,12 @@
     if(!select) return;
     const uid = $('reminder-user')?.value || '';
     const user = uid ? users[uid] : null;
-    courseOptions = buildCourseOptionsForUser(user);
+    courseOptions = buildCourseOptionsForUser(user).map(o => Object.assign({}, o, { reminderPrefs: readReminderPrefForCourse(user, o) }));
     const optionsHtml = courseOptions.map((o, idx) => {
       const icon = o.ownerType === 'child' ? '👧 ' : '👤 ';
-      return `<option value="${idx}">${esc(icon + o.label)}</option>`;
+      const pref = o.reminderPrefs;
+      const prefIcon = pref ? ((pref.reminder24h || pref.reminder1h) ? ' 🔔' : ' 🔕') : '';
+      return `<option value="${idx}">${esc(icon + o.label + prefIcon)}</option>`;
     }).join('');
     select.innerHTML = '<option value="">Choisir un cours du profil…</option>' + optionsHtml + '<option value="manual">➕ Autre cours / saisie manuelle</option>';
     if(courseOptions.length === 1) select.value = '0';
@@ -418,6 +456,7 @@
       if($('lesson-type') && !($('lesson-type').value || '').trim()){
         $('lesson-type').value = selected.subcategory || selected.category || selected.courseLabel || '';
       }
+      applyReminderPrefsForSelectedCourse(selected);
     }
     updateManualCourseFields();
     updatePreview();
@@ -472,7 +511,8 @@
     if($('reminder-24h')?.checked) offsets.push(24 * 60);
     if($('reminder-1h')?.checked) offsets.push(60);
     const occurrences = buildOccurrences(eventAt, planningMode, repeatUntil, manualDatesText, excludedDatesText);
-    return { kind, eventAt, uid, user, category, subcategory, lessonType, title, teacher, place, duration, extra, standby, offsets, planningMode, repeatUntil, manualDatesText, excludedDatesText, occurrences, selectedCourse, courseLabel };
+    const reminderPrefChoice = selectedCourse && !selectedCourse.manual ? readReminderPrefForCourse(user, selectedCourse) : null;
+    return { kind, eventAt, uid, user, category, subcategory, lessonType, title, teacher, place, duration, extra, standby, offsets, planningMode, repeatUntil, manualDatesText, excludedDatesText, occurrences, selectedCourse, courseLabel, reminderPrefChoice };
   }
 
   function parseDateOnly(value){
@@ -782,6 +822,7 @@
       courseOwnerName: data.selectedCourse ? (data.selectedCourse.ownerName || '') : '',
       childId: data.selectedCourse ? (data.selectedCourse.childId || '') : '',
       childName: data.selectedCourse ? (data.selectedCourse.childName || '') : '',
+      reminderPrefsApplied: data.reminderPrefChoice ? { reminder24h: !!data.reminderPrefChoice.reminder24h, reminder1h: !!data.reminderPrefChoice.reminder1h } : null,
       lessonType: data.lessonType,
       teacher: data.teacher,
       place: data.place,

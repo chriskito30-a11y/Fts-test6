@@ -27,6 +27,7 @@ let loadedCategories = [];
 let enfantCount     = 0;
 const enfantDiscs   = {};           // { idx: Set<catName> }
 const enfantSubcatsMap = {};        // { idx: { catName: Set<subName> } }
+const reminderPrefDraft = {};       // V70 — préférences de rappel inscription par cours
 
 
 /* ── CLICS DYNAMIQUES AUTH ───────────────────────────────────────
@@ -76,6 +77,14 @@ function bindAuthDynamicSelectionHandlers() {
         el.getAttribute('data-cat') || '',
         el.getAttribute('data-sub') || ''
       );
+      return;
+    }
+
+    if (action === 'toggle-reminder-pref') {
+      toggleReminderPref(
+        el.getAttribute('data-key') || '',
+        el.getAttribute('data-offset') || ''
+      );
     }
   });
 }
@@ -90,6 +99,9 @@ window.addEventListener('DOMContentLoaded', async () => {
      → fallback automatique sur DEFAULT_CATEGORIES si hors ligne */
   loadedCategories = await FTS.getCategoryStructureAsync(db);
   bindAuthDynamicSelectionHandlers();
+  document.addEventListener('input', function(event){
+    if(event.target && (event.target.id === 'r-first' || event.target.classList.contains('e-first'))) renderReminderPrefs();
+  });
 
   document.getElementById('disc-grid').innerHTML = loadedCategories.map(c =>
     `<div class="pill" data-id="${FTS.esc(c.name)}"
@@ -157,6 +169,7 @@ function toggleDisc(el, id) {
     selectedDisc.add(id);
   }
   updateParentSubcats();
+  renderReminderPrefs();
 }
 
 function updateParentSubcats() {
@@ -185,6 +198,7 @@ function updateParentSubcats() {
   });
   html += '</div>';
   wrap.innerHTML = html;
+  renderReminderPrefs();
 }
 
 function toggleParentSubcat(el, cat, sub) {
@@ -192,6 +206,7 @@ function toggleParentSubcat(el, cat, sub) {
   el.classList.toggle('active');
   if (selectedSubcats[cat].has(sub)) selectedSubcats[cat].delete(sub);
   else selectedSubcats[cat].add(sub);
+  renderReminderPrefs();
 }
 
 /* ── SECTION ENFANT — TOGGLE — v16 ─────────────────────────────── */
@@ -206,6 +221,7 @@ function toggleEnfantSection() {
     document.getElementById('enfants-list').innerHTML = '';
     enfantCount = 0;
   }
+  renderReminderPrefs();
 }
 
 /* ── SECTION ENFANT — AJOUTER UN BLOC — v16 ────────────────────── */
@@ -255,6 +271,7 @@ function addEnfantField() {
       ${c.icon || FTS.catIcon(c.name)} ${FTS.esc(c.name)}
     </div>`
   ).join('');
+  renderReminderPrefs();
 }
 
 /* ── SECTION ENFANT — SUPPRIMER — v16 ──────────────────────────── */
@@ -263,6 +280,7 @@ function removeEnfant(idx) {
   if (block) block.remove();
   delete enfantDiscs[idx];
   delete enfantSubcatsMap[idx];
+  renderReminderPrefs();
 }
 
 /* ── PILLS DISCIPLINES ENFANT — v16 ────────────────────────────── */
@@ -276,6 +294,7 @@ function toggleEnfantDisc(el, id, idx) {
     enfantDiscs[idx].add(id);
   }
   updateEnfantSubcats(idx);
+  renderReminderPrefs();
 }
 
 function updateEnfantSubcats(idx) {
@@ -305,6 +324,7 @@ function updateEnfantSubcats(idx) {
   });
   html += '</div>';
   wrap.innerHTML = html;
+  renderReminderPrefs();
 }
 
 function toggleEnfantSubcat(el, idx, cat, sub) {
@@ -313,6 +333,147 @@ function toggleEnfantSubcat(el, idx, cat, sub) {
   el.classList.toggle('active');
   if (enfantSubcatsMap[idx][cat].has(sub)) enfantSubcatsMap[idx][cat].delete(sub);
   else enfantSubcatsMap[idx][cat].add(sub);
+  renderReminderPrefs();
+}
+
+
+/* ── PRÉFÉRENCES RAPPELS INSCRIPTION — V70 ───────────────────────
+   Ajout 100% optionnel : on réutilise les disciplines/sous-catégories
+   déjà sélectionnées. Aucun rappel n'est créé ici ; on stocke seulement
+   les préférences dans fts_users/{uid}.reminderPrefs pour l'admin.
+──────────────────────────────────────────────────────────────── */
+function reminderNorm(v) {
+  return String(v || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function makeReminderCourseKey(ownerType, ownerId, category, subcategory) {
+  return [ownerType || 'self', ownerId || 'self', category || '', subcategory || ''].map(reminderNorm).join('|');
+}
+
+function selectedSubListForCat(map, cat) {
+  return map && map[cat] ? [...map[cat]].filter(Boolean) : [];
+}
+
+function buildReminderPrefRows() {
+  const rows = [];
+  [...selectedDisc].forEach(cat => {
+    const subs = selectedSubListForCat(selectedSubcats, cat);
+    const targets = subs.length ? subs : [''];
+    targets.forEach(sub => {
+      rows.push({
+        ownerType: 'self',
+        ownerId: 'self',
+        ownerName: (document.getElementById('r-first')?.value || '').trim() || 'Moi',
+        category: cat,
+        subcategory: sub,
+        courseLabel: [cat, sub].filter(Boolean).join(' — ') || cat
+      });
+    });
+  });
+
+  document.querySelectorAll('.enfant-block').forEach(block => {
+    const idx = parseInt(block.id.replace('enfant-block-', ''), 10);
+    const first = (block.querySelector('.e-first')?.value || '').trim();
+    const ownerName = first || ('Enfant ' + idx);
+    const cats = enfantDiscs[idx] ? [...enfantDiscs[idx]] : [];
+    cats.forEach(cat => {
+      const subs = enfantSubcatsMap[idx] && enfantSubcatsMap[idx][cat] ? [...enfantSubcatsMap[idx][cat]].filter(Boolean) : [];
+      const targets = subs.length ? subs : [''];
+      targets.forEach(sub => {
+        rows.push({
+          ownerType: 'child',
+          ownerId: String(idx),
+          ownerName,
+          category: cat,
+          subcategory: sub,
+          courseLabel: [cat, sub].filter(Boolean).join(' — ') || cat
+        });
+      });
+    });
+  });
+
+  const seen = new Set();
+  return rows.filter(row => {
+    const key = makeReminderCourseKey(row.ownerType, row.ownerId, row.category, row.subcategory);
+    if(seen.has(key)) return false;
+    seen.add(key);
+    row.key = key;
+    return !!row.courseLabel;
+  });
+}
+
+function renderReminderPrefs() {
+  const section = document.getElementById('registration-reminder-prefs');
+  const list = document.getElementById('registration-reminder-list');
+  if(!section || !list) return;
+  const rows = buildReminderPrefRows();
+  section.classList.toggle('u-hidden', rows.length === 0);
+  if(!rows.length){ list.innerHTML = ''; return; }
+
+  list.innerHTML = rows.map(row => {
+    const pref = reminderPrefDraft[row.key] || {};
+    const ownerIcon = row.ownerType === 'child' ? '👧' : '👤';
+    return `<div class="reminder-pref-row">
+      <div>
+        <div class="reminder-pref-title">${FTS.esc(row.courseLabel)}</div>
+        <div class="reminder-pref-owner">${ownerIcon} ${FTS.esc(row.ownerName)}</div>
+      </div>
+      <div class="reminder-pref-checks">
+        <label class="reminder-pref-chip"><input type="checkbox" data-auth-action="toggle-reminder-pref" data-key="${FTS.esc(row.key)}" data-offset="24h" ${pref.reminder24h ? 'checked' : ''}> 24h avant</label>
+        <label class="reminder-pref-chip"><input type="checkbox" data-auth-action="toggle-reminder-pref" data-key="${FTS.esc(row.key)}" data-offset="1h" ${pref.reminder1h ? 'checked' : ''}> 1h avant</label>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleReminderPref(key, offset) {
+  if(!key) return;
+  if(!reminderPrefDraft[key]) reminderPrefDraft[key] = {};
+  if(offset === '24h') reminderPrefDraft[key].reminder24h = !reminderPrefDraft[key].reminder24h;
+  if(offset === '1h') reminderPrefDraft[key].reminder1h = !reminderPrefDraft[key].reminder1h;
+  renderReminderPrefs();
+}
+
+function buildReminderPrefsForProfile(enfantsDraft) {
+  const prefs = {};
+  [...selectedDisc].forEach(cat => {
+    const subs = selectedSubListForCat(selectedSubcats, cat);
+    const targets = subs.length ? subs : [''];
+    targets.forEach(sub => {
+      const draftKey = makeReminderCourseKey('self', 'self', cat, sub);
+      const pref = reminderPrefDraft[draftKey] || {};
+      const finalKey = makeReminderCourseKey('self', 'self', cat, sub);
+      prefs[finalKey] = {
+        ownerType: 'self', ownerId: 'self', ownerName: (document.getElementById('r-first')?.value || '').trim(),
+        category: cat, subcategory: sub, courseLabel: [cat, sub].filter(Boolean).join(' — ') || cat,
+        reminder24h: !!pref.reminder24h, reminder1h: !!pref.reminder1h
+      };
+    });
+  });
+
+  (enfantsDraft || []).forEach(child => {
+    const localIdx = child._authIdx;
+    const childId = child.id || ('enfant_' + localIdx);
+    const cats = child.disciplines || [];
+    cats.forEach(cat => {
+      const subs = enfantSubcatsMap[localIdx] && enfantSubcatsMap[localIdx][cat] ? [...enfantSubcatsMap[localIdx][cat]].filter(Boolean) : [];
+      const targets = subs.length ? subs : [''];
+      targets.forEach(sub => {
+        const draftKey = makeReminderCourseKey('child', String(localIdx), cat, sub);
+        const pref = reminderPrefDraft[draftKey] || {};
+        const finalKey = makeReminderCourseKey('child', childId, cat, sub);
+        prefs[finalKey] = {
+          ownerType: 'child', ownerId: childId, ownerName: child.prenom || '', childId, childName: child.prenom || '',
+          category: cat, subcategory: sub, courseLabel: [cat, sub].filter(Boolean).join(' — ') || cat,
+          reminder24h: !!pref.reminder24h, reminder1h: !!pref.reminder1h
+        };
+      });
+    });
+  });
+
+  return prefs;
 }
 
 /* ── UTILITAIRES ──────────────────────────────────────────────── */
@@ -406,6 +567,7 @@ async function doRegister() {
           disciplines:   enfantDiscs[eIdx] ? [...enfantDiscs[eIdx]] : [],
           subgroups:     childSubs,
           subgroup:      childSubs.join(', '),
+          _authIdx:      eIdx,
         });
       }
     });
@@ -422,6 +584,13 @@ async function doRegister() {
     const cred    = await auth.createUserWithEmailAndPassword(email, pwd);
     const uid     = cred.user.uid;
     const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
+    const reminderPrefs = buildReminderPrefsForProfile(enfants);
+    const savedEnfants = enfants.map(e => {
+      const copy = Object.assign({}, e);
+      delete copy._authIdx;
+      return copy;
+    });
 
     /* Structure Firebase :
        fts_users/{uid}
@@ -440,8 +609,9 @@ async function doRegister() {
       disciplines: [...selectedDisc],
       subgroups:   parentSubgroups,
       subgroup:    parentSubgroups.join(', '),
-      hasEnfant:   hasEnfant && enfants.length > 0,
-      enfants:     enfants,
+      hasEnfant:   hasEnfant && savedEnfants.length > 0,
+      enfants:     savedEnfants,
+      reminderPrefs: reminderPrefs,
       createdAt:   Date.now(),
     };
 
