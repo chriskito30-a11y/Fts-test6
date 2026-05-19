@@ -1596,6 +1596,48 @@ async function toggleResourceOffline(btn) {
 }
 
 /* ── AFFICHAGE DOCUMENTS ─────────────────────────────────────── */
+function isTextResourceDoc(d) {
+  const type = String((d && d.type) || '').toLowerCase().trim();
+  const url = String((d && d.url) || '').trim();
+  const hasHttpUrl = /^https?:\/\//i.test(url);
+  return !hasHttpUrl || type === 'texte' || type === 'text' || type === 'txt' || type === 'note';
+}
+
+function textResourceDocContent(d) {
+  return String((d && (d.content || d.contenu || d.url || '')) || '').trim();
+}
+
+function findTextResourceDoc(key) {
+  const target = String(key || '');
+  if (!target) return null;
+  const cats = Object.keys(allDocs || {});
+  for (const cat of cats) {
+    const rows = allDocs[cat] || [];
+    const found = rows.find(x => String(x.key || '') === target);
+    if (found) return found;
+  }
+  return null;
+}
+
+function openTextResourceDoc(key) {
+  const d = findTextResourceDoc(key);
+  if (!d) return;
+  const overlay = document.getElementById('mo');
+  const titleEl = document.getElementById('mtit');
+  const bodyEl = document.getElementById('catcnt');
+  if (!overlay || !titleEl || !bodyEl) return;
+  const title = d.name || 'Document texte';
+  const metaParts = [d.cat || d.category || '', d.sub || d.subcat || d.subcategory || ''].filter(Boolean);
+  const content = textResourceDocContent(d) || 'Aucun texte à afficher.';
+  titleEl.textContent = title;
+  bodyEl.innerHTML = `
+    <div class="doc-text-reader">
+      ${metaParts.length ? `<div class="doc-text-reader-meta">${FTS.esc(metaParts.join(' · '))}</div>` : ''}
+      <div class="doc-text-reader-content">${FTS.esc(content).replace(/\n/g, '<br>')}</div>
+    </div>`;
+  overlay.classList.remove('hidden');
+}
+
 function showDocs(docs, idx) {
   const el = document.getElementById('dc-' + idx);
   if (!el) return;
@@ -1609,11 +1651,13 @@ function showDocs(docs, idx) {
     const t     = (d.type || 'doc').toLowerCase().trim();
     const isUrl = d.url && d.url.indexOf('http') === 0;
 
-    if (!isUrl || t === 'texte' || t === 'text' || t === 'txt') {
-      return `<div class="doc-text" id="doc-${FTS.esc(d.key || '')}" data-doc-key="${FTS.esc(d.key || '')}">
-                ${d.name ? `<strong>${FTS.esc(d.name)}</strong><br>` : ''}
-                ${FTS.esc(d.url)}
-              </div>`;
+    if (isTextResourceDoc(d)) {
+      const title = FTS.esc(d.name || 'Document texte');
+      const preview = FTS.esc(textResourceDocContent(d)).replace(/\s+/g, ' ').slice(0, 120);
+      return `<button type="button" class="doc-text doc-text-card" id="doc-${FTS.esc(d.key || '')}" data-action="open-text-doc" data-doc-key="${FTS.esc(d.key || '')}">
+                <span class="doc-text-card-head"><strong>${title}</strong><em>Lire</em></span>
+                ${preview ? `<span class="doc-text-preview">${preview}${preview.length >= 120 ? '…' : ''}</span>` : ''}
+              </button>`;
     }
 
     const kind = resourceKindFromDoc(d);
@@ -3071,6 +3115,13 @@ function bindMembresUiEvents() {
     const closeResourceBtn = e.target.closest('[data-action="close-resource-modal"]');
     if (closeResourceBtn) {
       closeMo();
+      return;
+    }
+
+    const textDocBtn = e.target.closest('[data-action="open-text-doc"]');
+    if (textDocBtn) {
+      e.preventDefault();
+      openTextResourceDoc(textDocBtn.dataset.docKey || '');
       return;
     }
 
