@@ -1,4 +1,4 @@
-const CACHE = 'fts-v54-contenus-admin-ux-safe';
+const CACHE = 'fts-v55-rappels-admin-test';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -9,6 +9,7 @@ const FILES = [
   './faq.html',
   './hub-messages.html',
   './sondages.html',
+  './rappels-admin.html',
   './profs.html',
   './admin.html',
   './contenus-admin.html',
@@ -33,6 +34,7 @@ const FILES = [
   './assets/css/fts-nav.css',
   './assets/css/pages/hub-messages.css',
   './assets/css/pages/sondages.css',
+  './assets/css/pages/rappels-admin.css',
   './assets/css/pages/faq.css',
   './assets/js/fts-chat.js',
   './assets/js/fts-firebase.js',
@@ -49,6 +51,7 @@ const FILES = [
   './assets/js/services/resources.service.js',
   './assets/js/services/season.service.js',
   './assets/js/services/users.service.js',
+  './assets/js/services/reminders.service.js',
   './assets/js/pages/admin.js',
   './assets/js/pages/auth.js',
   './assets/js/pages/calendrier-admin.js',
@@ -64,6 +67,7 @@ const FILES = [
   './assets/js/fts-nav.js',
   './assets/js/pages/hub-messages.js',
   './assets/js/pages/sondages.js',
+  './assets/js/pages/rappels-admin.js',
   './assets/js/pages/faq.js',
   './assets/img/fts-any-192.png',
   './assets/img/fts-maskable-192.png',
