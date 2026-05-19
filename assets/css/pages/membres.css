@@ -3074,3 +3074,26 @@ button.profile-pill:focus-visible {
   .profile-enfants-head { flex-direction: column; align-items: stretch; }
   .account-btn-small { width: 100%; }
 }
+
+
+/* Ressources hors ligne à la demande — V50 léger */
+.doc-offline {
+  appearance:none;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.055);
+  color:rgba(255,255,255,.9);
+  border-radius:999px;
+  padding:.42rem .7rem;
+  font:inherit;
+  font-weight:800;
+  font-size:.84rem;
+  cursor:pointer;
+  transition:transform .16s ease, border-color .16s ease, background .16s ease, opacity .16s ease;
+}
+.doc-offline:hover { transform:translateY(-1px); border-color:rgba(248,231,2,.42); background:rgba(248,231,2,.1); }
+.doc-offline.is-saved { color:var(--gold); border-color:rgba(248,231,2,.5); background:rgba(248,231,2,.13); }
+.doc-offline.is-loading, .doc-offline:disabled { opacity:.68; cursor:progress; transform:none; }
+@media(max-width:640px){
+  .doc-actions { justify-content:flex-start; }
+  .doc-open, .doc-download, .doc-offline { flex:1 1 auto; text-align:center; justify-content:center; }
+}
