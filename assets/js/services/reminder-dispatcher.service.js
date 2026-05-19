@@ -14,7 +14,7 @@
   const S = window.FTS.Services = window.FTS.Services || {};
 
   const POLL_MS = 60 * 1000;
-  const INITIAL_DELAY_MS = 4500;
+  const INITIAL_DELAY_MS = 2500;
   const BATCH_LIMIT = 8;
   const LOCK_TTL_MS = 2 * 60 * 1000;
   const LOG_LIMIT = 40;
@@ -29,6 +29,16 @@
   let adminUser = null;
   let adminProfile = null;
   let lastRunAt = 0;
+
+  function setAdminIndicator(state, text){
+    try{
+      const detail = { state: state || 'idle', text: text || '' };
+      window.dispatchEvent(new CustomEvent('fts:reminder-dispatcher-state', { detail }));
+      const el = document.getElementById('dispatch-status');
+      if(el && text) el.textContent = text;
+      if(el && state) el.setAttribute('data-state', state);
+    }catch(e){}
+  }
 
   function getDb(){
     if(db) return db;
@@ -298,9 +308,12 @@
   async function runOnce(){
     clearTimeout(timer);
     if(!started || running || !adminUser || !isOnline()){
+      if(!adminUser) setAdminIndicator('inactive', 'Dispatcher inactif : admin non confirmé');
+      if(!isOnline()) setAdminIndicator('offline', 'Dispatcher en pause : hors ligne');
       scheduleNext(POLL_MS);
       return;
     }
+    setAdminIndicator('active', 'Rappels automatiques actifs');
     const now = Date.now();
     if(now - lastRunAt < 15000){ scheduleNext(POLL_MS); return; }
     lastRunAt = now;
@@ -341,8 +354,12 @@
   function start(){
     if(started) return;
     const database = getDb();
-    if(!database || !window.firebase || !firebase.auth) return;
+    if(!database || !window.firebase || !firebase.auth){
+      setAdminIndicator('inactive', 'Dispatcher inactif : Firebase non prêt');
+      return;
+    }
     started = true;
+    setAdminIndicator('booting', 'Initialisation des rappels automatiques…');
     auth = firebase.auth();
     auth.onAuthStateChanged(async user => {
       clearTimeout(timer);
@@ -352,11 +369,19 @@
       try{
         const snap = await database.ref('fts_users/' + user.uid).once('value');
         const profile = snap.val();
-        if(!profile || profile.role !== 'admin') return;
+        if(!profile || profile.role !== 'admin'){
+          setAdminIndicator('inactive', 'Dispatcher inactif : profil non admin');
+          return;
+        }
         adminUser = user;
         adminProfile = profile;
+        setAdminIndicator('active', 'Rappels automatiques actifs');
+        logRun({ mode:'native-admin', event:'boot', page:location.pathname.split('/').pop() || 'admin' });
         scheduleNext(INITIAL_DELAY_MS);
-      }catch(e){}
+      }catch(e){
+        setAdminIndicator('error', 'Dispatcher inactif : accès Firebase refusé');
+        logRun({ mode:'native-admin', event:'boot-error', error:String(e && e.message ? e.message : e).substring(0,240) });
+      }
     });
     window.addEventListener('online', () => scheduleNext(2500));
     document.addEventListener('visibilitychange', () => {
@@ -365,5 +390,6 @@
   }
 
   S.ReminderDispatcher = { start, runOnce };
-  document.addEventListener('DOMContentLoaded', start);
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else setTimeout(start, 0);
 })(window);
