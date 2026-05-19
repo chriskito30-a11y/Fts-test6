@@ -1,4 +1,4 @@
-const CACHE = 'fts-v59-rappels-recurrence-fix';
+const CACHE = 'fts-v60-planning-next-course';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -52,6 +52,7 @@ const FILES = [
   './assets/js/services/season.service.js',
   './assets/js/services/users.service.js',
   './assets/js/services/reminders.service.js',
+  './assets/js/services/schedules.service.js',
   './assets/js/pages/admin.js',
   './assets/js/pages/auth.js',
   './assets/js/pages/calendrier-admin.js',

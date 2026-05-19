@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
-<link href="assets/css/pages/rappels-admin.css?v=59" rel="stylesheet"/>
+<link href="assets/css/pages/rappels-admin.css?v=60" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -26,7 +26,7 @@
   <header class="fts-admin-pagehead" aria-label="En-tête administrateur">
     <div class="fts-admin-brand">
       <div class="fts-admin-logo">ADMIN <span>RAPPELS</span></div>
-      <div class="fts-admin-sub">Module test isolé — planning, rappels et MP test réel</div>
+      <div class="fts-admin-sub">Module test isolé — créneaux, planning, rappels et MP test réel</div>
     </div>
     <div class="fts-admin-actions">
       <a class="fts-admin-ghost" href="admin.html">Centre admin</a>
@@ -38,13 +38,14 @@
     <section class="reminder-hero">
       <div class="hero-kicker">Prototype opérationnel</div>
       <h1 class="hero-title">Rappels automatiques</h1>
-      <p class="hero-sub">Prépare des créneaux uniques ou récurrents, génère les rappels 24h/1h, teste le rendu bot et envoie un MP test réel uniquement au clic admin.</p>
+      <p class="hero-sub">Crée une source planning propre, prépare les rappels 24h/1h, teste le rendu bot et envoie un MP test réel uniquement au clic admin.</p>
       <div class="safe-strip" aria-label="Garanties de sécurité">
         <span class="safe-pill">✅ fts_dm intact</span>
         <span class="safe-pill">✅ unread intact</span>
         <span class="safe-pill">✅ notifications intactes</span>
         <span class="safe-pill">✅ mode stand-by par défaut</span>
         <span class="safe-pill">✅ répétitions test isolées</span>
+        <span class="safe-pill">✅ fts_schedules isolé</span>
       </div>
     </section>
 
@@ -172,7 +173,8 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
         <div class="preview-card" id="bot-preview"></div>
 
         <div class="row-actions">
-          <button class="btn btn-sm btn-gold" id="btn-create-reminders" type="button">Créer les rappels test</button>
+          <button class="btn btn-sm btn-gold" id="btn-save-schedule" type="button">Créer le créneau planning</button>
+          <button class="btn btn-sm btn-dark" id="btn-create-reminders" type="button">Créer les rappels test</button>
           <button class="btn-outline btn-sm" id="btn-fill-music-demo" type="button">Exemple musique</button>
           <button class="btn-outline btn-sm" id="btn-reset-form" type="button">Réinitialiser</button>
         </div>
@@ -232,6 +234,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/reminders.service.js?v=59"></script>
-<script src="assets/js/pages/rappels-admin.js?v=59"></script>
+<script src="assets/js/services/schedules.service.js?v=60"></script>
+<script src="assets/js/pages/rappels-admin.js?v=60"></script>
 </body>
 </html>
