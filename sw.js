@@ -1,4 +1,4 @@
-const CACHE = 'fts-v63-rappels-restore';
+const CACHE = 'fts-v64-make-ready-actions';
 const FILES = [
   './manifest.json',
   './index.html',

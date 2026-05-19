@@ -167,7 +167,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
         </label>
         <label class="check-row">
           <input id="standby-mode" type="checkbox" checked/>
-          <span><strong>Mode stand-by</strong><span>Recommandé pour les tests. Le rappel est créé mais ne doit pas être envoyé par Make.</span></span>
+          <span><strong>Mode test stand-by</strong><span>Recommandé pendant les essais. Décoche uniquement quand Make est prêt à envoyer automatiquement.</span></span>
         </label>
 
         <div class="preview-card" id="bot-preview"></div>
@@ -204,7 +204,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 
         <div class="helper-box">
           <strong>Prochaine étape après validation</strong>
-          <p>Le scénario Make pourra lire uniquement les rappels <b>pending</b> dont <b>sendAt</b> est passé, créer un MP automatique avec <b>messageType:auto-reminder</b>, puis passer le rappel en <b>sent</b>.</p>
+          <p>Make lira uniquement les rappels <b>pending</b> avec <b>makeReady:true</b> et <b>sendAt</b> passé. Le mode stand-by reste conseillé tant que le scénario Make n’est pas validé.</p>
         </div>
 
         <div id="selected-reminder" class="selected-reminder">
