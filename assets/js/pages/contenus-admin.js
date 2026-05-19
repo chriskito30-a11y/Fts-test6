@@ -22,10 +22,34 @@ function msg(id, txt, ok=true){
 }
 
 const adminActionBusy = {};
+const adminActionButtons = {
+  saveAnnonce: '[data-fts-handler-6]',
+  saveQuestionnaire: '[data-fts-handler-8]',
+  deleteQuestionnaire: '[data-fts-handler-9]',
+  saveResource: '[data-fts-handler-12]',
+  deleteResource: '[data-fts-handler-13]',
+  saveCategory: '[data-fts-handler-15]',
+  deleteCategory: '[data-fts-handler-16]',
+  saveTargetedAnnonce: '[data-fts-handler-18]',
+  deleteTargetedAnnonce: '[data-fts-handler-19]'
+};
 function errText(e){ return (e && e.message) ? e.message : String(e || 'Erreur inconnue'); }
+function setAdminActionBusyUi(key, busy){
+  const selector = adminActionButtons[key];
+  if(!selector) return;
+  document.querySelectorAll(selector).forEach(btn=>{
+    if(!btn) return;
+    if(!btn.dataset.originalText) btn.dataset.originalText = btn.textContent || '';
+    btn.disabled = !!busy;
+    btn.classList.toggle('is-admin-loading', !!busy);
+    if(busy) btn.textContent = 'Action en cours…';
+    else btn.textContent = btn.dataset.originalText || btn.textContent || 'Valider';
+  });
+}
 async function safeAdminAction(key, msgId, action){
   if(adminActionBusy[key]) return;
   adminActionBusy[key] = true;
+  setAdminActionBusyUi(key, true);
   try{
     await action();
   }catch(e){
@@ -33,6 +57,7 @@ async function safeAdminAction(key, msgId, action){
     msg(msgId, 'Erreur : ' + errText(e), false);
   }finally{
     adminActionBusy[key] = false;
+    setAdminActionBusyUi(key, false);
   }
 }
 
@@ -165,7 +190,7 @@ async function saveAnnonce(){
       expiresAt:tsFromDtLocal('a-expires'),
       updatedAt:Date.now()
     });
-    msg('msg-annonce','Annonce enregistrée');
+    msg('msg-annonce','Annonce enregistrée — aperçu et diffusion prêts.');
   });
 }
 
@@ -199,6 +224,28 @@ function taFlattenSubs(groups){
   Object.values(groups||{}).forEach(list => (Array.isArray(list)?list:[]).forEach(s => { if(s && !out.includes(s)) out.push(s); }));
   return out;
 }
+function taTargetSummaryHtml(){
+  const cats = taSelectedCats();
+  const groups = taSelectedGroups();
+  if(!cats.length) return '<div class="target-summary"><strong>Visible par</strong><span>Tous les membres actifs</span></div>';
+  const rows = cats.map(cat=>{
+    const subs = normList(groups[cat] || []);
+    const label = subs.length ? subs.join(', ') : 'Toute la catégorie';
+    return `<span class="target-summary-chip"><b>${FTS.esc(cat)}</b> ${FTS.esc(label)}</span>`;
+  }).join('');
+  return `<div class="target-summary"><strong>Visible par</strong><div class="target-summary-chips">${rows}</div></div>`;
+}
+function renderTargetSummary(){
+  const box=$('targeted-annonce-preview');
+  if(!box) return;
+  let summary=$('ta-target-summary');
+  if(!summary){
+    summary=document.createElement('div');
+    summary.id='ta-target-summary';
+    box.parentNode.insertBefore(summary, box);
+  }
+  summary.innerHTML=taTargetSummaryHtml();
+}
 function renderTargetPickers(data){
   const catBox=$('ta-cat-picker');
   const subBox=$('ta-subcat-picker');
@@ -212,13 +259,14 @@ function renderTargetPickers(data){
       }).join('')
     : '<div class="hint">Aucune catégorie disponible.</div>';
   renderTargetSubcats(existingGroups);
-  catBox.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { renderTargetSubcats(); renderTargetedAnnoncePreview(); }));
+  catBox.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { renderTargetSubcats(); renderTargetSummary(); renderTargetedAnnoncePreview(); }));
 }
 function renderTargetSubcats(existingGroups){
   const subBox=$('ta-subcat-picker'); if(!subBox) return;
   const selectedCats = taSelectedCats();
   if(!selectedCats.length){
     subBox.innerHTML = '<div class="target-empty">Aucune catégorie sélectionnée : annonce visible pour tous les membres actifs.</div>';
+    renderTargetSummary();
     return;
   }
   const html = selectedCats.map(catName => {
@@ -232,9 +280,11 @@ function renderTargetSubcats(existingGroups){
     }).join('')}</div><small>Si tu ne coches rien ici, toute la catégorie ${FTS.esc(catName)} reçoit l’annonce.</small></div>`;
   }).join('');
   subBox.innerHTML = html;
-  subBox.querySelectorAll('input').forEach(i => i.addEventListener('change', renderTargetedAnnoncePreview));
+  subBox.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { renderTargetSummary(); renderTargetedAnnoncePreview(); }));
+  renderTargetSummary();
 }
 function renderTargetedAnnoncePreview(){
+  renderTargetSummary();
   const box=$('targeted-annonce-preview'); if(!box) return;
   const active=$('ta-active')?.value==='true';
   const title=$('ta-title')?.value.trim() || 'Annonce ciblée';
@@ -328,7 +378,7 @@ async function saveTargetedAnnonce(){
     await ref.update(data);
     $('ta-key').value=ref.key;
     selectedTargetedAnnonce=ref.key;
-    msg('msg-targeted-annonce','Annonce ciblée enregistrée');
+    msg('msg-targeted-annonce','Annonce ciblée enregistrée — ciblage vérifié.');
   });
 }
 async function deleteTargetedAnnonce(){
