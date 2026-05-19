@@ -42,3 +42,8 @@
   .planning-head{flex-direction:column}
   .planning-head span{text-align:left;max-width:none}
 }
+
+/* V60 — bouton créneau planning */
+#btn-save-schedule{
+  box-shadow:0 12px 28px rgba(248,231,2,.12);
+}

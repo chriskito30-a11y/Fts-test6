@@ -3203,3 +3203,124 @@ button.profile-pill:focus-visible {
     margin-top: .25rem;
   }
 }
+
+/* V60 — Planning membre : Mon prochain cours */
+.next-course-panel{
+  position:relative;
+  overflow:hidden;
+  border-color:rgba(248,231,2,.18);
+  background:linear-gradient(145deg,rgba(28,28,28,.96),rgba(12,12,12,.98));
+}
+.next-course-panel::before{
+  content:"";
+  position:absolute;
+  right:-70px;
+  top:-90px;
+  width:210px;
+  height:210px;
+  border-radius:999px;
+  background:radial-gradient(circle,rgba(248,231,2,.16),rgba(248,231,2,0) 68%);
+  pointer-events:none;
+}
+.next-course-panel>*{position:relative;z-index:1;}
+.next-course-card{
+  display:flex;
+  flex-direction:column;
+  gap:.85rem;
+}
+.next-course-main{
+  display:flex;
+  gap:.9rem;
+  align-items:flex-start;
+}
+.next-course-icon{
+  width:52px;
+  height:52px;
+  flex:0 0 auto;
+  border-radius:20px;
+  display:grid;
+  place-items:center;
+  font-size:1.45rem;
+  background:rgba(248,231,2,.12);
+  border:1px solid rgba(248,231,2,.28);
+  box-shadow:0 12px 28px rgba(0,0,0,.22);
+}
+.next-course-body{min-width:0;flex:1;}
+.next-course-kicker{
+  color:var(--gold);
+  text-transform:uppercase;
+  letter-spacing:.13em;
+  font-size:.62rem;
+  font-weight:700;
+  margin-bottom:.18rem;
+}
+.next-course-title{
+  color:var(--white);
+  font-weight:800;
+  font-size:1.05rem;
+  line-height:1.15;
+}
+.next-course-time{
+  color:var(--gold);
+  font-size:.94rem;
+  font-weight:700;
+  margin-top:.26rem;
+}
+.next-course-meta{
+  color:var(--muted);
+  font-size:.78rem;
+  line-height:1.45;
+  margin-top:.22rem;
+}
+.next-course-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.55rem;
+  margin-left:61px;
+}
+.next-course-more{
+  margin-top:.2rem;
+  border-top:1px solid rgba(255,255,255,.08);
+  padding-top:.75rem;
+  display:flex;
+  flex-direction:column;
+  gap:.45rem;
+}
+.next-course-more-title{
+  color:rgba(255,255,255,.62);
+  font-size:.68rem;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+  font-weight:700;
+}
+.next-course-mini{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:.7rem;
+  padding:.62rem .72rem;
+  border:1px solid rgba(255,255,255,.075);
+  border-radius:16px;
+  background:rgba(255,255,255,.035);
+}
+.next-course-mini span{
+  color:var(--white);
+  font-size:.8rem;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.next-course-mini strong{
+  color:var(--muted);
+  font-size:.72rem;
+  font-weight:600;
+  white-space:nowrap;
+}
+@media(max-width:640px){
+  .next-course-main{gap:.75rem;}
+  .next-course-icon{width:46px;height:46px;border-radius:17px;font-size:1.28rem;}
+  .next-course-actions{margin-left:0;}
+  .next-course-mini{align-items:flex-start;flex-direction:column;gap:.22rem;}
+  .next-course-mini span{white-space:normal;}
+}
