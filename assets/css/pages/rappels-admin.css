@@ -59,3 +59,13 @@
 .check-row.compact{
   margin-top:8px;
 }
+
+
+/* V73 — exclusions automatiques vacances / jours fériés */
+.calendar-exclusion-panel{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.055);border-radius:18px;padding:12px;margin:10px 0;display:grid;gap:10px}
+.calendar-exclusion-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.calendar-exclusion-head strong{display:block;color:#fff}
+.calendar-exclusion-head small{display:block;color:rgba(255,255,255,.66);margin-top:3px}
+.calendar-exclusion-options{display:grid;gap:8px}
+.calendar-check{margin:0}
+@media (max-width:520px){.calendar-exclusion-head{align-items:flex-start;flex-direction:column}.calendar-exclusion-head .btn-outline{width:100%}}

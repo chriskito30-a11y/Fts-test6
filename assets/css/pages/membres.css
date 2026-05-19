@@ -3324,3 +3324,16 @@ button.profile-pill:focus-visible {
   .next-course-mini{align-items:flex-start;flex-direction:column;gap:.22rem;}
   .next-course-mini span{white-space:normal;}
 }
+
+
+/* V73 — préférences rappels dans Mon compte */
+.account-reminders-list{display:grid;gap:10px;margin-top:10px}
+.account-reminder-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:18px;padding:12px;display:grid;gap:10px}
+.account-reminder-card.is-paused{opacity:.82;background:rgba(255,255,255,.035)}
+.account-reminder-main{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.account-reminder-main strong{display:block;color:#fff}
+.account-reminder-main small{display:block;color:rgba(255,255,255,.68);margin-top:2px}
+.account-reminder-checks{display:flex;flex-wrap:wrap;gap:8px}
+.account-reminder-checks label{display:flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:8px 10px;background:rgba(0,0,0,.12);font-size:.9rem;color:rgba(255,255,255,.9)}
+.account-reminder-state{font-size:.82rem;color:rgba(255,255,255,.66)}
+@media (max-width:520px){.account-reminder-main{align-items:flex-start;flex-direction:column}.account-reminder-main .account-btn{width:100%}.account-reminder-checks label{flex:1;justify-content:center}}
