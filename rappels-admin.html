@@ -1,142 +1,226 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Admin — Fais Ton Show</title>
+<title>Admin Rappels — Fais Ton Show</title>
 <link href="./manifest.json" rel="manifest"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=46" rel="stylesheet"/>
-
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
+<link href="assets/css/pages/rappels-admin.css?v=67" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
 </head>
 <body class="has-glow">
-<div class="auth-loading" id="auth-loading"><div class="logo">ADMIN <span>FTS</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div><div class="empty-error" id="auth-error"></div></div>
-<div class="admin-shell" id="admin-shell">
-<header class="fts-admin-pagehead" aria-label="En-tête administrateur">
-  <div class="fts-admin-brand">
-    <div class="fts-admin-logo">ADMIN <span>FTS</span></div>
-    <div class="fts-admin-sub">Hub de gestion — Fais Ton Show</div>
-  </div>
-  <div class="fts-admin-actions"><a class="fts-admin-ghost" href="index.html">Accueil public</a><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
-</header>
-<main class="admin-wrap">
-<section class="hello-card">
-<div class="hello-kicker">Tableau de bord admin</div>
-<div class="hello-title">Bienvenue, <span id="admin-name">admin</span></div>
-<div class="hello-sub">Vue rapide de l’association. Les validations, rôles et catégories restent gérés dans les pages dédiées.</div>
-</section>
-
-<section aria-label="Résumé administration" class="admin-overview" id="admin-overview">
-  <article class="overview-card overview-waiting">
-    <div class="overview-icon">⏳</div>
-    <div>
-      <div class="overview-number" id="stat-pending">—</div>
-      <div class="overview-label">Inscriptions en attente</div>
-    </div>
-  </article>
-  <article class="overview-card">
-    <div class="overview-icon">✅</div>
-    <div>
-      <div class="overview-number" id="stat-active">—</div>
-      <div class="overview-label">Membres validés</div>
-    </div>
-  </article>
-  <article class="overview-card">
-    <div class="overview-icon">🎓</div>
-    <div>
-      <div class="overview-number" id="stat-staff">—</div>
-      <div class="overview-label">Admins / profs</div>
-    </div>
-  </article>
-  <article class="overview-card">
-    <div class="overview-icon">👨‍👩‍👧</div>
-    <div>
-      <div class="overview-number" id="stat-children">—</div>
-      <div class="overview-label">Enfants renseignés</div>
-    </div>
-  </article>
-</section>
-
-<section class="admin-insight-card" id="admin-category-summary" aria-label="Résumé par catégorie">
-  <div class="insight-head">
-    <div>
-      <div class="section-lbl compact">Répartition rapide</div>
-      <h2>Catégories & sous-catégories</h2>
-    </div>
-    <a class="btn btn-sm btn-dark" href="forum-admin.html">Gérer les accès</a>
-  </div>
-  <div class="insight-note">Comptage indicatif depuis les profils validés, en incluant les adultes et les enfants.</div>
-  <div class="category-summary-grid" id="category-summary-grid">
-    <div class="hint">Chargement du résumé…</div>
-  </div>
-</section>
-
-<section class="admin-action-groups" aria-label="Actions administrateur">
-  <div class="admin-action-group admin-action-group-priority">
-    <div class="admin-group-head">
-      <div class="section-lbl compact">À traiter</div>
-      <p>Les actions qui demandent ton attention avant le reste.</p>
-    </div>
-    <div class="admin-grid admin-grid-focused">
-      <a class="admin-card" href="forum-admin.html"><div class="admin-ico">👥</div><div class="admin-title">Membres &amp; accès</div><div class="admin-desc">Valider les inscriptions, modifier les rôles, disciplines et sous-catégories, gérer les membres actifs.</div><div class="admin-meta">forum-admin.html</div></a>
-    </div>
-  </div>
-
-  <div class="admin-action-group">
-    <div class="admin-group-head">
-      <div class="section-lbl compact">Publier</div>
-      <p>Annonces, ressources, calendrier, saison et sondages.</p>
-    </div>
-    <div class="admin-grid">
-      <a class="admin-card" href="contenus-admin.html"><div class="admin-ico">📁</div><div class="admin-title">Contenus</div><div class="admin-desc">Gérer les annonces, le questionnaire, les ressources et les catégories Firebase.</div><div class="admin-meta">contenus-admin.html</div></a>
-      <a class="admin-card" href="calendrier-admin.html"><div class="admin-ico">📅</div><div class="admin-title">Calendrier</div><div class="admin-desc">Ajouter, modifier, masquer ou supprimer les événements affichés dans l’espace membres.</div><div class="admin-meta">calendrier-admin.html</div></a>
-      <a class="admin-card" href="saison-admin.html"><div class="admin-ico">🎭</div><div class="admin-title">Saison</div><div class="admin-desc">Modifier la page saison, les activités, parcours, tarifs et liens d’inscription.</div><div class="admin-meta">saison-admin.html</div></a>
-      <a class="admin-card" href="sondages.html"><div class="admin-ico">📊</div><div class="admin-title">Sondages</div><div class="admin-desc">Créer des votes ciblés par catégories ou sous-catégories, suivre les réponses et relancer les non-répondants via badge.</div><div class="admin-meta">sondages.html</div></a>
-    </div>
-  </div>
-
-  <div class="admin-action-group">
-    <div class="admin-group-head">
-      <div class="section-lbl compact">Vérifier</div>
-      <p>Contrôler ce que voient les adhérents, sans modifier les données.</p>
-    </div>
-    <section aria-label="Vérifications rapides" class="quick-row">
-      <a class="quick-link" href="forum.html"><span>💬</span><span>Voir le forum</span></a>
-      <a class="quick-link" href="messages.html"><span>✉️</span><span>Tester messages</span></a>
-      <a class="quick-link" href="saison.html"><span>👀</span><span>Voir page saison</span></a>
-    </section>
-  </div>
-
-  <div class="admin-action-group">
-    <div class="admin-group-head">
-      <div class="section-lbl compact">Outils</div>
-      <p>Accès utiles pour publier ou vérifier comme un profil spécialisé.</p>
-    </div>
-    <div class="admin-grid admin-grid-focused">
-      <a class="admin-card" href="profs.html"><div class="admin-ico">🎓</div><div class="admin-title">Espace profs</div><div class="admin-desc">Publier ou gérer des ressources comme un professeur, avec accès complet côté admin.</div><div class="admin-meta">profs.html</div></a>
-      <a class="admin-card" href="rappels-admin.html"><div class="admin-ico">🤖</div><div class="admin-title">Rappels automatiques</div><div class="admin-desc">Créer les créneaux et laisser l’app admin envoyer automatiquement les rappels par MP/push.</div><div class="admin-meta">rappels-admin.html</div></a>
-    </div>
-  </div>
-</section>
-<footer class="page-footer u-admin-inline-1">Fais Ton Show — Administration centralisée V1</footer>
-</main>
+<div class="auth-loading" id="auth-loading">
+  <div class="logo">ADMIN <span>RAPPELS</span></div>
+  <div class="spinner"></div>
+  <div class="sub">Vérification accès admin…</div>
 </div>
+
+<div class="admin-shell" id="admin-shell">
+  <header class="fts-admin-pagehead" aria-label="En-tête administrateur">
+    <div class="fts-admin-brand">
+      <div class="fts-admin-logo">ADMIN <span>RAPPELS</span></div>
+      <div class="fts-admin-sub">Module admin — créneaux, planning et rappels automatiques natifs</div>
+    </div>
+    <div class="fts-admin-actions">
+      <a class="fts-admin-ghost" href="admin.html">Centre admin</a>
+      <button class="fts-admin-logout" id="logout-btn" type="button">Déconnexion</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="reminder-hero">
+      <div class="hero-kicker">Dispatch natif admin actif</div>
+      <h1 class="hero-title">Rappels automatiques</h1>
+      <p class="hero-sub">Crée une source planning propre et prépare les rappels 24h/1h. Les rappels pending sont envoyés automatiquement par l’app quand une page admin est ouverte.</p>
+      <div class="safe-strip" aria-label="Garanties de sécurité">
+        <span class="safe-pill">✅ fts_dm intact</span>
+        <span class="safe-pill">✅ unread intact</span>
+        <span class="safe-pill">✅ notifications intactes</span>
+        <span class="safe-pill">✅ envoi automatique natif</span>
+        <span class="safe-pill">✅ répétitions isolées</span>
+        <span class="safe-pill">✅ fts_schedules isolé</span>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="Création et suivi des rappels">
+      <article class="card-admin">
+        <div class="mini-title">Créer un rappel</div>
+
+        <div class="field">
+          <label for="reminder-kind">Type de rappel</label>
+          <select id="reminder-kind">
+            <option value="music_individual">Musique individuelle</option>
+            <option value="group">Groupe / sous-catégorie</option>
+            <option value="exceptional">Rendez-vous exceptionnel</option>
+          </select>
+          <small>La musique individuelle est le cas prioritaire. Les groupes restent optionnels.</small>
+        </div>
+
+        <div class="field" id="field-user">
+          <label for="reminder-user">Membre concerné</label>
+          <select id="reminder-user"><option>Chargement…</option></select>
+        </div>
+
+        <div class="form-grid">
+          <div class="field u-hidden" id="field-category">
+            <label for="reminder-category">Catégorie</label>
+            <select id="reminder-category"><option>Chargement…</option></select>
+          </div>
+          <div class="field u-hidden" id="field-subcategory">
+            <label for="reminder-subcategory">Sous-catégorie</label>
+            <select id="reminder-subcategory"><option>Toutes</option></select>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field" id="field-lesson-type">
+            <label for="lesson-type">Instrument / cours</label>
+            <input id="lesson-type" placeholder="Guitare, piano, chant…"/>
+          </div>
+          <div class="field">
+            <label for="teacher-name">Prof</label>
+            <input id="teacher-name" placeholder="Chris, Julie…"/>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="lesson-title">Titre personnalisé</label>
+          <input id="lesson-title" placeholder="Optionnel — ex : Cours de batterie"/>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="lesson-at">Premier créneau / date de référence</label>
+            <input id="lesson-at" type="datetime-local"/>
+          </div>
+          <div class="field">
+            <label for="duration-min">Durée</label>
+            <select id="duration-min">
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60">1 heure</option>
+              <option value="90">1h30</option>
+              <option value="120">2 heures</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="planning-box" aria-label="Planification des créneaux">
+          <div class="planning-head">
+            <strong>Planification</strong>
+            <span>Génère plusieurs séances et prépare les rappels automatiques associés.</span>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="planning-mode">Rythme</label>
+              <select id="planning-mode">
+                <option value="single">Une seule date</option>
+                <option value="weekly">Toutes les semaines</option>
+                <option value="biweekly">Tous les 15 jours</option>
+                <option value="triweekly">Toutes les 3 semaines</option>
+                <option value="manual">Dates manuelles</option>
+              </select>
+            </div>
+            <div class="field" id="field-repeat-until">
+              <label for="repeat-until">Jusqu’au</label>
+              <input id="repeat-until" type="date"/>
+            </div>
+          </div>
+          <div class="field u-hidden" id="field-manual-dates">
+            <label for="manual-dates">Dates manuelles</label>
+            <textarea id="manual-dates" placeholder="Une date par ligne : 2026-06-03 17:30"></textarea>
+            <small>Format accepté : 2026-06-03 17:30 ou 03/06/2026 17:30.</small>
+          </div>
+          <div class="field">
+            <label for="excluded-dates">Dates à exclure</label>
+            <textarea id="excluded-dates" placeholder="Une date par ligne : 2026-05-20
+Utile pour vacances, jours fériés, absence prof…"></textarea>
+            <small>Première version safe : on exclut les dates indiquées manuellement. Le calendrier vacances automatisé viendra ensuite.</small>
+          </div>
+          <div class="planning-summary" id="planning-summary">—</div>
+        </div>
+
+        <div class="field">
+          <label for="place-name">Lieu</label>
+          <input id="place-name" placeholder="Salle musique, studio, salle spectacle…"/>
+        </div>
+
+        <div class="field">
+          <label for="message-extra">Note ajoutée au rappel</label>
+          <textarea id="message-extra" placeholder="Ex : Merci de prévenir rapidement en cas d’absence."></textarea>
+        </div>
+
+        <label class="check-row">
+          <input id="reminder-24h" type="checkbox" checked/>
+          <span><strong>Rappel 24h avant</strong><span>Prépare un rappel automatique la veille.</span></span>
+        </label>
+        <label class="check-row">
+          <input id="reminder-1h" type="checkbox" checked/>
+          <span><strong>Rappel 1h avant</strong><span>Prépare un rappel court avant le créneau.</span></span>
+        </label>
+        <div class="preview-card" id="bot-preview"></div>
+
+        <div class="row-actions">
+          <button class="btn btn-sm btn-gold" id="btn-save-schedule" type="button">Créer planning + rappels</button>
+          <button class="btn btn-sm btn-dark" id="btn-create-reminders" type="button">Créer les rappels</button>
+          <button class="btn-outline btn-sm" id="btn-fill-music-demo" type="button">Exemple musique</button>
+          <button class="btn-outline btn-sm" id="btn-reset-form" type="button">Réinitialiser</button>
+        </div>
+        <div class="msg" id="msg"></div>
+      </article>
+
+      <article class="card-admin">
+        <div class="list-head">
+          <div>
+            <div class="mini-title">Rappels programmés</div>
+            <div class="hint">Liste issue de <code>fts_scheduled_reminders</code>. Les rappels à envoyer passent automatiquement de <b>pending</b> à <b>sent</b> quand une page admin est ouverte et que <b>sendAt</b> est passé.</div>
+          </div>
+          <div class="list-count" id="reminder-count">—</div>
+        </div>
+
+        <div class="filters" aria-label="Filtres de statut">
+          <button class="filter-chip active" data-filter-status="all" type="button">Tous</button>
+          <button class="filter-chip" data-filter-status="standby" type="button">En pause</button>
+          <button class="filter-chip" data-filter-status="pending" type="button">Pending</button>
+          <button class="filter-chip" data-filter-status="cancelled" type="button">Annulés</button>
+          <button class="filter-chip" data-filter-status="sent" type="button">Envoyés</button>
+        </div>
+
+        <div class="reminder-list" id="reminder-list">
+          <div class="empty">Chargement des rappels…</div>
+        </div>
+
+        <div class="helper-box">
+          <strong>Envoi automatique natif</strong>
+          <p id="dispatch-status" data-state="booting">Initialisation des rappels automatiques…</p>
+          <p>Les rappels en <b>pending</b> sont envoyés automatiquement dès que <b>sendAt</b> est passé, tant qu’une page admin est ouverte.</p>
+        </div>
+
+        <div id="selected-reminder" class="selected-reminder">
+          <div class="empty">Sélectionne un rappel pour voir le détail.</div>
+        </div>
+      </article>
+    </section>
+  </main>
+</div>
+
 <nav class="fts-admin-bottom-nav" aria-label="Navigation administrateur">
   <div class="fts-admin-bottom-track">
     <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
-    <a class="fts-admin-bottom-item active" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
+    <a class="fts-admin-bottom-item" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
     <a class="fts-admin-bottom-item" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
     <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
     <a class="fts-admin-bottom-item" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
     <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
     <a class="fts-admin-bottom-item" href="sondages.html"><span class="fts-admin-bottom-icon">📊</span><span>Sondages</span></a>
+    <a class="fts-admin-bottom-item active" href="rappels-admin.html"><span class="fts-admin-bottom-icon">🤖</span><span>Rappels</span></a>
   </div>
 </nav>
 <div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
@@ -145,14 +229,9 @@
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
-<script src="assets/js/services/resources.service.js?v=1"></script>
-<script src="assets/js/services/events.service.js?v=1"></script>
-<script src="assets/js/services/forum.service.js?v=1"></script>
-<script src="assets/js/services/messages.service.js?v=1"></script>
-<script src="assets/js/services/content.service.js?v=1"></script>
-<script src="assets/js/services/notifications.service.js?v=1"></script>
-<script src="assets/js/services/season.service.js?v=1"></script>
+<script src="assets/js/services/reminders.service.js?v=67"></script>
+<script src="assets/js/services/schedules.service.js?v=67"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/admin.js?v=3"></script>
+<script src="assets/js/pages/rappels-admin.js?v=67"></script>
 </body>
 </html>

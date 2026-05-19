@@ -1,1020 +1,173 @@
-/* ================================================================
-   PAGE MODULE — RAPPELS-ADMIN
-   Module admin pour créer/simuler des rappels automatiques.
-   V65 : dispatch natif admin, sans scénario externe.
-   ================================================================ */
-(function(){
-  'use strict';
+<!DOCTYPE html>
 
-  let db, auth, currentUser, currentProfile;
-  let users = {};
-  let categoryStructure = [];
-  let reminders = {};
-  let selectedReminderId = '';
-  let filterStatus = 'all';
-  let isSaving = false;
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Admin Contenus — Fais Ton Show</title>
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=54" rel="stylesheet"/>
 
-  function $(id){ return document.getElementById(id); }
-  function esc(v){ return window.FTS && FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v); }
-  function norm(v){ return window.FTS && FTS.norm ? FTS.norm(v || '') : String(v || '').toLowerCase(); }
-  function msg(txt, ok){
-    const el = $('msg');
-    if(!el) return;
-    el.textContent = txt;
-    el.className = 'msg ' + (ok === false ? 'err' : 'ok');
-    clearTimeout(msg._t);
-    msg._t = setTimeout(() => { el.className = 'msg'; }, 4200);
-  }
-  function doLogout(){ firebase.auth().signOut().then(() => location.href='auth.html'); }
-  window.doLogout = doLogout;
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-  function init(){
-    db = FTS.initFirebase();
-    auth = firebase.auth();
-    auth.onAuthStateChanged(async user => {
-      if(!user){ location.href='auth.html'; return; }
-      currentUser = user;
-      try{
-        const snap = await db.ref('fts_users/' + user.uid).once('value');
-        currentProfile = snap.val();
-        if(!currentProfile || currentProfile.role !== 'admin'){
-          location.href = 'membres.html';
-          return;
-        }
-        $('auth-loading').style.display = 'none';
-        $('admin-shell').style.display = 'block';
-        bindEvents();
-        await Promise.all([loadUsers(), loadCategories()]);
-        setDefaultDates();
-        renderUsers();
-        renderCategories();
-        updateConditionalFields();
-        updatePreview();
-        listenReminders();
-        bindDispatcherStatus();
-        if(FTS.Services && FTS.Services.ReminderDispatcher && FTS.Services.ReminderDispatcher.start){
-          FTS.Services.ReminderDispatcher.start();
-        }
-      }catch(e){
-        console.warn('[FTS Rappels Admin] init', e);
-        location.href = 'auth.html';
-      }
-    });
-  }
+</head>
+<body class="has-glow">
+<div class="auth-loading" id="auth-loading"><div class="logo">ADMIN <span>CONTENUS</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div></div>
+<div class="admin-shell" id="admin-shell">
+<header class="fts-admin-pagehead" aria-label="En-tête administrateur">
+  <div class="fts-admin-brand">
+    <div class="fts-admin-logo">ADMIN <span>CONTENUS</span></div>
+    <div class="fts-admin-sub">Annonces · questionnaire · ressources Firebase</div>
+  </div>
+  <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
+</header>
+<div class="wrap-admin contenus-modern">
+<div class="tabs-row"><button class="tab-lnk active" data-fts-handler-2="">📣 Annonce</button><button class="tab-lnk" data-fts-handler-3="">🧭 Questionnaire</button><button class="tab-lnk" data-fts-handler-4="">📁 Ressources</button><button class="tab-lnk" data-fts-handler-5="">🗂️ Catégories</button></div>
+<section class="tab-pane active" id="tab-annonces">
+<div class="card-admin form-panel"><div class="mini-title">Annonce affichée dans l’espace membres</div><p class="field-help top-help">Ce message apparaît en haut de l’espace membre. Utilise-le pour une information générale courte.</p>
+<div class="form-grid">
+<div class="field"><label>Visibilité de l’annonce</label><select id="a-active"><option value="true">Visible dans l’espace membres</option><option value="false">Masquée pour les membres</option></select><small>Permet de préparer une annonce sans l’afficher tout de suite.</small></div>
+<div class="field"><label>Titre court</label><input id="a-title" placeholder="Ex : Répétition générale dimanche"/><small>Ce titre doit être lisible en un coup d’œil.</small></div>
+<div class="field full"><label>Message affiché</label><textarea id="a-body" placeholder="Message affiché aux membres…"></textarea><small>Écris uniquement l’information essentielle : quoi, quand, où.</small></div>
+<div class="field"><label>Texte du bouton</label><input id="a-btn" placeholder="Voir la saison"/><small>Optionnel. Exemple : Voir les infos.</small></div>
+<div class="field"><label>Destination du bouton</label><input id="a-url" placeholder="saison.html ou https://…"/><small>Page interne ou lien complet.</small></div>
+<div class="field"><label>Fin automatique</label><input id="a-expires" type="datetime-local"/><small>Optionnel. Vide = annonce permanente jusqu’à suppression ou masquage manuel.</small></div>
+</div>
+<div class="preview-box" id="annonce-preview"><div class="preview-label">Aperçu membre</div><div class="preview-card"><strong>Info importante</strong><p>Ton annonce apparaîtra ici.</p></div></div>
+<button class="btn" data-fts-handler-6="">Enregistrer l’annonce générale</button><div class="msg" id="msg-annonce"></div>
+</div>
 
-  function bindDispatcherStatus(){
-    if(window.__FTS_RAPPELS_DISPATCH_STATUS_BOUND__) return;
-    window.__FTS_RAPPELS_DISPATCH_STATUS_BOUND__ = true;
-    window.addEventListener('fts:reminder-dispatcher-state', event => {
-      const d = event.detail || {};
-      const el = $('dispatch-status');
-      if(el){
-        el.textContent = d.text || 'Rappels automatiques actifs';
-        el.setAttribute('data-state', d.state || 'idle');
-      }
-    });
-    window.addEventListener('fts:reminder-dispatcher-status', event => {
-      const d = event.detail || {};
-      const el = $('dispatch-status');
-      if(el){
-        const parts = [];
-        if(d.checked) parts.push(d.checked + ' rappel(s) vérifié(s)');
-        if(d.sent) parts.push(d.sent + ' envoyé(s)');
-        if(d.recipients) parts.push(d.recipients + ' destinataire(s)');
-        if(d.errors) parts.push(d.errors + ' erreur(s)');
-        el.textContent = parts.length ? parts.join(' · ') : 'Rappels automatiques actifs';
-      }
-    });
-  }
-
-  async function loadUsers(){
-    try{
-      const snap = await db.ref('fts_users').once('value');
-      users = snap.val() || {};
-    }catch(e){
-      console.warn('[FTS Rappels Admin] users', e);
-      users = {};
-    }
-  }
-
-  async function loadCategories(){
-    try{
-      const rows = FTS.getCategoryStructureAsync ? await FTS.getCategoryStructureAsync(db) : [];
-      categoryStructure = normalizeCategoryStructure(rows);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] categories fallback', e);
-      categoryStructure = normalizeCategoryStructure(FTS.getDefaultCategoryStructure ? FTS.getDefaultCategoryStructure() : []);
-    }
-  }
-
-  function normalizeCategoryStructure(rows){
-    return (Array.isArray(rows) ? rows : [])
-      .filter(c => c && c.active !== false)
-      .map(c => {
-        const name = c.name || c.category || '';
-        const rawSubs = c.subs || c.subcats || c.subcategories || [];
-        const subcats = (Array.isArray(rawSubs) ? rawSubs : Object.values(rawSubs))
-          .map(s => typeof s === 'string' ? s : (s && (s.name || s.label)))
-          .filter(Boolean);
-        return { name, icon: c.icon || c.emoji || (FTS.catIcon ? FTS.catIcon(name) : '🎭'), subcats };
-      }).filter(c => c.name);
-  }
-
-  function bindEvents(){
-    $('logout-btn')?.addEventListener('click', doLogout);
-    $('reminder-kind')?.addEventListener('change', () => { updateConditionalFields(); updatePreview(); });
-    $('reminder-user')?.addEventListener('change', updatePreview);
-    $('reminder-category')?.addEventListener('change', () => { renderSubcategories(); updatePreview(); });
-    $('reminder-subcategory')?.addEventListener('change', updatePreview);
-    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','reminder-24h','reminder-1h','repeat-until','manual-dates','excluded-dates'].forEach(id => {
-      $(id)?.addEventListener('input', updatePreview);
-      $(id)?.addEventListener('change', updatePreview);
-    });
-    $('planning-mode')?.addEventListener('input', () => { updateConditionalFields(); updatePreview(); });
-    $('planning-mode')?.addEventListener('change', () => { updateConditionalFields(); updatePreview(); });
-    $('btn-save-schedule')?.addEventListener('click', saveSchedule); // V61 : crée planning + rappels liés
-    $('btn-create-reminders')?.addEventListener('click', createReminders);
-    $('btn-reset-form')?.addEventListener('click', resetForm);
-    $('btn-fill-music-demo')?.addEventListener('click', fillMusicDemo);
-    document.addEventListener('click', handleDocumentClick);
-  }
-
-  function handleDocumentClick(event){
-    const filter = event.target.closest('[data-filter-status]');
-    if(filter){
-      filterStatus = filter.getAttribute('data-filter-status') || 'all';
-      document.querySelectorAll('[data-filter-status]').forEach(b => b.classList.toggle('active', b === filter));
-      renderReminders();
-      return;
-    }
-    const row = event.target.closest('[data-reminder-id]');
-    if(row){
-      selectedReminderId = row.getAttribute('data-reminder-id') || '';
-      renderReminders();
-      renderSelectedReminder();
-      return;
-    }
-    const copy = event.target.closest('[data-copy-reminder]');
-    if(copy){
-      const id = copy.getAttribute('data-id') || selectedReminderId;
-      copyReminderText(id);
-      return;
-    }
-    const action = event.target.closest('[data-reminder-action]');
-    if(action){
-      const id = action.getAttribute('data-id') || selectedReminderId;
-      const type = action.getAttribute('data-reminder-action');
-      if(type === 'delete') deleteReminder(id);
-      if(type === 'send-test-dm') sendRealTestDm(id);
-      if(type === 'standby') setReminderStatus(id, 'standby');
-      if(type === 'activate-series') activateReminderSeries(id);
-      if(type === 'standby-series') standbyReminderSeries(id);
-      if(type === 'cancelled') setReminderStatus(id, 'cancelled');
-    }
-  }
-
-  function setDefaultDates(){
-    const el = $('lesson-at');
-    if(!el || el.value) return;
-    const d = new Date();
-    d.setDate(d.getDate() + 1);
-    d.setHours(17, 30, 0, 0);
-    el.value = toLocalInputValue(d.getTime());
-  }
-
-  function toLocalInputValue(ts){
-    const d = new Date(ts);
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  }
-
-  function fromLocalInputValue(value){
-    if(!value) return 0;
-    const ts = new Date(value).getTime();
-    return Number.isFinite(ts) ? ts : 0;
-  }
-
-  function renderUsers(){
-    const select = $('reminder-user');
-    if(!select) return;
-    const rows = Object.entries(users)
-      .filter(([,u]) => u && u.status === 'active')
-      .sort((a,b) => displayName(a[1]).localeCompare(displayName(b[1]), 'fr'));
-    select.innerHTML = '<option value="">Choisir un membre…</option>' + rows.map(([uid,u]) => {
-      const label = displayName(u) + (u.email ? ' · ' + u.email : '');
-      return `<option value="${esc(uid)}">${esc(label)}</option>`;
-    }).join('');
-  }
-
-  function renderCategories(){
-    const select = $('reminder-category');
-    if(!select) return;
-    select.innerHTML = '<option value="">Toutes / choisir…</option>' + categoryStructure.map(c => `<option value="${esc(c.name)}">${esc((c.icon || '') + ' ' + c.name)}</option>`).join('');
-    renderSubcategories();
-  }
-
-  function renderSubcategories(){
-    const cat = $('reminder-category')?.value || '';
-    const select = $('reminder-subcategory');
-    if(!select) return;
-    const found = categoryStructure.find(c => c.name === cat);
-    const subs = found && Array.isArray(found.subcats) ? found.subcats : [];
-    select.innerHTML = '<option value="">Toutes les sous-catégories</option>' + subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
-  }
-
-  function displayName(u){
-    if(!u) return 'Membre';
-    return u.displayName || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre';
-  }
-
-  function updateConditionalFields(){
-    const kind = $('reminder-kind')?.value || 'music_individual';
-    const individual = kind === 'music_individual';
-    const planningMode = $('planning-mode')?.value || 'single';
-    const repeatInput = $('repeat-until');
-    const eventAt = fromLocalInputValue($('lesson-at')?.value || '');
-    if(repeatInput && !repeatInput.value && (planningMode === 'weekly' || planningMode === 'biweekly' || planningMode === 'triweekly') && eventAt){
-      repeatInput.value = toDateInputValue(defaultRepeatUntil(eventAt, planningMode));
-    }
-    $('field-user')?.classList.toggle('u-hidden', !individual);
-    $('field-category')?.classList.toggle('u-hidden', individual);
-    $('field-subcategory')?.classList.toggle('u-hidden', individual);
-    $('field-lesson-type')?.querySelector('label') && ($('field-lesson-type').querySelector('label').textContent = individual ? 'Instrument / cours' : 'Type de rendez-vous');
-    $('field-repeat-until')?.classList.toggle('u-hidden', planningMode === 'single' || planningMode === 'manual');
-    $('field-manual-dates')?.classList.toggle('u-hidden', planningMode !== 'manual');
-    updatePlanningSummary();
-  }
-
-  function getFormData(){
-    const kind = $('reminder-kind')?.value || 'music_individual';
-    const eventAt = fromLocalInputValue($('lesson-at')?.value || '');
-    const uid = $('reminder-user')?.value || '';
-    const user = uid ? users[uid] : null;
-    const category = $('reminder-category')?.value || '';
-    const subcategory = $('reminder-subcategory')?.value || '';
-    const lessonType = ($('lesson-type')?.value || '').trim();
-    const title = ($('lesson-title')?.value || '').trim() || buildDefaultTitle(kind, lessonType, category, subcategory);
-    const teacher = ($('teacher-name')?.value || '').trim();
-    const place = ($('place-name')?.value || '').trim();
-    const duration = parseInt($('duration-min')?.value || '30', 10) || 30;
-    const extra = ($('message-extra')?.value || '').trim();
-    const standby = false;
-    const planningMode = $('planning-mode')?.value || 'single';
-    const repeatUntil = parseDateOnly($('repeat-until')?.value || '');
-    const manualDatesText = $('manual-dates')?.value || '';
-    const excludedDatesText = $('excluded-dates')?.value || '';
-    const offsets = [];
-    if($('reminder-24h')?.checked) offsets.push(24 * 60);
-    if($('reminder-1h')?.checked) offsets.push(60);
-    const occurrences = buildOccurrences(eventAt, planningMode, repeatUntil, manualDatesText, excludedDatesText);
-    return { kind, eventAt, uid, user, category, subcategory, lessonType, title, teacher, place, duration, extra, standby, offsets, planningMode, repeatUntil, manualDatesText, excludedDatesText, occurrences };
-  }
-
-  function parseDateOnly(value){
-    if(!value) return 0;
-    const ts = new Date(value + 'T23:59:59').getTime();
-    return Number.isFinite(ts) ? ts : 0;
-  }
-
-  function addDays(ts, days){
-    const d = new Date(ts);
-    d.setDate(d.getDate() + days);
-    return d.getTime();
-  }
-
-  function defaultRepeatUntil(firstAt, mode){
-    if(!firstAt || (mode !== 'weekly' && mode !== 'biweekly' && mode !== 'triweekly')) return 0;
-    // Safe UX default : assez long pour tester, sans créer une saison entière par erreur.
-    const stepDays = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
-    const occurrences = 8;
-    const d = new Date(firstAt);
-    d.setDate(d.getDate() + stepDays * (occurrences - 1));
-    d.setHours(23, 59, 59, 999);
-    return d.getTime();
-  }
-
-  function toDateInputValue(ts){
-    if(!ts) return '';
-    const d = new Date(ts);
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
-
-  function dateKey(ts){
-    const d = new Date(ts);
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  }
-
-  function parseManualDateLine(line, fallbackHour, fallbackMinute){
-    const raw = String(line || '').trim();
-    if(!raw) return 0;
-    let m = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?$/);
-    if(m){
-      const h = m[4] != null ? parseInt(m[4],10) : fallbackHour;
-      const min = m[5] != null ? parseInt(m[5],10) : fallbackMinute;
-      const ts = new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10), h, min, 0, 0).getTime();
-      return Number.isFinite(ts) ? ts : 0;
-    }
-    m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
-    if(m){
-      const h = m[4] != null ? parseInt(m[4],10) : fallbackHour;
-      const min = m[5] != null ? parseInt(m[5],10) : fallbackMinute;
-      const ts = new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10), h, min, 0, 0).getTime();
-      return Number.isFinite(ts) ? ts : 0;
-    }
-    const ts = new Date(raw).getTime();
-    return Number.isFinite(ts) ? ts : 0;
-  }
-
-  function parseExcludedDates(text){
-    const set = new Set();
-    String(text || '').split(/\n|,|;/).map(x => x.trim()).filter(Boolean).forEach(line => {
-      const ts = parseManualDateLine(line, 12, 0);
-      if(ts) set.add(dateKey(ts));
-    });
-    return set;
-  }
-
-  function buildOccurrences(firstAt, mode, repeatUntil, manualText, excludedText){
-    const excluded = parseExcludedDates(excludedText);
-    const base = firstAt ? new Date(firstAt) : new Date();
-    const fallbackHour = Number.isFinite(base.getHours()) ? base.getHours() : 17;
-    const fallbackMinute = Number.isFinite(base.getMinutes()) ? base.getMinutes() : 30;
-    let rows = [];
-
-    if(mode === 'manual'){
-      const manualRows = String(manualText || '')
-        .split(/\n|,|;/)
-        .map(line => parseManualDateLine(line, fallbackHour, fallbackMinute))
-        .filter(Boolean);
-      // UX safe : la date de référence sert de première date si aucune date manuelle n'est encore saisie.
-      rows = manualRows.length ? manualRows : (firstAt ? [firstAt] : []);
-    }else if(mode === 'weekly' || mode === 'biweekly' || mode === 'triweekly'){
-      if(firstAt){
-        const stepDays = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
-        const until = repeatUntil || defaultRepeatUntil(firstAt, mode);
-        let cur = firstAt;
-        let guard = 0;
-        while(cur <= until && guard < 80){
-          rows.push(cur);
-          cur = addDays(cur, stepDays);
-          guard++;
-        }
-      }
-    }else if(firstAt){
-      rows = [firstAt];
-    }
-
-    rows = [...new Set(rows)]
-      .sort((a,b)=>a-b)
-      .filter(ts => ts && Number.isFinite(ts) && !excluded.has(dateKey(ts)));
-    return rows;
-  }
-
-  function updatePlanningSummary(){
-    const el = $('planning-summary');
-    if(!el) return;
-    const data = getFormDataShallow();
-    const occurrences = buildOccurrences(data.eventAt, data.planningMode, data.repeatUntil, data.manualDatesText, data.excludedDatesText);
-    if(!occurrences.length){ el.innerHTML = '<strong>0 séance générée</strong><span>Ajoute une date de référence, une date de fin ou des dates manuelles valides.</span>'; return; }
-    const first = formatFullDateTime(occurrences[0]);
-    const last = formatFullDateTime(occurrences[occurrences.length-1]);
-    el.innerHTML = `<strong>${occurrences.length} séance${occurrences.length>1?'s':''} générée${occurrences.length>1?'s':''}</strong><span>${esc(first)}${occurrences.length>1?' → '+esc(last):''}</span>`;
-  }
-
-  function getFormDataShallow(){
-    return {
-      eventAt: fromLocalInputValue($('lesson-at')?.value || ''),
-      planningMode: $('planning-mode')?.value || 'single',
-      repeatUntil: parseDateOnly($('repeat-until')?.value || ''),
-      manualDatesText: $('manual-dates')?.value || '',
-      excludedDatesText: $('excluded-dates')?.value || ''
-    };
-  }
-
-  function buildDefaultTitle(kind, lessonType, category, subcategory){
-    if(kind === 'music_individual') return `Cours de ${lessonType || 'musique'}`;
-    if(kind === 'group') return [category || 'Groupe', subcategory].filter(Boolean).join(' — ') || 'Rappel de cours';
-    return lessonType || 'Rendez-vous exceptionnel';
-  }
-
-  function buildMessage(data, offset){
-    const eventLabel = formatFullDateTime(data.eventAt);
-    const who = data.uid && data.user ? displayName(data.user) : '';
-    const title = data.title || buildDefaultTitle(data.kind, data.lessonType, data.category, data.subcategory);
-    const before = offset === 60 ? 'commence dans 1h' : 'est prévu demain';
-    const lines = [];
-    lines.push(`${title} ${before}.`);
-    lines.push(`📅 ${eventLabel}`);
-    if(data.teacher) lines.push(`👤 Prof : ${data.teacher}`);
-    if(data.place) lines.push(`📍 Lieu : ${data.place}`);
-    if(data.extra) lines.push(data.extra);
-    if(who && data.kind !== 'music_individual') lines.push(`Destinataire cible : ${who}`);
-    return lines.join('\n');
-  }
-
-  function formatFullDateTime(ts){
-    if(!ts) return 'date à définir';
-    const d = new Date(ts);
-    return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
-  }
-
-  function reminderTarget(r){
-    if(!r) return 'Ciblage';
-    if(r.uid) return r.recipientName || r.recipientEmail || 'Membre';
-    return [r.targetCategory, r.targetSubcategory].filter(Boolean).join(' · ') || 'Groupe / catégorie';
-  }
-
-  function kindLabel(kind){
-    if(kind === 'music_individual') return 'Cours individuel musique';
-    if(kind === 'group') return 'Rappel de groupe';
-    if(kind === 'exceptional') return 'Rendez-vous exceptionnel';
-    return 'Rappel';
-  }
-
-  function offsetLabel(minutes){
-    const m = parseInt(minutes || 0, 10);
-    if(m === 60) return '1h avant';
-    if(m === 1440) return '24h avant';
-    if(m > 60) return Math.round(m / 60) + 'h avant';
-    return (m || '—') + ' min avant';
-  }
-
-  function buildPreviewReminder(data, offset){
-    return {
-      kind: data.kind,
-      uid: data.kind === 'music_individual' ? data.uid : '',
-      recipientName: data.uid && data.user ? displayName(data.user) : '',
-      recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
-      targetCategory: data.kind !== 'music_individual' ? data.category : '',
-      targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
-      title: data.title,
-      body: buildMessage(data, offset),
-      lessonType: data.lessonType,
-      teacher: data.teacher,
-      place: data.place,
-      durationMinutes: data.duration,
-      eventAt: data.eventAt,
-      sendAt: data.eventAt ? data.eventAt - offset * 60 * 1000 : 0,
-      reminderOffsetMinutes: offset,
-      status: data.standby ? 'standby' : 'pending',
-      botLabel: 'Rappel automatique Fais Ton Show',
-      channel: 'dm_auto',
-      messageType: 'auto-reminder',
-      bot: true,
-      dispatchMode: data.standby ? 'standby' : 'native-admin'
-    };
-  }
-
-  function cleanBotBody(body){
-    return String(body || '')
-      .split('\n')
-      .map(x => x.trim())
-      .filter(Boolean)
-      .filter(x => !x.startsWith('📅') && !x.startsWith('👤 Prof') && !x.startsWith('📍 Lieu'))
-      .join('\n');
-  }
-
-  function renderBotConversation(r, options){
-    options = options || {};
-    const status = r.status || 'standby';
-    const target = reminderTarget(r);
-    const cleanBody = cleanBotBody(r.body || '') || (r.title || kindLabel(r.kind));
-    const body = esc(cleanBody).replace(/\n/g, '<br>');
-    const statusText = options.statusText || statusLabel(status);
-    const modeText = options.realMode ? 'Test manuel : MP + push envoyés maintenant' : (status === 'pending' ? 'Dispatch natif admin : envoi automatique quand sendAt est passé' : 'En pause : aucun envoi automatique');
-    return `<div class="bot-conversation ${options.compact ? 'compact' : ''}">
-      <div class="bot-thread-head">
-        <span>Simulation conversation</span>
-        <strong>${esc(target)}</strong>
+<div class="card-admin form-panel targeted-annonce-panel">
+  <div class="mini-title">Annonce ciblée supplémentaire</div>
+  <p class="field-help top-help">Permet d’ajouter une 2e annonce visible uniquement pour une ou plusieurs catégories / sous-catégories. Sans sélection : visible pour tous les membres actifs.</p>
+  <div class="grid targeted-annonce-grid">
+    <div class="card-admin list-panel targeted-list-panel">
+      <div class="mini-title">Annonces ciblées</div>
+      <div class="list" id="targeted-annonces-list"><div class="hint">Chargement…</div></div>
+      <div class="row-actions"><button class="btn-outline" data-fts-handler-17="">+ Nouvelle annonce ciblée</button></div>
+    </div>
+    <div>
+      <input type="hidden" id="ta-key" />
+      <div class="form-grid">
+        <div class="field"><label>Visibilité</label><select id="ta-active"><option value="true">Visible</option><option value="false">Masquée</option></select></div>
+        <div class="field"><label>Affichage</label><select id="ta-display"><option value="card">Carte uniquement</option><option value="ticker">Banderole défilante</option><option value="both">Carte + banderole</option></select></div>
+        <div class="field full"><label>Titre court</label><input id="ta-title" placeholder="Ex : Infos répétition danse" /></div>
+        <div class="field full"><label>Message affiché</label><textarea id="ta-body" placeholder="Message ciblé aux membres concernés…"></textarea></div>
+        <div class="field"><label>Texte du bouton</label><input id="ta-btn" placeholder="Voir les infos" /></div>
+        <div class="field"><label>Destination du bouton</label><input id="ta-url" placeholder="saison.html ou https://…" /></div>
+        <div class="field"><label>Fin automatique</label><input id="ta-expires" type="datetime-local" /><small>Optionnel. Vide = permanente jusqu’à suppression manuelle.</small></div>
       </div>
-      <div class="bot-system-separator">${options.realMode ? 'Rendu du message automatique envoyé au membre' : 'Aperçu du message automatique'}</div>
-      <div class="bot-chat-row">
-        <div class="bot-mini-avatar" aria-hidden="true">🤖</div>
-        <div class="bot-chat-bubble">
-          <div class="bot-auto-head">
-            <span class="bot-badge">${esc(r.botLabel || 'Rappel automatique Fais Ton Show')}</span>
-            <span class="badge ${esc(status)}">${esc(statusText)}</span>
-          </div>
-          <div class="bot-title">${esc(r.title || kindLabel(r.kind))}</div>
-          <div class="bot-text">${body}</div>
-          <div class="bot-chipline">
-            <span>📅 ${esc(formatFullDateTime(r.eventAt))}</span>
-            <span>⏰ ${esc(offsetLabel(r.reminderOffsetMinutes))}</span>
-            ${r.teacher ? `<span>👤 ${esc(r.teacher)}</span>` : ''}
-            ${r.place ? `<span>📍 ${esc(r.place)}</span>` : ''}
-          </div>
-          <div class="bot-auto-footer">Message automatique identifiable · ${esc(modeText)}</div>
-        </div>
+      <div class="targeting-box">
+        <div class="targeting-title">Ciblage de l’annonce</div>
+        <p class="field-help">Choisis une ou plusieurs catégories. Les sous-catégories correspondantes apparaissent ensuite dessous.</p>
+        <div id="ta-cat-picker" class="target-picker"><div class="hint">Chargement des catégories…</div></div>
+        <div id="ta-subcat-picker" class="target-picker subtarget-picker"></div>
       </div>
-    </div>`;
-  }
-
-  function updatePreview(){
-    updatePlanningSummary();
-    const data = getFormData();
-    const offset = data.offsets.includes(60) ? 60 : (data.offsets[0] || 24*60);
-    const previewData = Object.assign({}, data, { eventAt: data.occurrences[0] || data.eventAt });
-    const el = $('bot-preview');
-    if(!el) return;
-    const count = data.occurrences.length;
-    const countHtml = count > 1 ? `<div class="preview-series-note">Aperçu sur la première séance · ${count} séances au total · ${count * Math.max(data.offsets.length,1)} rappel(s) possible(s)</div>` : '';
-    el.innerHTML = countHtml + renderBotConversation(buildPreviewReminder(previewData, offset), { compact:true, statusText: 'À envoyer' });
-  }
-
-  function parsedManualDatesForSchedule(data){
-    const base = data.eventAt ? new Date(data.eventAt) : new Date();
-    const fallbackHour = Number.isFinite(base.getHours()) ? base.getHours() : 17;
-    const fallbackMinute = Number.isFinite(base.getMinutes()) ? base.getMinutes() : 30;
-    if(data.planningMode !== 'manual') return [];
-    return String(data.manualDatesText || '')
-      .split(/\n|,|;/)
-      .map(line => parseManualDateLine(line, fallbackHour, fallbackMinute))
-      .filter(Boolean)
-      .sort((a,b)=>a-b);
-  }
-
-  function excludedDatesForSchedule(data){
-    return Array.from(parseExcludedDates(data.excludedDatesText || ''));
-  }
-
-  function buildSchedulePayload(data){
-    return {
-      active: true,
-      kind: data.kind,
-      uid: data.kind === 'music_individual' ? data.uid : '',
-      recipientName: data.uid && data.user ? displayName(data.user) : '',
-      recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
-      targetCategory: data.kind !== 'music_individual' ? data.category : '',
-      targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
-      title: data.title,
-      lessonType: data.lessonType,
-      teacher: data.teacher,
-      place: data.place,
-      durationMinutes: data.duration,
-      recurrenceMode: data.planningMode,
-      startAt: data.eventAt || (data.occurrences[0] || 0),
-      repeatUntil: data.repeatUntil || 0,
-      manualDates: parsedManualDatesForSchedule(data),
-      excludedDates: excludedDatesForSchedule(data),
-      remindersEnabled: !!(data.offsets && data.offsets.length),
-      reminder24h: data.offsets.includes(24 * 60),
-      reminder1h: data.offsets.includes(60),
-      createdBy: currentUser ? currentUser.uid : '',
-      createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
-      source: 'rappels-admin'
-    };
-  }
-
-  async function saveSchedule(){
-    if(isSaving) return;
-    if(!FTS.Services || !FTS.Services.Schedules){ msg('Service planning non chargé.', false); return; }
-    const data = getFormData();
-    const validation = validateReminderData(data, { requireOffsets:false });
-    if(validation){ msg(validation, false); return; }
-    isSaving = true;
-    const btn = $('btn-save-schedule');
-    const old = btn ? btn.textContent : '';
-    if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
-    try{
-      const scheduleId = await FTS.Services.Schedules.create(buildSchedulePayload(data));
-      let created = [];
-      if(data.offsets && data.offsets.length){
-        created = await createReminderRecords(data, { scheduleId, source:'schedule', skipPast:true });
-      }
-      const reminderText = created.length ? ` + ${created.length} rappel(s) lié(s) créé(s).` : ' Aucun rappel lié créé car aucun rappel 24h/1h n’est coché.';
-      msg('Créneau planning créé pour “Mon prochain cours”.' + reminderText, true);
-      if(window.console) console.log('[FTS] Créneau planning créé', scheduleId, created);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] saveSchedule', e);
-      msg('Erreur pendant la création. Vérifie les rules fts_schedules / fts_scheduled_reminders.', false);
-    }finally{
-      isSaving = false;
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Créer planning + rappels'; }
-    }
-  }
-
-  function validateReminderData(data, options){
-    options = options || {};
-    if(!data.eventAt && data.planningMode !== 'manual') return 'Ajoute une date et une heure valides.';
-    if(!data.occurrences.length) return 'Aucune séance générée. Vérifie la date de référence, la date de fin ou les dates manuelles.';
-    if(options.requireOffsets !== false && !data.offsets.length) return 'Choisis au moins un rappel : 24h avant ou 1h avant.';
-    if(data.kind === 'music_individual' && !data.uid) return 'Choisis le membre concerné par le créneau individuel.';
-    if(data.kind !== 'music_individual' && !data.category && !data.subcategory) return 'Choisis au moins une catégorie ou sous-catégorie.';
-    return '';
-  }
-
-  function buildReminderPayload(data, eventAt, offset, sendAt, seriesId, options){
-    options = options || {};
-    const occurrenceData = Object.assign({}, data, { eventAt });
-    return {
-      kind: data.kind,
-      uid: data.kind === 'music_individual' ? data.uid : '',
-      recipientName: data.uid && data.user ? displayName(data.user) : '',
-      recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
-      targetCategory: data.kind !== 'music_individual' ? data.category : '',
-      targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
-      title: data.title,
-      body: buildMessage(occurrenceData, offset),
-      lessonType: data.lessonType,
-      teacher: data.teacher,
-      place: data.place,
-      durationMinutes: data.duration,
-      eventAt,
-      sendAt,
-      reminderOffsetMinutes: offset,
-      status: data.standby ? 'standby' : 'pending',
-      auto: true,
-      bot: true,
-      channel: 'dm_auto',
-      messageType: 'auto-reminder',
-      botLabel: 'Rappel automatique Fais Ton Show',
-      createdBy: currentUser ? currentUser.uid : '',
-      createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
-      dispatchMode: data.standby ? 'standby' : 'native-admin',
-      seriesId,
-      scheduleId: options.scheduleId || '',
-      source: options.source || 'manual-reminder',
-      recurrenceMode: data.planningMode,
-      excludedDatesText: data.excludedDatesText || ''
-    };
-  }
-
-  async function createReminderRecords(data, options){
-    options = options || {};
-    if(!FTS.Services || !FTS.Services.Reminders) throw new Error('Service rappels non chargé');
-    const now = Date.now();
-    const candidates = [];
-    data.occurrences.forEach(ts => {
-      data.offsets.forEach(offset => {
-        const sendAt = ts - offset * 60 * 1000;
-        if(sendAt <= now){
-          if(options.skipPast) return;
-          candidates.push({ eventAt:ts, offset, sendAt, past:true });
-          return;
-        }
-        candidates.push({ eventAt:ts, offset, sendAt, past:false });
-      });
-    });
-
-    const invalid = candidates.filter(x => x.past);
-    if(invalid.length && !options.skipPast){
-      throw new Error('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou décoche 24h/1h.');
-    }
-
-    const usable = candidates.filter(x => !x.past);
-    if(!usable.length){
-      if(options.skipPast) return [];
-      throw new Error('Aucun rappel futur à créer. Change la date ou décoche les rappels déjà passés.');
-    }
-    if(usable.length > 80) throw new Error('Trop de rappels à créer d’un coup. Réduis la période ou les dates.');
-
-    const created = [];
-    const seriesId = db.ref('fts_scheduled_reminders').push().key || ('series_' + Date.now());
-    for(const item of usable){
-      const payload = buildReminderPayload(data, item.eventAt, item.offset, item.sendAt, seriesId, options);
-      const id = await FTS.Services.Reminders.create(payload);
-      created.push(id);
-    }
-    return created;
-  }
-
-  async function createReminders(){
-    if(isSaving) return;
-    const data = getFormData();
-    const validation = validateReminderData(data, { requireOffsets:true });
-    if(validation){ msg(validation, false); return; }
-    const totalToCreate = data.occurrences.length * data.offsets.length;
-    if(totalToCreate > 80){ msg('Trop de rappels à créer d’un coup. Réduis la période ou les dates.', false); return; }
-    if(totalToCreate > 12 && !confirm('Créer ' + totalToCreate + ' rappels automatiques ?')) return;
-
-    isSaving = true;
-    const btn = $('btn-create-reminders');
-    const old = btn ? btn.textContent : '';
-    if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
-    try{
-      const created = await createReminderRecords(data, { source:'reminders-button', skipPast:false });
-      msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Envoi automatique natif actif pour les rappels pending.`, true);
-      resetForm(false);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] create', e);
-      msg(e && e.message ? e.message : 'Erreur pendant la création du rappel. Vérifie les rules fts_scheduled_reminders.', false);
-    }finally{
-      isSaving = false;
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Créer les rappels'; }
-    }
-  }
-
-  function listenReminders(){
-    if(!FTS.Services || !FTS.Services.Reminders){
-      msg('Service rappels non chargé.', false);
-      return;
-    }
-    FTS.Services.Reminders.listen(data => {
-      reminders = data || {};
-      renderReminders();
-      renderSelectedReminder();
-    });
-  }
-
-  function sortedReminders(){
-    return Object.entries(reminders || {})
-      .filter(([,r]) => r)
-      .filter(([,r]) => filterStatus === 'all' || (r.status || 'standby') === filterStatus)
-      .sort((a,b) => (a[1].sendAt || 0) - (b[1].sendAt || 0));
-  }
-
-  function renderReminders(){
-    const list = $('reminder-list');
-    const count = $('reminder-count');
-    if(!list) return;
-    const rows = sortedReminders();
-    if(count) count.textContent = `${rows.length} rappel(s)`;
-    if(!rows.length){ list.innerHTML = '<div class="empty">Aucun rappel pour ce filtre.</div>'; return; }
-    list.innerHTML = rows.map(([id,r]) => {
-      const active = selectedReminderId === id;
-      const status = r.status || 'standby';
-      const target = r.uid ? (r.recipientName || r.recipientEmail || 'Membre') : [r.targetCategory, r.targetSubcategory].filter(Boolean).join(' · ');
-      return `<article class="reminder-row ${active ? 'active' : ''}" data-reminder-id="${esc(id)}">
-        <div class="reminder-top">
-          <div>
-            <div class="reminder-title">${esc(r.title || 'Rappel')}</div>
-            <div class="reminder-meta">${esc(target || 'Ciblage non renseigné')}<br>Envoi prévu : ${esc(formatFullDateTime(r.sendAt))}</div>
-          </div>
-          <span class="badge ${esc(status)}">${statusLabel(status)}</span>
-        </div>
-      </article>`;
-    }).join('');
-  }
-
-  function renderSelectedReminder(){
-    const wrap = $('selected-reminder');
-    if(!wrap) return;
-    const r = selectedReminderId ? reminders[selectedReminderId] : null;
-    if(!r){
-      wrap.innerHTML = '<div class="empty">Sélectionne un rappel pour voir le détail, le rendu bot et les actions.</div>';
-      return;
-    }
-    wrap.innerHTML = `<div class="preview-card selected-bot-card">
-      ${renderBotConversation(r)}
-      <div class="tech-grid">
-        <div><span>eventAt</span><strong>${esc(formatFullDateTime(r.eventAt))}</strong></div>
-        <div><span>sendAt</span><strong>${esc(formatFullDateTime(r.sendAt))}</strong></div>
-        <div><span>type</span><strong>${esc(kindLabel(r.kind))}</strong></div>
-        <div><span>canal</span><strong>${esc(r.channel || 'dm_auto')}</strong></div>
-        <div><span>messageType</span><strong>${esc(r.messageType || 'auto-reminder')}</strong></div>
-        <div><span>dispatch</span><strong>${esc(r.dispatchMode || (r.status === 'pending' ? 'native-admin' : 'standby'))}</strong></div>
-      </div>
+      <div class="preview-box" id="targeted-annonce-preview"><div class="preview-label">Aperçu membre</div><div class="preview-card"><strong>Annonce ciblée</strong><p>Ton annonce ciblée apparaîtra ici.</p></div></div>
       <div class="row-actions">
-        <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
-        ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer un MP de test maintenant</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">Test MP indisponible</button>`}
-        <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en pause</button>
-        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="standby-series" data-id="${esc(selectedReminderId)}">Mettre la série en pause</button>` : ''}
-        <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
-        <button class="btn-outline danger btn-sm" data-reminder-action="delete" data-id="${esc(selectedReminderId)}">Supprimer</button>
+        <button class="btn" data-fts-handler-18="">Enregistrer l’annonce ciblée</button>
+        <button class="btn-outline danger" data-fts-handler-19="">Supprimer</button>
       </div>
-    </div>`;
-  }
+      <div class="msg" id="msg-targeted-annonce"></div>
+    </div>
+  </div>
+</div>
+</section>
+<section class="tab-pane" id="tab-questionnaire">
+<div class="calendar-source-card" role="note" aria-label="Gestion des événements et spectacles">
+  <div class="calendar-source-icon">📅</div>
+  <div class="calendar-source-content">
+    <strong>Événements et spectacles</strong>
+    <span>Ils se créent uniquement depuis <b>Calendrier admin</b>. Ici, on gère seulement les parcours, contenus et ressources hors calendrier.</span>
+  </div>
+  <a class="btn btn-sm calendar-source-btn" href="calendrier-admin.html">Ouvrir calendrier</a>
+</div>
+<div class="grid"><div class="card-admin list-panel"><div class="mini-title">Parcours disponibles</div><p class="field-help top-help">Liste des réponses affichées dans le questionnaire d’accueil, hors événements du calendrier.</p><div class="list" id="q-list"></div><button class="btn-gold u-contenus-admin-inline-1" data-fts-handler-7="">+ Ajouter un parcours</button></div>
+<div class="card-admin form-panel"><div class="mini-title">Éditer une option du questionnaire</div><p class="field-help top-help">Ces informations apparaissent dans le parcours “Que souhaitez-vous faire ?”.</p><input id="q-key" type="hidden"/><div class="form-grid">
+<div class="field"><label>Famille du parcours</label><select id="q-type"><option value="adhesion">Inscription / adhésion</option><option value="goodie">Boutique / goodies</option><option value="renew">Renouvellement</option></select><small>Les spectacles et événements sont gérés uniquement dans Calendrier admin pour éviter les doublons.</small></div>
+<div class="field"><label>Importance dans l’accueil</label><select id="q-order"><option value="10">⭐ Prioritaire — en haut de la liste</option><option value="50">🔥 Important — très visible</option><option value="100">📌 Normal — affichage standard</option><option value="200">📂 Secondaire — plus bas dans la liste</option></select><small>Choisis une priorité claire. L’ordre technique est géré automatiquement.</small></div>
+<div class="field"><label>Icône visible</label><input id="q-icon" placeholder="🎭"/><small>Emoji affiché dans la carte.</small></div>
+<div class="field"><label>Visible dans l’accueil</label><select id="q-active"><option value="true">Oui, visible</option><option value="false">Non, masqué</option></select><small>Masquer sans supprimer.</small></div>
+<div class="field full"><label>Titre de la carte</label><input id="q-title" placeholder="Inscription théâtre"/><small>Exemple : Je veux inscrire mon enfant.</small></div>
+<div class="field full"><label>Résumé affiché sous le titre</label><textarea id="q-desc"></textarea><small>Phrase courte pour guider le visiteur.</small></div>
+<div class="field full"><label>Lien de destination</label><input id="q-link" placeholder="https://helloasso.com/…"/><small>Page ouverte quand l’utilisateur choisit cette option.</small></div>
+<div class="field"><label>Info rapide 1 — nom</label><input id="q-d1k" placeholder="Âge"/><small>Ex : âge, jour, lieu.</small></div><div class="field"><label>Info rapide 1 — valeur</label><input id="q-d1v" placeholder="7/9 ans"/><small>Valeur affichée à côté.</small></div>
+<div class="field"><label>Info rapide 2 — nom</label><input id="q-d2k" placeholder="Jour"/><small>Deuxième repère utile.</small></div><div class="field"><label>Info rapide 2 — valeur</label><input id="q-d2v" placeholder="Mercredi"/><small>Ex : mercredi 14h.</small></div>
+<div class="field full"><label>Titre de l’écran suivant</label><input id="q-dtitle"/><small>Affiché après le choix si utilisé par la page d’accueil.</small></div><div class="field full"><label>Texte de l’écran suivant</label><textarea id="q-ddesc"></textarea><small>Complément d’information avant le lien final.</small></div>
+</div><div class="preview-box" id="questionnaire-preview"><div class="preview-label">Aperçu accueil</div><div class="preview-card"><span class="preview-icon">🎭</span><strong>Titre de la carte</strong><p>Résumé affiché sous le titre.</p><div class="preview-tags"><span>Âge : 7/9 ans</span><span>Jour : mercredi</span></div></div></div><div class="row-actions"><button class="btn btn-sm" data-fts-handler-8="">Enregistrer</button><button class="btn-outline danger" data-fts-handler-9="">Supprimer</button></div><div class="hint">Ces données remplacent le CSV du questionnaire d’accueil. Les événements calendrier restent gérés dans Calendrier admin.</div><div class="msg" id="msg-q"></div></div></div>
+</section>
+<section class="tab-pane" id="tab-ressources">
+<div class="grid"><div class="card-admin list-panel"><div class="mini-title">Ressources publiées</div><p class="field-help top-help">Documents, liens, textes, audios ou vidéos disponibles côté membres.</p><div class="list" id="r-list"></div><button class="btn-gold u-contenus-admin-inline-2" data-fts-handler-10="">+ Ajouter</button></div>
+<div class="card-admin form-panel"><div class="mini-title">Éditer une ressource membre</div><p class="field-help top-help">Choisis la catégorie et la sous-catégorie pour afficher la ressource au bon groupe.</p><input id="r-key" type="hidden"/><div class="form-grid">
+<div class="field"><label>Catégorie existante</label><select data-fts-handler-11="" id="r-cat"></select><small>Détermine la discipline où la ressource apparaîtra.</small></div>
+<div class="field"><label>Créer une nouvelle catégorie</label><input id="r-cat-new" placeholder="Ex : Eveil musical"/><small>Optionnel. Remplace le choix existant si rempli.</small></div>
+<div class="field"><label>Groupe / sous-catégorie</label><select id="r-subcat"></select><small>Ex : enfants, ados, adultes, groupe mercredi.</small></div>
+<div class="field"><label>Créer un nouveau groupe</label><input id="r-subcat-new" placeholder="Ex : Groupe mercredi"/><small>Optionnel. Utilisé si le groupe n’existe pas encore.</small></div>
+<div class="field"><label>Format de la ressource</label><select id="r-type"><option value="pdf">PDF</option><option value="mp3">Audio</option><option value="video">Vidéo</option><option value="image">Image</option><option value="texte">Texte</option><option value="doc">Autre lien</option></select><small>Aide les membres à comprendre le contenu.</small></div>
+<div class="field"><label>Visible pour les membres</label><select id="r-active"><option value="true">Oui, visible</option><option value="false">Non, masqué</option></select><small>Masquer sans supprimer.</small></div>
+<div class="field full"><label>Nom affiché aux membres</label><input id="r-name"/><small>Ex : Partition chant — scène finale.</small></div>
+<div class="field full"><label>Lien, texte ou contenu</label><textarea id="r-url" placeholder="https://drive.google.com/... ou texte"></textarea><small>Lien Google Drive, vidéo, PDF, image ou texte directement affiché.</small></div>
+</div><div class="preview-box" id="resource-preview"><div class="preview-label">Aperçu membre</div><div class="preview-card resource-card"><span class="preview-type">PDF</span><strong>Nom de la ressource</strong><p>Catégorie · Sous-catégorie</p></div></div><div class="row-actions"><button class="btn btn-sm" data-fts-handler-12="">Enregistrer</button><button class="btn-outline danger" data-fts-handler-13="">Supprimer</button></div><div class="hint">Ces ressources remplacent le CSV Categorie / Sous-categorie / Nom / Contenu ou lien / Type.</div><div class="msg" id="msg-r"></div></div></div>
+</section>
+<section class="tab-pane" id="tab-categories">
+<div class="grid">
+<div class="card-admin list-panel">
+<div class="mini-title">Catégories officielles</div><p class="field-help top-help">Structure utilisée par les membres, les ressources, le forum et les profs.</p>
+<div class="list" id="c-list"></div>
+<button class="btn-gold u-contenus-admin-inline-3" data-fts-handler-14="">+ Ajouter une catégorie</button>
+<p class="hint u-contenus-admin-inline-4">Ces catégories alimentent les ressources, l’espace profs, l’espace membres et le forum.</p>
+</div>
+<div class="card-admin form-panel">
+<div class="mini-title">Éditer une catégorie officielle</div><p class="field-help top-help">Attention : ces noms servent aux accès et à l’affichage. Corrige avec prudence.</p>
+<input id="c-key" type="hidden"/>
+<div class="form-grid">
+<div class="field"><label>Nom de la discipline</label><input id="c-name" placeholder="Ex : Éveil musical"/><small>Nom visible par les membres.</small></div>
+<div class="field"><label>Icône de la discipline</label><input id="c-icon" placeholder="🎵"/><small>Emoji affiché dans l’application.</small></div>
+<div class="field"><label>Importance dans les listes</label><select id="c-order"><option value="10">⭐ Prioritaire — en haut</option><option value="50">🔥 Important</option><option value="100">📌 Normal</option><option value="200">📂 Secondaire — plus bas</option></select><small>Choisis une priorité lisible. Le tri technique est conservé automatiquement.</small></div>
+<div class="field"><label>Catégorie active</label><select id="c-active"><option value="true">Oui, active</option><option value="false">Non, masquée</option></select><small>Masquer sans supprimer.</small></div>
+<div class="field full"><label>Sous-catégories — une par ligne</label><textarea id="c-subcats" placeholder="7/9 ans\n10/12 ans\nAdultes"></textarea></div>
+</div>
+<div class="row-actions">
+<button class="btn btn-sm" data-fts-handler-15="">Enregistrer</button>
+<button class="btn-outline danger" data-fts-handler-16="">Supprimer catégorie + ressources liées</button>
+</div>
+<div class="hint">La suppression retire la catégorie dans Firebase et supprime aussi les ressources liées pour éviter qu’elle réapparaisse automatiquement.</div>
+<div class="msg" id="msg-c"></div>
+</div>
+</div>
+</section>
+</div>
+</div>
+<nav class="fts-admin-bottom-nav" aria-label="Navigation administrateur">
+  <div class="fts-admin-bottom-track">
+    <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
+    <a class="fts-admin-bottom-item" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
+    <a class="fts-admin-bottom-item active" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
+    <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
+    <a class="fts-admin-bottom-item" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
+    <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
+    <a class="fts-admin-bottom-item" href="sondages.html"><span class="fts-admin-bottom-icon">📊</span><span>Sondages</span></a>
+  </div>
+</nav>
+<div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
 
-  function statusLabel(status){
-    if(status === 'pending') return 'À envoyer';
-    if(status === 'dispatching') return 'En cours';
-    if(status === 'sent') return 'Envoyé';
-    if(status === 'sent_test') return 'Test réel envoyé';
-    if(status === 'cancelled') return 'Annulé';
-    return 'En pause';
-  }
-
-
-  function directConvId(a, b){ return [String(a || ''), String(b || '')].sort().join('_'); }
-
-  async function sendRealTestDm(id){
-    const r = id ? reminders[id] : null;
-    if(!r){ msg('Sélectionne un rappel.', false); return; }
-    if(!r.uid){ msg('Le test MP est réservé aux rappels avec un membre ciblé.', false); return; }
-    if(!currentUser || !currentUser.uid){ msg('Session admin introuvable.', false); return; }
-    const recipient = users[r.uid] || null;
-    const recipientName = r.recipientName || displayName(recipient) || 'Membre';
-    const ok = confirm('Envoyer maintenant un MP automatique au membre : ' + recipientName + ' ?\n\nCela créera une conversation/notification comme un vrai message.');
-    if(!ok) return;
-
-    const actionBtn = Array.from(document.querySelectorAll('[data-reminder-action="send-test-dm"]')).find(btn => btn.getAttribute('data-id') === id);
-    const old = actionBtn ? actionBtn.textContent : '';
-    if(actionBtn){ actionBtn.disabled = true; actionBtn.textContent = 'Envoi test…'; }
-
-    try{
-      const adminUid = currentUser.uid;
-      const uid = r.uid;
-      const convId = directConvId(adminUid, uid);
-      const now = Date.now();
-      const participants = {}; participants[adminUid] = true; participants[uid] = true;
-      const convRef = db.ref('fts_dm/conversations/' + convId);
-      const convSnap = await convRef.once('value');
-      if(!convSnap.exists()){
-        await convRef.set({
-          type:'direct',
-          participants,
-          lastMessage:'',
-          lastTs:now,
-          createdAt:now,
-          createdBy:adminUid,
-          autoReminderTest:true
-        });
-      }else{
-        await convRef.child('participants').update(participants);
-      }
-
-      const text = r.body || r.title || 'Rappel automatique Fais Ton Show';
-      const senderName = '🤖 Rappel automatique FTS';
-      const msgRef = db.ref('fts_dm/messages/' + convId).push();
-      const messagePayload = {
-        id: msgRef.key,
-        senderId: adminUid,
-        senderName,
-        text,
-        ts: now,
-        auto: true,
-        bot: true,
-        botLabel: r.botLabel || 'Rappel automatique Fais Ton Show',
-        messageType: 'auto-reminder',
-        reminderId: id,
-        reminderKind: r.kind || '',
-        eventAt: r.eventAt || 0,
-        reminderOffsetMinutes: r.reminderOffsetMinutes || 0
-      };
-      await msgRef.set(messagePayload);
-
-      const unreadSnap = await db.ref('fts_dm/conversations/' + convId + '/unread/' + uid).once('value');
-      const currentUnread = Number(unreadSnap.val() || 0);
-      const updates = {};
-      updates['fts_dm/conversations/' + convId + '/lastMessage'] = '🤖 ' + String(text).replace(/\s+/g, ' ').substring(0, 76);
-      updates['fts_dm/conversations/' + convId + '/lastSenderName'] = senderName;
-      updates['fts_dm/conversations/' + convId + '/lastTs'] = now;
-      updates['fts_dm/conversations/' + convId + '/unread/' + uid] = currentUnread + 1;
-      updates['fts_dm/conversations/' + convId + '/unread/' + adminUid] = 0;
-      updates['fts_dm/userConvs/' + adminUid + '/' + convId] = true;
-      updates['fts_dm/userConvs/' + uid + '/' + convId] = true;
-      await db.ref().update(updates);
-
-      await sendPushForRealTest(uid, convId, msgRef.key, text, r);
-
-      await FTS.Services.Reminders.update(id, {
-        status:'sent_test',
-        realDmTestAt:now,
-        realDmConvId:convId,
-        realDmMsgId:msgRef.key,
-        realDmRecipientUid:uid
-      });
-      selectedReminderId = id;
-      msg('MP automatique envoyé maintenant. Vérifie le compte membre : conversation + notification push si activée.', true);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] test MP réel', e);
-      msg('Erreur pendant le test MP : ' + (e && e.message ? e.message : 'vérifie console/rules'), false);
-    }finally{
-      if(actionBtn){ actionBtn.disabled = false; actionBtn.textContent = old || 'Envoyer un MP de test maintenant'; }
-    }
-  }
-
-  async function sendPushForRealTest(uid, convId, msgId, text, r){
-    if(!FTS.PUSH || !FTS.PUSH.workerUrl || !window.fetch) return;
-    const title = 'FTS — Rappel automatique';
-    const body = String(text || '').replace(/\s+/g, ' ').substring(0, 120);
-    const url = './messages.html?conv=' + encodeURIComponent(convId)
-      + '&msg=' + encodeURIComponent(msgId)
-      + '&recipientUid=' + encodeURIComponent(uid);
-    const payload = {
-      type:'dm_direct',
-      uid,
-      expectedUid:uid,
-      recipientUid:uid,
-      requiresUidMatch:true,
-      conversationId:convId,
-      msgId,
-      title,
-      body,
-      url,
-      senderUid:currentUser ? currentUser.uid : '',
-      adminCopy:false,
-      forceUid:true,
-      autoReminder:true,
-      reminderId:r.id || selectedReminderId || '',
-      tag:'dm-' + convId + '-' + msgId + '-' + uid,
-      notificationKey:'dm-' + convId + '-' + msgId + '-' + uid,
-      collapseKey:'dm-' + convId + '-' + uid
-    };
-    await fetch(FTS.PUSH.workerUrl + '/notify', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    }).catch(e => console.warn('[FTS Rappels Admin] push test non bloquant', e));
-  }
-
-  async function copyReminderText(id){
-    const r = id ? reminders[id] : null;
-    if(!r || !r.body){ msg('Aucun texte à copier.', false); return; }
-    try{
-      await navigator.clipboard.writeText(r.body);
-      msg('Texte du rappel copié.', true);
-    }catch(e){
-      msg('Copie impossible sur ce navigateur.', false);
-    }
-  }
-
-  async function setReminderStatus(id, status){
-    if(!id) return;
-    try{
-      await FTS.Services.Reminders.setStatus(id, status);
-      msg('Statut mis à jour.', true);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] status', e);
-      msg('Impossible de modifier le statut.', false);
-    }
-  }
-
-  function linkedReminderIds(base){
-    if(!base) return [];
-    const seriesId = base.seriesId || '';
-    const scheduleId = base.scheduleId || '';
-    return Object.entries(reminders || {})
-      .filter(([,r]) => r && ((seriesId && r.seriesId === seriesId) || (scheduleId && r.scheduleId === scheduleId)))
-      .map(([id]) => id);
-  }
-
-  async function activateReminderSeries(id){
-    const base = reminders[id];
-    const ids = linkedReminderIds(base);
-    if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
-    if(!confirm('Activer ' + ids.length + ' rappel(s) de cette série ?')) return;
-    try{
-      await Promise.all(ids.map(x => FTS.Services.Reminders.activate(x)));
-      msg(ids.length + ' rappel(s) activé(s).', true);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] activate series', e);
-      msg('Impossible d’activer la série.', false);
-    }
-  }
-
-  async function standbyReminderSeries(id){
-    const base = reminders[id];
-    const ids = linkedReminderIds(base);
-    if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
-    if(!confirm('Remettre ' + ids.length + ' rappel(s) de cette série en pause ?')) return;
-    try{
-      await Promise.all(ids.map(x => FTS.Services.Reminders.standby(x)));
-      msg(ids.length + ' rappel(s) mis en pause.', true);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] standby series', e);
-      msg('Impossible de remettre la série en pause.', false);
-    }
-  }
-
-  async function deleteReminder(id){
-    if(!id) return;
-    if(!confirm('Supprimer ce rappel ?')) return;
-    try{
-      await FTS.Services.Reminders.remove(id);
-      if(selectedReminderId === id) selectedReminderId = '';
-      msg('Rappel supprimé.', true);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] delete', e);
-      msg('Impossible de supprimer ce rappel.', false);
-    }
-  }
-
-  function resetForm(showMsg){
-    ['lesson-title','lesson-type','teacher-name','place-name','message-extra','manual-dates','excluded-dates'].forEach(id => { if($(id)) $(id).value = ''; });
-    if($('reminder-user')) $('reminder-user').value = '';
-    if($('reminder-category')) $('reminder-category').value = '';
-    if($('reminder-subcategory')) $('reminder-subcategory').value = '';
-    if($('duration-min')) $('duration-min').value = '30';
-    if($('planning-mode')) $('planning-mode').value = 'single';
-    if($('repeat-until')) $('repeat-until').value = '';
-    if($('reminder-24h')) $('reminder-24h').checked = true;
-    if($('reminder-1h')) $('reminder-1h').checked = true;
-    setDefaultDates();
-    renderSubcategories();
-    updateConditionalFields();
-    updatePreview();
-    if(showMsg !== false) msg('Formulaire réinitialisé.', true);
-  }
-
-  function fillMusicDemo(){
-    if($('reminder-kind')) $('reminder-kind').value = 'music_individual';
-    if($('lesson-type')) $('lesson-type').value = 'Guitare';
-    if($('teacher-name')) $('teacher-name').value = 'Chris';
-    if($('place-name')) $('place-name').value = 'Salle musique';
-    if($('duration-min')) $('duration-min').value = '30';
-    if($('planning-mode')) $('planning-mode').value = 'single';
-    if($('repeat-until')) $('repeat-until').value = '';
-    if($('message-extra')) $('message-extra').value = 'Merci de prévenir rapidement en cas d’absence.';
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    d.setHours(17, 30, 0, 0);
-    if($('lesson-at')) $('lesson-at').value = toLocalInputValue(d.getTime());
-    updateConditionalFields();
-    updatePreview();
-  }
-
-  init();
-})();
+<script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-firebase.js"></script>
+<script src="assets/js/services/auth.service.js?v=1"></script>
+<script src="assets/js/services/users.service.js?v=1"></script>
+<script src="assets/js/services/resources.service.js?v=1"></script>
+<script src="assets/js/services/events.service.js?v=1"></script>
+<script src="assets/js/services/forum.service.js?v=1"></script>
+<script src="assets/js/services/messages.service.js?v=1"></script>
+<script src="assets/js/services/content.service.js?v=1"></script>
+<script src="assets/js/services/notifications.service.js?v=1"></script>
+<script src="assets/js/services/season.service.js?v=1"></script>
+<script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
+<script src="assets/js/pages/contenus-admin.js?v=54"></script>
+</body>
+</html>

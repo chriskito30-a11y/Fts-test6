@@ -1,40 +1,171 @@
-/* ================================================================
-   FTS REMINDERS SERVICE — Rappels planifiés isolés
-   Stocke les rappels dans fts_scheduled_reminders.
-   Le dispatch natif admin traite les rappels pending quand sendAt est passé.
-   ================================================================ */
-(function(window){
-  'use strict';
-  window.FTS = window.FTS || {};
-  const S = window.FTS.Services = window.FTS.Services || {};
-  function db(){ return window.FTS.initFirebase(); }
-  const path = 'fts_scheduled_reminders';
+<!DOCTYPE html>
 
-  S.Reminders = {
-    ref(id){ return db().ref(id ? path + '/' + id : path); },
-    list(){ return this.ref().orderByChild('sendAt').once('value').then(s => s.val() || {}); },
-    listen(callback){ return this.ref().orderByChild('sendAt').on('value', s => callback(s.val() || {})); },
-    off(){ return this.ref().off(); },
-    create(data){
-      const ref = this.ref().push();
-      const now = Date.now();
-      const payload = Object.assign({}, data, {
-        id: ref.key,
-        createdAt: now,
-        updatedAt: now,
-        source: data.source || 'rappels-admin',
-        channel: data.channel || 'dm_auto',
-        messageType: data.messageType || 'auto-reminder',
-        bot: true
-      });
-      return ref.set(payload).then(() => ref.key);
-    },
-    update(id, patch){ return this.ref(id).update(Object.assign({}, patch, { updatedAt: Date.now() })); },
-    remove(id){ return this.ref(id).remove(); },
-    setStatus(id, status){
-      return this.update(id, { status });
-    },
-    activate(id){ return this.update(id, { status:'pending' }); },
-    standby(id){ return this.update(id, { status:'standby' }); }
-  };
-})(window);
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Forum Admin — Fais Ton Show</title>
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=4" rel="stylesheet"/>
+
+<!-- Firebase SDK — Auth ajouté -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+</head>
+<body>
+<!-- ── ÉCRAN DE CHARGEMENT AUTH ──────────────────────────────── -->
+<div class="auth-loading" id="auth-loading">
+<div class="auth-loading-logo">FAIS TON SHOW</div>
+<div class="spinner"></div>
+<div class="auth-loading-sub">Vérification accès admin…</div>
+</div>
+<!-- ── DASHBOARD ─────────────────────────────────────────────── -->
+<div class="dashboard" id="dashboard">
+<header class="fts-admin-pagehead" aria-label="En-tête administrateur">
+  <div class="fts-admin-brand">
+    <div class="fts-admin-logo">ADMIN <span>ACCÈS</span></div>
+    <div class="fts-admin-sub">Membres · accès · groupes · récompenses</div>
+  </div>
+  <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
+</header>
+<div class="tabs-bar">
+<button class="tab-btn active" data-fts-handler-2="">
+      ⏳ En attente <span class="badge" id="badge-pending">0</span>
+</button>
+<button class="tab-btn" data-fts-handler-3="">
+      👥 Membres actifs <span class="badge u-forum-admin-inline-1" id="badge-members">0</span>
+</button>
+<button class="tab-btn" data-fts-handler-4="">
+      💬 Messages
+    </button>
+<button class="tab-btn" data-fts-click="showTab('rewards', this)">
+      🏅 Récompenses
+    </button>
+</div>
+<div class="dash-body">
+<div class="tab-content active" id="tab-pending">
+<div class="sec-title">Inscriptions en attente</div>
+<div id="pending-list"></div>
+</div>
+<div class="tab-content" id="tab-members">
+<div class="sec-title">Membres actifs</div>
+<section class="admin-card forum-summary-card" aria-labelledby="forum-summary-title">
+  <div class="admin-card-head">
+    <div>
+      <h2 id="forum-summary-title">📊 Résumé des groupes</h2>
+      <p>Vue rapide des personnes actives par catégorie et sous-catégorie.</p>
+    </div>
+    <span class="summary-total" id="summary-total-people">0 personne</span>
+  </div>
+  <div class="summary-grid" id="category-summary">
+    <div class="empty-msg">Chargement du résumé…</div>
+  </div>
+</section>
+<div id="members-list"></div>
+</div>
+
+<div class="tab-content" id="tab-rewards">
+<div class="sec-title">Badges temporaires & Artiste de la semaine</div>
+<section class="admin-card rewards-card">
+  <div class="admin-card-head">
+    <div>
+      <h2>🏅 Valoriser un membre</h2>
+      <p>Le badge temporaire remplace le badge XP dans le forum pendant la durée choisie.</p>
+    </div>
+  </div>
+  <div class="rewards-grid">
+    <label>
+      <span>Membre</span>
+      <select id="reward-user"></select>
+    </label>
+    <label>
+      <span>Badge temporaire</span>
+      <select id="reward-badge"></select>
+    </label>
+    <label>
+      <span>Durée</span>
+      <select id="reward-days">
+        <option value="7">7 jours</option>
+        <option value="14">14 jours</option>
+        <option value="30">30 jours</option>
+      </select>
+    </label>
+    <label class="rewards-full">
+      <span>Motif privé / note interne</span>
+      <input id="reward-reason" placeholder="Ex : belle progression, entraide, présence…" />
+    </label>
+  </div>
+  <div class="rewards-actions">
+    <button class="btn-confirm" data-fts-click="assignSpecialBadge()">Attribuer le badge temporaire</button>
+    <button class="btn-action btn-approve" data-fts-click="assignArtistOfWeek()">⭐ Définir Artiste de la semaine</button>
+  </div>
+  <div class="empty-msg rewards-note">Un message automatique sera publié dans le forum général.</div>
+  <div class="rewards-history" id="rewards-history" aria-label="Historique des récompenses"></div>
+</section>
+</div>
+<div class="tab-content" id="tab-messages">
+<div class="sec-title">Modération messages</div>
+<div class="ch-selector" id="ch-selector"></div>
+<div id="msg-list"></div>
+</div>
+</div>
+</div><!-- /dashboard -->
+<!-- ── MODALE MODIFICATION ────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="mod-modal">
+<div class="modal">
+<h3>Modifier l'accès</h3>
+<input id="mod-uid" type="hidden"/>
+<label class="modal-label">Rôle</label>
+<div class="role-selector" id="mod-role-selector">
+<div class="role-pill" data-fts-handler-5="" data-role="member">👤 Membre</div>
+<div class="role-pill" data-fts-handler-6="" data-role="prof">🎓 Prof</div>
+<div class="role-pill" data-fts-handler-7="" data-role="admin">🛡 Admin</div>
+</div>
+<label class="modal-label">Discipline(s) — clique pour sélectionner</label>
+<div class="pill-container" id="mod-cat-pills"></div>
+<div id="mod-sub-groups"></div>
+<!-- Section enfant(s) — visible seulement si le compte a des enfants -->
+<div class="u-forum-admin-inline-2" id="mod-enfants-section">
+<div id="mod-enfants-blocks"></div>
+</div>
+<div class="modal-row">
+<button class="btn-cancel" data-fts-handler-8="">Annuler</button>
+<button class="btn-confirm" data-fts-handler-9="">Enregistrer</button>
+</div>
+</div>
+</div>
+<nav class="fts-admin-bottom-nav" aria-label="Navigation administrateur">
+  <div class="fts-admin-bottom-track">
+    <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
+    <a class="fts-admin-bottom-item" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
+    <a class="fts-admin-bottom-item" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
+    <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
+    <a class="fts-admin-bottom-item active" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
+    <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
+    <a class="fts-admin-bottom-item" href="sondages.html"><span class="fts-admin-bottom-icon">📊</span><span>Sondages</span></a>
+  </div>
+</nav>
+<div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
+
+<script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-firebase.js"></script>
+<script src="assets/js/fts-pwa.js"></script>
+<script src="assets/js/fts-gamification.js?v=3"></script>
+<script src="assets/js/services/auth.service.js?v=1"></script>
+<script src="assets/js/services/users.service.js?v=1"></script>
+<script src="assets/js/services/resources.service.js?v=1"></script>
+<script src="assets/js/services/events.service.js?v=1"></script>
+<script src="assets/js/services/forum.service.js?v=1"></script>
+<script src="assets/js/services/messages.service.js?v=1"></script>
+<script src="assets/js/services/content.service.js?v=1"></script>
+<script src="assets/js/services/notifications.service.js?v=1"></script>
+<script src="assets/js/services/season.service.js?v=1"></script>
+<script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
+<script src="assets/js/pages/forum-admin.js?v=7"></script>
+</body>
+</html>

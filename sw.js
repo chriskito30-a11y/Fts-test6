@@ -1,173 +1,344 @@
-<!DOCTYPE html>
+const CACHE = 'fts-v67-native-admin-dispatch-boot';
+const FILES = [
+  './manifest.json',
+  './index.html',
+  './auth.html',
+  './membres.html',
+  './forum.html',
+  './messages.html',
+  './faq.html',
+  './hub-messages.html',
+  './sondages.html',
+  './rappels-admin.html',
+  './profs.html',
+  './admin.html',
+  './contenus-admin.html',
+  './calendrier-admin.html',
+  './forum-admin.html',
+  './saison.html',
+  './saison-admin.html',
+  './assets/css/fts-chat.css',
+  './assets/css/fts.css',
+  './assets/css/pages/admin.css',
+  './assets/css/pages/auth.css',
+  './assets/css/pages/calendrier-admin.css',
+  './assets/css/pages/contenus-admin.css',
+  './assets/css/pages/forum-admin.css',
+  './assets/css/pages/forum.css',
+  './assets/css/pages/index.css',
+  './assets/css/pages/membres.css',
+  './assets/css/pages/messages.css',
+  './assets/css/pages/profs.css',
+  './assets/css/pages/saison-admin.css',
+  './assets/css/pages/saison.css',
+  './assets/css/fts-nav.css',
+  './assets/css/pages/hub-messages.css',
+  './assets/css/pages/sondages.css',
+  './assets/css/pages/rappels-admin.css',
+  './assets/css/pages/faq.css',
+  './assets/js/fts-chat.js',
+  './assets/js/fts-firebase.js',
+  './assets/js/fts-gamification.js',
+  './assets/js/fts-offline.js',
+  './assets/js/fts-pwa.js',
+  './assets/js/fts-utils.js',
+  './assets/js/services/auth.service.js',
+  './assets/js/services/content.service.js',
+  './assets/js/services/events.service.js',
+  './assets/js/services/forum.service.js',
+  './assets/js/services/messages.service.js',
+  './assets/js/services/notifications.service.js',
+  './assets/js/services/resources.service.js',
+  './assets/js/services/season.service.js',
+  './assets/js/services/users.service.js',
+  './assets/js/services/reminders.service.js',
+  './assets/js/services/schedules.service.js',
+  './assets/js/services/reminder-dispatcher.service.js',
+  './assets/js/pages/admin.js',
+  './assets/js/pages/auth.js',
+  './assets/js/pages/calendrier-admin.js',
+  './assets/js/pages/contenus-admin.js',
+  './assets/js/pages/forum-admin.js',
+  './assets/js/pages/forum.js',
+  './assets/js/pages/index.js',
+  './assets/js/pages/membres.js',
+  './assets/js/pages/messages.js',
+  './assets/js/pages/profs.js',
+  './assets/js/pages/saison-admin.js',
+  './assets/js/pages/saison.js',
+  './assets/js/fts-nav.js',
+  './assets/js/pages/hub-messages.js',
+  './assets/js/pages/sondages.js',
+  './assets/js/pages/rappels-admin.js',
+  './assets/js/pages/faq.js',
+  './assets/img/fts-any-192.png',
+  './assets/img/fts-maskable-192.png',
+  './assets/img/fts-badge-96.png',
+  './assets/img/fts-any-512.png',
+  './assets/img/fts-maskable-512.png',
+  './assets/img/fts192.png',
+  './assets/img/fts512.png'
+];
 
-<html lang="fr">
-<head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Admin Contenus — Fais Ton Show</title>
-<link href="./manifest.json" rel="manifest"/>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=54" rel="stylesheet"/>
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(cache =>
+      Promise.allSettled(FILES.map(f => cache.add(f)))
+    )
+  );
+  self.skipWaiting();
+});
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v1' && k !== FTS_RUNTIME_CACHE && k !== 'fts-notification-dedupe-v1').map(k => caches.delete(k)))
+    )
+  );
+  e.waitUntil((async function(){
+    await self.clients.claim();
+    try {
+      const clientsList = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
+      clientsList.forEach(client => client.postMessage({ type:'FTS_SW_ACTIVATED', cache:CACHE }));
+    } catch(_) {}
+  })());
+});
 
-</head>
-<body class="has-glow">
-<div class="auth-loading" id="auth-loading"><div class="logo">ADMIN <span>CONTENUS</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div></div>
-<div class="admin-shell" id="admin-shell">
-<header class="fts-admin-pagehead" aria-label="En-tête administrateur">
-  <div class="fts-admin-brand">
-    <div class="fts-admin-logo">ADMIN <span>CONTENUS</span></div>
-    <div class="fts-admin-sub">Annonces · questionnaire · ressources Firebase</div>
-  </div>
-  <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
-</header>
-<div class="wrap-admin contenus-modern">
-<div class="tabs-row"><button class="tab-lnk active" data-fts-handler-2="">📣 Annonce</button><button class="tab-lnk" data-fts-handler-3="">🧭 Questionnaire</button><button class="tab-lnk" data-fts-handler-4="">📁 Ressources</button><button class="tab-lnk" data-fts-handler-5="">🗂️ Catégories</button></div>
-<section class="tab-pane active" id="tab-annonces">
-<div class="card-admin form-panel"><div class="mini-title">Annonce affichée dans l’espace membres</div><p class="field-help top-help">Ce message apparaît en haut de l’espace membre. Utilise-le pour une information générale courte.</p>
-<div class="form-grid">
-<div class="field"><label>Visibilité de l’annonce</label><select id="a-active"><option value="true">Visible dans l’espace membres</option><option value="false">Masquée pour les membres</option></select><small>Permet de préparer une annonce sans l’afficher tout de suite.</small></div>
-<div class="field"><label>Titre court</label><input id="a-title" placeholder="Ex : Répétition générale dimanche"/><small>Ce titre doit être lisible en un coup d’œil.</small></div>
-<div class="field full"><label>Message affiché</label><textarea id="a-body" placeholder="Message affiché aux membres…"></textarea><small>Écris uniquement l’information essentielle : quoi, quand, où.</small></div>
-<div class="field"><label>Texte du bouton</label><input id="a-btn" placeholder="Voir la saison"/><small>Optionnel. Exemple : Voir les infos.</small></div>
-<div class="field"><label>Destination du bouton</label><input id="a-url" placeholder="saison.html ou https://…"/><small>Page interne ou lien complet.</small></div>
-<div class="field"><label>Fin automatique</label><input id="a-expires" type="datetime-local"/><small>Optionnel. Vide = annonce permanente jusqu’à suppression ou masquage manuel.</small></div>
-</div>
-<div class="preview-box" id="annonce-preview"><div class="preview-label">Aperçu membre</div><div class="preview-card"><strong>Info importante</strong><p>Ton annonce apparaîtra ici.</p></div></div>
-<button class="btn" data-fts-handler-6="">Enregistrer l’annonce générale</button><div class="msg" id="msg-annonce"></div>
-</div>
 
-<div class="card-admin form-panel targeted-annonce-panel">
-  <div class="mini-title">Annonce ciblée supplémentaire</div>
-  <p class="field-help top-help">Permet d’ajouter une 2e annonce visible uniquement pour une ou plusieurs catégories / sous-catégories. Sans sélection : visible pour tous les membres actifs.</p>
-  <div class="grid targeted-annonce-grid">
-    <div class="card-admin list-panel targeted-list-panel">
-      <div class="mini-title">Annonces ciblées</div>
-      <div class="list" id="targeted-annonces-list"><div class="hint">Chargement…</div></div>
-      <div class="row-actions"><button class="btn-outline" data-fts-handler-17="">+ Nouvelle annonce ciblée</button></div>
-    </div>
-    <div>
-      <input type="hidden" id="ta-key" />
-      <div class="form-grid">
-        <div class="field"><label>Visibilité</label><select id="ta-active"><option value="true">Visible</option><option value="false">Masquée</option></select></div>
-        <div class="field"><label>Affichage</label><select id="ta-display"><option value="card">Carte uniquement</option><option value="ticker">Banderole défilante</option><option value="both">Carte + banderole</option></select></div>
-        <div class="field full"><label>Titre court</label><input id="ta-title" placeholder="Ex : Infos répétition danse" /></div>
-        <div class="field full"><label>Message affiché</label><textarea id="ta-body" placeholder="Message ciblé aux membres concernés…"></textarea></div>
-        <div class="field"><label>Texte du bouton</label><input id="ta-btn" placeholder="Voir les infos" /></div>
-        <div class="field"><label>Destination du bouton</label><input id="ta-url" placeholder="saison.html ou https://…" /></div>
-        <div class="field"><label>Fin automatique</label><input id="ta-expires" type="datetime-local" /><small>Optionnel. Vide = permanente jusqu’à suppression manuelle.</small></div>
-      </div>
-      <div class="targeting-box">
-        <div class="targeting-title">Ciblage de l’annonce</div>
-        <p class="field-help">Choisis une ou plusieurs catégories. Les sous-catégories correspondantes apparaissent ensuite dessous.</p>
-        <div id="ta-cat-picker" class="target-picker"><div class="hint">Chargement des catégories…</div></div>
-        <div id="ta-subcat-picker" class="target-picker subtarget-picker"></div>
-      </div>
-      <div class="preview-box" id="targeted-annonce-preview"><div class="preview-label">Aperçu membre</div><div class="preview-card"><strong>Annonce ciblée</strong><p>Ton annonce ciblée apparaîtra ici.</p></div></div>
-      <div class="row-actions">
-        <button class="btn" data-fts-handler-18="">Enregistrer l’annonce ciblée</button>
-        <button class="btn-outline danger" data-fts-handler-19="">Supprimer</button>
-      </div>
-      <div class="msg" id="msg-targeted-annonce"></div>
-    </div>
-  </div>
-</div>
-</section>
-<section class="tab-pane" id="tab-questionnaire">
-<div class="calendar-source-card" role="note" aria-label="Gestion des événements et spectacles">
-  <div class="calendar-source-icon">📅</div>
-  <div class="calendar-source-content">
-    <strong>Événements et spectacles</strong>
-    <span>Ils se créent uniquement depuis <b>Calendrier admin</b>. Ici, on gère seulement les parcours, contenus et ressources hors calendrier.</span>
-  </div>
-  <a class="btn btn-sm calendar-source-btn" href="calendrier-admin.html">Ouvrir calendrier</a>
-</div>
-<div class="grid"><div class="card-admin list-panel"><div class="mini-title">Parcours disponibles</div><p class="field-help top-help">Liste des réponses affichées dans le questionnaire d’accueil, hors événements du calendrier.</p><div class="list" id="q-list"></div><button class="btn-gold u-contenus-admin-inline-1" data-fts-handler-7="">+ Ajouter un parcours</button></div>
-<div class="card-admin form-panel"><div class="mini-title">Éditer une option du questionnaire</div><p class="field-help top-help">Ces informations apparaissent dans le parcours “Que souhaitez-vous faire ?”.</p><input id="q-key" type="hidden"/><div class="form-grid">
-<div class="field"><label>Famille du parcours</label><select id="q-type"><option value="adhesion">Inscription / adhésion</option><option value="goodie">Boutique / goodies</option><option value="renew">Renouvellement</option></select><small>Les spectacles et événements sont gérés uniquement dans Calendrier admin pour éviter les doublons.</small></div>
-<div class="field"><label>Importance dans l’accueil</label><select id="q-order"><option value="10">⭐ Prioritaire — en haut de la liste</option><option value="50">🔥 Important — très visible</option><option value="100">📌 Normal — affichage standard</option><option value="200">📂 Secondaire — plus bas dans la liste</option></select><small>Choisis une priorité claire. L’ordre technique est géré automatiquement.</small></div>
-<div class="field"><label>Icône visible</label><input id="q-icon" placeholder="🎭"/><small>Emoji affiché dans la carte.</small></div>
-<div class="field"><label>Visible dans l’accueil</label><select id="q-active"><option value="true">Oui, visible</option><option value="false">Non, masqué</option></select><small>Masquer sans supprimer.</small></div>
-<div class="field full"><label>Titre de la carte</label><input id="q-title" placeholder="Inscription théâtre"/><small>Exemple : Je veux inscrire mon enfant.</small></div>
-<div class="field full"><label>Résumé affiché sous le titre</label><textarea id="q-desc"></textarea><small>Phrase courte pour guider le visiteur.</small></div>
-<div class="field full"><label>Lien de destination</label><input id="q-link" placeholder="https://helloasso.com/…"/><small>Page ouverte quand l’utilisateur choisit cette option.</small></div>
-<div class="field"><label>Info rapide 1 — nom</label><input id="q-d1k" placeholder="Âge"/><small>Ex : âge, jour, lieu.</small></div><div class="field"><label>Info rapide 1 — valeur</label><input id="q-d1v" placeholder="7/9 ans"/><small>Valeur affichée à côté.</small></div>
-<div class="field"><label>Info rapide 2 — nom</label><input id="q-d2k" placeholder="Jour"/><small>Deuxième repère utile.</small></div><div class="field"><label>Info rapide 2 — valeur</label><input id="q-d2v" placeholder="Mercredi"/><small>Ex : mercredi 14h.</small></div>
-<div class="field full"><label>Titre de l’écran suivant</label><input id="q-dtitle"/><small>Affiché après le choix si utilisé par la page d’accueil.</small></div><div class="field full"><label>Texte de l’écran suivant</label><textarea id="q-ddesc"></textarea><small>Complément d’information avant le lien final.</small></div>
-</div><div class="preview-box" id="questionnaire-preview"><div class="preview-label">Aperçu accueil</div><div class="preview-card"><span class="preview-icon">🎭</span><strong>Titre de la carte</strong><p>Résumé affiché sous le titre.</p><div class="preview-tags"><span>Âge : 7/9 ans</span><span>Jour : mercredi</span></div></div></div><div class="row-actions"><button class="btn btn-sm" data-fts-handler-8="">Enregistrer</button><button class="btn-outline danger" data-fts-handler-9="">Supprimer</button></div><div class="hint">Ces données remplacent le CSV du questionnaire d’accueil. Les événements calendrier restent gérés dans Calendrier admin.</div><div class="msg" id="msg-q"></div></div></div>
-</section>
-<section class="tab-pane" id="tab-ressources">
-<div class="grid"><div class="card-admin list-panel"><div class="mini-title">Ressources publiées</div><p class="field-help top-help">Documents, liens, textes, audios ou vidéos disponibles côté membres.</p><div class="list" id="r-list"></div><button class="btn-gold u-contenus-admin-inline-2" data-fts-handler-10="">+ Ajouter</button></div>
-<div class="card-admin form-panel"><div class="mini-title">Éditer une ressource membre</div><p class="field-help top-help">Choisis la catégorie et la sous-catégorie pour afficher la ressource au bon groupe.</p><input id="r-key" type="hidden"/><div class="form-grid">
-<div class="field"><label>Catégorie existante</label><select data-fts-handler-11="" id="r-cat"></select><small>Détermine la discipline où la ressource apparaîtra.</small></div>
-<div class="field"><label>Créer une nouvelle catégorie</label><input id="r-cat-new" placeholder="Ex : Eveil musical"/><small>Optionnel. Remplace le choix existant si rempli.</small></div>
-<div class="field"><label>Groupe / sous-catégorie</label><select id="r-subcat"></select><small>Ex : enfants, ados, adultes, groupe mercredi.</small></div>
-<div class="field"><label>Créer un nouveau groupe</label><input id="r-subcat-new" placeholder="Ex : Groupe mercredi"/><small>Optionnel. Utilisé si le groupe n’existe pas encore.</small></div>
-<div class="field"><label>Format de la ressource</label><select id="r-type"><option value="pdf">PDF</option><option value="mp3">Audio</option><option value="video">Vidéo</option><option value="image">Image</option><option value="texte">Texte</option><option value="doc">Autre lien</option></select><small>Aide les membres à comprendre le contenu.</small></div>
-<div class="field"><label>Visible pour les membres</label><select id="r-active"><option value="true">Oui, visible</option><option value="false">Non, masqué</option></select><small>Masquer sans supprimer.</small></div>
-<div class="field full"><label>Nom affiché aux membres</label><input id="r-name"/><small>Ex : Partition chant — scène finale.</small></div>
-<div class="field full"><label>Lien, texte ou contenu</label><textarea id="r-url" placeholder="https://drive.google.com/... ou texte"></textarea><small>Lien Google Drive, vidéo, PDF, image ou texte directement affiché.</small></div>
-</div><div class="preview-box" id="resource-preview"><div class="preview-label">Aperçu membre</div><div class="preview-card resource-card"><span class="preview-type">PDF</span><strong>Nom de la ressource</strong><p>Catégorie · Sous-catégorie</p></div></div><div class="row-actions"><button class="btn btn-sm" data-fts-handler-12="">Enregistrer</button><button class="btn-outline danger" data-fts-handler-13="">Supprimer</button></div><div class="hint">Ces ressources remplacent le CSV Categorie / Sous-categorie / Nom / Contenu ou lien / Type.</div><div class="msg" id="msg-r"></div></div></div>
-</section>
-<section class="tab-pane" id="tab-categories">
-<div class="grid">
-<div class="card-admin list-panel">
-<div class="mini-title">Catégories officielles</div><p class="field-help top-help">Structure utilisée par les membres, les ressources, le forum et les profs.</p>
-<div class="list" id="c-list"></div>
-<button class="btn-gold u-contenus-admin-inline-3" data-fts-handler-14="">+ Ajouter une catégorie</button>
-<p class="hint u-contenus-admin-inline-4">Ces catégories alimentent les ressources, l’espace profs, l’espace membres et le forum.</p>
-</div>
-<div class="card-admin form-panel">
-<div class="mini-title">Éditer une catégorie officielle</div><p class="field-help top-help">Attention : ces noms servent aux accès et à l’affichage. Corrige avec prudence.</p>
-<input id="c-key" type="hidden"/>
-<div class="form-grid">
-<div class="field"><label>Nom de la discipline</label><input id="c-name" placeholder="Ex : Éveil musical"/><small>Nom visible par les membres.</small></div>
-<div class="field"><label>Icône de la discipline</label><input id="c-icon" placeholder="🎵"/><small>Emoji affiché dans l’application.</small></div>
-<div class="field"><label>Importance dans les listes</label><select id="c-order"><option value="10">⭐ Prioritaire — en haut</option><option value="50">🔥 Important</option><option value="100">📌 Normal</option><option value="200">📂 Secondaire — plus bas</option></select><small>Choisis une priorité lisible. Le tri technique est conservé automatiquement.</small></div>
-<div class="field"><label>Catégorie active</label><select id="c-active"><option value="true">Oui, active</option><option value="false">Non, masquée</option></select><small>Masquer sans supprimer.</small></div>
-<div class="field full"><label>Sous-catégories — une par ligne</label><textarea id="c-subcats" placeholder="7/9 ans\n10/12 ans\nAdultes"></textarea></div>
-</div>
-<div class="row-actions">
-<button class="btn btn-sm" data-fts-handler-15="">Enregistrer</button>
-<button class="btn-outline danger" data-fts-handler-16="">Supprimer catégorie + ressources liées</button>
-</div>
-<div class="hint">La suppression retire la catégorie dans Firebase et supprime aussi les ressources liées pour éviter qu’elle réapparaisse automatiquement.</div>
-<div class="msg" id="msg-c"></div>
-</div>
-</div>
-</section>
-</div>
-</div>
-<nav class="fts-admin-bottom-nav" aria-label="Navigation administrateur">
-  <div class="fts-admin-bottom-track">
-    <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
-    <a class="fts-admin-bottom-item" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
-    <a class="fts-admin-bottom-item active" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
-    <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
-    <a class="fts-admin-bottom-item" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
-    <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
-    <a class="fts-admin-bottom-item" href="sondages.html"><span class="fts-admin-bottom-icon">📊</span><span>Sondages</span></a>
-  </div>
-</nav>
-<div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
+// Stocke l'UID actif côté Service Worker pour bloquer les notifications MP destinées à un autre compte.
+const FTS_SW_DB = 'fts-sw-state-v1';
+const FTS_SW_STORE = 'state';
 
-<script src="assets/js/fts-utils.js"></script>
-<script src="assets/js/fts-firebase.js"></script>
-<script src="assets/js/services/auth.service.js?v=1"></script>
-<script src="assets/js/services/users.service.js?v=1"></script>
-<script src="assets/js/services/resources.service.js?v=1"></script>
-<script src="assets/js/services/events.service.js?v=1"></script>
-<script src="assets/js/services/forum.service.js?v=1"></script>
-<script src="assets/js/services/messages.service.js?v=1"></script>
-<script src="assets/js/services/content.service.js?v=1"></script>
-<script src="assets/js/services/notifications.service.js?v=1"></script>
-<script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/contenus-admin.js?v=54"></script>
-</body>
-</html>
+function openSwStateDb(){
+  return new Promise(function(resolve, reject){
+    const req = indexedDB.open(FTS_SW_DB, 1);
+    req.onupgradeneeded = function(){ req.result.createObjectStore(FTS_SW_STORE); };
+    req.onsuccess = function(){ resolve(req.result); };
+    req.onerror = function(){ reject(req.error); };
+  });
+}
+async function setSwState(key, value){
+  try{
+    const db = await openSwStateDb();
+    await new Promise(function(resolve, reject){
+      const tx = db.transaction(FTS_SW_STORE, 'readwrite');
+      tx.objectStore(FTS_SW_STORE).put(value, key);
+      tx.oncomplete = resolve;
+      tx.onerror = function(){ reject(tx.error); };
+    });
+    db.close();
+  }catch(e){}
+}
+async function getSwState(key){
+  try{
+    const db = await openSwStateDb();
+    const value = await new Promise(function(resolve, reject){
+      const tx = db.transaction(FTS_SW_STORE, 'readonly');
+      const req = tx.objectStore(FTS_SW_STORE).get(key);
+      req.onsuccess = function(){ resolve(req.result); };
+      req.onerror = function(){ reject(req.error); };
+    });
+    db.close();
+    return value;
+  }catch(e){ return null; }
+}
+
+function notificationMatchesClearRequest(notification, req){
+  const data = (notification && notification.data) || {};
+  const tag = notification && notification.tag ? String(notification.tag) : '';
+  const wantedTypes = Array.isArray(req.types) ? req.types : (req.kind === 'dm' ? ['dm_direct', 'dm_group'] : (req.type ? [req.type] : []));
+
+  if (req.conversationId && data.conversationId !== req.conversationId && !tag.includes('dm-' + req.conversationId + '-')) return false;
+  if (req.channel && data.channel !== req.channel && !tag.includes('forum-' + req.channel + '-')) return false;
+  if (req.pollId && data.pollId !== req.pollId && !tag.includes('poll-' + req.pollId + '-')) return false;
+  if (req.resourceId && data.resourceId !== req.resourceId && !tag.includes('resource-' + req.resourceId + '-')) return false;
+  if (req.eventId && data.eventId !== req.eventId && !tag.includes('event-' + req.eventId)) return false;
+
+  if (req.recipientUid && data.recipientUid && data.recipientUid !== req.recipientUid) return false;
+  if (req.recipientUid && data.expectedUid && data.expectedUid !== req.recipientUid) return false;
+
+  if (wantedTypes.length) {
+    const dataType = String(data.type || '');
+    if (!wantedTypes.includes(dataType)) return false;
+  }
+  return true;
+}
+
+async function clearMatchingNotifications(req){
+  if (!self.registration || !self.registration.getNotifications) return 0;
+  try {
+    const list = await self.registration.getNotifications({ includeTriggered: true }).catch(() => self.registration.getNotifications());
+    let closed = 0;
+    (list || []).forEach(n => {
+      if (notificationMatchesClearRequest(n, req || {})) {
+        n.close();
+        closed += 1;
+      }
+    });
+    return closed;
+  } catch(e) { return 0; }
+}
+
+self.addEventListener('message', function(event){
+  if(event.data && event.data.type === 'SKIP_WAITING') { self.skipWaiting(); return; }
+  if(event.data && event.data.type === 'FTS_SET_ACTIVE_UID') {
+    event.waitUntil(setSwState('activeUid', event.data.uid || null));
+    return;
+  }
+  if(event.data && event.data.type === 'FTS_CLEAR_NOTIFICATIONS') {
+    event.waitUntil(clearMatchingNotifications(event.data.payload || {}));
+  }
+});
+
+const FTS_RUNTIME_CACHE = 'fts-v52-runtime';
+const FTS_FILES_CACHE = 'fts-offline-files-v1';
+
+function isFirebaseOrAuthRequest(url){
+  return /firebaseio\.com|googleapis\.com\/identitytoolkit|securetoken\.googleapis\.com|gstatic\.com\/firebasejs/.test(url.hostname + url.pathname);
+}
+function isDocumentAsset(url){
+  return /\.(pdf|mp3|m4a|wav|ogg|mp4|webm|jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url.pathname);
+}
+function isAppShellRequest(url){
+  return url.origin === self.location.origin;
+}
+
+self.addEventListener('fetch', e => {
+  if(e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+
+  // Ne jamais mettre les appels Firebase/Auth en cache HTTP : les données sont gérées par fts-offline.js.
+  if(isFirebaseOrAuthRequest(url)) return;
+
+  // Documents/médias : cache-first si déjà téléchargé, puis réseau.
+  if(isDocumentAsset(url)) {
+    e.respondWith(
+      caches.open(FTS_FILES_CACHE).then(cache =>
+        cache.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+          if(res && res.ok) cache.put(e.request, res.clone()).catch(()=>{});
+          return res;
+        }))
+      ).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // App shell local : réseau d'abord, fallback cache.
+  if(isAppShellRequest(url)) {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          if(res && res.ok) caches.open(CACHE).then(cache => cache.put(e.request, res.clone())).catch(()=>{});
+          return res;
+        })
+        .catch(() => caches.match(e.request).then(hit => hit || caches.match('./membres.html')))
+    );
+    return;
+  }
+
+  // Externe : réseau avec fallback cache, sans polluer le cache principal.
+  e.respondWith(
+    fetch(e.request)
+      .then(res => {
+        if(res && res.ok && res.type !== 'opaque') caches.open(FTS_RUNTIME_CACHE).then(cache => cache.put(e.request, res.clone())).catch(()=>{});
+        return res;
+      })
+      .catch(() => caches.match(e.request))
+  );
+});
+
+function normalizeNotificationUrl(rawUrl){
+  const fallback = './membres.html';
+  try {
+    const base = self.location.origin + self.location.pathname.replace(/\/[^/]*$/, '/');
+    return new URL(rawUrl || fallback, base).href;
+  } catch(e) {
+    return new URL(fallback, self.location.href).href;
+  }
+}
+
+// ═══ NOTIFICATIONS PUSH ═══════════════════════════
+const NOTIF_DEDUPE_CACHE = 'fts-notification-dedupe-v1';
+const NOTIF_DEDUPE_TTL = 10 * 60 * 1000; // 10 min : absorbe doublons d'abonnements / retries
+
+function notificationDedupeKey(data){
+  return data.notificationKey || data.collapseKey || data.tag ||
+    data.resourceId || data.messageId || data.conversationId || data.eventId || data.channel || '';
+}
+
+async function wasRecentlyShownNotification(key){
+  if(!key || !('caches' in self)) return false;
+  try{
+    const cache = await caches.open(NOTIF_DEDUPE_CACHE);
+    const req = new Request(self.location.origin + '/__fts_notif_dedupe__/' + encodeURIComponent(key));
+    const res = await cache.match(req);
+    const now = Date.now();
+    if(res){
+      const ts = Number(await res.text()) || 0;
+      if(now - ts < NOTIF_DEDUPE_TTL) return true;
+    }
+    await cache.put(req, new Response(String(now), { headers:{ 'Content-Type':'text/plain' } }));
+  }catch(e){}
+  return false;
+}
+
+async function handlePushNotification(event){
+  let data = { title: 'Fais Ton Show', body: 'Nouvelle notification', url: './membres.html' };
+  try { if (event.data) data = event.data.json(); } catch(e) {}
+
+  const url = normalizeNotificationUrl(data.url);
+
+  // Verrou confidentialité MP : le destinataire peut venir du payload OU de l'URL.
+  // Utile si le worker Cloudflare ne transmet pas tous les champs custom du payload.
+  let urlRecipientUid = null;
+  try { urlRecipientUid = new URL(url).searchParams.get('recipientUid'); } catch(e) {}
+  const expectedUid = data.expectedUid || data.recipientUid || data.uid || urlRecipientUid || null;
+  const isPrivateMessage = data.requiresUidMatch === true || data.type === 'dm_direct' || data.type === 'dm_group' || !!urlRecipientUid;
+  if(isPrivateMessage && expectedUid){
+    const activeUid = await getSwState('activeUid');
+    if(activeUid !== expectedUid) return;
+  }
+
+  const dedupeKey = notificationDedupeKey(data);
+  if(dedupeKey && await wasRecentlyShownNotification(dedupeKey)) return;
+
+  const tag = data.tag || data.collapseKey || data.notificationKey ||
+    data.resourceId || data.messageId || data.conversationId || data.eventId || data.channel || 'fts-notification';
+
+  await self.registration.showNotification(data.title || 'Fais Ton Show', {
+    body: data.body || 'Nouvelle notification',
+    icon: './assets/img/fts-any-192.png',
+    badge: './assets/img/fts-badge-96.png',
+    vibrate: [200, 100, 200],
+    tag,
+    // Si une notification identique arrive plusieurs fois, elle est remplacée sans revibrer.
+    renotify: data.renotify === true && !dedupeKey,
+    data: { ...data, url, notificationKey: dedupeKey || data.notificationKey || tag }
+  });
+}
+
+self.addEventListener('push', function(event) {
+  event.waitUntil(handlePushNotification(event));
+});
+
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  const targetUrl = normalizeNotificationUrl(event.notification.data && event.notification.data.url);
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+      const target = new URL(targetUrl);
+      for (const client of clientList) {
+        try {
+          const current = new URL(client.url);
+          if (current.pathname === target.pathname && 'focus' in client) {
+            if ('navigate' in client) return client.navigate(targetUrl).then(c => c ? c.focus() : client.focus());
+            return client.focus();
+          }
+        } catch(e) {}
+      }
+      return clients.openWindow(targetUrl);
+    })
+  );
+});
+
+// FTS cache bump topbar compact v3

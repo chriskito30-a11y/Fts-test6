@@ -4,12 +4,12 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Admin Calendrier — Fais Ton Show</title>
+<title>Admin Saison — Fais Ton Show</title>
 <link href="./manifest.json" rel="manifest"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/calendrier-admin.css?v=5" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/saison-admin.css?v=3" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -17,61 +17,50 @@
 
 </head>
 <body class="has-glow">
-<div class="auth-loading" id="auth-loading"><div class="logo">ADMIN <span>CALENDRIER</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div></div>
+<div class="auth-loading" id="auth-loading"><div class="logo">FAIS TON <span>SHOW</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div></div>
 <div class="admin-shell" id="admin-shell">
 <header class="fts-admin-pagehead" aria-label="En-tête administrateur">
   <div class="fts-admin-brand">
-    <div class="fts-admin-logo">ADMIN <span>CALENDRIER</span></div>
-    <div class="fts-admin-sub">Événements affichés dans l’espace membres</div>
+    <div class="fts-admin-logo">ADMIN <span>SAISON</span></div>
+    <div class="fts-admin-sub">Tarifs · liens d’inscription · contenus publics</div>
   </div>
-  <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
+  <div class="fts-admin-actions"><a class="fts-admin-ghost" href="saison.html">Voir la page</a><button class="fts-admin-ghost" data-fts-handler-1="">Exporter JSON</button><button class="fts-admin-primary" data-fts-handler-2="">Publier</button><button class="fts-admin-logout" data-fts-handler-3="">Déconnexion</button></div>
 </header>
-<div class="layout">
+<div class="layout saison-modern">
+<div class="season-admin-hero">
+  <div>
+    <div class="hero-kicker">Cockpit saison</div>
+    <h1>Construire la page Saison sans se perdre</h1>
+    <p>Les champs restent les mêmes, mais l’interface aide à comprendre ce qui sera visible côté public.</p>
+  </div>
+  <div class="hero-checklist">
+    <span>✓ Page publique</span>
+    <span>✓ Tarifs</span>
+    <span>✓ Inscriptions</span>
+  </div>
+</div>
 <div class="grid">
-<div class="card-admin">
-<div class="mini-title">Événements Firebase</div>
-<div class="event-list" id="event-list"><div class="empty">Chargement…</div></div>
-<button class="btn-gold u-calendrier-admin-inline-1" data-fts-handler-2="">+ Ajouter un événement</button>
-<p class="hint u-calendrier-admin-inline-2">Source officielle : <strong>fts_events</strong>. Cette page affiche aussi les anciens événements synchronisés dans le questionnaire afin de pouvoir les migrer, modifier ou supprimer.</p>
+<div class="card-admin side-card"><div class="mini-title">Activités publiées</div><div class="activity-list" id="activity-list"></div><button class="btn-gold u-saison-admin-inline-1" data-fts-handler-4="">+ Ajouter une activité</button><div class="helper-box">
+  <strong>Astuce</strong>
+  <span>L’ordre détermine la position sur la page publique. Le bouton “Visible” permet de préparer une activité sans l’afficher.</span>
+</div><hr class="divider"/><div class="mini-title">Sauvegarde technique</div><textarea class="import-area" id="json-area" placeholder="Colle ici un export JSON si besoin…"></textarea><button class="btn-outline u-saison-admin-inline-2" data-fts-handler-5="">Importer ce JSON</button></div>
+<div class="card-admin main-card">
+<div class="section-head"><div><div class="mini-title">Réglages généraux</div><h2>En-tête de la page Saison</h2></div><span class="soft-badge">Visible en haut de saison.html</span></div>
+<div class="form-grid modern-form">
+<div class="field"><label>Titre principal affiché</label><input id="m-title" placeholder="SAISON"/><small>Exemple : SAISON</small></div><div class="field"><label>Année de saison</label><input id="m-year" placeholder="2026/2027"/><small>Affiché sous le titre principal.</small></div>
+<div class="field full"><label>Phrase d’accroche</label><input id="m-slogan" placeholder="Deux parcours, une passion…"/><small>Petit texte rassurant visible sous le titre.</small></div><div class="field full"><label>Lien d’inscription par défaut</label><input id="m-link" placeholder="https://www.helloasso.com/..."/><small>Utilisé quand une formule n’a pas son propre lien.</small></div>
 </div>
-<div class="card-admin form-card-admin">
-<div class="form-hero">
-<div class="form-hero-icon">🎭</div>
-<div>
-<div class="mini-title">Éditer un événement</div>
-<h2>Créer ou modifier une info calendrier</h2>
-<p>Complète les informations essentielles, choisis les groupes concernés, puis enregistre.</p>
+<hr class="divider"/><div class="section-head"><div><div class="mini-title">Activité sélectionnée</div><h2>Carte activité</h2></div><span class="soft-badge">Tuile + bloc déroulant</span></div><div class="muted-note" id="empty-edit">Sélectionne une activité à gauche.</div>
+<div class="u-saison-admin-inline-3" id="editor">
+<div class="preview-panel" id="saison-preview"></div>
+<div class="category-helper" id="season-cat-helper"></div>
+<div class="form-grid modern-form">
+<div class="field"><label>Nom affiché sur la page</label><input id="a-name" placeholder="Théâtre, Danse…"/><small>Nom visible dans la tuile publique.</small></div><div class="field"><label>Emoji / icône</label><input id="a-icon" placeholder="🎭"/><small>Petit repère visuel affiché sur la carte.</small></div>
+<div class="field"><label>Sous-titre court</label><input id="a-subtitle" placeholder="Mercredi · Adultes"/><small>Horaires, public ou précision rapide.</small></div><div class="field"><label>Badge optionnel</label><input id="a-badge" placeholder="Offert, Nouveau…"/><small>Petit badge visible sur la tuile.</small></div>
+<div class="field"><label>Position d’affichage</label><input id="a-order" type="number"/><small>Plus le nombre est petit, plus l’activité remonte.</small></div><div class="field"><label>Afficher cette activité</label><select id="a-active"><option value="true">Oui, visible sur la page Saison</option><option value="false">Non, garder en brouillon</option></select><small>Masque l’activité sans la supprimer.</small></div>
 </div>
-</div>
-<input id="e-key" type="hidden"/>
-<div class="form-section">
-<div class="section-title"><span>1</span>Informations principales</div>
-<div class="form-grid">
-<div class="field full field-main"><label>Nom de l’événement</label><input id="e-name" placeholder="Ex : Showcase de fin d’année"/></div>
-<div class="field"><label>Type</label><input id="e-type" placeholder="Spectacle, stage, répétition…"/></div>
-<div class="field"><label>Visible</label><select id="e-active"><option value="true">Oui</option><option value="false">Non</option></select></div>
-<div class="field"><label>Importance</label><select id="e-important"><option value="false">Normal</option><option value="true">Important</option></select></div>
-</div>
-</div>
-<div class="form-section target-section">
-<div class="section-title"><span>2</span>Groupes concernés</div>
-<div class="target-help">Aucune case cochée = visible par tout le monde. Tu peux cocher plusieurs catégories et sous-catégories.</div>
-<div class="target-box" id="event-targets"><div class="empty">Chargement des groupes…</div></div>
-</div>
-<div class="form-section">
-<div class="section-title"><span>3</span>Date, lieu et détails</div>
-<div class="form-grid">
-<div class="field"><label>Date</label><input id="e-date" type="date"/></div>
-<div class="field"><label>Heure</label><input id="e-hour" type="time"/></div>
-<div class="field full"><label>Lieu</label><input id="e-location" placeholder="Salle, ville…"/></div>
-<div class="field full"><label>Lien inscription / infos</label><input id="e-url" placeholder="https://…"/></div>
-<div class="field full"><label>Note interne / description</label><textarea id="e-desc" placeholder="Optionnel — détails utiles pour l’équipe"></textarea></div>
-</div>
-</div>
-<div class="row-actions form-actions-sticky">
-<button class="btn btn-sm" data-fts-handler-3="" id="btn-save-event">Enregistrer</button>
-<button class="btn-outline" data-fts-handler-4="">Nouveau</button>
-<button class="btn-outline danger" data-fts-handler-5="">Supprimer</button>
+<div class="section-head offers-head"><div><div class="mini-title">Formules, tarifs et inscription</div><h2>Offres de l’activité</h2></div><button class="btn-gold" data-fts-handler-6="">+ Ajouter une formule</button></div><div id="offers"></div>
+<div class="actions form-actions"><button class="btn-outline danger" data-fts-handler-7="">Supprimer l'activité</button></div>
 </div>
 <div class="msg" id="msg"></div>
 </div>
@@ -83,9 +72,9 @@
     <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
     <a class="fts-admin-bottom-item" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
     <a class="fts-admin-bottom-item" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
-    <a class="fts-admin-bottom-item active" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
+    <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
     <a class="fts-admin-bottom-item" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
-    <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
+    <a class="fts-admin-bottom-item active" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
     <a class="fts-admin-bottom-item" href="sondages.html"><span class="fts-admin-bottom-icon">📊</span><span>Sondages</span></a>
   </div>
 </nav>
@@ -103,6 +92,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/calendrier-admin.js?v=4"></script>
+<script src="assets/js/pages/saison-admin.js?v=3"></script>
 </body>
 </html>
