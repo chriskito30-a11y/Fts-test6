@@ -1,4 +1,4 @@
-const CACHE = 'fts-v49-profil-admin-infos';
+const CACHE = 'fts-v50-offline-ressources-demande';
 const FILES = [
   './manifest.json',
   './index.html',
