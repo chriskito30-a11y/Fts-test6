@@ -1,7 +1,7 @@
 /* ================================================================
    FTS REMINDERS SERVICE — Rappels planifiés isolés
-   Phase test : stocke les rappels dans fts_scheduled_reminders.
-   Aucun MP réel n'est envoyé depuis ce service.
+   Stocke les rappels dans fts_scheduled_reminders.
+   Le dispatch natif admin traite les rappels pending quand sendAt est passé.
    ================================================================ */
 (function(window){
   'use strict';
@@ -32,12 +32,9 @@
     update(id, patch){ return this.ref(id).update(Object.assign({}, patch, { updatedAt: Date.now() })); },
     remove(id){ return this.ref(id).remove(); },
     setStatus(id, status){
-      const patch = { status };
-      if(status === 'pending') patch.makeReady = true;
-      if(status === 'standby' || status === 'cancelled' || status === 'sent') patch.makeReady = false;
-      return this.update(id, patch);
+      return this.update(id, { status });
     },
-    activateForMake(id){ return this.update(id, { status:'pending', makeReady:true }); },
-    standby(id){ return this.update(id, { status:'standby', makeReady:false }); }
+    activate(id){ return this.update(id, { status:'pending' }); },
+    standby(id){ return this.update(id, { status:'standby' }); }
   };
 })(window);
