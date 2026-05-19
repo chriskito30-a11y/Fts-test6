@@ -1,4 +1,4 @@
-const CACHE = 'fts-v51-rtdb-listeners-soft';
+const CACHE = 'fts-v52-first-steps-onboarding';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -184,7 +184,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v51-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v52-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v1';
 
 function isFirebaseOrAuthRequest(url){

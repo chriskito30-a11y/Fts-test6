@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/css/fts.css?v=32">
 
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=19">
-<link rel="stylesheet" href="assets/css/pages/membres.css?v=50">
+<link rel="stylesheet" href="assets/css/pages/membres.css?v=52">
 </head>
 
 <body class="has-glow">
@@ -96,6 +96,41 @@
         <div class="profile-pills" id="profile-pills" aria-label="Raccourcis vers mes ressources"></div>
       </div>
 
+
+      <section class="smart-section first-steps-panel u-initial-hidden" id="first-steps-panel" aria-label="Guide premiers pas obligatoire">
+        <div class="smart-section-head first-steps-head">
+          <div>
+            <div class="smart-kicker">Première utilisation</div>
+            <h2>Premiers pas</h2>
+            <p class="first-steps-sub">Ce guide reste visible jusqu’à ce que les actions essentielles soient terminées.</p>
+          </div>
+          <span class="smart-hint" id="first-steps-progress">0/4</span>
+        </div>
+        <div class="first-steps-list" id="first-steps-list">
+          <button type="button" class="first-step-item" data-first-step="profile">
+            <span class="first-step-check" aria-hidden="true">○</span>
+            <span class="first-step-text"><strong>Vérifier mon profil</strong><small>Nom, prénom, téléphone et enfant(s) si besoin.</small></span>
+            <span class="first-step-action">Ouvrir</span>
+          </button>
+          <button type="button" class="first-step-item" data-first-step="notifs">
+            <span class="first-step-check" aria-hidden="true">○</span>
+            <span class="first-step-text"><strong>Activer les notifications</strong><small>Pour les rappels, messages, documents et annonces importantes.</small></span>
+            <span class="first-step-action">Activer</span>
+          </button>
+          <button type="button" class="first-step-item" data-first-step="docs">
+            <span class="first-step-check" aria-hidden="true">○</span>
+            <span class="first-step-text"><strong>Voir mes ressources</strong><small>Textes, partitions, audios, PDF, vidéos et fichiers hors ligne.</small></span>
+            <span class="first-step-action">Voir</span>
+          </button>
+          <button type="button" class="first-step-item" data-first-step="messages">
+            <span class="first-step-check" aria-hidden="true">○</span>
+            <span class="first-step-text"><strong>Comprendre messages & forum</strong><small>Où retrouver les MP, groupes, discussions et sondages.</small></span>
+            <span class="first-step-action">Découvrir</span>
+          </button>
+        </div>
+        <div class="first-steps-done u-initial-hidden" id="first-steps-done" role="status">Tout est prêt 🎉 Le guide va disparaître.</div>
+      </section>
+
       <section class="smart-section member-news-panel u-initial-hidden" id="member-news-panel" aria-label="Actions à faire maintenant">
         <div class="smart-section-head">
           <div>
@@ -167,11 +202,11 @@
         <span class="account-action-ico fts-nav-icon">📄</span>
         <span><strong>Docs</strong><small>Textes, partitions, musiques, vidéos et PDF.</small></span>
       </button>
-      <a class="account-action-card guide-action-card" href="hub-messages.html">
+      <a class="account-action-card guide-action-card" href="hub-messages.html" data-guide-action="messages">
         <span class="account-action-ico fts-nav-icon">💬</span>
         <span><strong>Messages</strong><small>Messages privés et accès aux groupes.</small></span>
       </a>
-      <a class="account-action-card guide-action-card" href="forum.html">
+      <a class="account-action-card guide-action-card" href="forum.html" data-guide-action="forum">
         <span class="account-action-ico fts-nav-icon">👥</span>
         <span><strong>Forum</strong><small>Discussions par activité, annonces et fichiers partagés.</small></span>
       </a>
@@ -420,6 +455,6 @@
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/fts-nav.js?v=19"></script>
 <script src="assets/js/fts-gamification.js?v=3"></script>
-<script src="assets/js/pages/membres.js?v=51"></script>
+<script src="assets/js/pages/membres.js?v=52"></script>
 </body>
 </html>
