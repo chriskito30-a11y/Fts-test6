@@ -500,3 +500,132 @@
   .reward-history-item{ grid-template-columns:1fr; align-items:stretch; }
   .reward-history-actions{ justify-content:flex-start; }
 }
+
+/* ── FICHE CONTACT ÉLÈVE / PROF — V53 ───────────────────────── */
+.student-card-clickable {
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  position: relative;
+  appearance: none;
+  font-family: inherit;
+}
+.student-card-clickable:hover,
+.student-card-clickable:focus-visible {
+  border-color: rgba(248,231,2,.45);
+  outline: none;
+  transform: translateY(-1px);
+}
+.student-open-hint {
+  align-self: center;
+  flex-shrink: 0;
+  font-size: .68rem;
+  color: var(--gold);
+  border: 1px solid rgba(248,231,2,.25);
+  background: rgba(248,231,2,.08);
+  border-radius: 999px;
+  padding: .25rem .55rem;
+}
+.student-child-disc { color: var(--gold); }
+.student-contact-inline {
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(248,231,2,.45);
+}
+.student-contact-inline:hover { color: #fff6a0; }
+.student-contact-box { max-width: 560px; }
+.student-contact-kicker {
+  color: var(--gold);
+  font-size: .62rem;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+  margin-bottom: .25rem;
+}
+.student-contact-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: .55rem;
+  margin-bottom: 1rem;
+}
+.student-contact-primary,
+.student-contact-action {
+  min-height: 44px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius: 14px;
+  text-decoration:none;
+  font-size: .82rem;
+  font-weight: 700;
+}
+.student-contact-primary {
+  grid-column: 1 / -1;
+  background: var(--red);
+  color: var(--brand-ink, #050505);
+}
+.student-contact-action {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  color: var(--white);
+}
+.student-contact-section {
+  border: 1px solid rgba(255,255,255,.09);
+  background: rgba(0,0,0,.22);
+  border-radius: 18px;
+  padding: .9rem;
+  margin-top: .75rem;
+}
+.student-contact-section-title {
+  color: var(--gold);
+  font-size: .68rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: .6rem;
+}
+.student-contact-line {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:.8rem;
+  padding: .45rem 0;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: .82rem;
+}
+.student-contact-line:last-child { border-bottom: 0; }
+.student-contact-line span { color: var(--muted); }
+.student-contact-line strong {
+  color: var(--white);
+  text-align:right;
+  word-break: break-word;
+  font-weight: 600;
+}
+.student-contact-line a { color: var(--gold); text-decoration: none; }
+.student-contact-child-card {
+  border-radius: 16px;
+  padding: .8rem;
+  background: rgba(248,231,2,.045);
+  border: 1px solid rgba(248,231,2,.12);
+  margin-top: .55rem;
+}
+.student-contact-child-card > strong { display:block; margin-bottom:.4rem; }
+.student-contact-mini-actions {
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:.5rem;
+  margin-top:.65rem;
+}
+@media (max-width: 560px) {
+  .student-contact-modal { align-items: flex-end; }
+  .student-contact-box {
+    width: 100%;
+    max-width: none;
+    max-height: 88vh;
+    border-radius: 24px 24px 0 0;
+    padding: 1.1rem;
+  }
+  .student-open-hint { display:none; }
+  .student-contact-actions { grid-template-columns: 1fr; }
+  .student-contact-line { display:block; }
+  .student-contact-line strong { display:block; text-align:left; margin-top:.2rem; }
+}
