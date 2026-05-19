@@ -97,10 +97,12 @@
     $('reminder-user')?.addEventListener('change', updatePreview);
     $('reminder-category')?.addEventListener('change', () => { renderSubcategories(); updatePreview(); });
     $('reminder-subcategory')?.addEventListener('change', updatePreview);
-    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','standby-mode','reminder-24h','reminder-1h','planning-mode','repeat-until','manual-dates','excluded-dates'].forEach(id => {
+    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','standby-mode','reminder-24h','reminder-1h','repeat-until','manual-dates','excluded-dates'].forEach(id => {
       $(id)?.addEventListener('input', updatePreview);
       $(id)?.addEventListener('change', updatePreview);
     });
+    $('planning-mode')?.addEventListener('input', () => { updateConditionalFields(); updatePreview(); });
+    $('planning-mode')?.addEventListener('change', () => { updateConditionalFields(); updatePreview(); });
     $('btn-create-reminders')?.addEventListener('click', createReminders);
     $('btn-reset-form')?.addEventListener('click', resetForm);
     $('btn-fill-music-demo')?.addEventListener('click', fillMusicDemo);
@@ -198,6 +200,11 @@
     const kind = $('reminder-kind')?.value || 'music_individual';
     const individual = kind === 'music_individual';
     const planningMode = $('planning-mode')?.value || 'single';
+    const repeatInput = $('repeat-until');
+    const eventAt = fromLocalInputValue($('lesson-at')?.value || '');
+    if(repeatInput && !repeatInput.value && (planningMode === 'weekly' || planningMode === 'biweekly' || planningMode === 'triweekly') && eventAt){
+      repeatInput.value = toDateInputValue(defaultRepeatUntil(eventAt, planningMode));
+    }
     $('field-user')?.classList.toggle('u-hidden', !individual);
     $('field-category')?.classList.toggle('u-hidden', individual);
     $('field-subcategory')?.classList.toggle('u-hidden', individual);
@@ -236,6 +243,30 @@
     if(!value) return 0;
     const ts = new Date(value + 'T23:59:59').getTime();
     return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function addDays(ts, days){
+    const d = new Date(ts);
+    d.setDate(d.getDate() + days);
+    return d.getTime();
+  }
+
+  function defaultRepeatUntil(firstAt, mode){
+    if(!firstAt || (mode !== 'weekly' && mode !== 'biweekly' && mode !== 'triweekly')) return 0;
+    // Safe UX default : assez long pour tester, sans créer une saison entière par erreur.
+    const stepDays = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
+    const occurrences = 8;
+    const d = new Date(firstAt);
+    d.setDate(d.getDate() + stepDays * (occurrences - 1));
+    d.setHours(23, 59, 59, 999);
+    return d.getTime();
+  }
+
+  function toDateInputValue(ts){
+    if(!ts) return '';
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
   }
 
   function dateKey(ts){
@@ -277,26 +308,36 @@
   function buildOccurrences(firstAt, mode, repeatUntil, manualText, excludedText){
     const excluded = parseExcludedDates(excludedText);
     const base = firstAt ? new Date(firstAt) : new Date();
-    const fallbackHour = base.getHours();
-    const fallbackMinute = base.getMinutes();
+    const fallbackHour = Number.isFinite(base.getHours()) ? base.getHours() : 17;
+    const fallbackMinute = Number.isFinite(base.getMinutes()) ? base.getMinutes() : 30;
     let rows = [];
+
     if(mode === 'manual'){
-      rows = String(manualText || '').split(/\n/).map(line => parseManualDateLine(line, fallbackHour, fallbackMinute)).filter(Boolean);
+      const manualRows = String(manualText || '')
+        .split(/\n|,|;/)
+        .map(line => parseManualDateLine(line, fallbackHour, fallbackMinute))
+        .filter(Boolean);
+      // UX safe : la date de référence sert de première date si aucune date manuelle n'est encore saisie.
+      rows = manualRows.length ? manualRows : (firstAt ? [firstAt] : []);
     }else if(mode === 'weekly' || mode === 'biweekly' || mode === 'triweekly'){
-      if(firstAt && repeatUntil){
+      if(firstAt){
         const stepDays = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
+        const until = repeatUntil || defaultRepeatUntil(firstAt, mode);
         let cur = firstAt;
         let guard = 0;
-        while(cur <= repeatUntil && guard < 80){
+        while(cur <= until && guard < 80){
           rows.push(cur);
-          cur += stepDays * 24 * 60 * 60 * 1000;
+          cur = addDays(cur, stepDays);
           guard++;
         }
       }
     }else if(firstAt){
       rows = [firstAt];
     }
-    rows = [...new Set(rows)].sort((a,b)=>a-b).filter(ts => !excluded.has(dateKey(ts)));
+
+    rows = [...new Set(rows)]
+      .sort((a,b)=>a-b)
+      .filter(ts => ts && Number.isFinite(ts) && !excluded.has(dateKey(ts)));
     return rows;
   }
 
@@ -305,7 +346,7 @@
     if(!el) return;
     const data = getFormDataShallow();
     const occurrences = buildOccurrences(data.eventAt, data.planningMode, data.repeatUntil, data.manualDatesText, data.excludedDatesText);
-    if(!occurrences.length){ el.innerHTML = '<strong>0 séance générée</strong><span>Vérifie la date, le rythme ou les exclusions.</span>'; return; }
+    if(!occurrences.length){ el.innerHTML = '<strong>0 séance générée</strong><span>Ajoute une date de référence, une date de fin ou des dates manuelles valides.</span>'; return; }
     const first = formatFullDateTime(occurrences[0]);
     const last = formatFullDateTime(occurrences[occurrences.length-1]);
     el.innerHTML = `<strong>${occurrences.length} séance${occurrences.length>1?'s':''} générée${occurrences.length>1?'s':''}</strong><span>${esc(first)}${occurrences.length>1?' → '+esc(last):''}</span>`;
@@ -455,7 +496,7 @@
     if(isSaving) return;
     const data = getFormData();
     if(!data.eventAt && data.planningMode !== 'manual'){ msg('Ajoute une date et une heure valides.', false); return; }
-    if(!data.occurrences.length){ msg('Aucune séance générée. Vérifie le rythme, les dates manuelles ou les exclusions.', false); return; }
+    if(!data.occurrences.length){ msg('Aucune séance générée. Vérifie la date de référence, la date de fin ou les dates manuelles.', false); return; }
     if(!data.offsets.length){ msg('Choisis au moins un rappel : 24h avant ou 1h avant.', false); return; }
     if(data.kind === 'music_individual' && !data.uid){ msg('Choisis le membre concerné par le créneau individuel.', false); return; }
     if(data.kind !== 'music_individual' && !data.category && !data.subcategory){ msg('Choisis au moins une catégorie ou sous-catégorie pour ce rappel groupe.', false); return; }
