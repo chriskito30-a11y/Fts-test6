@@ -45,3 +45,19 @@ body.fts-chat-modern .btn-compose { box-shadow: 0 10px 24px rgba(0,0,0,.2); }
 body.fts-chat-modern .chat-empty-sub { max-width: 360px; line-height: 1.55; }
 body.fts-chat-modern .type-tab.on { box-shadow: inset 0 0 0 1px rgba(248,231,2,.14); }
 body.fts-chat-modern .modal-title { font-weight: 900; }
+
+
+/* V57 — rendu distinct des rappels automatiques dans les MP */
+.msg-wrap.auto-reminder .msg-bubble {
+  background: linear-gradient(135deg, rgba(248,231,2,.13), rgba(255,255,255,.04));
+  border: 1px solid rgba(248,231,2,.34);
+  box-shadow: 0 12px 28px rgba(0,0,0,.22);
+}
+.msg-wrap.auto-reminder .msg-auto-head {
+  display: inline-flex; align-items: center; gap: .35rem;
+  margin: 0 0 .42rem; padding: .18rem .5rem; border-radius: 999px;
+  background: rgba(248,231,2,.14); color: var(--gold);
+  font-size: .62rem; font-weight: 900; letter-spacing: .02em;
+}
+.msg-wrap.auto-reminder .msg-text-content { line-height: 1.5; }
+.msg-wrap.auto-reminder .msg-actions { display: none !important; }
