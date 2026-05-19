@@ -1,4 +1,4 @@
-const CACHE = 'fts-v58-rappels-planning-recurrent';
+const CACHE = 'fts-v59-rappels-recurrence-fix';
 const FILES = [
   './manifest.json',
   './index.html',
