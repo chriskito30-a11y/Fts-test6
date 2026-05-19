@@ -69,3 +69,20 @@
 .calendar-exclusion-options{display:grid;gap:8px}
 .calendar-check{margin:0}
 @media (max-width:520px){.calendar-exclusion-head{align-items:flex-start;flex-direction:column}.calendar-exclusion-head .btn-outline{width:100%}}
+
+
+/* V74 — Rappels groupés par membre/groupe */
+.reminder-group{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.035);border-radius:22px;overflow:hidden}
+.reminder-group[open]{border-color:rgba(248,231,2,.28);background:rgba(248,231,2,.035)}
+.reminder-group-head{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:.8rem;padding:.85rem .9rem}
+.reminder-group-head::-webkit-details-marker{display:none}
+.reminder-group-main{display:flex;flex-direction:column;gap:.2rem;min-width:0}
+.reminder-group-main strong{color:var(--white);font-size:.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.reminder-group-main small{color:var(--muted);font-size:.72rem;line-height:1.35}
+.reminder-group-count{min-width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:rgba(248,231,2,.13);border:1px solid rgba(248,231,2,.28);color:var(--gold);font-size:.74rem;font-weight:800}
+.reminder-group-body{display:flex;flex-direction:column;gap:.55rem;padding:0 .75rem .75rem}
+.reminder-group .reminder-row{border-radius:16px;background:rgba(0,0,0,.22)}
+@media(max-width:560px){.reminder-group-head{align-items:flex-start}.reminder-group-main small{font-size:.68rem}.reminder-group-body{padding:0 .55rem .55rem}.reminder-group .reminder-row{padding:.72rem}}
+
+/* V74 — statut exclusions plus lisible */
+.calendar-exclusion-head small{line-height:1.35}

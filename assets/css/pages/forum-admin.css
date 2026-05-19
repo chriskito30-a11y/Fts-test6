@@ -682,3 +682,7 @@ body { overflow-x: hidden; }
 @media(max-width:480px){
   .approval-reminder-grid{grid-template-columns:1fr;}
 }
+
+
+/* V74 — popup validation : exclusions automatiques compactes */
+.approval-auto-exclusions{margin:.55rem 0 .65rem;padding:.62rem .72rem;border-radius:14px;border:1px solid rgba(248,231,2,.2);background:rgba(248,231,2,.08);color:rgba(255,255,255,.82);font-size:.78rem;line-height:1.35}
