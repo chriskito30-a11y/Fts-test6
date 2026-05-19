@@ -574,3 +574,111 @@ body { overflow-x: hidden; }
   text-transform: none;
   letter-spacing: 0;
 }
+
+
+/* === V71 — Validation inscription : préparation rapide des rappels demandés === */
+.user-reminder-summary{
+  margin-top:8px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  color:#5f3566;
+  font-size:.86rem;
+}
+.user-reminder-summary span,
+.user-reminder-summary em{
+  display:inline-flex;
+  align-items:center;
+  padding:2px 7px;
+  border-radius:999px;
+  background:rgba(255,255,255,.7);
+  color:#7b2d82;
+  font-style:normal;
+  font-weight:700;
+}
+.approval-reminder-overlay .approval-reminder-modal{
+  max-width:920px;
+  width:min(94vw, 920px);
+  max-height:88vh;
+  overflow:auto;
+}
+.approval-reminder-intro{
+  margin:0 0 14px;
+  color:#6b6170;
+  line-height:1.35;
+}
+#approval-reminder-list{
+  display:grid;
+  gap:12px;
+}
+.approval-reminder-card{
+  border:1px solid rgba(123,45,130,.14);
+  background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(255,247,252,.88));
+  border-radius:20px;
+  padding:14px;
+  box-shadow:0 10px 25px rgba(35,14,45,.06);
+}
+.approval-reminder-card-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  align-items:flex-start;
+  margin-bottom:12px;
+}
+.approval-reminder-card-head strong{
+  display:block;
+  color:#23122c;
+  font-size:1rem;
+}
+.approval-reminder-card-head span{
+  display:block;
+  color:#7b6d80;
+  font-size:.88rem;
+  margin-top:2px;
+}
+.approval-enable{
+  white-space:nowrap;
+  display:inline-flex;
+  gap:6px;
+  align-items:center;
+  font-weight:800;
+  color:#7b2d82;
+}
+.approval-reminder-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.approval-reminder-card label span{
+  display:block;
+  font-size:.78rem;
+  color:#75667a;
+  font-weight:800;
+  margin-bottom:5px;
+}
+.approval-reminder-card input,
+.approval-reminder-card select,
+.approval-reminder-card textarea{
+  width:100%;
+  border:1px solid rgba(80,50,90,.18);
+  border-radius:13px;
+  padding:10px 11px;
+  font:inherit;
+  background:#fff;
+  color:#23122c;
+}
+.approval-full{
+  display:block;
+  margin-top:10px;
+}
+.approval-reminder-actions{
+  gap:8px;
+  flex-wrap:wrap;
+}
+@media(max-width:760px){
+  .approval-reminder-grid{grid-template-columns:1fr 1fr;}
+  .approval-reminder-card-head{flex-direction:column;}
+}
+@media(max-width:480px){
+  .approval-reminder-grid{grid-template-columns:1fr;}
+}
