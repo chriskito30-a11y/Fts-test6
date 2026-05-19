@@ -376,11 +376,11 @@
         adminUser = user;
         adminProfile = profile;
         setAdminIndicator('active', 'Rappels automatiques actifs');
-        logRun({ mode:'native-admin', event:'boot', page:location.pathname.split('/').pop() || 'admin' });
+        logRun({ mode:'native-admin', event:'boot', page:location.pathname.split('/').pop() || 'admin' }).catch(function(){});
         scheduleNext(INITIAL_DELAY_MS);
       }catch(e){
         setAdminIndicator('error', 'Dispatcher inactif : accès Firebase refusé');
-        logRun({ mode:'native-admin', event:'boot-error', error:String(e && e.message ? e.message : e).substring(0,240) });
+        logRun({ mode:'native-admin', event:'boot-error', error:String(e && e.message ? e.message : e).substring(0,240) }).catch(function(){});
       }
     });
     window.addEventListener('online', () => scheduleNext(2500));
