@@ -13,25 +13,11 @@
 const ADMIN_EMAIL = "contact@faistonshow.fr";
 
 
-/* ── EMAILS AUTOMATIQUES MAKE/BREVO ────────────────────────────
-   Envoi volontairement non bloquant : si Make/Brevo est indisponible,
-   l'action principale continue normalement. */
-const FTS_MAKE_EMAIL_WEBHOOK = "https://hook.eu1.make.com/gvber3n4pomyxy6af5z8rzndxyja9arz";
+/* ── EMAILS AUTOMATIQUES ───────────────────────────────────────
+   Connecteur externe désactivé. La fonction reste présente pour ne
+   pas casser les appels existants lors de l'inscription/validation. */
 function sendFtsEmailAutomation(type, payload) {
-  try {
-    const params = new URLSearchParams({ type });
-    Object.entries(payload || {}).forEach(([key, value]) => {
-      if (value === undefined || value === null) return;
-      params.set(key, Array.isArray(value) ? value.filter(Boolean).join(', ') : String(value));
-    });
-    fetch(FTS_MAKE_EMAIL_WEBHOOK + '?' + params.toString(), {
-      method: 'GET',
-      mode: 'no-cors',
-      keepalive: true,
-    }).catch(() => {});
-  } catch (err) {
-    console.warn('[FTS Email] Automatisation ignorée :', err);
-  }
+  return Promise.resolve({ disabled:true, type, payload });
 }
 
 let db, auth;

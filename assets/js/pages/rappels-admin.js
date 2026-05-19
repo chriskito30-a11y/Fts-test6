@@ -1,7 +1,7 @@
 /* ================================================================
    PAGE MODULE — RAPPELS-ADMIN
-   Module test isolé pour créer/simuler des rappels automatiques.
-   V61 : un créneau planning crée aussi les rappels test liés, pour alimenter la liste “Rappels programmés”.
+   Module admin pour créer/simuler des rappels automatiques.
+   V65 : dispatch natif admin, sans scénario externe.
    ================================================================ */
 (function(){
   'use strict';
@@ -51,9 +51,27 @@
         updateConditionalFields();
         updatePreview();
         listenReminders();
+        bindDispatcherStatus();
       }catch(e){
         console.warn('[FTS Rappels Admin] init', e);
         location.href = 'auth.html';
+      }
+    });
+  }
+
+  function bindDispatcherStatus(){
+    if(window.__FTS_RAPPELS_DISPATCH_STATUS_BOUND__) return;
+    window.__FTS_RAPPELS_DISPATCH_STATUS_BOUND__ = true;
+    window.addEventListener('fts:reminder-dispatcher-status', event => {
+      const d = event.detail || {};
+      const el = $('dispatch-status');
+      if(el){
+        const parts = [];
+        if(d.checked) parts.push(d.checked + ' rappel(s) vérifié(s)');
+        if(d.sent) parts.push(d.sent + ' envoyé(s)');
+        if(d.recipients) parts.push(d.recipients + ' destinataire(s)');
+        if(d.errors) parts.push(d.errors + ' erreur(s)');
+        el.textContent = parts.length ? parts.join(' · ') : 'Dispatch natif admin actif';
       }
     });
   }
@@ -435,7 +453,7 @@
       channel: 'dm_auto',
       messageType: 'auto-reminder',
       bot: true,
-      makeReady: !data.standby
+      dispatchMode: data.standby ? 'standby' : 'native-admin'
     };
   }
 
@@ -455,7 +473,7 @@
     const cleanBody = cleanBotBody(r.body || '') || (r.title || kindLabel(r.kind));
     const body = esc(cleanBody).replace(/\n/g, '<br>');
     const statusText = options.statusText || statusLabel(status);
-    const modeText = options.realMode ? 'Test réel : MP + push envoyés manuellement' : (r.makeReady ? 'Make pourra traiter ce rappel' : 'Stand-by : aucun envoi automatique');
+    const modeText = options.realMode ? 'Test réel : MP + push envoyés manuellement' : (status === 'pending' ? 'Dispatch natif admin : envoi automatique quand sendAt est passé' : 'Stand-by : aucun envoi automatique');
     return `<div class="bot-conversation ${options.compact ? 'compact' : ''}">
       <div class="bot-thread-head">
         <span>Simulation conversation</span>
@@ -492,7 +510,7 @@
     if(!el) return;
     const count = data.occurrences.length;
     const countHtml = count > 1 ? `<div class="preview-series-note">Aperçu sur la première séance · ${count} séances au total · ${count * Math.max(data.offsets.length,1)} rappel(s) possible(s)</div>` : '';
-    el.innerHTML = countHtml + renderBotConversation(buildPreviewReminder(previewData, offset), { compact:true, statusText: data.standby ? 'Stand-by test' : 'Prêt Make' });
+    el.innerHTML = countHtml + renderBotConversation(buildPreviewReminder(previewData, offset), { compact:true, statusText: data.standby ? 'Stand-by test' : 'À envoyer' });
   }
 
   function parsedManualDatesForSchedule(data){
@@ -604,7 +622,7 @@
       botLabel: 'Rappel automatique Fais Ton Show',
       createdBy: currentUser ? currentUser.uid : '',
       createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
-      makeReady: !data.standby,
+      dispatchMode: data.standby ? 'standby' : 'native-admin',
       seriesId,
       scheduleId: options.scheduleId || '',
       source: options.source || 'manual-reminder',
@@ -667,7 +685,7 @@
     if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
     try{
       const created = await createReminderRecords(data, { source:'reminders-button', skipPast:false });
-      msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Aucun MP réel envoyé automatiquement.`, true);
+      msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Dispatch natif admin actif pour les rappels pending.`, true);
       resetForm(false);
     }catch(e){
       console.warn('[FTS Rappels Admin] create', e);
@@ -734,16 +752,16 @@
         <div><span>eventAt</span><strong>${esc(formatFullDateTime(r.eventAt))}</strong></div>
         <div><span>sendAt</span><strong>${esc(formatFullDateTime(r.sendAt))}</strong></div>
         <div><span>type</span><strong>${esc(kindLabel(r.kind))}</strong></div>
-        <div><span>canal futur</span><strong>${esc(r.channel || 'dm_auto')}</strong></div>
+        <div><span>canal</span><strong>${esc(r.channel || 'dm_auto')}</strong></div>
         <div><span>messageType</span><strong>${esc(r.messageType || 'auto-reminder')}</strong></div>
-        <div><span>makeReady</span><strong>${r.makeReady ? 'true' : 'false'}</strong></div>
+        <div><span>dispatch</span><strong>${esc(r.dispatchMode || (r.status === 'pending' ? 'native-admin' : 'standby'))}</strong></div>
       </div>
       <div class="row-actions">
         <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
         ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer MP test réel</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">MP test indisponible</button>`}
         <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en stand-by</button>
-        <button class="btn-outline btn-sm" data-reminder-action="pending" data-id="${esc(selectedReminderId)}">Activer ce rappel pour Make</button>
-        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="activate-series" data-id="${esc(selectedReminderId)}">Activer la série pour Make</button>` : ''}
+        <button class="btn-outline btn-sm" data-reminder-action="pending" data-id="${esc(selectedReminderId)}">Activer ce rappel</button>
+        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="activate-series" data-id="${esc(selectedReminderId)}">Activer la série</button>` : ''}
         ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="standby-series" data-id="${esc(selectedReminderId)}">Remettre la série en stand-by</button>` : ''}
         <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
         <button class="btn-outline danger btn-sm" data-reminder-action="delete" data-id="${esc(selectedReminderId)}">Supprimer</button>
@@ -752,7 +770,8 @@
   }
 
   function statusLabel(status){
-    if(status === 'pending') return 'Prêt Make';
+    if(status === 'pending') return 'À envoyer';
+    if(status === 'dispatching') return 'En cours';
     if(status === 'sent') return 'Envoyé';
     if(status === 'sent_test') return 'Test réel envoyé';
     if(status === 'cancelled') return 'Annulé';
@@ -834,7 +853,6 @@
 
       await FTS.Services.Reminders.update(id, {
         status:'sent_test',
-        makeReady:false,
         realDmTestAt:now,
         realDmConvId:convId,
         realDmMsgId:msgRef.key,
@@ -919,10 +937,10 @@
     const base = reminders[id];
     const ids = linkedReminderIds(base);
     if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
-    if(!confirm('Activer ' + ids.length + ' rappel(s) de cette série pour Make ?')) return;
+    if(!confirm('Activer ' + ids.length + ' rappel(s) de cette série ?')) return;
     try{
-      await Promise.all(ids.map(x => FTS.Services.Reminders.activateForMake(x)));
-      msg(ids.length + ' rappel(s) activé(s) pour Make.', true);
+      await Promise.all(ids.map(x => FTS.Services.Reminders.activate(x)));
+      msg(ids.length + ' rappel(s) activé(s).', true);
     }catch(e){
       console.warn('[FTS Rappels Admin] activate series', e);
       msg('Impossible d’activer la série.', false);
@@ -964,7 +982,7 @@
     if($('duration-min')) $('duration-min').value = '30';
     if($('planning-mode')) $('planning-mode').value = 'single';
     if($('repeat-until')) $('repeat-until').value = '';
-    if($('standby-mode')) $('standby-mode').checked = true;
+    if($('standby-mode')) $('standby-mode').checked = false;
     if($('reminder-24h')) $('reminder-24h').checked = true;
     if($('reminder-1h')) $('reminder-1h').checked = true;
     setDefaultDates();
