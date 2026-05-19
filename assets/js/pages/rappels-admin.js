@@ -10,6 +10,7 @@
   let users = {};
   let categoryStructure = [];
   let reminders = {};
+  let courseOptions = [];
   let selectedReminderId = '';
   let filterStatus = 'all';
   let isSaving = false;
@@ -48,6 +49,7 @@
         setDefaultDates();
         renderUsers();
         renderCategories();
+        renderCourseOptions();
         updateConditionalFields();
         updatePreview();
         listenReminders();
@@ -123,7 +125,12 @@
   function bindEvents(){
     $('logout-btn')?.addEventListener('click', doLogout);
     $('reminder-kind')?.addEventListener('change', () => { updateConditionalFields(); updatePreview(); });
-    $('reminder-user')?.addEventListener('change', updatePreview);
+    $('reminder-user')?.addEventListener('change', () => { renderCourseOptions(); updatePreview(); });
+    $('course-choice')?.addEventListener('change', applyCourseChoice);
+    ['manual-course-label','manual-owner-name','manual-concerns-child'].forEach(id => {
+      $(id)?.addEventListener('input', updatePreview);
+      $(id)?.addEventListener('change', updatePreview);
+    });
     $('reminder-category')?.addEventListener('change', () => { renderSubcategories(); updatePreview(); });
     $('reminder-subcategory')?.addEventListener('change', updatePreview);
     ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','standby-mode','reminder-24h','reminder-1h','repeat-until','manual-dates','excluded-dates'].forEach(id => {
@@ -227,7 +234,197 @@
     return u.displayName || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || u.email || 'Membre';
   }
 
-  function updateConditionalFields(){
+  function firstNameOf(u){
+    if(!u) return '';
+    const direct = u.firstName || u.prenom || '';
+    if(direct) return String(direct).trim();
+    const full = displayName(u);
+    return String(full || '').trim().split(/\s+/)[0] || '';
+  }
+
+  function normList(value){
+    if(Array.isArray(value)) return value.map(x => String(x || '').trim()).filter(Boolean);
+    if(value && typeof value === 'object') return Object.values(value).map(x => String(x || '').trim()).filter(Boolean);
+    return String(value || '')
+      .split(/[,;|]/)
+      .map(x => x.trim())
+      .filter(Boolean);
+  }
+
+  function uniqueList(rows){
+    const seen = new Set();
+    const out = [];
+    rows.forEach(v => {
+      const label = String(v || '').trim();
+      const key = norm(label);
+      if(label && !seen.has(key)){ seen.add(key); out.push(label); }
+    });
+    return out;
+  }
+
+  function findCategoryForSubcategory(sub, preferredCats){
+    const s = norm(sub);
+    const preferred = uniqueList(preferredCats || []);
+    const preferredKeys = preferred.map(norm);
+    let fallback = '';
+    for(const cat of categoryStructure || []){
+      const subs = Array.isArray(cat.subcats) ? cat.subcats : [];
+      if(subs.some(x => norm(x) === s)){
+        if(!preferredKeys.length || preferredKeys.includes(norm(cat.name))) return cat.name;
+        fallback = fallback || cat.name;
+      }
+    }
+    return fallback || (preferred[0] || '');
+  }
+
+  function makeCourseLabel(category, subcategory, fallback){
+    return [category, subcategory].filter(Boolean).join(' — ') || fallback || 'Cours';
+  }
+
+  function collectCoursesForOwner(owner){
+    const cats = uniqueList(normList(owner.disciplines || owner.group || owner.groups || owner.categories));
+    const subs = uniqueList(normList(owner.subgroups || owner.subgroup || owner.subcategories || owner.subcategory));
+    const options = [];
+
+    if(subs.length){
+      subs.forEach(sub => {
+        const cat = findCategoryForSubcategory(sub, cats);
+        options.push({
+          ownerType: owner.ownerType,
+          ownerName: owner.ownerName,
+          childId: owner.childId || '',
+          childName: owner.childName || '',
+          category: cat,
+          subcategory: sub,
+          courseLabel: makeCourseLabel(cat, sub),
+          label: makeCourseLabel(cat, sub) + ' — ' + owner.ownerName
+        });
+      });
+    }
+
+    cats.forEach(cat => {
+      const alreadyHasCat = options.some(o => norm(o.category) === norm(cat) && !o.subcategory);
+      const hasSpecificSub = options.some(o => norm(o.category) === norm(cat));
+      if(!alreadyHasCat && !hasSpecificSub){
+        options.push({
+          ownerType: owner.ownerType,
+          ownerName: owner.ownerName,
+          childId: owner.childId || '',
+          childName: owner.childName || '',
+          category: cat,
+          subcategory: '',
+          courseLabel: cat,
+          label: cat + ' — ' + owner.ownerName
+        });
+      }
+    });
+
+    return options;
+  }
+
+  function buildCourseOptionsForUser(u){
+    if(!u) return [];
+    const rows = [];
+    const parentName = firstNameOf(u) || displayName(u);
+    rows.push(...collectCoursesForOwner(Object.assign({}, u, {
+      ownerType:'self',
+      ownerName: parentName,
+      childId:'',
+      childName:''
+    })));
+
+    const children = Array.isArray(u.enfants) ? u.enfants : [];
+    children.forEach((child, idx) => {
+      const childName = child.prenom || child.firstName || child.name || ['Enfant', idx + 1].join(' ');
+      rows.push(...collectCoursesForOwner(Object.assign({}, child, {
+        ownerType:'child',
+        ownerName: childName,
+        childId: child.id || ('child_' + idx),
+        childName
+      })));
+    });
+
+    const seen = new Set();
+    return rows.filter(o => {
+      const key = [o.ownerType, o.ownerName, o.category, o.subcategory, o.childId].map(norm).join('|');
+      if(seen.has(key)) return false;
+      seen.add(key);
+      return !!(o.courseLabel || o.category || o.subcategory);
+    });
+  }
+
+  function renderCourseOptions(){
+    const select = $('course-choice');
+    if(!select) return;
+    const uid = $('reminder-user')?.value || '';
+    const user = uid ? users[uid] : null;
+    courseOptions = buildCourseOptionsForUser(user);
+    const optionsHtml = courseOptions.map((o, idx) => {
+      const icon = o.ownerType === 'child' ? '👧 ' : '👤 ';
+      return `<option value="${idx}">${esc(icon + o.label)}</option>`;
+    }).join('');
+    select.innerHTML = '<option value="">Choisir un cours du profil…</option>' + optionsHtml + '<option value="manual">➕ Autre cours / saisie manuelle</option>';
+    if(courseOptions.length === 1) select.value = '0';
+    const field = $('field-course-choice');
+    if(field) field.classList.toggle('u-hidden', !uid);
+    if(courseOptions.length === 1) applyCourseChoice();
+    else updateManualCourseFields();
+  }
+
+  function selectedCourseOption(){
+    const select = $('course-choice');
+    if(!select) return null;
+    const value = select.value;
+    if(value === 'manual'){
+      const manualLabel = ($('manual-course-label')?.value || '').trim();
+      const ownerName = ($('manual-owner-name')?.value || '').trim();
+      const concernsChild = !!$('manual-concerns-child')?.checked;
+      const cat = $('reminder-category')?.value || '';
+      const sub = $('reminder-subcategory')?.value || '';
+      const lesson = ($('lesson-type')?.value || '').trim();
+      const label = manualLabel || makeCourseLabel(cat, sub, lesson || 'cours');
+      return {
+        ownerType: concernsChild ? 'child' : 'manual',
+        ownerName,
+        childId:'',
+        childName: concernsChild ? ownerName : '',
+        category: cat,
+        subcategory: sub,
+        courseLabel: label,
+        manual:true
+      };
+    }
+    const idx = parseInt(value, 10);
+    return Number.isFinite(idx) ? (courseOptions[idx] || null) : null;
+  }
+
+  function updateManualCourseFields(){
+    const isManual = $('course-choice')?.value === 'manual';
+    $('field-manual-course')?.classList.toggle('u-hidden', !isManual);
+    if(isManual){
+      $('field-category')?.classList.remove('u-hidden');
+      $('field-subcategory')?.classList.remove('u-hidden');
+    }else{
+      updateConditionalFields(false);
+    }
+  }
+
+  function applyCourseChoice(){
+    const selected = selectedCourseOption();
+    if(selected && !selected.manual){
+      if($('reminder-category')) $('reminder-category').value = selected.category || '';
+      renderSubcategories();
+      if($('reminder-subcategory')) $('reminder-subcategory').value = selected.subcategory || '';
+      if($('lesson-type') && !($('lesson-type').value || '').trim()){
+        $('lesson-type').value = selected.subcategory || selected.category || selected.courseLabel || '';
+      }
+    }
+    updateManualCourseFields();
+    updatePreview();
+  }
+
+  function updateConditionalFields(syncManual){
+    if(syncManual === undefined) syncManual = true;
     const kind = $('reminder-kind')?.value || 'music_individual';
     const individual = kind === 'music_individual';
     const planningMode = $('planning-mode')?.value || 'single';
@@ -242,6 +439,7 @@
     $('field-lesson-type')?.querySelector('label') && ($('field-lesson-type').querySelector('label').textContent = individual ? 'Instrument / cours' : 'Type de rendez-vous');
     $('field-repeat-until')?.classList.toggle('u-hidden', planningMode === 'single' || planningMode === 'manual');
     $('field-manual-dates')?.classList.toggle('u-hidden', planningMode !== 'manual');
+    if(syncManual) updateManualCourseFields();
     updatePlanningSummary();
   }
 
@@ -250,10 +448,17 @@
     const eventAt = fromLocalInputValue($('lesson-at')?.value || '');
     const uid = $('reminder-user')?.value || '';
     const user = uid ? users[uid] : null;
-    const category = $('reminder-category')?.value || '';
-    const subcategory = $('reminder-subcategory')?.value || '';
-    const lessonType = ($('lesson-type')?.value || '').trim();
-    const title = ($('lesson-title')?.value || '').trim() || buildDefaultTitle(kind, lessonType, category, subcategory);
+    const selectedCourse = selectedCourseOption();
+    let category = $('reminder-category')?.value || '';
+    let subcategory = $('reminder-subcategory')?.value || '';
+    let lessonType = ($('lesson-type')?.value || '').trim();
+    if(selectedCourse && !selectedCourse.manual){
+      category = selectedCourse.category || category;
+      subcategory = selectedCourse.subcategory || subcategory;
+      lessonType = lessonType || selectedCourse.subcategory || selectedCourse.category || selectedCourse.courseLabel || '';
+    }
+    const courseLabel = selectedCourse && selectedCourse.courseLabel ? selectedCourse.courseLabel : (category || subcategory || lessonType ? makeCourseLabel(category, subcategory, lessonType) : '');
+    const title = ($('lesson-title')?.value || '').trim() || buildDefaultTitle(kind, lessonType, category, subcategory, courseLabel);
     const teacher = ($('teacher-name')?.value || '').trim();
     const place = ($('place-name')?.value || '').trim();
     const duration = parseInt($('duration-min')?.value || '30', 10) || 30;
@@ -267,7 +472,7 @@
     if($('reminder-24h')?.checked) offsets.push(24 * 60);
     if($('reminder-1h')?.checked) offsets.push(60);
     const occurrences = buildOccurrences(eventAt, planningMode, repeatUntil, manualDatesText, excludedDatesText);
-    return { kind, eventAt, uid, user, category, subcategory, lessonType, title, teacher, place, duration, extra, standby, offsets, planningMode, repeatUntil, manualDatesText, excludedDatesText, occurrences };
+    return { kind, eventAt, uid, user, category, subcategory, lessonType, title, teacher, place, duration, extra, standby, offsets, planningMode, repeatUntil, manualDatesText, excludedDatesText, occurrences, selectedCourse, courseLabel };
   }
 
   function parseDateOnly(value){
@@ -393,24 +598,42 @@
     };
   }
 
-  function buildDefaultTitle(kind, lessonType, category, subcategory){
-    if(kind === 'music_individual') return `Cours de ${lessonType || 'musique'}`;
+  function buildDefaultTitle(kind, lessonType, category, subcategory, courseLabel){
+    if(kind === 'music_individual') return `Cours de ${courseLabel || lessonType || 'musique'}`;
     if(kind === 'group') return [category || 'Groupe', subcategory].filter(Boolean).join(' — ') || 'Rappel de cours';
     return lessonType || 'Rendez-vous exceptionnel';
   }
 
   function buildMessage(data, offset){
     const eventLabel = formatFullDateTime(data.eventAt);
-    const who = data.uid && data.user ? displayName(data.user) : '';
-    const title = data.title || buildDefaultTitle(data.kind, data.lessonType, data.category, data.subcategory);
+    const title = data.title || buildDefaultTitle(data.kind, data.lessonType, data.category, data.subcategory, data.courseLabel);
     const before = offset === 60 ? 'commence dans 1h' : 'est prévu demain';
+    const parentFirst = data.uid && data.user ? (firstNameOf(data.user) || displayName(data.user)) : '';
+    const course = data.courseLabel || data.lessonType || data.subcategory || data.category || title || 'cours';
+    const selected = data.selectedCourse || {};
+    const ownerType = selected.ownerType || '';
+    const childName = selected.childName || (ownerType === 'child' ? selected.ownerName : '');
+    const manualOwner = selected.manual ? (selected.ownerName || '') : '';
+
     const lines = [];
-    lines.push(`${title} ${before}.`);
+    if(data.uid && data.user && data.kind === 'music_individual'){
+      if(ownerType === 'child' && childName){
+        lines.push(`Bonjour ${parentFirst},`);
+        lines.push(`le cours de ${course} de ${childName} ${before}.`);
+      }else if(selected.manual && manualOwner && selected.ownerType === 'child'){
+        lines.push(`Bonjour ${parentFirst},`);
+        lines.push(`le cours de ${course} de ${manualOwner} ${before}.`);
+      }else{
+        lines.push(`Bonjour ${parentFirst},`);
+        lines.push(`ton cours de ${course} ${before}.`);
+      }
+    }else{
+      lines.push(`${title} ${before}.`);
+    }
     lines.push(`📅 ${eventLabel}`);
     if(data.teacher) lines.push(`👤 Prof : ${data.teacher}`);
     if(data.place) lines.push(`📍 Lieu : ${data.place}`);
     if(data.extra) lines.push(data.extra);
-    if(who && data.kind !== 'music_individual') lines.push(`Destinataire cible : ${who}`);
     return lines.join('\n');
   }
 
@@ -450,6 +673,11 @@
       targetCategory: data.kind !== 'music_individual' ? data.category : '',
       targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
       title: data.title,
+      courseLabel: data.courseLabel || '',
+      courseOwnerType: data.selectedCourse ? (data.selectedCourse.ownerType || '') : '',
+      courseOwnerName: data.selectedCourse ? (data.selectedCourse.ownerName || '') : '',
+      childId: data.selectedCourse ? (data.selectedCourse.childId || '') : '',
+      childName: data.selectedCourse ? (data.selectedCourse.childName || '') : '',
       body: buildMessage(data, offset),
       lessonType: data.lessonType,
       teacher: data.teacher,
@@ -549,6 +777,11 @@
       targetCategory: data.kind !== 'music_individual' ? data.category : '',
       targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
       title: data.title,
+      courseLabel: data.courseLabel || '',
+      courseOwnerType: data.selectedCourse ? (data.selectedCourse.ownerType || '') : '',
+      courseOwnerName: data.selectedCourse ? (data.selectedCourse.ownerName || '') : '',
+      childId: data.selectedCourse ? (data.selectedCourse.childId || '') : '',
+      childName: data.selectedCourse ? (data.selectedCourse.childName || '') : '',
       lessonType: data.lessonType,
       teacher: data.teacher,
       place: data.place,
@@ -616,6 +849,11 @@
       targetCategory: data.kind !== 'music_individual' ? data.category : '',
       targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
       title: data.title,
+      courseLabel: data.courseLabel || '',
+      courseOwnerType: data.selectedCourse ? (data.selectedCourse.ownerType || '') : '',
+      courseOwnerName: data.selectedCourse ? (data.selectedCourse.ownerName || '') : '',
+      childId: data.selectedCourse ? (data.selectedCourse.childId || '') : '',
+      childName: data.selectedCourse ? (data.selectedCourse.childName || '') : '',
       body: buildMessage(occurrenceData, offset),
       lessonType: data.lessonType,
       teacher: data.teacher,
@@ -983,8 +1221,10 @@
   }
 
   function resetForm(showMsg){
-    ['lesson-title','lesson-type','teacher-name','place-name','message-extra','manual-dates','excluded-dates'].forEach(id => { if($(id)) $(id).value = ''; });
+    ['lesson-title','lesson-type','teacher-name','place-name','message-extra','manual-dates','excluded-dates','manual-course-label','manual-owner-name'].forEach(id => { if($(id)) $(id).value = ''; });
     if($('reminder-user')) $('reminder-user').value = '';
+    if($('course-choice')) $('course-choice').value = '';
+    if($('manual-concerns-child')) $('manual-concerns-child').checked = false;
     if($('reminder-category')) $('reminder-category').value = '';
     if($('reminder-subcategory')) $('reminder-subcategory').value = '';
     if($('duration-min')) $('duration-min').value = '30';
@@ -995,6 +1235,7 @@
     if($('reminder-1h')) $('reminder-1h').checked = true;
     setDefaultDates();
     renderSubcategories();
+    renderCourseOptions();
     updateConditionalFields();
     updatePreview();
     if(showMsg !== false) msg('Formulaire réinitialisé.', true);
