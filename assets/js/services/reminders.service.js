@@ -31,6 +31,13 @@
     },
     update(id, patch){ return this.ref(id).update(Object.assign({}, patch, { updatedAt: Date.now() })); },
     remove(id){ return this.ref(id).remove(); },
-    setStatus(id, status){ return this.update(id, { status }); }
+    setStatus(id, status){
+      const patch = { status };
+      if(status === 'pending') patch.makeReady = true;
+      if(status === 'standby' || status === 'cancelled' || status === 'sent') patch.makeReady = false;
+      return this.update(id, patch);
+    },
+    activateForMake(id){ return this.update(id, { status:'pending', makeReady:true }); },
+    standby(id){ return this.update(id, { status:'standby', makeReady:false }); }
   };
 })(window);
