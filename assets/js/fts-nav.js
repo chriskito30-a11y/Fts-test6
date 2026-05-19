@@ -445,6 +445,35 @@
     return url;
   }
 
+  function isTextResource(r){
+    var type = String((r && r.type) || '').toLowerCase().trim();
+    var url = String((r && r.url) || '').trim();
+    var isHttp = /^https?:\/\//i.test(url);
+    return !isHttp || type === 'texte' || type === 'text' || type === 'txt' || type === 'note';
+  }
+
+  function textResourceContent(r){
+    return String((r && (r.url || r.content || r.contenu || '')) || '').trim();
+  }
+
+  function openTextResource(index){
+    var rows = window.FTSNav && window.FTSNav._documentsRows ? window.FTSNav._documentsRows : [];
+    var r = rows[Number(index)];
+    if (!r) return;
+    var list = document.getElementById('fts-docs-list');
+    var search = document.getElementById('fts-docs-search');
+    var title = document.getElementById('fts-docs-title');
+    if (search) search.value = '';
+    if (title) title.textContent = r.name || 'Document texte';
+    if (list) {
+      list.innerHTML = '<div class="fts-doc-text-view">'
+        + '<button type="button" class="fts-doc-back" data-action="back-documents-list">← Retour aux documents</button>'
+        + '<div class="fts-doc-text-meta">' + esc(r.cat || 'Documents') + (r.sub ? ' · ' + esc(r.sub) : '') + '</div>'
+        + '<div class="fts-doc-text-content">' + esc(textResourceContent(r)).replace(/\n/g, '<br>') + '</div>'
+        + '</div>';
+    }
+  }
+
   function ensureDocumentsModal(){
     var existing = document.getElementById('fts-docs-modal');
     if (existing) return existing;
@@ -484,10 +513,14 @@
     var groups = groupResources(filtered);
     list.innerHTML = Object.keys(groups).sort().map(function(cat){
       var items = groups[cat].map(function(r){
-        var icon = r.icon || (r.type === 'pdf' ? '▩' : r.type.indexOf('audio') >= 0 || r.type === 'mp3' ? '♪' : r.type.indexOf('video') >= 0 ? '▶' : '□');
+        var isText = isTextResource(r);
+        var icon = r.icon || (isText ? 'T' : (r.type === 'pdf' ? '▩' : r.type.indexOf('audio') >= 0 || r.type === 'mp3' ? '♪' : r.type.indexOf('video') >= 0 ? '▶' : '□'));
+        var sub = r.sub ? '<small>' + esc(r.sub) + '</small>' : '<small>' + esc(isText ? 'texte' : (r.type || 'document')) + '</small>';
+        if (isText) {
+          return '<div class="fts-doc-row fts-doc-row--text"><button type="button" class="fts-doc-open" data-action="open-text-document" data-doc-index="' + esc(String(r._docIndex || 0)) + '"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document texte') + '</strong>' + sub + '</span></button><button type="button" class="fts-doc-dl fts-doc-dl--text" data-action="open-text-document" data-doc-index="' + esc(String(r._docIndex || 0)) + '">Lire</button></div>';
+        }
         var safeUrl = esc(r.url || '#');
         var dl = esc(resourceDownloadUrl(r.url || ''));
-        var sub = r.sub ? '<small>' + esc(r.sub) + '</small>' : '<small>' + esc(r.type || 'document') + '</small>';
         return '<div class="fts-doc-row"><a class="fts-doc-open" href="' + safeUrl + '" target="_blank" rel="noopener"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document') + '</strong>' + sub + '</span></a><a class="fts-doc-dl" href="' + dl + '" target="_blank" rel="noopener" download aria-label="Télécharger ' + esc(r.name || 'Document') + '">⬇ <span>Télécharger</span></a></div>';
       }).join('');
       return '<section class="fts-doc-group"><h3>' + catIcon(cat) + ' ' + esc(cat) + '</h3>' + items + '</section>';
@@ -523,8 +556,10 @@
           if (!name || !url) return;
           if (!canSeeResource(d, profile)) return;
           rows.push({
+            key: child.key || '',
             name: name,
             url: url,
+            content: d.content || d.contenu || '',
             cat: d.cat || d.category || 'Documents',
             sub: d.subcat || d.subcategory || '',
             type: String(d.type || 'doc').toLowerCase().trim(),
@@ -533,6 +568,7 @@
           });
         });
         rows.sort(function(a,b){ return Number(b.ts || 0) - Number(a.ts || 0); });
+        rows.forEach(function(r, idx){ r._docIndex = idx; });
         window.FTSNav._documentsRows = rows;
         renderDocuments(rows, '');
       }).catch(function(err){
@@ -558,6 +594,16 @@
       if (e.target && e.target.id === 'fts-docs-modal') { closeDocumentsModal(); return; }
       var close = e.target.closest('[data-action="close-documents-modal"]');
       if (close) { closeDocumentsModal(); return; }
+      var textDoc = e.target.closest('[data-action="open-text-document"]');
+      if (textDoc) { e.preventDefault(); openTextResource(textDoc.getAttribute('data-doc-index')); return; }
+      var back = e.target.closest('[data-action="back-documents-list"]');
+      if (back) {
+        e.preventDefault();
+        var title = document.getElementById('fts-docs-title');
+        if (title) title.textContent = 'Mes documents';
+        renderDocuments(window.FTSNav._documentsRows || [], '');
+        return;
+      }
     });
     document.addEventListener('input', function(e){
       if (e.target && e.target.id === 'fts-docs-search') renderDocuments(window.FTSNav._documentsRows || [], e.target.value || '');
