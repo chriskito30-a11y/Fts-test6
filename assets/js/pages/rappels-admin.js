@@ -1,7 +1,7 @@
 /* ================================================================
    PAGE MODULE — RAPPELS-ADMIN
    Module test isolé pour créer/simuler des rappels automatiques.
-   IMPORTANT : ne crée aucun MP réel et ne modifie pas fts_dm.
+   V57 : ajoute un test réel manuel MP + push, uniquement sur action admin.
    ================================================================ */
 (function(){
   'use strict';
@@ -133,6 +133,7 @@
       const id = action.getAttribute('data-id') || selectedReminderId;
       const type = action.getAttribute('data-reminder-action');
       if(type === 'delete') deleteReminder(id);
+      if(type === 'send-test-dm') sendRealTestDm(id);
       if(type === 'standby') setReminderStatus(id, 'standby');
       if(type === 'pending') setReminderStatus(id, 'pending');
       if(type === 'cancelled') setReminderStatus(id, 'cancelled');
@@ -296,24 +297,34 @@
     };
   }
 
+  function cleanBotBody(body){
+    return String(body || '')
+      .split('\n')
+      .map(x => x.trim())
+      .filter(Boolean)
+      .filter(x => !x.startsWith('📅') && !x.startsWith('👤 Prof') && !x.startsWith('📍 Lieu'))
+      .join('\n');
+  }
+
   function renderBotConversation(r, options){
     options = options || {};
     const status = r.status || 'standby';
     const target = reminderTarget(r);
-    const body = esc(r.body || '').replace(/\n/g, '<br>');
+    const cleanBody = cleanBotBody(r.body || '') || (r.title || kindLabel(r.kind));
+    const body = esc(cleanBody).replace(/\n/g, '<br>');
     const statusText = options.statusText || statusLabel(status);
-    const modeText = r.makeReady ? 'Make pourra traiter ce rappel' : 'Stand-by : aucun envoi automatique';
+    const modeText = options.realMode ? 'Test réel : MP + push envoyés manuellement' : (r.makeReady ? 'Make pourra traiter ce rappel' : 'Stand-by : aucun envoi automatique');
     return `<div class="bot-conversation ${options.compact ? 'compact' : ''}">
       <div class="bot-thread-head">
         <span>Simulation conversation</span>
         <strong>${esc(target)}</strong>
       </div>
-      <div class="bot-system-separator">Aperçu uniquement — aucun MP réel envoyé depuis cette page</div>
+      <div class="bot-system-separator">${options.realMode ? 'Rendu proche du MP réel envoyé au compte test' : 'Aperçu uniquement — aucun MP réel envoyé depuis cette page'}</div>
       <div class="bot-chat-row">
         <div class="bot-mini-avatar" aria-hidden="true">🤖</div>
         <div class="bot-chat-bubble">
           <div class="bot-auto-head">
-            <span class="bot-badge">🤖 ${esc(r.botLabel || 'Rappel automatique Fais Ton Show')}</span>
+            <span class="bot-badge">${esc(r.botLabel || 'Rappel automatique Fais Ton Show')}</span>
             <span class="badge ${esc(status)}">${esc(statusText)}</span>
           </div>
           <div class="bot-title">${esc(r.title || kindLabel(r.kind))}</div>
@@ -455,6 +466,7 @@
       </div>
       <div class="row-actions">
         <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
+        ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer MP test réel</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">MP test indisponible</button>`}
         <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en stand-by</button>
         <button class="btn-outline btn-sm" data-reminder-action="pending" data-id="${esc(selectedReminderId)}">Activer test pending</button>
         <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
@@ -466,8 +478,134 @@
   function statusLabel(status){
     if(status === 'pending') return 'Prêt Make';
     if(status === 'sent') return 'Envoyé';
+    if(status === 'sent_test') return 'Test réel envoyé';
     if(status === 'cancelled') return 'Annulé';
     return 'Stand-by';
+  }
+
+
+  function directConvId(a, b){ return [String(a || ''), String(b || '')].sort().join('_'); }
+
+  async function sendRealTestDm(id){
+    const r = id ? reminders[id] : null;
+    if(!r){ msg('Sélectionne un rappel.', false); return; }
+    if(!r.uid){ msg('Le test MP réel est réservé aux rappels avec un membre ciblé.', false); return; }
+    if(!currentUser || !currentUser.uid){ msg('Session admin introuvable.', false); return; }
+    const recipient = users[r.uid] || null;
+    const recipientName = r.recipientName || displayName(recipient) || 'Membre';
+    const ok = confirm('Envoyer un MP automatique RÉEL au compte test : ' + recipientName + ' ?\n\nCela créera une conversation/notification comme un vrai message.');
+    if(!ok) return;
+
+    const actionBtn = Array.from(document.querySelectorAll('[data-reminder-action="send-test-dm"]')).find(btn => btn.getAttribute('data-id') === id);
+    const old = actionBtn ? actionBtn.textContent : '';
+    if(actionBtn){ actionBtn.disabled = true; actionBtn.textContent = 'Envoi test…'; }
+
+    try{
+      const adminUid = currentUser.uid;
+      const uid = r.uid;
+      const convId = directConvId(adminUid, uid);
+      const now = Date.now();
+      const participants = {}; participants[adminUid] = true; participants[uid] = true;
+      const convRef = db.ref('fts_dm/conversations/' + convId);
+      const convSnap = await convRef.once('value');
+      if(!convSnap.exists()){
+        await convRef.set({
+          type:'direct',
+          participants,
+          lastMessage:'',
+          lastTs:now,
+          createdAt:now,
+          createdBy:adminUid,
+          autoReminderTest:true
+        });
+      }else{
+        await convRef.child('participants').update(participants);
+      }
+
+      const text = r.body || r.title || 'Rappel automatique Fais Ton Show';
+      const senderName = '🤖 Rappel automatique FTS';
+      const msgRef = db.ref('fts_dm/messages/' + convId).push();
+      const messagePayload = {
+        id: msgRef.key,
+        senderId: adminUid,
+        senderName,
+        text,
+        ts: now,
+        auto: true,
+        bot: true,
+        botLabel: r.botLabel || 'Rappel automatique Fais Ton Show',
+        messageType: 'auto-reminder',
+        reminderId: id,
+        reminderKind: r.kind || '',
+        eventAt: r.eventAt || 0,
+        reminderOffsetMinutes: r.reminderOffsetMinutes || 0
+      };
+      await msgRef.set(messagePayload);
+
+      const unreadSnap = await db.ref('fts_dm/conversations/' + convId + '/unread/' + uid).once('value');
+      const currentUnread = Number(unreadSnap.val() || 0);
+      const updates = {};
+      updates['fts_dm/conversations/' + convId + '/lastMessage'] = '🤖 ' + String(text).replace(/\s+/g, ' ').substring(0, 76);
+      updates['fts_dm/conversations/' + convId + '/lastSenderName'] = senderName;
+      updates['fts_dm/conversations/' + convId + '/lastTs'] = now;
+      updates['fts_dm/conversations/' + convId + '/unread/' + uid] = currentUnread + 1;
+      updates['fts_dm/conversations/' + convId + '/unread/' + adminUid] = 0;
+      updates['fts_dm/userConvs/' + adminUid + '/' + convId] = true;
+      updates['fts_dm/userConvs/' + uid + '/' + convId] = true;
+      await db.ref().update(updates);
+
+      await sendPushForRealTest(uid, convId, msgRef.key, text, r);
+
+      await FTS.Services.Reminders.update(id, {
+        status:'sent_test',
+        makeReady:false,
+        realDmTestAt:now,
+        realDmConvId:convId,
+        realDmMsgId:msgRef.key,
+        realDmRecipientUid:uid
+      });
+      selectedReminderId = id;
+      msg('MP test réel envoyé. Vérifie le compte test : conversation + notification push si activée.', true);
+    }catch(e){
+      console.warn('[FTS Rappels Admin] test MP réel', e);
+      msg('Erreur pendant le test MP réel : ' + (e && e.message ? e.message : 'vérifie console/rules'), false);
+    }finally{
+      if(actionBtn){ actionBtn.disabled = false; actionBtn.textContent = old || 'Envoyer MP test réel'; }
+    }
+  }
+
+  async function sendPushForRealTest(uid, convId, msgId, text, r){
+    if(!FTS.PUSH || !FTS.PUSH.workerUrl || !window.fetch) return;
+    const title = 'FTS — Rappel automatique';
+    const body = String(text || '').replace(/\s+/g, ' ').substring(0, 120);
+    const url = './messages.html?conv=' + encodeURIComponent(convId)
+      + '&msg=' + encodeURIComponent(msgId)
+      + '&recipientUid=' + encodeURIComponent(uid);
+    const payload = {
+      type:'dm_direct',
+      uid,
+      expectedUid:uid,
+      recipientUid:uid,
+      requiresUidMatch:true,
+      conversationId:convId,
+      msgId,
+      title,
+      body,
+      url,
+      senderUid:currentUser ? currentUser.uid : '',
+      adminCopy:false,
+      forceUid:true,
+      autoReminder:true,
+      reminderId:r.id || selectedReminderId || '',
+      tag:'dm-' + convId + '-' + msgId + '-' + uid,
+      notificationKey:'dm-' + convId + '-' + msgId + '-' + uid,
+      collapseKey:'dm-' + convId + '-' + uid
+    };
+    await fetch(FTS.PUSH.workerUrl + '/notify', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    }).catch(e => console.warn('[FTS Rappels Admin] push test non bloquant', e));
   }
 
   async function copyReminderText(id){

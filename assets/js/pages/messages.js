@@ -302,13 +302,16 @@ function addMsg(key, m, own){
     wrap.appendChild(sep);
   }
   const div = document.createElement("div");
-  div.className = "msg-wrap " + (own ? "own" : "other");
+  const isAutoReminder = m && (m.messageType === 'auto-reminder' || m.bot === true);
+  div.className = "msg-wrap " + (own ? "own" : "other") + (isAutoReminder ? " auto-reminder" : "");
   div.id = "msg-" + key;
   div.dataset.key = key;
   const showSender = !own && isGroupConv();
+  const autoHead = isAutoReminder ? `<div class="msg-auto-head"><span>🤖 ${FTS.esc(m.botLabel || 'Rappel automatique Fais Ton Show')}</span></div>` : "";
   div.innerHTML = `
-    ${showSender ? `<div class="msg-sender">${FTS.esc(m.senderName)}</div>` : ""}
+    ${showSender && !isAutoReminder ? `<div class="msg-sender">${FTS.esc(m.senderName)}</div>` : ""}
     <div class="msg-bubble">
+      ${autoHead}
       <span class="msg-text-content">${msgTextHtml(m)}</span>
       ${m.editedAt ? '<span class="msg-edited">modifié</span>' : ''}
       <div class="msg-foot">
@@ -316,7 +319,7 @@ function addMsg(key, m, own){
         ${own ? '<span class="msg-check">✓✓</span>' : ""}
       </div>
     </div>
-    ${own ? `<div class="msg-actions">
+    ${own && !isAutoReminder ? `<div class="msg-actions">
       <button class="msg-act" data-fts-click="editMessage('${key}')">Modifier</button>
       <button class="msg-act danger" data-fts-click="deleteMessage('${key}')">Supprimer</button>
     </div>` : ""}`;
