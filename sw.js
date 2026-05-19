@@ -1,4 +1,4 @@
-const CACHE = 'fts-v68-native-admin-dispatch-safe';
+const CACHE = 'fts-v69-course-context-reminders';
 const FILES = [
   './manifest.json',
   './index.html',
