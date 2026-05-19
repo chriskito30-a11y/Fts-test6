@@ -38,6 +38,7 @@ let db, auth;
 let userProfile, currentUserUid;
 let allDocs = [];      // tous les docs chargés depuis Firebase
 let filteredDocs = []; // après filtres
+let profVisibleStudents = []; // cache local élèves affichés pour la fiche contact
 
 /* ── INIT ─────────────────────────────────────────────────────── */
 window.addEventListener("DOMContentLoaded", function() {
@@ -247,44 +248,43 @@ async function loadStudents() {
       return;
     }
 
+    profVisibleStudents = students;
+    window.profVisibleStudents = profVisibleStudents;
+
     el.innerHTML = students.map(u => {
-      const displayName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.name || u.email || "—";
+      const displayName = profStudentDisplayName(u);
       const discLabel   = u.accountDiscs.join(", ") || "—";
+      const safeUid = FTS.esc(u.uid || "");
 
       // Blocs enfants si compte parent
       let enfantsHtml = "";
-      if (u.hasEnfant && Array.isArray(u.enfants) && u.enfants.length) {
-        // Filtrer seulement les enfants qui ont au moins une discipline du prof
-        const enfantsVisibles = allowedDiscs
-          ? u.enfants.filter(e =>
-              Array.isArray(e.disciplines) &&
-              e.disciplines.some(d => allowedDiscs.includes(normAccess(d)))
-            )
-          : u.enfants;
-
+      const enfantsVisibles = profVisibleChildren(u, allowedDiscs);
+      if (enfantsVisibles.length) {
         enfantsHtml = enfantsVisibles.map(e => `
           <div class="student-child">
-            🎩 <strong>${FTS.esc(e.prenom || "")} ${FTS.esc(e.nom || "")}</strong>
+            🎩 <strong>${FTS.esc(profChildDisplayName(e))}</strong>
             ${e.disciplines && e.disciplines.length
-              ? `<span style="color:var(--gold)"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
+              ? `<span class="student-child-disc"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
               : ""}
             ${profChildMetaHtml(e)}
           </div>`).join("");
       }
 
       return `
-        <div class="student-card">
+        <button type="button" class="student-card student-card-clickable" data-fts-click="openStudentContact('${safeUid}')" aria-label="Voir la fiche de ${FTS.esc(displayName)}">
           <div class="student-avatar">${FTS.esc((u.firstName || u.name || "?").charAt(0).toUpperCase())}</div>
           <div class="student-info">
             <div class="student-name">
               ${FTS.esc(displayName.trim())}
               ${u.hasEnfant ? '<span class="student-parent-badge">parent</span>' : ""}
             </div>
-            ${u.telephone ? `<div class="student-meta">📞 ${FTS.esc(u.telephone)}</div>` : ""}
+            ${u.telephone ? `<div class="student-meta">📞 ${profPhoneLinkHtml(u.telephone, 'compact')}</div>` : ""}
+            ${u.email ? `<div class="student-meta">✉️ ${FTS.esc(u.email)}</div>` : ""}
             <div class="student-meta">${FTS.esc(discLabel)}</div>
             ${enfantsHtml}
           </div>
-        </div>`;
+          <span class="student-open-hint">Voir</span>
+        </button>`;
     }).join("");
 
   } catch(e) {
@@ -292,6 +292,136 @@ async function loadStudents() {
     el.innerHTML = "<div class='empty-manage'>Impossible de charger les élèves. Réessaie.</div>";
   }
 }
+
+
+function profStudentDisplayName(u) {
+  return [u && u.firstName, u && u.lastName].filter(Boolean).join(" ") || (u && u.name) || (u && u.email) || "Membre";
+}
+
+function profChildDisplayName(e) {
+  return [e && e.prenom, e && e.nom].filter(Boolean).join(" ") || [e && e.firstName, e && e.lastName].filter(Boolean).join(" ") || (e && e.name) || "Enfant";
+}
+
+function profVisibleChildren(u, allowedDiscs) {
+  if (!u || !Array.isArray(u.enfants) || !u.enfants.length) return [];
+  if (!allowedDiscs) return u.enfants;
+  return u.enfants.filter(e => {
+    const discs = Array.isArray(e && e.disciplines) ? e.disciplines : [];
+    return discs.some(d => allowedDiscs.includes(normAccess(d)));
+  });
+}
+
+function profCleanPhone(value) {
+  return String(value || '').replace(/[^+0-9]/g, '');
+}
+
+function profPhoneLinkHtml(value, mode) {
+  const label = FTS.esc(String(value || '').trim());
+  const tel = profCleanPhone(value);
+  if (!label || !tel) return label || '';
+  const cls = mode === 'compact' ? 'student-contact-inline' : 'student-contact-action';
+  return `<a class="${cls}" href="tel:${FTS.esc(tel)}" onclick="event.stopPropagation()">${label}</a>`;
+}
+
+function profSmsLinkHtml(value) {
+  const tel = profCleanPhone(value);
+  if (!tel) return '';
+  return `<a class="student-contact-action" href="sms:${FTS.esc(tel)}" onclick="event.stopPropagation()">💬 SMS</a>`;
+}
+
+function profMailLinkHtml(email) {
+  const clean = String(email || '').trim();
+  if (!clean) return '';
+  return `<a class="student-contact-action" href="mailto:${FTS.esc(clean)}" onclick="event.stopPropagation()">✉️ Mail</a>`;
+}
+
+function profLine(label, value, htmlValue) {
+  if (!value && !htmlValue) return '';
+  return `<div class="student-contact-line"><span>${FTS.esc(label)}</span><strong>${htmlValue || FTS.esc(value)}</strong></div>`;
+}
+
+function ensureStudentContactModal() {
+  let modal = document.getElementById('student-contact-modal');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.id = 'student-contact-modal';
+  modal.className = 'modal-overlay hidden student-contact-modal';
+  modal.innerHTML = `
+    <div class="modal-box student-contact-box" role="dialog" aria-modal="true" aria-labelledby="student-contact-title">
+      <div class="modal-hdr">
+        <div>
+          <div class="student-contact-kicker">Fiche rapide</div>
+          <div class="modal-hdr-title" id="student-contact-title">Membre</div>
+        </div>
+        <button type="button" class="modal-close" data-fts-click="closeStudentContact()" aria-label="Fermer">×</button>
+      </div>
+      <div id="student-contact-body"></div>
+    </div>`;
+  modal.addEventListener('click', function(e){ if (e.target === modal) closeStudentContact(); });
+  document.body.appendChild(modal);
+  return modal;
+}
+
+function openStudentContact(uid) {
+  const u = (profVisibleStudents || []).find(x => x.uid === uid);
+  if (!u) return;
+  const modal = ensureStudentContactModal();
+  const title = modal.querySelector('#student-contact-title');
+  const body = modal.querySelector('#student-contact-body');
+  const name = profStudentDisplayName(u);
+  const parentPhone = u.telephone || u.phone || '';
+  const parentEmail = u.email || '';
+  const allowedDiscs = userProfile && userProfile.role === 'admin' ? null : (userProfile && userProfile.disciplines || []).map(d => normAccess(d));
+  const children = profVisibleChildren(u, allowedDiscs);
+
+  title.textContent = name;
+
+  const actions = [
+    `<a class="student-contact-primary" href="messages.html?to=${encodeURIComponent(uid)}">💬 Envoyer un MP</a>`,
+    parentPhone ? profPhoneLinkHtml(parentPhone) : '',
+    parentPhone ? profSmsLinkHtml(parentPhone) : '',
+    parentEmail ? profMailLinkHtml(parentEmail) : ''
+  ].filter(Boolean).join('');
+
+  const childRows = children.length ? `
+    <div class="student-contact-section">
+      <div class="student-contact-section-title">Enfant${children.length > 1 ? 's' : ''}</div>
+      ${children.map(e => {
+        const childName = profChildDisplayName(e);
+        const birth = profFmtChildBirthDate(e && (e.dateNaissance || e.birthDate || e.dateNaissanceEnfant));
+        const phone = e && e.telephone ? e.telephone : '';
+        const discs = Array.isArray(e && e.disciplines) && e.disciplines.length ? e.disciplines.join(', ') : '';
+        return `<div class="student-contact-child-card">
+          <strong>🎩 ${FTS.esc(childName)}</strong>
+          ${profLine('Disciplines', discs)}
+          ${profLine('Naissance', birth)}
+          ${phone ? `<div class="student-contact-mini-actions">${profPhoneLinkHtml(phone)}${profSmsLinkHtml(phone)}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  body.innerHTML = `
+    <div class="student-contact-actions">${actions}</div>
+    <div class="student-contact-section">
+      <div class="student-contact-section-title">Responsable / compte</div>
+      ${profLine('Nom', name)}
+      ${profLine('Téléphone', parentPhone, parentPhone ? profPhoneLinkHtml(parentPhone) : '')}
+      ${profLine('Email', parentEmail, parentEmail ? `<a href="mailto:${FTS.esc(parentEmail)}" onclick="event.stopPropagation()">${FTS.esc(parentEmail)}</a>` : '')}
+      ${profLine('Disciplines', (u.accountDiscs || []).join(', ') || '')}
+    </div>
+    ${childRows}
+  `;
+  modal.classList.remove('hidden');
+}
+
+function closeStudentContact() {
+  const modal = document.getElementById('student-contact-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') closeStudentContact();
+});
 
 /* ── SOUS-CATÉGORIES ─────────────────────────────────────────── */
 function updateSubcats() {

@@ -20,6 +20,7 @@ let allUsers = {}, allConvs = [];
 let currentConvId = null, currentListener = null;
 let convType = "direct", selectedUids = new Set(), lastMsgDate = null;
 let deepLinkConvId = null, deepLinkMsgId = null, deepLinkHandled = false;
+let deepLinkDirectUid = null, deepLinkDirectHandled = false;
 
 /* Couleurs avatars déterministes */
 function avColor(s){ return FTSChat.avColor(s); }
@@ -39,6 +40,7 @@ window.addEventListener("DOMContentLoaded", () => {
   const params = new URLSearchParams(location.search || "");
   deepLinkConvId = params.get("conv");
   deepLinkMsgId = params.get("msg");
+  deepLinkDirectUid = params.get("to") || params.get("uid") || null;
   db   = FTS.initFirebase();
   auth = firebase.auth();
 
@@ -61,10 +63,45 @@ window.addEventListener("DOMContentLoaded", () => {
       listenConvs();
       checkNotifStatus();
       openMessageDeepLink();
+      openDirectMessageDeepLink();
     }catch(e){ console.warn("[FTS Msg]", e); showBootError(e); }
   });
 });
 
+
+async function openDirectMessageDeepLink(){
+  if (deepLinkDirectHandled || !deepLinkDirectUid || !myUid || !db) return;
+  deepLinkDirectHandled = true;
+  const other = String(deepLinkDirectUid || '').trim();
+  if (!other || other === myUid) return;
+  try {
+    if (!allUsers[other]) {
+      const s = await db.ref('fts_users/' + other).once('value');
+      const u = s.val();
+      if (!u || u.status !== 'active') return;
+      allUsers[other] = u;
+    }
+    const convId = [myUid, other].sort().join('_');
+    const parts = {}; parts[myUid] = true; parts[other] = true;
+    const ex = await db.ref('fts_dm/conversations/' + convId).once('value');
+    if (!ex.exists()) {
+      await db.ref('fts_dm/conversations/' + convId).set({
+        type:'direct',
+        participants:parts,
+        lastMessage:'',
+        lastTs:Date.now(),
+        createdAt:Date.now()
+      });
+    }
+    await db.ref().update({
+      ['fts_dm/userConvs/' + myUid + '/' + convId]: true,
+      ['fts_dm/userConvs/' + other + '/' + convId]: true
+    }).catch(() => {});
+    setTimeout(() => selectConv(convId), 250);
+  } catch(e) {
+    console.warn('[FTS Messages] Ouverture MP directe impossible', e);
+  }
+}
 
 function showBootError(e){
   const box = document.getElementById('auth-loading');
