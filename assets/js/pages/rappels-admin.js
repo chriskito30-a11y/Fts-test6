@@ -126,7 +126,7 @@
     $('reminder-user')?.addEventListener('change', updatePreview);
     $('reminder-category')?.addEventListener('change', () => { renderSubcategories(); updatePreview(); });
     $('reminder-subcategory')?.addEventListener('change', updatePreview);
-    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','reminder-24h','reminder-1h','repeat-until','manual-dates','excluded-dates'].forEach(id => {
+    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','standby-mode','reminder-24h','reminder-1h','repeat-until','manual-dates','excluded-dates'].forEach(id => {
       $(id)?.addEventListener('input', updatePreview);
       $(id)?.addEventListener('change', updatePreview);
     });
@@ -959,13 +959,13 @@
     const base = reminders[id];
     const ids = linkedReminderIds(base);
     if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
-    if(!confirm('Remettre ' + ids.length + ' rappel(s) de cette série en pause ?')) return;
+    if(!confirm('Mettre ' + ids.length + ' rappel(s) de cette série en pause ?')) return;
     try{
       await Promise.all(ids.map(x => FTS.Services.Reminders.standby(x)));
       msg(ids.length + ' rappel(s) mis en pause.', true);
     }catch(e){
       console.warn('[FTS Rappels Admin] standby series', e);
-      msg('Impossible de remettre la série en pause.', false);
+      msg('Impossible de mettre la série en pause.', false);
     }
   }
 
@@ -990,6 +990,7 @@
     if($('duration-min')) $('duration-min').value = '30';
     if($('planning-mode')) $('planning-mode').value = 'single';
     if($('repeat-until')) $('repeat-until').value = '';
+    if($('standby-mode')) $('standby-mode').checked = false;
     if($('reminder-24h')) $('reminder-24h').checked = true;
     if($('reminder-1h')) $('reminder-1h').checked = true;
     setDefaultDates();
