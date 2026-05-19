@@ -613,7 +613,16 @@ function renderMedia(payload){
   return renderFileCard(kind.icon, title, url, kind.label + ' · ouvrir ou télécharger', kind.cls);
 }
 
+let dmUnreadCleanup = null;
 function listenUnreadBadge(uid){
+  if (dmUnreadCleanup) { try { dmUnreadCleanup(); } catch(e) {} dmUnreadCleanup = null; }
+  if (window.FTS && typeof FTS.listenDmUnreadTotal === 'function') {
+    dmUnreadCleanup = FTS.listenDmUnreadTotal(db, uid, function(total){
+      const el=document.getElementById('msg-badge'); if(!el) return;
+      if(total>0){ el.textContent = total>99?'99+':total; el.style.display='inline-block'; } else el.style.display='none';
+    });
+    return;
+  }
   db.ref('fts_dm/userConvs/'+uid).on('value', async snap => {
     const ids = snap.val() ? Object.keys(snap.val()) : []; let total = 0;
     await Promise.all(ids.map(id => db.ref('fts_dm/conversations/'+id+'/unread/'+uid).once('value').then(s => total += (s.val() || 0))));
@@ -621,6 +630,7 @@ function listenUnreadBadge(uid){
     if(total>0){ el.textContent = total>99?'99+':total; el.style.display='inline-block'; } else el.style.display='none';
   });
 }
+
 
 
 function channelInfoById(channel){

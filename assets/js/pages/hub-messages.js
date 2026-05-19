@@ -6,6 +6,7 @@
   var currentProfile = null;
   var dmUnreadByConv = {};
   var dmUnreadListeners = {};
+  var dmUnreadCleanup = null;
 
   function norm(v){ return (window.FTS && FTS.norm) ? FTS.norm(v) : String(v || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
   function list(v){ return (Array.isArray(v) ? v : String(v || '').split(',')).map(function(x){ return String(x || '').trim(); }).filter(Boolean); }
@@ -77,6 +78,17 @@
   }
 
   function listenPrivateUnread(uid){
+    if (dmUnreadCleanup) { try { dmUnreadCleanup(); } catch(e) {} dmUnreadCleanup = null; }
+    dmUnreadByConv = {};
+    dmUnreadListeners = {};
+
+    if (window.FTS && typeof FTS.listenDmUnreadTotal === 'function') {
+      dmUnreadCleanup = FTS.listenDmUnreadTotal(db, uid, function(total){
+        setHubBadge('hub-dm-badge', total);
+      });
+      return;
+    }
+
     db.ref('fts_dm/userConvs/' + uid).on('value', function(snap){
       var convIds = snap.val() ? Object.keys(snap.val()) : [];
       var active = convIds.reduce(function(acc, id){ acc[id] = true; return acc; }, {});
@@ -109,6 +121,7 @@
       renderPrivateUnreadTotal();
     });
   }
+
 
   async function refreshForumUnread(){
     if (!currentUid || !currentProfile) { setHubBadge('hub-forum-badge', 0); return; }

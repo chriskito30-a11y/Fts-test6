@@ -1703,19 +1703,22 @@ function listenResourceNotificationFallback(uid){
 }
 
 /* ── BADGE NON LUS MESSAGES ──────────────────────────────────── */
+let dmUnreadCleanup = null;
 function listenUnreadBadge(uid) {
+  if (dmUnreadCleanup) { try { dmUnreadCleanup(); } catch(e) {} dmUnreadCleanup = null; }
+  if (window.FTS && typeof FTS.listenDmUnreadTotal === 'function') {
+    dmUnreadCleanup = FTS.listenDmUnreadTotal(db, uid, function(total){
+      updateMsgBadge(total);
+      scheduleMemberNewsRefresh(total > 0 ? 250 : 200);
+    });
+    return;
+  }
+
   db.ref('fts_dm/userConvs/' + uid).on('value', async snap => {
     const convIds = snap.val() ? Object.keys(snap.val()) : [];
-    if (!convIds.length) {
-      updateMsgBadge(0);
-      scheduleMemberNewsRefresh(200);
-      return;
-    }
+    if (!convIds.length) { updateMsgBadge(0); scheduleMemberNewsRefresh(200); return; }
     let total = 0;
-    await Promise.all(convIds.map(id =>
-      db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
-        .then(s => { total += (s.val() || 0); })
-    ));
+    await Promise.all(convIds.map(id => db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value').then(s => { total += (s.val() || 0); })));
     updateMsgBadge(total);
     scheduleMemberNewsRefresh(250);
   });

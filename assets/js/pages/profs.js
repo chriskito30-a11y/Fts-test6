@@ -846,17 +846,20 @@ async function saveEdit() {
 }
 
 /* ── BADGE NON LUS ────────────────────────────────────────────── */
+let dmUnreadCleanup = null;
 function listenUnreadBadge(uid) {
-  const db = FTS.initFirebase ? firebase.database() : null;
-  if (!db) return;
-  db.ref('fts_dm/userConvs/' + uid).on('value', async snap => {
+  const localDb = FTS.initFirebase ? firebase.database() : null;
+  if (!localDb) return;
+  if (dmUnreadCleanup) { try { dmUnreadCleanup(); } catch(e) {} dmUnreadCleanup = null; }
+  if (window.FTS && typeof FTS.listenDmUnreadTotal === 'function') {
+    dmUnreadCleanup = FTS.listenDmUnreadTotal(localDb, uid, updateMsgBadge);
+    return;
+  }
+  localDb.ref('fts_dm/userConvs/' + uid).on('value', async snap => {
     const convIds = snap.val() ? Object.keys(snap.val()) : [];
     if (!convIds.length) { updateMsgBadge(0); return; }
     let total = 0;
-    await Promise.all(convIds.map(id =>
-      db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
-        .then(s => { total += (s.val() || 0); })
-    ));
+    await Promise.all(convIds.map(id => localDb.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value').then(s => { total += (s.val() || 0); })));
     updateMsgBadge(total);
   });
 }
