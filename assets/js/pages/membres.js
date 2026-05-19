@@ -1291,6 +1291,69 @@ function resourceKindFromDoc(d) {
   return { cls:'file', icon:ICONS[type] || '📎', label:'Document' };
 }
 
+
+function resourceOfflineAvailable() {
+  return !!(window.FTS && FTS.Offline && typeof FTS.Offline.cacheFile === 'function' && 'caches' in window);
+}
+
+function showResourceOfflineMsg(message, isError) {
+  if (window.FTS && FTS.Offline && typeof FTS.Offline.showOfflineToast === 'function') {
+    FTS.Offline.showOfflineToast(message);
+    return;
+  }
+  if (isError) console.warn('[FTS] Offline ressource :', message);
+}
+
+async function refreshResourceOfflineButton(btn) {
+  if (!btn || !resourceOfflineAvailable()) return;
+  const url = btn.dataset.offlineUrl || '';
+  if (!url) return;
+  try {
+    const saved = await FTS.Offline.hasFile(url);
+    btn.dataset.saved = saved ? '1' : '0';
+    btn.classList.toggle('is-saved', !!saved);
+    btn.textContent = saved ? '✓ Hors ligne' : '⬇ Hors ligne';
+    btn.setAttribute('aria-label', saved ? 'Supprimer cette ressource du mode hors ligne' : 'Rendre cette ressource disponible hors ligne');
+    btn.title = saved ? 'Déjà disponible sans connexion — clique pour retirer' : 'Télécharger pour consultation hors ligne';
+  } catch(e) {}
+}
+
+function refreshResourceOfflineButtons(root) {
+  if (!resourceOfflineAvailable()) return;
+  const scope = root || document;
+  scope.querySelectorAll('[data-action="toggle-resource-offline"]').forEach(btn => refreshResourceOfflineButton(btn));
+}
+
+async function toggleResourceOffline(btn) {
+  if (!btn || !resourceOfflineAvailable()) {
+    showResourceOfflineMsg('Mode hors ligne indisponible sur ce navigateur.', true);
+    return;
+  }
+  const url = btn.dataset.offlineUrl || '';
+  if (!url) return;
+  const wasSaved = btn.dataset.saved === '1';
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.classList.add('is-loading');
+  btn.textContent = wasSaved ? 'Retrait…' : 'Téléchargement…';
+  try {
+    if (wasSaved) {
+      await FTS.Offline.removeFile(url);
+      showResourceOfflineMsg('Ressource retirée du mode hors ligne.');
+    } else {
+      await FTS.Offline.cacheFile(url);
+      showResourceOfflineMsg('Ressource disponible hors ligne.');
+    }
+    await refreshResourceOfflineButton(btn);
+  } catch(e) {
+    btn.textContent = oldText;
+    showResourceOfflineMsg('Impossible de préparer cette ressource hors ligne. Vérifie la connexion puis réessaie.', true);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('is-loading');
+  }
+}
+
 /* ── AFFICHAGE DOCUMENTS ─────────────────────────────────────── */
 function showDocs(docs, idx) {
   const el = document.getElementById('dc-' + idx);
@@ -1328,9 +1391,11 @@ function showDocs(docs, idx) {
               <div class="doc-actions">
                 <a class="doc-open" href="${safeUrl}" target="_blank" rel="noopener" aria-label="Ouvrir ${title}">Ouvrir</a>
                 <a class="doc-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${title}">⬇ Télécharger</a>
+                <button type="button" class="doc-offline" data-action="toggle-resource-offline" data-offline-url="${safeUrl}" aria-label="Rendre ${title} disponible hors ligne">⬇ Hors ligne</button>
               </div>
             </div>`;
   }).join('');
+  refreshResourceOfflineButtons(el);
   revealPendingResource(idx);
 }
 
@@ -2376,6 +2441,13 @@ function bindMembresUiEvents() {
     const closeResourceBtn = e.target.closest('[data-action="close-resource-modal"]');
     if (closeResourceBtn) {
       closeMo();
+      return;
+    }
+
+    const resourceOfflineBtn = e.target.closest('[data-action="toggle-resource-offline"]');
+    if (resourceOfflineBtn) {
+      e.preventDefault();
+      toggleResourceOffline(resourceOfflineBtn);
       return;
     }
 
