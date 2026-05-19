@@ -184,6 +184,7 @@ async function loadAdminOverview(){
     });
     const setText=(id,value)=>{ const el=document.getElementById(id); if(el) el.textContent=String(value); };
     setText('stat-pending', pending);
+    setText('stat-pending-simple', pending);
     setText('stat-active', active);
     setText('stat-staff', staff);
     setText('stat-children', children);
