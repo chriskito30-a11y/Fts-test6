@@ -1,7 +1,7 @@
 /* ================================================================
    PAGE MODULE — RAPPELS-ADMIN
    Module test isolé pour créer/simuler des rappels automatiques.
-   V57 : ajoute un test réel manuel MP + push, uniquement sur action admin.
+   V58 : ajoute génération de planning récurrent/manual + exclusions manuelles, puis rappels test isolés.
    ================================================================ */
 (function(){
   'use strict';
@@ -97,7 +97,7 @@
     $('reminder-user')?.addEventListener('change', updatePreview);
     $('reminder-category')?.addEventListener('change', () => { renderSubcategories(); updatePreview(); });
     $('reminder-subcategory')?.addEventListener('change', updatePreview);
-    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','standby-mode','reminder-24h','reminder-1h'].forEach(id => {
+    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','standby-mode','reminder-24h','reminder-1h','planning-mode','repeat-until','manual-dates','excluded-dates'].forEach(id => {
       $(id)?.addEventListener('input', updatePreview);
       $(id)?.addEventListener('change', updatePreview);
     });
@@ -197,10 +197,14 @@
   function updateConditionalFields(){
     const kind = $('reminder-kind')?.value || 'music_individual';
     const individual = kind === 'music_individual';
+    const planningMode = $('planning-mode')?.value || 'single';
     $('field-user')?.classList.toggle('u-hidden', !individual);
     $('field-category')?.classList.toggle('u-hidden', individual);
     $('field-subcategory')?.classList.toggle('u-hidden', individual);
     $('field-lesson-type')?.querySelector('label') && ($('field-lesson-type').querySelector('label').textContent = individual ? 'Instrument / cours' : 'Type de rendez-vous');
+    $('field-repeat-until')?.classList.toggle('u-hidden', planningMode === 'single' || planningMode === 'manual');
+    $('field-manual-dates')?.classList.toggle('u-hidden', planningMode !== 'manual');
+    updatePlanningSummary();
   }
 
   function getFormData(){
@@ -217,10 +221,104 @@
     const duration = parseInt($('duration-min')?.value || '30', 10) || 30;
     const extra = ($('message-extra')?.value || '').trim();
     const standby = !!$('standby-mode')?.checked;
+    const planningMode = $('planning-mode')?.value || 'single';
+    const repeatUntil = parseDateOnly($('repeat-until')?.value || '');
+    const manualDatesText = $('manual-dates')?.value || '';
+    const excludedDatesText = $('excluded-dates')?.value || '';
     const offsets = [];
     if($('reminder-24h')?.checked) offsets.push(24 * 60);
     if($('reminder-1h')?.checked) offsets.push(60);
-    return { kind, eventAt, uid, user, category, subcategory, lessonType, title, teacher, place, duration, extra, standby, offsets };
+    const occurrences = buildOccurrences(eventAt, planningMode, repeatUntil, manualDatesText, excludedDatesText);
+    return { kind, eventAt, uid, user, category, subcategory, lessonType, title, teacher, place, duration, extra, standby, offsets, planningMode, repeatUntil, manualDatesText, excludedDatesText, occurrences };
+  }
+
+  function parseDateOnly(value){
+    if(!value) return 0;
+    const ts = new Date(value + 'T23:59:59').getTime();
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function dateKey(ts){
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function parseManualDateLine(line, fallbackHour, fallbackMinute){
+    const raw = String(line || '').trim();
+    if(!raw) return 0;
+    let m = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2}))?$/);
+    if(m){
+      const h = m[4] != null ? parseInt(m[4],10) : fallbackHour;
+      const min = m[5] != null ? parseInt(m[5],10) : fallbackMinute;
+      const ts = new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10), h, min, 0, 0).getTime();
+      return Number.isFinite(ts) ? ts : 0;
+    }
+    m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+    if(m){
+      const h = m[4] != null ? parseInt(m[4],10) : fallbackHour;
+      const min = m[5] != null ? parseInt(m[5],10) : fallbackMinute;
+      const ts = new Date(parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10), h, min, 0, 0).getTime();
+      return Number.isFinite(ts) ? ts : 0;
+    }
+    const ts = new Date(raw).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+  }
+
+  function parseExcludedDates(text){
+    const set = new Set();
+    String(text || '').split(/\n|,|;/).map(x => x.trim()).filter(Boolean).forEach(line => {
+      const ts = parseManualDateLine(line, 12, 0);
+      if(ts) set.add(dateKey(ts));
+    });
+    return set;
+  }
+
+  function buildOccurrences(firstAt, mode, repeatUntil, manualText, excludedText){
+    const excluded = parseExcludedDates(excludedText);
+    const base = firstAt ? new Date(firstAt) : new Date();
+    const fallbackHour = base.getHours();
+    const fallbackMinute = base.getMinutes();
+    let rows = [];
+    if(mode === 'manual'){
+      rows = String(manualText || '').split(/\n/).map(line => parseManualDateLine(line, fallbackHour, fallbackMinute)).filter(Boolean);
+    }else if(mode === 'weekly' || mode === 'biweekly' || mode === 'triweekly'){
+      if(firstAt && repeatUntil){
+        const stepDays = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
+        let cur = firstAt;
+        let guard = 0;
+        while(cur <= repeatUntil && guard < 80){
+          rows.push(cur);
+          cur += stepDays * 24 * 60 * 60 * 1000;
+          guard++;
+        }
+      }
+    }else if(firstAt){
+      rows = [firstAt];
+    }
+    rows = [...new Set(rows)].sort((a,b)=>a-b).filter(ts => !excluded.has(dateKey(ts)));
+    return rows;
+  }
+
+  function updatePlanningSummary(){
+    const el = $('planning-summary');
+    if(!el) return;
+    const data = getFormDataShallow();
+    const occurrences = buildOccurrences(data.eventAt, data.planningMode, data.repeatUntil, data.manualDatesText, data.excludedDatesText);
+    if(!occurrences.length){ el.innerHTML = '<strong>0 séance générée</strong><span>Vérifie la date, le rythme ou les exclusions.</span>'; return; }
+    const first = formatFullDateTime(occurrences[0]);
+    const last = formatFullDateTime(occurrences[occurrences.length-1]);
+    el.innerHTML = `<strong>${occurrences.length} séance${occurrences.length>1?'s':''} générée${occurrences.length>1?'s':''}</strong><span>${esc(first)}${occurrences.length>1?' → '+esc(last):''}</span>`;
+  }
+
+  function getFormDataShallow(){
+    return {
+      eventAt: fromLocalInputValue($('lesson-at')?.value || ''),
+      planningMode: $('planning-mode')?.value || 'single',
+      repeatUntil: parseDateOnly($('repeat-until')?.value || ''),
+      manualDatesText: $('manual-dates')?.value || '',
+      excludedDatesText: $('excluded-dates')?.value || ''
+    };
   }
 
   function buildDefaultTitle(kind, lessonType, category, subcategory){
@@ -342,22 +440,31 @@
   }
 
   function updatePreview(){
+    updatePlanningSummary();
     const data = getFormData();
     const offset = data.offsets.includes(60) ? 60 : (data.offsets[0] || 24*60);
+    const previewData = Object.assign({}, data, { eventAt: data.occurrences[0] || data.eventAt });
     const el = $('bot-preview');
     if(!el) return;
-    el.innerHTML = renderBotConversation(buildPreviewReminder(data, offset), { compact:true, statusText: data.standby ? 'Stand-by test' : 'Prêt Make' });
+    const count = data.occurrences.length;
+    const countHtml = count > 1 ? `<div class="preview-series-note">Aperçu sur la première séance · ${count} séances au total · ${count * Math.max(data.offsets.length,1)} rappel(s) possible(s)</div>` : '';
+    el.innerHTML = countHtml + renderBotConversation(buildPreviewReminder(previewData, offset), { compact:true, statusText: data.standby ? 'Stand-by test' : 'Prêt Make' });
   }
 
   async function createReminders(){
     if(isSaving) return;
     const data = getFormData();
-    if(!data.eventAt){ msg('Ajoute une date et une heure valides.', false); return; }
+    if(!data.eventAt && data.planningMode !== 'manual'){ msg('Ajoute une date et une heure valides.', false); return; }
+    if(!data.occurrences.length){ msg('Aucune séance générée. Vérifie le rythme, les dates manuelles ou les exclusions.', false); return; }
     if(!data.offsets.length){ msg('Choisis au moins un rappel : 24h avant ou 1h avant.', false); return; }
     if(data.kind === 'music_individual' && !data.uid){ msg('Choisis le membre concerné par le créneau individuel.', false); return; }
     if(data.kind !== 'music_individual' && !data.category && !data.subcategory){ msg('Choisis au moins une catégorie ou sous-catégorie pour ce rappel groupe.', false); return; }
-    const invalid = data.offsets.find(offset => data.eventAt - offset*60*1000 <= Date.now());
-    if(invalid){ msg('Un des rappels serait déjà dans le passé. Change la date ou décoche ce rappel.', false); return; }
+    const invalid = [];
+    data.occurrences.forEach(ts => data.offsets.forEach(offset => { if(ts - offset*60*1000 <= Date.now()) invalid.push({ts, offset}); }));
+    if(invalid.length){ msg('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou les rappels.', false); return; }
+    const totalToCreate = data.occurrences.length * data.offsets.length;
+    if(totalToCreate > 80){ msg('Trop de rappels à créer d’un coup. Réduis la période ou les dates.', false); return; }
+    if(totalToCreate > 12 && !confirm('Créer ' + totalToCreate + ' rappels test ?')) return;
 
     isSaving = true;
     const btn = $('btn-create-reminders');
@@ -365,35 +472,42 @@
     if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
     try{
       const created = [];
-      for(const offset of data.offsets){
-        const sendAt = data.eventAt - offset * 60 * 1000;
-        const payload = {
-          kind: data.kind,
-          uid: data.kind === 'music_individual' ? data.uid : '',
-          recipientName: data.uid && data.user ? displayName(data.user) : '',
-          recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
-          targetCategory: data.kind !== 'music_individual' ? data.category : '',
-          targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
-          title: data.title,
-          body: buildMessage(data, offset),
-          lessonType: data.lessonType,
-          teacher: data.teacher,
-          place: data.place,
-          durationMinutes: data.duration,
-          eventAt: data.eventAt,
-          sendAt,
-          reminderOffsetMinutes: offset,
-          status: data.standby ? 'standby' : 'pending',
-          auto: true,
-          botLabel: 'Rappel automatique Fais Ton Show',
-          createdBy: currentUser ? currentUser.uid : '',
-          createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
-          makeReady: !data.standby
-        };
-        const id = await FTS.Services.Reminders.create(payload);
-        created.push(id);
+      const seriesId = db.ref('fts_scheduled_reminders').push().key || ('series_' + Date.now());
+      for(const eventAt of data.occurrences){
+        for(const offset of data.offsets){
+          const sendAt = eventAt - offset * 60 * 1000;
+          const occurrenceData = Object.assign({}, data, { eventAt });
+          const payload = {
+            kind: data.kind,
+            uid: data.kind === 'music_individual' ? data.uid : '',
+            recipientName: data.uid && data.user ? displayName(data.user) : '',
+            recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
+            targetCategory: data.kind !== 'music_individual' ? data.category : '',
+            targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
+            title: data.title,
+            body: buildMessage(occurrenceData, offset),
+            lessonType: data.lessonType,
+            teacher: data.teacher,
+            place: data.place,
+            durationMinutes: data.duration,
+            eventAt,
+            sendAt,
+            reminderOffsetMinutes: offset,
+            status: data.standby ? 'standby' : 'pending',
+            auto: true,
+            botLabel: 'Rappel automatique Fais Ton Show',
+            createdBy: currentUser ? currentUser.uid : '',
+            createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
+            makeReady: !data.standby,
+            seriesId,
+            recurrenceMode: data.planningMode,
+            excludedDatesText: data.excludedDatesText || ''
+          };
+          const id = await FTS.Services.Reminders.create(payload);
+          created.push(id);
+        }
       }
-      msg(`${created.length} rappel(s) créé(s) dans le module test. Aucun MP réel envoyé.`, true);
+      msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Aucun MP réel envoyé automatiquement.`, true);
       resetForm(false);
     }catch(e){
       console.warn('[FTS Rappels Admin] create', e);
@@ -644,11 +758,13 @@
   }
 
   function resetForm(showMsg){
-    ['lesson-title','lesson-type','teacher-name','place-name','message-extra'].forEach(id => { if($(id)) $(id).value = ''; });
+    ['lesson-title','lesson-type','teacher-name','place-name','message-extra','manual-dates','excluded-dates'].forEach(id => { if($(id)) $(id).value = ''; });
     if($('reminder-user')) $('reminder-user').value = '';
     if($('reminder-category')) $('reminder-category').value = '';
     if($('reminder-subcategory')) $('reminder-subcategory').value = '';
     if($('duration-min')) $('duration-min').value = '30';
+    if($('planning-mode')) $('planning-mode').value = 'single';
+    if($('repeat-until')) $('repeat-until').value = '';
     if($('standby-mode')) $('standby-mode').checked = true;
     if($('reminder-24h')) $('reminder-24h').checked = true;
     if($('reminder-1h')) $('reminder-1h').checked = true;
@@ -665,6 +781,8 @@
     if($('teacher-name')) $('teacher-name').value = 'Chris';
     if($('place-name')) $('place-name').value = 'Salle musique';
     if($('duration-min')) $('duration-min').value = '30';
+    if($('planning-mode')) $('planning-mode').value = 'single';
+    if($('repeat-until')) $('repeat-until').value = '';
     if($('message-extra')) $('message-extra').value = 'Merci de prévenir rapidement en cas d’absence.';
     const d = new Date();
     d.setDate(d.getDate() + 2);
