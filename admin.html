@@ -10,6 +10,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=46" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=78" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -30,7 +31,37 @@
 <section class="hello-card">
 <div class="hello-kicker">Tableau de bord admin</div>
 <div class="hello-title">Bienvenue, <span id="admin-name">admin</span></div>
-<div class="hello-sub">Vue rapide de l’association. Les validations, rôles et catégories restent gérés dans les pages dédiées.</div>
+<div class="hello-sub">Administration simplifiée : commence par les actions du jour, puis ouvre le mode avancé uniquement quand tu as besoin des outils complets.</div>
+</section>
+
+<section class="fts-admin-simple-hero" aria-label="Accueil admin simplifié">
+  <div class="fts-admin-simple-head">
+    <div>
+      <div class="fts-admin-simple-kicker">À faire en priorité</div>
+      <div class="fts-admin-simple-title">Qu’est-ce qu’on gère aujourd’hui ?</div>
+      <p class="fts-admin-simple-sub">Cette page sert de porte d’entrée simple pour une personne qui reprend l’administration. Les gros outils restent disponibles dans le mode avancé.</p>
+    </div>
+    <span class="fts-admin-advanced-label">Avancé masqué par défaut</span>
+  </div>
+  <div class="fts-admin-simple-grid">
+    <a class="fts-admin-simple-card" href="forum-admin.html#tab-pending"><div class="fts-admin-simple-ico">⏳</div><div><strong>Valider les inscriptions</strong><span><b id="stat-pending-simple">—</b> demande(s) en attente. Action quotidienne prioritaire.</span></div></a>
+    <a class="fts-admin-simple-card" href="contenus-admin.html"><div class="fts-admin-simple-ico">📣</div><div><strong>Publier une info</strong><span>Annonce générale, annonce ciblée ou document pour les membres.</span></div></a>
+    <a class="fts-admin-simple-card" href="calendrier-admin.html"><div class="fts-admin-simple-ico">📅</div><div><strong>Ajouter une date</strong><span>Cours, répétition, spectacle, réunion ou événement important.</span></div></a>
+    <a class="fts-admin-simple-card" href="rappels-admin.html"><div class="fts-admin-simple-ico">🤖</div><div><strong>Programmer un rappel</strong><span>Rappels 24h / 1h pour cours, groupes ou rendez-vous.</span></div></a>
+  </div>
+</section>
+
+<section class="fts-admin-action-panel" aria-label="Actions rapides administrateur">
+  <h2>Nouvelle action rapide</h2>
+  <p>Choisis l’objectif, pas la page technique. C’est plus simple pour déléguer l’administration.</p>
+  <div class="fts-admin-action-grid">
+    <a class="fts-admin-action-btn" href="forum-admin.html"><span>👥</span><span><b>Gérer un membre</b><small>Validation, rôle, accès, enfants</small></span></a>
+    <a class="fts-admin-action-btn" href="profs.html"><span>📁</span><span><b>Ajouter une ressource</b><small>Document, texte, audio, vidéo</small></span></a>
+    <a class="fts-admin-action-btn" href="sondages.html"><span>📊</span><span><b>Créer un sondage</b><small>Question ciblée + notifications</small></span></a>
+    <a class="fts-admin-action-btn" href="saison-admin.html"><span>🎭</span><span><b>Préparer la saison</b><small>Activités, tarifs, inscriptions</small></span></a>
+    <a class="fts-admin-action-btn" href="forum-admin.html#tab-members"><span>🔎</span><span><b>Retrouver quelqu’un</b><small>Membre, enfant, groupe</small></span></a>
+    <a class="fts-admin-action-btn" href="admin.html" data-admin-advanced><span>⚙️</span><span><b>Voir tous les outils</b><small>Mode avancé activé sur cette page</small></span></a>
+  </div>
 </section>
 
 <section aria-label="Résumé administration" class="admin-overview" id="admin-overview">
@@ -64,7 +95,7 @@
   </article>
 </section>
 
-<section class="admin-insight-card" id="admin-category-summary" aria-label="Résumé par catégorie">
+<section class="admin-insight-card" id="admin-category-summary" aria-label="Résumé par catégorie" data-admin-advanced>
   <div class="insight-head">
     <div>
       <div class="section-lbl compact">Répartition rapide</div>
@@ -78,7 +109,7 @@
   </div>
 </section>
 
-<section class="admin-action-groups" aria-label="Actions administrateur">
+<section class="admin-action-groups" aria-label="Actions administrateur" data-admin-advanced>
   <div class="admin-action-group admin-action-group-priority">
     <div class="admin-group-head">
       <div class="section-lbl compact">À traiter</div>
@@ -142,6 +173,7 @@
 <div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
 
 <script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-admin-mode.js?v=78"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
@@ -153,6 +185,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/admin.js?v=3"></script>
+<script src="assets/js/pages/admin.js?v=78"></script>
 </body>
 </html>

@@ -10,6 +10,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/forum-admin.css?v=4" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=78" rel="stylesheet"/>
 
 <!-- Firebase SDK — Auth ajouté -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -40,10 +41,10 @@
 <button class="tab-btn" data-fts-handler-3="">
       👥 Membres actifs <span class="badge u-forum-admin-inline-1" id="badge-members">0</span>
 </button>
-<button class="tab-btn" data-fts-handler-4="">
+<button class="tab-btn" data-admin-advanced data-fts-handler-4="">
       💬 Messages
     </button>
-<button class="tab-btn" data-fts-click="showTab('rewards', this)">
+<button class="tab-btn" data-admin-advanced data-fts-click="showTab('rewards', this)">
       🏅 Récompenses
     </button>
 </div>
@@ -69,7 +70,7 @@
 <div id="members-list"></div>
 </div>
 
-<div class="tab-content" id="tab-rewards">
+<div class="tab-content" id="tab-rewards" data-admin-advanced>
 <div class="sec-title">Badges temporaires & Artiste de la semaine</div>
 <section class="admin-card rewards-card">
   <div class="admin-card-head">
@@ -108,7 +109,7 @@
   <div class="rewards-history" id="rewards-history" aria-label="Historique des récompenses"></div>
 </section>
 </div>
-<div class="tab-content" id="tab-messages">
+<div class="tab-content" id="tab-messages" data-admin-advanced>
 <div class="sec-title">Modération messages</div>
 <div class="ch-selector" id="ch-selector"></div>
 <div id="msg-list"></div>
@@ -153,6 +154,7 @@
 <div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
 
 <script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-admin-mode.js?v=78"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/fts-pwa.js"></script>
 <script src="assets/js/fts-gamification.js?v=3"></script>
@@ -169,6 +171,6 @@
 <script src="assets/js/services/reminders.service.js?v=1"></script>
 <script src="assets/js/services/calendar-exclusions.service.js?v=73"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/forum-admin.js?v=77"></script>
+<script src="assets/js/pages/forum-admin.js?v=78-77"></script>
 </body>
 </html>

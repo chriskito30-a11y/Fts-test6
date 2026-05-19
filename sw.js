@@ -1,4 +1,4 @@
-const CACHE = 'fts-v77-email-automation';
+const CACHE = 'fts-v78-admin-simple-mode';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -32,6 +32,7 @@ const FILES = [
   './assets/css/pages/saison-admin.css',
   './assets/css/pages/saison.css',
   './assets/css/fts-nav.css',
+  './assets/css/fts-admin-mode.css',
   './assets/css/pages/hub-messages.css',
   './assets/css/pages/sondages.css',
   './assets/css/pages/rappels-admin.css',
@@ -42,6 +43,7 @@ const FILES = [
   './assets/js/fts-offline.js',
   './assets/js/fts-pwa.js',
   './assets/js/fts-utils.js',
+  './assets/js/fts-admin-mode.js',
   './assets/js/services/auth.service.js',
   './assets/js/services/content.service.js',
   './assets/js/services/events.service.js',
@@ -191,7 +193,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v75-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v78-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){

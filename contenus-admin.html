@@ -10,6 +10,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=54" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=78" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -27,7 +28,7 @@
   <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
 </header>
 <div class="wrap-admin contenus-modern">
-<div class="tabs-row"><button class="tab-lnk active" data-fts-handler-2="">📣 Annonce</button><button class="tab-lnk" data-fts-handler-3="">🧭 Questionnaire</button><button class="tab-lnk" data-fts-handler-4="">📁 Ressources</button><button class="tab-lnk" data-fts-handler-5="">🗂️ Catégories</button></div>
+<div class="tabs-row"><button class="tab-lnk active" data-fts-handler-2="">📣 Annonce</button><button class="tab-lnk" data-admin-advanced data-fts-handler-3="">🧭 Questionnaire</button><button class="tab-lnk" data-fts-handler-4="">📁 Ressources</button><button class="tab-lnk" data-admin-advanced data-fts-handler-5="">🗂️ Catégories</button></div>
 <section class="tab-pane active" id="tab-annonces">
 <div class="card-admin form-panel"><div class="mini-title">Annonce affichée dans l’espace membres</div><p class="field-help top-help">Ce message apparaît en haut de l’espace membre. Utilise-le pour une information générale courte.</p>
 <div class="form-grid">
@@ -42,7 +43,7 @@
 <button class="btn" data-fts-handler-6="">Enregistrer l’annonce générale</button><div class="msg" id="msg-annonce"></div>
 </div>
 
-<div class="card-admin form-panel targeted-annonce-panel">
+<div class="card-admin form-panel targeted-annonce-panel" data-admin-advanced>
   <div class="mini-title">Annonce ciblée supplémentaire</div>
   <p class="field-help top-help">Permet d’ajouter une 2e annonce visible uniquement pour une ou plusieurs catégories / sous-catégories. Sans sélection : visible pour tous les membres actifs.</p>
   <div class="grid targeted-annonce-grid">
@@ -78,7 +79,7 @@
   </div>
 </div>
 </section>
-<section class="tab-pane" id="tab-questionnaire">
+<section class="tab-pane" id="tab-questionnaire" data-admin-advanced>
 <div class="calendar-source-card" role="note" aria-label="Gestion des événements et spectacles">
   <div class="calendar-source-icon">📅</div>
   <div class="calendar-source-content">
@@ -114,7 +115,7 @@
 <div class="field full"><label>Lien, texte ou contenu</label><textarea id="r-url" placeholder="https://drive.google.com/... ou texte"></textarea><small>Lien Google Drive, vidéo, PDF, image ou texte directement affiché.</small></div>
 </div><div class="preview-box" id="resource-preview"><div class="preview-label">Aperçu membre</div><div class="preview-card resource-card"><span class="preview-type">PDF</span><strong>Nom de la ressource</strong><p>Catégorie · Sous-catégorie</p></div></div><div class="row-actions"><button class="btn btn-sm" data-fts-handler-12="">Enregistrer</button><button class="btn-outline danger" data-fts-handler-13="">Supprimer</button></div><div class="hint">Ces ressources remplacent le CSV Categorie / Sous-categorie / Nom / Contenu ou lien / Type.</div><div class="msg" id="msg-r"></div></div></div>
 </section>
-<section class="tab-pane" id="tab-categories">
+<section class="tab-pane" id="tab-categories" data-admin-advanced>
 <div class="grid">
 <div class="card-admin list-panel">
 <div class="mini-title">Catégories officielles</div><p class="field-help top-help">Structure utilisée par les membres, les ressources, le forum et les profs.</p>
@@ -157,6 +158,7 @@
 <div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
 
 <script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-admin-mode.js?v=78"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
@@ -168,6 +170,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/contenus-admin.js?v=54"></script>
+<script src="assets/js/pages/contenus-admin.js?v=78-54"></script>
 </body>
 </html>

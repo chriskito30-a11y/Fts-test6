@@ -16,7 +16,8 @@
 <link rel="stylesheet" href="assets/css/fts.css">
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=18">
 
-<link rel="stylesheet" href="assets/css/pages/profs.css?v=4">
+<link rel="stylesheet" href="assets/css/pages/profs.css?v=78">
+<link href="assets/css/fts-admin-mode.css?v=78" rel="stylesheet"/>
 </head>
 
 <body class="has-glow">
@@ -101,14 +102,14 @@
       <button class="tab-lnk" id="tab-btn-students" onclick="switchTab('students')">
         👥 Élèves <span class="tab-badge" id="students-count" style="background:#2a5a2a">0</span>
       </button>
-      <button class="tab-lnk" id="tab-btn-rewards" onclick="switchTab('rewards')">
+      <button class="tab-lnk" data-admin-advanced id="tab-btn-rewards" onclick="switchTab('rewards')">
         🏅 Récompenser
       </button>
     </div>
 
 
     <!-- ── ONGLET RÉCOMPENSER ── -->
-    <div class="tab-pane" id="tab-rewards">
+    <div class="tab-pane" id="tab-rewards" data-admin-advanced>
       <div class="form-card">
         <div class="card-title">Valoriser un élève</div>
         <p class="profs-card-subtitle">Attribue un badge temporaire ou l’Artiste de la semaine. Il remplacera le badge XP dans le forum pendant la durée choisie.</p>
@@ -361,9 +362,10 @@
 <script src="assets/js/fts-gamification.js?v=3"></script>
 
 <script src="assets/js/fts-nav.js?v=18"></script>
-<script src="assets/js/pages/profs.js?v=51"></script>
+<script src="assets/js/pages/profs.js?v=78-51"></script>
 
 <script src="assets/js/fts-pwa.js?v=12"></script>
 
+<script src="assets/js/fts-admin-mode.js?v=78"></script>
 </body>
 </html>

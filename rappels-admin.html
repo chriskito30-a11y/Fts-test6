@@ -11,6 +11,7 @@
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
 <link href="assets/css/pages/rappels-admin.css?v=74" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=78" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -76,7 +77,7 @@
           <small>Propositions récupérées depuis le profil existant : cours du parent et/ou des enfants.</small>
         </div>
 
-        <div class="manual-course-box u-hidden" id="field-manual-course">
+        <div class="manual-course-box u-hidden" id="field-manual-course" data-admin-advanced>
           <div class="form-grid">
             <div class="field">
               <label for="manual-course-label">Autre cours / libellé manuel</label>
@@ -158,19 +159,19 @@
               <input id="repeat-until" type="date"/>
             </div>
           </div>
-          <div class="field u-hidden" id="field-manual-dates">
+          <div class="field u-hidden" id="field-manual-dates" data-admin-advanced>
             <label for="manual-dates">Dates manuelles</label>
             <textarea id="manual-dates" placeholder="Une date par ligne : 2026-06-03 17:30"></textarea>
             <small>Format accepté : 2026-06-03 17:30 ou 03/06/2026 17:30.</small>
           </div>
-          <div class="field">
+          <div class="field" data-admin-advanced>
             <label for="excluded-dates">Dates manuelles à exclure</label>
             <textarea id="excluded-dates" placeholder="Une date par ligne : 2026-05-20
 Utile pour vacances, jours fériés, absence prof…"></textarea>
             <small>Ajoute uniquement les exceptions ponctuelles. Les vacances scolaires et jours fériés sont appliqués automatiquement sans remplir ce champ.</small>
           </div>
 
-          <div class="calendar-exclusion-panel" id="calendar-exclusion-panel">
+          <div class="calendar-exclusion-panel" id="calendar-exclusion-panel" data-admin-advanced>
             <div class="calendar-exclusion-head">
               <div>
                 <strong>Exclusions automatiques</strong>
@@ -220,7 +221,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
         <div class="row-actions">
           <button class="btn btn-sm btn-gold" id="btn-save-schedule" type="button">Créer planning + rappels</button>
           <button class="btn btn-sm btn-dark" id="btn-create-reminders" type="button">Créer les rappels</button>
-          <button class="btn-outline btn-sm" id="btn-fill-music-demo" type="button">Exemple musique</button>
+          <button class="btn-outline btn-sm" data-admin-advanced id="btn-fill-music-demo" type="button">Exemple musique</button>
           <button class="btn-outline btn-sm" id="btn-reset-form" type="button">Réinitialiser</button>
         </div>
         <div class="msg" id="msg"></div>
@@ -247,13 +248,13 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
           <div class="empty">Chargement des rappels…</div>
         </div>
 
-        <div class="helper-box">
+        <div class="helper-box" data-admin-advanced>
           <strong>Envoi automatique natif</strong>
           <p id="dispatch-status" data-state="booting">Initialisation des rappels automatiques…</p>
           <p>Les rappels en <b>pending</b> sont envoyés automatiquement dès que <b>sendAt</b> est passé, tant qu’une page admin est ouverte.</p>
         </div>
 
-        <div id="selected-reminder" class="selected-reminder">
+        <div id="selected-reminder" class="selected-reminder" data-admin-advanced>
           <div class="empty">Sélectionne un rappel pour voir le détail.</div>
         </div>
       </article>
@@ -276,6 +277,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
 
 <script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-admin-mode.js?v=78"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
@@ -283,6 +285,6 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/services/calendar-exclusions.service.js?v=74"></script>
 <script src="assets/js/services/schedules.service.js?v=69"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=69"></script>
-<script src="assets/js/pages/rappels-admin.js?v=74"></script>
+<script src="assets/js/pages/rappels-admin.js?v=78-74"></script>
 </body>
 </html>
