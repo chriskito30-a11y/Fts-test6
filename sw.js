@@ -1,4 +1,4 @@
-const CACHE = 'fts-v62-planning-next-course';
+const CACHE = 'fts-v63-rappels-restore';
 const FILES = [
   './manifest.json',
   './index.html',
