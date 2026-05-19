@@ -118,6 +118,59 @@
       .map(([uid, profile]) => ({ uid, profile }));
   }
 
+
+  function reminderPrefKey(ownerType, ownerId, category, subcategory){
+    return [ownerType || 'self', ownerId || 'self', category || '', subcategory || ''].map(norm).join('|');
+  }
+
+  function findReminderPreference(profile, reminder){
+    const prefs = profile && profile.reminderPrefs && typeof profile.reminderPrefs === 'object' ? profile.reminderPrefs : null;
+    if(!prefs) return null;
+    const ownerType = reminder.courseOwnerType || (reminder.childName ? 'child' : 'self');
+    const ownerId = ownerType === 'child' ? (reminder.childId || reminder.childName || reminder.courseOwnerName || '') : 'self';
+    const category = reminder.targetCategory || reminder.category || reminder.courseLabel || reminder.lessonType || reminder.title || '';
+    const subcategory = reminder.targetSubcategory || reminder.subcategory || reminder.lessonType || '';
+    const directKeys = [
+      reminderPrefKey(ownerType, ownerId, category, subcategory),
+      reminderPrefKey(ownerType, ownerId, reminder.courseLabel || category, ''),
+      reminderPrefKey(ownerType, ownerId, reminder.targetCategory || '', reminder.targetSubcategory || '')
+    ];
+    for(const k of directKeys){ if(prefs[k]) return prefs[k]; }
+    const courseLabel = norm(reminder.courseLabel || reminder.title || reminder.lessonType || '');
+    const childName = norm(reminder.childName || reminder.courseOwnerName || '');
+    return Object.values(prefs).find(p => {
+      if(!p) return false;
+      const sameOwnerType = !p.ownerType || norm(p.ownerType) === norm(ownerType);
+      const sameChild = ownerType !== 'child' || !p.childName || norm(p.childName) === childName || norm(p.childId || p.ownerId || '') === norm(ownerId);
+      const sameLabel = courseLabel && norm(p.courseLabel || [p.category, p.subcategory].filter(Boolean).join(' — ') || '') === courseLabel;
+      return sameOwnerType && sameChild && sameLabel;
+    }) || null;
+  }
+
+  function recipientAllowsReminder(profile, reminder){
+    const pref = findReminderPreference(profile, reminder);
+    if(!pref) return true;
+    if(pref.paused === true || pref.remindersPaused === true) return false;
+    const offset = Number(reminder.reminderOffsetMinutes || 0);
+    if(offset === 60 && pref.reminder1h === false) return false;
+    if(offset === 24 * 60 && pref.reminder24h === false) return false;
+    if(pref.reminder1h === false && pref.reminder24h === false) return false;
+    return true;
+  }
+
+  async function standbyUserPausedReminder(id, skipped){
+    const database = getDb();
+    await database.ref('fts_scheduled_reminders/' + id).update({
+      status:'standby',
+      dispatchLockAt:null,
+      dispatchLockBy:null,
+      userPaused:true,
+      userPausedAt:Date.now(),
+      userPausedCount:skipped || 0,
+      updatedAt:Date.now()
+    });
+  }
+
   async function claimReminder(id, reminder){
     const database = getDb();
     const now = Date.now();
@@ -293,8 +346,13 @@
     try{
       const recipients = await resolveRecipients(reminder);
       if(!recipients.length) throw new Error('Aucun destinataire actif trouvé');
+      const eligible = recipients.filter(r => recipientAllowsReminder(r.profile, reminder));
+      if(!eligible.length){
+        await standbyUserPausedReminder(id, recipients.length);
+        return { skipped:true, userPaused:true };
+      }
       const sentRows = [];
-      for(const recipient of recipients){
+      for(const recipient of eligible){
         sentRows.push(await sendBotDm(id, reminder, recipient));
       }
       await finalizeReminder(id, sentRows);
