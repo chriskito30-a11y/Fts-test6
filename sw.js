@@ -1,4 +1,4 @@
-const CACHE = 'fts-v74-reminders-user-exclusions';
+const CACHE = 'fts-v75-reminders-user-exclusions';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -191,7 +191,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v74-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v75-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
