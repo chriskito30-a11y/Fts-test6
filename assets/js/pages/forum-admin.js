@@ -459,7 +459,9 @@ function buildApprovalOccurrences(startAt, intervalDays, count, excludedText){
   }
   return out;
 }
-
+function mergeExcludedTexts(){
+  return Array.from(arguments).filter(Boolean).join('\n');
+}
 async function approvalDefaultExcludedDates(){
   const svc = window.FTS && FTS.Services && FTS.Services.CalendarExclusions;
   if(!svc) return '';
@@ -507,7 +509,8 @@ async function createApprovalPlanningAndReminders(uid, user, pref, cfg){
   const duration = Math.max(5, parseInt(cfg.duration || '60', 10) || 60);
   const offsets = approvalOffsetsFromPref(pref);
   if(!offsets.length) return { scheduleId:null, reminders:0 };
-  const occurrences = buildApprovalOccurrences(startAt, intervalDays, count, cfg.excludedDates || '');
+  const effectiveExcludedDates = mergeExcludedTexts(cfg.excludedDates || '', cfg.globalExcludedDates || '');
+  const occurrences = buildApprovalOccurrences(startAt, intervalDays, count, effectiveExcludedDates);
   const now = Date.now();
   const scheduleRef = db.ref('fts_schedules').push();
   const scheduleId = scheduleRef.key;
@@ -533,7 +536,9 @@ async function createApprovalPlanningAndReminders(uid, user, pref, cfg){
     occurrenceCount: count,
     intervalDays,
     generatedOccurrences: occurrences,
-    excludedDates: Array.from(parseExcludedDateSet(cfg.excludedDates || '')),
+    excludedDates: Array.from(parseExcludedDateSet(effectiveExcludedDates)),
+    manualExcludedDates: Array.from(parseExcludedDateSet(cfg.excludedDates || '')),
+    autoExcludedDatesCount: parseExcludedDateSet(cfg.globalExcludedDates || '').size,
     remindersEnabled: true,
     reminder24h: !!pref.reminder24h,
     reminder1h: !!pref.reminder1h,
@@ -583,7 +588,8 @@ async function createApprovalPlanningAndReminders(uid, user, pref, cfg){
         scheduleId,
         source: 'forum-admin-approval',
         recurrenceMode: schedulePayload.recurrenceMode,
-        excludedDatesText: cfg.excludedDates || ''
+        excludedDatesText: cfg.excludedDates || '',
+        autoExcludedDatesApplied: parseExcludedDateSet(cfg.globalExcludedDates || '').size
       };
       await db.ref('fts_scheduled_reminders').push(payload);
       created++;
@@ -620,6 +626,7 @@ async function openApprovalReminderModalIfNeeded(uid, user){
   const prefs = reminderPrefRows(user);
   if(!prefs.length) return 'skip';
   const defaultExcludedDates = await approvalDefaultExcludedDates();
+  const autoExcludedCount = parseExcludedDateSet(defaultExcludedDates).size;
   return new Promise(resolve => {
     const overlay = ensureApprovalReminderModal();
     const list = document.getElementById('approval-reminder-list');
@@ -640,7 +647,8 @@ async function openApprovalReminderModalIfNeeded(uid, user){
           <label><span>Nombre de séances</span><select data-field="count"><option value="31">31 séances</option><option value="30">30 séances</option><option value="10">10 séances</option><option value="5">5 séances</option><option value="1">1 séance</option></select></label>
           <label><span>Durée</span><select data-field="duration"><option value="30">30 min</option><option value="45">45 min</option><option value="60" selected>1h</option><option value="90">1h30</option></select></label>
         </div>
-        <label class="approval-full"><span>Dates à exclure, optionnel</span><textarea data-field="excludedDates" rows="2" placeholder="2026-10-21\n2026-10-28">${FTS.esc(defaultExcludedDates)}</textarea></label>
+        <div class="approval-auto-exclusions">✅ Exclusions automatiques appliquées : ${autoExcludedCount} date(s) vacances/jours fériés</div>
+        <label class="approval-full"><span>Dates manuelles à exclure, optionnel</span><textarea data-field="excludedDates" rows="2" placeholder="2026-10-21\n2026-10-28"></textarea></label>
         <label class="approval-full"><span>Note ajoutée aux rappels, optionnel</span><input data-field="note" placeholder="Ex : Pensez au carnet / partitions…"></label>
       </article>`;
     }).join('');
@@ -668,7 +676,7 @@ async function openApprovalReminderModalIfNeeded(uid, user){
             if(!card.querySelector('[data-field="enabled"]')?.checked) continue;
             const val = field => card.querySelector(`[data-field="${field}"]`)?.value || '';
             const result = await createApprovalPlanningAndReminders(uid, user, pref, {
-              startAt: val('startAt'), intervalDays: val('intervalDays'), count: val('count'), duration: val('duration'), excludedDates: val('excludedDates'), note: val('note')
+              startAt: val('startAt'), intervalDays: val('intervalDays'), count: val('count'), duration: val('duration'), excludedDates: val('excludedDates'), globalExcludedDates: defaultExcludedDates, note: val('note')
             });
             total += result.reminders || 0;
           }

@@ -1086,26 +1086,79 @@
       .sort((a,b) => (a[1].sendAt || 0) - (b[1].sendAt || 0));
   }
 
+  function reminderGroupLabel(r){
+    if(!r) return 'Sans destinataire';
+    if(r.uid){
+      const u = users[r.uid] || {};
+      return r.recipientName || displayName(u) || r.recipientEmail || 'Membre';
+    }
+    return [r.targetCategory, r.targetSubcategory].filter(Boolean).join(' · ') || 'Groupe / catégorie';
+  }
+
+  function reminderGroupKey(r){
+    if(!r) return 'unknown';
+    if(r.uid) return 'uid:' + r.uid;
+    return 'target:' + [r.targetCategory || '', r.targetSubcategory || ''].join('|');
+  }
+
+  function groupReminderRows(rows){
+    const map = new Map();
+    rows.forEach(([id,r]) => {
+      const key = reminderGroupKey(r);
+      if(!map.has(key)){
+        map.set(key, { key, label: reminderGroupLabel(r), rows: [], nextAt: 0, statusCounts:{} });
+      }
+      const g = map.get(key);
+      g.rows.push([id,r]);
+      const status = r.status || 'standby';
+      g.statusCounts[status] = (g.statusCounts[status] || 0) + 1;
+      const t = Number(r.sendAt || 0);
+      if(t && (!g.nextAt || t < g.nextAt)) g.nextAt = t;
+    });
+    return Array.from(map.values()).sort((a,b) => (a.nextAt || 0) - (b.nextAt || 0) || String(a.label).localeCompare(String(b.label)));
+  }
+
+  function renderReminderRow(id, r){
+    const active = selectedReminderId === id;
+    const status = r.status || 'standby';
+    return `<article class="reminder-row ${active ? 'active' : ''}" data-reminder-id="${esc(id)}">
+      <div class="reminder-top">
+        <div>
+          <div class="reminder-title">${esc(r.title || 'Rappel')}</div>
+          <div class="reminder-meta">Envoi prévu : ${esc(formatFullDateTime(r.sendAt))}</div>
+        </div>
+        <span class="badge ${esc(status)}">${statusLabel(status)}</span>
+      </div>
+    </article>`;
+  }
+
   function renderReminders(){
     const list = $('reminder-list');
     const count = $('reminder-count');
     if(!list) return;
     const rows = sortedReminders();
-    if(count) count.textContent = `${rows.length} rappel(s)`;
+    const groups = groupReminderRows(rows);
+    if(count) count.textContent = `${rows.length} rappel(s) · ${groups.length} membre(s)/groupe(s)`;
     if(!rows.length){ list.innerHTML = '<div class="empty">Aucun rappel pour ce filtre.</div>'; return; }
-    list.innerHTML = rows.map(([id,r]) => {
-      const active = selectedReminderId === id;
-      const status = r.status || 'standby';
-      const target = r.uid ? (r.recipientName || r.recipientEmail || 'Membre') : [r.targetCategory, r.targetSubcategory].filter(Boolean).join(' · ');
-      return `<article class="reminder-row ${active ? 'active' : ''}" data-reminder-id="${esc(id)}">
-        <div class="reminder-top">
-          <div>
-            <div class="reminder-title">${esc(r.title || 'Rappel')}</div>
-            <div class="reminder-meta">${esc(target || 'Ciblage non renseigné')}<br>Envoi prévu : ${esc(formatFullDateTime(r.sendAt))}</div>
-          </div>
-          <span class="badge ${esc(status)}">${statusLabel(status)}</span>
-        </div>
-      </article>`;
+    list.innerHTML = groups.map(g => {
+      const hasSelected = g.rows.some(([id]) => id === selectedReminderId);
+      const pending = g.statusCounts.pending || 0;
+      const sent = g.statusCounts.sent || 0;
+      const paused = (g.statusCounts.standby || 0) + (g.statusCounts.paused || 0);
+      const meta = [
+        `${g.rows.length} rappel(s)`,
+        pending ? `${pending} à envoyer` : '',
+        sent ? `${sent} envoyé(s)` : '',
+        paused ? `${paused} en pause` : '',
+        g.nextAt ? `prochain : ${formatFullDateTime(g.nextAt)}` : ''
+      ].filter(Boolean).join(' · ');
+      return `<details class="reminder-group" ${hasSelected ? 'open' : ''}>
+        <summary class="reminder-group-head">
+          <span class="reminder-group-main"><strong>${esc(g.label)}</strong><small>${esc(meta)}</small></span>
+          <span class="reminder-group-count">${g.rows.length}</span>
+        </summary>
+        <div class="reminder-group-body">${g.rows.map(([id,r]) => renderReminderRow(id,r)).join('')}</div>
+      </details>`;
     }).join('');
   }
 
