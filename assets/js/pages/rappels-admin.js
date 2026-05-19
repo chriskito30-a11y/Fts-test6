@@ -551,7 +551,7 @@
       const scheduleId = await FTS.Services.Schedules.create(buildSchedulePayload(data));
       let created = [];
       if(data.offsets && data.offsets.length){
-        created = await createReminderRecords(data, { scheduleId, source:'schedule' });
+        created = await createReminderRecords(data, { scheduleId, source:'schedule', skipPast:true });
       }
       const reminderText = created.length ? ` + ${created.length} rappel(s) lié(s) créé(s).` : ' Aucun rappel lié créé car aucun rappel 24h/1h n’est coché.';
       msg('Créneau planning créé pour “Mon prochain cours”.' + reminderText, true);
@@ -578,18 +578,32 @@
   async function createReminderRecords(data, options){
     options = options || {};
     if(!FTS.Services || !FTS.Services.Reminders) throw new Error('Service rappels non chargé');
-    const invalid = [];
-    data.occurrences.forEach(ts => data.offsets.forEach(offset => { if(ts - offset*60*1000 <= Date.now()) invalid.push({ts, offset}); }));
-    if(invalid.length) throw new Error('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou décoche 24h/1h.');
-    const totalToCreate = data.occurrences.length * data.offsets.length;
-    if(totalToCreate > 80) throw new Error('Trop de rappels à créer d’un coup. Réduis la période ou les dates.');
+    const now = Date.now();
+    const candidates = [];
+    data.occurrences.forEach(ts => data.offsets.forEach(offset => {
+      const sendAt = ts - offset * 60 * 1000;
+      if(sendAt <= now){
+        if(!options.skipPast) candidates.push({ eventAt:ts, offset, sendAt, past:true });
+        return;
+      }
+      candidates.push({ eventAt:ts, offset, sendAt, past:false });
+    }));
+    const invalid = candidates.filter(x => x.past);
+    if(invalid.length && !options.skipPast) throw new Error('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou décoche 24h/1h.');
+    const usable = candidates.filter(x => !x.past);
+    if(!usable.length){
+      if(options.skipPast) return [];
+      throw new Error('Aucun rappel futur à créer. Change la date ou décoche les rappels déjà passés.');
+    }
+    if(usable.length > 80) throw new Error('Trop de rappels à créer d’un coup. Réduis la période ou les dates.');
 
     const created = [];
     const seriesId = db.ref('fts_scheduled_reminders').push().key || ('series_' + Date.now());
-    for(const eventAt of data.occurrences){
-      for(const offset of data.offsets){
-        const sendAt = eventAt - offset * 60 * 1000;
-        const occurrenceData = Object.assign({}, data, { eventAt });
+    for(const item of usable){
+      const eventAt = item.eventAt;
+      const offset = item.offset;
+      const sendAt = item.sendAt;
+      const occurrenceData = Object.assign({}, data, { eventAt });
         const payload = {
           kind: data.kind,
           uid: data.kind === 'music_individual' ? data.uid : '',
@@ -623,7 +637,6 @@
         };
         const id = await FTS.Services.Reminders.create(payload);
         created.push(id);
-      }
     }
     return created;
   }
