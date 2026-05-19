@@ -52,6 +52,9 @@
         updatePreview();
         listenReminders();
         bindDispatcherStatus();
+        if(FTS.Services && FTS.Services.ReminderDispatcher && FTS.Services.ReminderDispatcher.start){
+          FTS.Services.ReminderDispatcher.start();
+        }
       }catch(e){
         console.warn('[FTS Rappels Admin] init', e);
         location.href = 'auth.html';
@@ -62,6 +65,14 @@
   function bindDispatcherStatus(){
     if(window.__FTS_RAPPELS_DISPATCH_STATUS_BOUND__) return;
     window.__FTS_RAPPELS_DISPATCH_STATUS_BOUND__ = true;
+    window.addEventListener('fts:reminder-dispatcher-state', event => {
+      const d = event.detail || {};
+      const el = $('dispatch-status');
+      if(el){
+        el.textContent = d.text || 'Rappels automatiques actifs';
+        el.setAttribute('data-state', d.state || 'idle');
+      }
+    });
     window.addEventListener('fts:reminder-dispatcher-status', event => {
       const d = event.detail || {};
       const el = $('dispatch-status');
@@ -71,7 +82,7 @@
         if(d.sent) parts.push(d.sent + ' envoyé(s)');
         if(d.recipients) parts.push(d.recipients + ' destinataire(s)');
         if(d.errors) parts.push(d.errors + ' erreur(s)');
-        el.textContent = parts.length ? parts.join(' · ') : 'Dispatch natif admin actif';
+        el.textContent = parts.length ? parts.join(' · ') : 'Rappels automatiques actifs';
       }
     });
   }
@@ -156,7 +167,6 @@
       if(type === 'delete') deleteReminder(id);
       if(type === 'send-test-dm') sendRealTestDm(id);
       if(type === 'standby') setReminderStatus(id, 'standby');
-      if(type === 'pending') setReminderStatus(id, 'pending');
       if(type === 'activate-series') activateReminderSeries(id);
       if(type === 'standby-series') standbyReminderSeries(id);
       if(type === 'cancelled') setReminderStatus(id, 'cancelled');
@@ -760,7 +770,6 @@
         <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
         ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer MP test réel</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">MP test indisponible</button>`}
         <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en stand-by</button>
-        <button class="btn-outline btn-sm" data-reminder-action="pending" data-id="${esc(selectedReminderId)}">Activer ce rappel</button>
         ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="activate-series" data-id="${esc(selectedReminderId)}">Activer la série</button>` : ''}
         ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="standby-series" data-id="${esc(selectedReminderId)}">Remettre la série en stand-by</button>` : ''}
         <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
