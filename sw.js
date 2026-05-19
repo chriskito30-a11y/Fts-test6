@@ -1,4 +1,4 @@
-const CACHE = 'fts-v53-profs-fiche-contact';
+const CACHE = 'fts-v54-contenus-admin-ux-safe';
 const FILES = [
   './manifest.json',
   './index.html',
