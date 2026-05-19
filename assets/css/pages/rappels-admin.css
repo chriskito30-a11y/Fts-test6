@@ -11,3 +11,34 @@
 /* V57 — test MP réel */
 .badge.sent_test { background: rgba(71, 211, 154, .12); color: #47d39a; border-color: rgba(71, 211, 154, .35); }
 .row-actions .btn[disabled], .row-actions .btn-outline[disabled] { opacity: .55; cursor: not-allowed; }
+
+/* V58 — planning récurrent safe */
+.planning-box{
+  margin:18px 0;
+  padding:14px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:18px;
+  background:rgba(255,255,255,.045);
+  box-shadow:0 12px 34px rgba(0,0,0,.14);
+}
+.planning-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+.planning-head strong{font-size:1rem;color:#fff}
+.planning-head span{font-size:.82rem;color:rgba(255,255,255,.68);text-align:right;max-width:220px}
+.planning-summary,.preview-series-note{
+  margin-top:10px;
+  padding:10px 12px;
+  border-radius:14px;
+  background:rgba(255,202,98,.10);
+  border:1px solid rgba(255,202,98,.22);
+  color:rgba(255,255,255,.86);
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.planning-summary strong{color:#ffd37b;font-size:.94rem}
+.planning-summary span,.preview-series-note{font-size:.82rem;line-height:1.35}
+.preview-series-note{margin-bottom:10px;color:#ffd37b}
+@media(max-width:760px){
+  .planning-head{flex-direction:column}
+  .planning-head span{text-align:left;max-width:none}
+}
