@@ -13,7 +13,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css?v=16" rel="stylesheet"/><link href="assets/css/pages/auth.css?v=1" rel="stylesheet"/>
+<link href="assets/css/fts.css?v=16" rel="stylesheet"/><link href="assets/css/pages/auth.css?v=70" rel="stylesheet"/>
 
 
 </head>
@@ -101,6 +101,16 @@
             + Ajouter un autre enfant
           </button>
 </div>
+
+<!-- Préférences rappels — V70 -->
+<div class="reminder-pref-section u-hidden" id="registration-reminder-prefs">
+  <div class="reminder-pref-head">
+    <strong>🔔 Rappels souhaités</strong>
+    <span>Optionnel : choisis les rappels pour chaque cours sélectionné.</span>
+  </div>
+  <div id="registration-reminder-list"></div>
+  <p class="reminder-pref-help">Ces choix aideront l’équipe à préparer les rappels automatiquement après validation du planning.</p>
+</div>
 <div class="inline-error" id="r-err"></div>
 <button class="btn auth-submit" data-fts-handler-16="" id="btn-register">
           Créer mon compte
@@ -134,6 +144,6 @@
 <script src="assets/js/services/content.service.js?v=1"></script>
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
-<script src="assets/js/pages/auth.js?v=4"></script>
+<script src="assets/js/pages/auth.js?v=70"></script>
 </body>
 </html>
