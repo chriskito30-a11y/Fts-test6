@@ -167,7 +167,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
         </label>
         <label class="check-row">
           <input id="standby-mode" type="checkbox" checked/>
-          <span><strong>Mode test stand-by</strong><span>Recommandé pendant les essais. Décoche uniquement quand Make est prêt à envoyer automatiquement.</span></span>
+          <span><strong>Mode test stand-by</strong><span>Utile pour préparer sans envoyer. Décoche pour que le dispatcher admin envoie automatiquement à l’heure prévue.</span></span>
         </label>
 
         <div class="preview-card" id="bot-preview"></div>
@@ -185,7 +185,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
         <div class="list-head">
           <div>
             <div class="mini-title">Rappels programmés</div>
-            <div class="hint">Liste issue de <code>fts_scheduled_reminders</code>. Elle se remplit automatiquement quand tu crées un planning avec rappels cochés. Les MP réels ne partent que via le bouton test admin.</div>
+            <div class="hint">Liste issue de <code>fts_scheduled_reminders</code>. Elle se remplit automatiquement quand tu crées un planning avec rappels cochés. Les MP réels partent automatiquement quand un admin est connecté et que l’heure d’envoi est atteinte.</div>
           </div>
           <div class="list-count" id="reminder-count">—</div>
         </div>
@@ -203,8 +203,9 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
         </div>
 
         <div class="helper-box">
-          <strong>Prochaine étape après validation</strong>
-          <p>Make lira uniquement les rappels <b>pending</b> avec <b>makeReady:true</b> et <b>sendAt</b> passé. Le mode stand-by reste conseillé tant que le scénario Make n’est pas validé.</p>
+          <strong>Envoi automatique natif</strong>
+          <p id="dispatch-status" data-state="booting">Initialisation des rappels automatiques…</p>
+          <p>Les rappels en <b>pending</b> sont envoyés automatiquement dès que <b>sendAt</b> est passé, tant qu’une page admin est ouverte.</p>
         </div>
 
         <div id="selected-reminder" class="selected-reminder">
@@ -233,8 +234,9 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
-<script src="assets/js/services/reminders.service.js?v=63"></script>
-<script src="assets/js/services/schedules.service.js?v=63"></script>
-<script src="assets/js/pages/rappels-admin.js?v=63"></script>
+<script src="assets/js/services/reminders.service.js?v=66"></script>
+<script src="assets/js/services/schedules.service.js?v=66"></script>
+<script src="assets/js/services/reminder-dispatcher.service.js?v=66"></script>
+<script src="assets/js/pages/rappels-admin.js?v=66"></script>
 </body>
 </html>
