@@ -139,6 +139,8 @@
       if(type === 'send-test-dm') sendRealTestDm(id);
       if(type === 'standby') setReminderStatus(id, 'standby');
       if(type === 'pending') setReminderStatus(id, 'pending');
+      if(type === 'activate-series') activateReminderSeries(id);
+      if(type === 'standby-series') standbyReminderSeries(id);
       if(type === 'cancelled') setReminderStatus(id, 'cancelled');
     }
   }
@@ -740,7 +742,9 @@
         <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
         ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer MP test réel</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">MP test indisponible</button>`}
         <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en stand-by</button>
-        <button class="btn-outline btn-sm" data-reminder-action="pending" data-id="${esc(selectedReminderId)}">Activer test pending</button>
+        <button class="btn-outline btn-sm" data-reminder-action="pending" data-id="${esc(selectedReminderId)}">Activer ce rappel pour Make</button>
+        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="activate-series" data-id="${esc(selectedReminderId)}">Activer la série pour Make</button>` : ''}
+        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="standby-series" data-id="${esc(selectedReminderId)}">Remettre la série en stand-by</button>` : ''}
         <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
         <button class="btn-outline danger btn-sm" data-reminder-action="delete" data-id="${esc(selectedReminderId)}">Supprimer</button>
       </div>
@@ -899,6 +903,43 @@
     }catch(e){
       console.warn('[FTS Rappels Admin] status', e);
       msg('Impossible de modifier le statut.', false);
+    }
+  }
+
+  function linkedReminderIds(base){
+    if(!base) return [];
+    const seriesId = base.seriesId || '';
+    const scheduleId = base.scheduleId || '';
+    return Object.entries(reminders || {})
+      .filter(([,r]) => r && ((seriesId && r.seriesId === seriesId) || (scheduleId && r.scheduleId === scheduleId)))
+      .map(([id]) => id);
+  }
+
+  async function activateReminderSeries(id){
+    const base = reminders[id];
+    const ids = linkedReminderIds(base);
+    if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
+    if(!confirm('Activer ' + ids.length + ' rappel(s) de cette série pour Make ?')) return;
+    try{
+      await Promise.all(ids.map(x => FTS.Services.Reminders.activateForMake(x)));
+      msg(ids.length + ' rappel(s) activé(s) pour Make.', true);
+    }catch(e){
+      console.warn('[FTS Rappels Admin] activate series', e);
+      msg('Impossible d’activer la série.', false);
+    }
+  }
+
+  async function standbyReminderSeries(id){
+    const base = reminders[id];
+    const ids = linkedReminderIds(base);
+    if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
+    if(!confirm('Remettre ' + ids.length + ' rappel(s) de cette série en stand-by ?')) return;
+    try{
+      await Promise.all(ids.map(x => FTS.Services.Reminders.standby(x)));
+      msg(ids.length + ' rappel(s) remis en stand-by.', true);
+    }catch(e){
+      console.warn('[FTS Rappels Admin] standby series', e);
+      msg('Impossible de remettre la série en stand-by.', false);
     }
   }
 
