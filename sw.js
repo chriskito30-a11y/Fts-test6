@@ -1,4 +1,4 @@
-const CACHE = 'fts-v52-first-steps-onboarding';
+const CACHE = 'fts-v53-profs-fiche-contact';
 const FILES = [
   './manifest.json',
   './index.html',
