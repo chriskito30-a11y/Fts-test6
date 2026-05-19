@@ -1,4 +1,4 @@
-const CACHE = 'fts-v55-rappels-admin-test';
+const CACHE = 'fts-v57-rappels-mp-test-reel';
 const FILES = [
   './manifest.json',
   './index.html',
