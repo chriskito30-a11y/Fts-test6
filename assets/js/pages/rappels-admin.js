@@ -1,7 +1,7 @@
 /* ================================================================
    PAGE MODULE — RAPPELS-ADMIN
    Module test isolé pour créer/simuler des rappels automatiques.
-   V58 : ajoute génération de planning récurrent/manual + exclusions manuelles, puis rappels test isolés.
+   V60 : ajoute la source planning fts_schedules pour alimenter “Mon prochain cours” côté membres.
    ================================================================ */
 (function(){
   'use strict';
@@ -103,6 +103,7 @@
     });
     $('planning-mode')?.addEventListener('input', () => { updateConditionalFields(); updatePreview(); });
     $('planning-mode')?.addEventListener('change', () => { updateConditionalFields(); updatePreview(); });
+    $('btn-save-schedule')?.addEventListener('click', saveSchedule);
     $('btn-create-reminders')?.addEventListener('click', createReminders);
     $('btn-reset-form')?.addEventListener('click', resetForm);
     $('btn-fill-music-demo')?.addEventListener('click', fillMusicDemo);
@@ -490,6 +491,75 @@
     const count = data.occurrences.length;
     const countHtml = count > 1 ? `<div class="preview-series-note">Aperçu sur la première séance · ${count} séances au total · ${count * Math.max(data.offsets.length,1)} rappel(s) possible(s)</div>` : '';
     el.innerHTML = countHtml + renderBotConversation(buildPreviewReminder(previewData, offset), { compact:true, statusText: data.standby ? 'Stand-by test' : 'Prêt Make' });
+  }
+
+  function parsedManualDatesForSchedule(data){
+    const base = data.eventAt ? new Date(data.eventAt) : new Date();
+    const fallbackHour = Number.isFinite(base.getHours()) ? base.getHours() : 17;
+    const fallbackMinute = Number.isFinite(base.getMinutes()) ? base.getMinutes() : 30;
+    if(data.planningMode !== 'manual') return [];
+    return String(data.manualDatesText || '')
+      .split(/\n|,|;/)
+      .map(line => parseManualDateLine(line, fallbackHour, fallbackMinute))
+      .filter(Boolean)
+      .sort((a,b)=>a-b);
+  }
+
+  function excludedDatesForSchedule(data){
+    return Array.from(parseExcludedDates(data.excludedDatesText || ''));
+  }
+
+  function buildSchedulePayload(data){
+    return {
+      active: true,
+      kind: data.kind,
+      uid: data.kind === 'music_individual' ? data.uid : '',
+      recipientName: data.uid && data.user ? displayName(data.user) : '',
+      recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
+      targetCategory: data.kind !== 'music_individual' ? data.category : '',
+      targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
+      title: data.title,
+      lessonType: data.lessonType,
+      teacher: data.teacher,
+      place: data.place,
+      durationMinutes: data.duration,
+      recurrenceMode: data.planningMode,
+      startAt: data.eventAt || (data.occurrences[0] || 0),
+      repeatUntil: data.repeatUntil || 0,
+      manualDates: parsedManualDatesForSchedule(data),
+      excludedDates: excludedDatesForSchedule(data),
+      remindersEnabled: !!(data.offsets && data.offsets.length),
+      reminder24h: data.offsets.includes(24 * 60),
+      reminder1h: data.offsets.includes(60),
+      createdBy: currentUser ? currentUser.uid : '',
+      createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
+      source: 'rappels-admin'
+    };
+  }
+
+  async function saveSchedule(){
+    if(isSaving) return;
+    if(!FTS.Services || !FTS.Services.Schedules){ msg('Service planning non chargé.', false); return; }
+    const data = getFormData();
+    if(!data.eventAt && data.planningMode !== 'manual'){ msg('Ajoute une date et une heure valides.', false); return; }
+    if(!data.occurrences.length){ msg('Aucune séance générée. Vérifie la date de référence, la date de fin ou les dates manuelles.', false); return; }
+    if(data.kind === 'music_individual' && !data.uid){ msg('Choisis le membre concerné par le créneau individuel.', false); return; }
+    if(data.kind !== 'music_individual' && !data.category && !data.subcategory){ msg('Choisis au moins une catégorie ou sous-catégorie.', false); return; }
+    isSaving = true;
+    const btn = $('btn-save-schedule');
+    const old = btn ? btn.textContent : '';
+    if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
+    try{
+      const id = await FTS.Services.Schedules.create(buildSchedulePayload(data));
+      msg('Créneau planning créé. Il pourra apparaître dans “Mon prochain cours” pour les membres concernés.', true);
+      if(window.console) console.log('[FTS] Créneau planning créé', id);
+    }catch(e){
+      console.warn('[FTS Rappels Admin] saveSchedule', e);
+      msg('Erreur pendant la création du créneau. Vérifie les rules fts_schedules.', false);
+    }finally{
+      isSaving = false;
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Créer le créneau planning'; }
+    }
   }
 
   async function createReminders(){

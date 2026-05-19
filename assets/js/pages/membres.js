@@ -36,6 +36,9 @@ let pendingResourceOpen = null;
 let latestUnreadMessages = 0;
 let seenNewsCache = null;
 let seenNewsLoaded = false;
+let memberSchedules = {};
+let nextCourseTimer = null;
+let nextCourseUnsubscribe = null;
 
 /* ── ICÔNES FICHIERS ─────────────────────────────────────────── */
 const ICONS = {
@@ -219,6 +222,7 @@ function canSeeDocInCategory(doc, cat) {
       loadAnnonce();
       loadRecentDocs();
       loadMemberNews();
+      initNextCoursePanel(user.uid);
       handleResourceDeepLink();
 
     } catch(e) {
@@ -420,6 +424,240 @@ function canSeeEvent(e){
   }
 
   return false;
+}
+
+
+/* ── PLANNING MEMBRE : MON PROCHAIN COURS / RDV ────────────────
+   Source : fts_schedules. Les rappels restent séparés.
+   Le membre voit le prochain créneau qui le concerne, puis les suivants. */
+function scheduleTargetValues(s){
+  const cat = String(s && (s.targetCategory || s.category || '') || '').trim();
+  const sub = String(s && (s.targetSubcategory || s.subcategory || '') || '').trim();
+  const groups = {};
+  if (cat) groups[cat] = sub ? [sub] : [];
+  return {
+    cats: cat ? [cat] : [],
+    subs: sub ? [sub] : [],
+    groups
+  };
+}
+
+function canSeeSchedule(s){
+  if (!s || s.active === false) return false;
+  const kind = String(s.kind || '').trim();
+  if (kind === 'music_individual' || s.uid) {
+    return profileIsAdmin() || String(s.uid || '') === String(currentUid || '');
+  }
+  if (profileIsAdmin()) return true;
+  const t = scheduleTargetValues(s);
+  if (!t.cats.length && !t.subs.length && !Object.keys(t.groups).length) return true;
+  const myCats = userDisciplines().map(FTS.norm);
+  const mySubs = userSubgroups().map(FTS.norm);
+  for (const [cat, subs] of Object.entries(t.groups)) {
+    const catOk = myCats.includes(FTS.norm(cat));
+    const cleanSubs = normList(subs);
+    if (catOk && !cleanSubs.length) return true;
+    if (catOk && cleanSubs.some(sub => mySubs.includes(FTS.norm(sub)))) return true;
+  }
+  return false;
+}
+
+function scheduleDateKey(ts){
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function defaultScheduleUntil(startAt){
+  const now = new Date();
+  // Fin de saison logique : 30 juin. Si elle est passée, on prend celle de l'année suivante.
+  let year = now.getFullYear();
+  let until = new Date(year, 5, 30, 23, 59, 59, 999).getTime();
+  if (until < Date.now()) until = new Date(year + 1, 5, 30, 23, 59, 59, 999).getTime();
+  // Garde-fou : jamais plus de 18 mois de calcul côté mobile.
+  const max = Date.now() + 18 * 31 * 24 * 60 * 60 * 1000;
+  return Math.min(until, max);
+}
+
+function addScheduleDays(ts, days){
+  const d = new Date(ts);
+  d.setDate(d.getDate() + days);
+  return d.getTime();
+}
+
+function nextOccurrenceForSchedule(s, nowTs){
+  if (!s || s.active === false) return null;
+  const duration = Math.max(5, Number(s.durationMinutes || 30) || 30);
+  const mode = String(s.recurrenceMode || 'single');
+  const excluded = new Set(Array.isArray(s.excludedDates) ? s.excludedDates : []);
+  let candidates = [];
+
+  if (mode === 'manual') {
+    candidates = (Array.isArray(s.manualDates) ? s.manualDates : [])
+      .map(Number)
+      .filter(Boolean);
+  } else if (mode === 'weekly' || mode === 'biweekly' || mode === 'triweekly') {
+    const startAt = Number(s.startAt || 0);
+    if (!startAt) return null;
+    const step = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
+    const until = Number(s.repeatUntil || 0) || defaultScheduleUntil(startAt);
+    let cur = startAt;
+    let guard = 0;
+    // Avance vite si le créneau est très ancien.
+    while (cur + duration * 60000 < nowTs && guard < 260) {
+      cur = addScheduleDays(cur, step);
+      guard++;
+    }
+    while (cur <= until && guard < 300) {
+      candidates.push(cur);
+      cur = addScheduleDays(cur, step);
+      guard++;
+      if (candidates.length >= 8) break;
+    }
+  } else {
+    const startAt = Number(s.startAt || 0);
+    if (startAt) candidates = [startAt];
+  }
+
+  const future = candidates
+    .filter(ts => ts && !excluded.has(scheduleDateKey(ts)))
+    .map(ts => ({
+      startAt: ts,
+      endAt: ts + duration * 60000,
+      durationMinutes: duration,
+      schedule: s
+    }))
+    .filter(o => o.endAt >= nowTs)
+    .sort((a,b) => a.startAt - b.startAt);
+
+  return future[0] || null;
+}
+
+function upcomingMemberOccurrences(limit){
+  const nowTs = Date.now();
+  return Object.entries(memberSchedules || {})
+    .map(([id, s]) => Object.assign({ id }, s || {}))
+    .filter(canSeeSchedule)
+    .map(s => {
+      const occ = nextOccurrenceForSchedule(s, nowTs);
+      return occ ? Object.assign(occ, { scheduleId: s.id || occ.schedule.id || '' }) : null;
+    })
+    .filter(Boolean)
+    .sort((a,b) => a.startAt - b.startAt)
+    .slice(0, limit || 4);
+}
+
+function nextCourseTypeLabel(s){
+  const kind = String(s && s.kind || '');
+  if (kind === 'music_individual') return 'Cours individuel';
+  if (kind === 'exceptional') return 'Rendez-vous';
+  return 'Cours / répétition';
+}
+
+function nextCourseIcon(s){
+  const text = [s && s.lessonType, s && s.title, s && s.targetCategory].join(' ').toLowerCase();
+  if (text.includes('guitare') || text.includes('basse') || text.includes('musique')) return '🎸';
+  if (text.includes('chant')) return '🎤';
+  if (text.includes('danse')) return '💃';
+  if (text.includes('theatre') || text.includes('théâtre')) return '🎭';
+  if (text.includes('singer')) return '🌟';
+  return '📅';
+}
+
+function relativeCourseDate(ts, endAt){
+  const d = new Date(ts);
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const startTarget = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const diffDays = Math.round((startTarget - startToday) / 86400000);
+  const time = d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  if (endAt && Date.now() >= ts && Date.now() <= endAt) return 'En cours · jusqu’à ' + new Date(endAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+  if (diffDays === 0) return 'Aujourd’hui · ' + time;
+  if (diffDays === 1) return 'Demain · ' + time;
+  return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }) + ' · ' + time;
+}
+
+function googleCalendarUrlForOccurrence(occ){
+  const s = occ.schedule || {};
+  const pad = n => String(n).padStart(2, '0');
+  function gdate(ts){
+    const d = new Date(ts);
+    return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+'00Z';
+  }
+  const title = encodeURIComponent((s.title || s.lessonType || 'Créneau Fais Ton Show') + ' — Fais Ton Show');
+  const details = encodeURIComponent('Créneau Fais Ton Show' + (s.teacher ? '\nProf : ' + s.teacher : '') + (s.lessonType ? '\nType : ' + s.lessonType : ''));
+  const location = encodeURIComponent(s.place || 'Fais Ton Show');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + title + '&dates=' + gdate(occ.startAt) + '/' + gdate(occ.endAt) + '&details=' + details + '&location=' + location;
+}
+
+function renderNextCoursePanel(){
+  const panel = document.getElementById('next-course-panel');
+  const card = document.getElementById('next-course-card');
+  const status = document.getElementById('next-course-status');
+  if (!panel || !card) return;
+
+  const rows = upcomingMemberOccurrences(4);
+  if (!rows.length) {
+    panel.classList.add('u-initial-hidden');
+    panel.style.display = 'none';
+    return;
+  }
+  panel.classList.remove('u-initial-hidden');
+  panel.style.display = 'block';
+  if (status) status.textContent = 'Mise à jour auto';
+
+  const first = rows[0];
+  const s = first.schedule || {};
+  const title = s.title || s.lessonType || s.targetSubcategory || s.targetCategory || 'Prochain créneau';
+  const metaParts = [nextCourseTypeLabel(s), s.teacher ? 'Prof : ' + s.teacher : '', s.place || '', first.durationMinutes ? first.durationMinutes + ' min' : ''].filter(Boolean);
+  const more = rows.slice(1);
+
+  card.innerHTML = `
+    <div class="next-course-main">
+      <div class="next-course-icon">${nextCourseIcon(s)}</div>
+      <div class="next-course-body">
+        <div class="next-course-kicker">Prochain rendez-vous</div>
+        <div class="next-course-title">${FTS.esc(title)}</div>
+        <div class="next-course-time">${FTS.esc(relativeCourseDate(first.startAt, first.endAt))}</div>
+        <div class="next-course-meta">${FTS.esc(metaParts.join(' · '))}</div>
+      </div>
+    </div>
+    <div class="next-course-actions">
+      <a class="btn-outline btn-sm" href="${googleCalendarUrlForOccurrence(first)}" target="_blank" rel="noopener">Ajouter à Google Calendar</a>
+    </div>
+    ${more.length ? `<div class="next-course-more">
+      <div class="next-course-more-title">Ensuite</div>
+      ${more.map(o => {
+        const so = o.schedule || {};
+        const t = so.title || so.lessonType || so.targetSubcategory || so.targetCategory || 'Créneau';
+        return `<div class="next-course-mini"><span>${nextCourseIcon(so)} ${FTS.esc(t)}</span><strong>${FTS.esc(relativeCourseDate(o.startAt, o.endAt))}</strong></div>`;
+      }).join('')}
+    </div>` : ''}`;
+}
+
+function initNextCoursePanel(uid){
+  const panel = document.getElementById('next-course-panel');
+  if (!panel || !db || !uid) return;
+  if (nextCourseUnsubscribe) { try { nextCourseUnsubscribe(); } catch(e){} nextCourseUnsubscribe = null; }
+  clearInterval(nextCourseTimer);
+  try {
+    if (FTS.Services && FTS.Services.Schedules && FTS.Services.Schedules.listenAll) {
+      nextCourseUnsubscribe = FTS.Services.Schedules.listenAll(data => {
+        memberSchedules = data || {};
+        renderNextCoursePanel();
+      });
+    } else {
+      const ref = db.ref('fts_schedules');
+      ref.on('value', snap => { memberSchedules = snap.val() || {}; renderNextCoursePanel(); }, () => {
+        panel.classList.add('u-initial-hidden');
+      });
+      nextCourseUnsubscribe = () => ref.off();
+    }
+    nextCourseTimer = setInterval(renderNextCoursePanel, 60000);
+  } catch(e) {
+    console.warn('[FTS] Planning membre indisponible :', e);
+    panel.classList.add('u-initial-hidden');
+  }
 }
 
 
