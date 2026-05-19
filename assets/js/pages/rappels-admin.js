@@ -1,7 +1,7 @@
 /* ================================================================
    PAGE MODULE — RAPPELS-ADMIN
    Module test isolé pour créer/simuler des rappels automatiques.
-   V60 : ajoute la source planning fts_schedules pour alimenter “Mon prochain cours” côté membres.
+   V61 : un créneau planning crée aussi les rappels test liés, pour alimenter la liste “Rappels programmés”.
    ================================================================ */
 (function(){
   'use strict';
@@ -103,7 +103,7 @@
     });
     $('planning-mode')?.addEventListener('input', () => { updateConditionalFields(); updatePreview(); });
     $('planning-mode')?.addEventListener('change', () => { updateConditionalFields(); updatePreview(); });
-    $('btn-save-schedule')?.addEventListener('click', saveSchedule);
+    $('btn-save-schedule')?.addEventListener('click', saveSchedule); // V61 : crée planning + rappels liés
     $('btn-create-reminders')?.addEventListener('click', createReminders);
     $('btn-reset-form')?.addEventListener('click', resetForm);
     $('btn-fill-music-demo')?.addEventListener('click', fillMusicDemo);
@@ -541,40 +541,99 @@
     if(isSaving) return;
     if(!FTS.Services || !FTS.Services.Schedules){ msg('Service planning non chargé.', false); return; }
     const data = getFormData();
-    if(!data.eventAt && data.planningMode !== 'manual'){ msg('Ajoute une date et une heure valides.', false); return; }
-    if(!data.occurrences.length){ msg('Aucune séance générée. Vérifie la date de référence, la date de fin ou les dates manuelles.', false); return; }
-    if(data.kind === 'music_individual' && !data.uid){ msg('Choisis le membre concerné par le créneau individuel.', false); return; }
-    if(data.kind !== 'music_individual' && !data.category && !data.subcategory){ msg('Choisis au moins une catégorie ou sous-catégorie.', false); return; }
+    const validation = validateReminderData(data, { requireOffsets:false });
+    if(validation){ msg(validation, false); return; }
     isSaving = true;
     const btn = $('btn-save-schedule');
     const old = btn ? btn.textContent : '';
     if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
     try{
-      const id = await FTS.Services.Schedules.create(buildSchedulePayload(data));
-      msg('Créneau planning créé. Il pourra apparaître dans “Mon prochain cours” pour les membres concernés.', true);
-      if(window.console) console.log('[FTS] Créneau planning créé', id);
+      const scheduleId = await FTS.Services.Schedules.create(buildSchedulePayload(data));
+      let created = [];
+      if(data.offsets && data.offsets.length){
+        created = await createReminderRecords(data, { scheduleId, source:'schedule' });
+      }
+      const reminderText = created.length ? ` + ${created.length} rappel(s) lié(s) créé(s).` : ' Aucun rappel lié créé car aucun rappel 24h/1h n’est coché.';
+      msg('Créneau planning créé pour “Mon prochain cours”.' + reminderText, true);
+      if(window.console) console.log('[FTS] Créneau planning créé', scheduleId, created);
     }catch(e){
       console.warn('[FTS Rappels Admin] saveSchedule', e);
-      msg('Erreur pendant la création du créneau. Vérifie les rules fts_schedules.', false);
+      msg('Erreur pendant la création. Vérifie les rules fts_schedules / fts_scheduled_reminders.', false);
     }finally{
       isSaving = false;
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Créer le créneau planning'; }
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Créer planning + rappels'; }
     }
+  }
+
+  function validateReminderData(data, options){
+    options = options || {};
+    if(!data.eventAt && data.planningMode !== 'manual') return 'Ajoute une date et une heure valides.';
+    if(!data.occurrences.length) return 'Aucune séance générée. Vérifie la date de référence, la date de fin ou les dates manuelles.';
+    if(options.requireOffsets !== false && !data.offsets.length) return 'Choisis au moins un rappel : 24h avant ou 1h avant.';
+    if(data.kind === 'music_individual' && !data.uid) return 'Choisis le membre concerné par le créneau individuel.';
+    if(data.kind !== 'music_individual' && !data.category && !data.subcategory) return 'Choisis au moins une catégorie ou sous-catégorie.';
+    return '';
+  }
+
+  async function createReminderRecords(data, options){
+    options = options || {};
+    if(!FTS.Services || !FTS.Services.Reminders) throw new Error('Service rappels non chargé');
+    const invalid = [];
+    data.occurrences.forEach(ts => data.offsets.forEach(offset => { if(ts - offset*60*1000 <= Date.now()) invalid.push({ts, offset}); }));
+    if(invalid.length) throw new Error('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou décoche 24h/1h.');
+    const totalToCreate = data.occurrences.length * data.offsets.length;
+    if(totalToCreate > 80) throw new Error('Trop de rappels à créer d’un coup. Réduis la période ou les dates.');
+
+    const created = [];
+    const seriesId = db.ref('fts_scheduled_reminders').push().key || ('series_' + Date.now());
+    for(const eventAt of data.occurrences){
+      for(const offset of data.offsets){
+        const sendAt = eventAt - offset * 60 * 1000;
+        const occurrenceData = Object.assign({}, data, { eventAt });
+        const payload = {
+          kind: data.kind,
+          uid: data.kind === 'music_individual' ? data.uid : '',
+          recipientName: data.uid && data.user ? displayName(data.user) : '',
+          recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
+          targetCategory: data.kind !== 'music_individual' ? data.category : '',
+          targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
+          title: data.title,
+          body: buildMessage(occurrenceData, offset),
+          lessonType: data.lessonType,
+          teacher: data.teacher,
+          place: data.place,
+          durationMinutes: data.duration,
+          eventAt,
+          sendAt,
+          reminderOffsetMinutes: offset,
+          status: data.standby ? 'standby' : 'pending',
+          auto: true,
+          bot: true,
+          channel:'dm_auto',
+          messageType:'auto-reminder',
+          botLabel: 'Rappel automatique Fais Ton Show',
+          createdBy: currentUser ? currentUser.uid : '',
+          createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
+          makeReady: !data.standby,
+          seriesId,
+          scheduleId: options.scheduleId || '',
+          source: options.source || 'manual-reminder',
+          recurrenceMode: data.planningMode,
+          excludedDatesText: data.excludedDatesText || ''
+        };
+        const id = await FTS.Services.Reminders.create(payload);
+        created.push(id);
+      }
+    }
+    return created;
   }
 
   async function createReminders(){
     if(isSaving) return;
     const data = getFormData();
-    if(!data.eventAt && data.planningMode !== 'manual'){ msg('Ajoute une date et une heure valides.', false); return; }
-    if(!data.occurrences.length){ msg('Aucune séance générée. Vérifie la date de référence, la date de fin ou les dates manuelles.', false); return; }
-    if(!data.offsets.length){ msg('Choisis au moins un rappel : 24h avant ou 1h avant.', false); return; }
-    if(data.kind === 'music_individual' && !data.uid){ msg('Choisis le membre concerné par le créneau individuel.', false); return; }
-    if(data.kind !== 'music_individual' && !data.category && !data.subcategory){ msg('Choisis au moins une catégorie ou sous-catégorie pour ce rappel groupe.', false); return; }
-    const invalid = [];
-    data.occurrences.forEach(ts => data.offsets.forEach(offset => { if(ts - offset*60*1000 <= Date.now()) invalid.push({ts, offset}); }));
-    if(invalid.length){ msg('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou les rappels.', false); return; }
+    const validation = validateReminderData(data, { requireOffsets:true });
+    if(validation){ msg(validation, false); return; }
     const totalToCreate = data.occurrences.length * data.offsets.length;
-    if(totalToCreate > 80){ msg('Trop de rappels à créer d’un coup. Réduis la période ou les dates.', false); return; }
     if(totalToCreate > 12 && !confirm('Créer ' + totalToCreate + ' rappels test ?')) return;
 
     isSaving = true;
@@ -582,47 +641,12 @@
     const old = btn ? btn.textContent : '';
     if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
     try{
-      const created = [];
-      const seriesId = db.ref('fts_scheduled_reminders').push().key || ('series_' + Date.now());
-      for(const eventAt of data.occurrences){
-        for(const offset of data.offsets){
-          const sendAt = eventAt - offset * 60 * 1000;
-          const occurrenceData = Object.assign({}, data, { eventAt });
-          const payload = {
-            kind: data.kind,
-            uid: data.kind === 'music_individual' ? data.uid : '',
-            recipientName: data.uid && data.user ? displayName(data.user) : '',
-            recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
-            targetCategory: data.kind !== 'music_individual' ? data.category : '',
-            targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
-            title: data.title,
-            body: buildMessage(occurrenceData, offset),
-            lessonType: data.lessonType,
-            teacher: data.teacher,
-            place: data.place,
-            durationMinutes: data.duration,
-            eventAt,
-            sendAt,
-            reminderOffsetMinutes: offset,
-            status: data.standby ? 'standby' : 'pending',
-            auto: true,
-            botLabel: 'Rappel automatique Fais Ton Show',
-            createdBy: currentUser ? currentUser.uid : '',
-            createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
-            makeReady: !data.standby,
-            seriesId,
-            recurrenceMode: data.planningMode,
-            excludedDatesText: data.excludedDatesText || ''
-          };
-          const id = await FTS.Services.Reminders.create(payload);
-          created.push(id);
-        }
-      }
+      const created = await createReminderRecords(data, { source:'reminders-button' });
       msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Aucun MP réel envoyé automatiquement.`, true);
       resetForm(false);
     }catch(e){
       console.warn('[FTS Rappels Admin] create', e);
-      msg('Erreur pendant la création du rappel. Vérifie les rules fts_scheduled_reminders.', false);
+      msg(e && e.message ? e.message : 'Erreur pendant la création du rappel. Vérifie les rules fts_scheduled_reminders.', false);
     }finally{
       isSaving = false;
       if(btn){ btn.disabled = false; btn.textContent = old || 'Créer les rappels test'; }
