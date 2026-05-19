@@ -31,6 +31,8 @@ let allEvts   = [];
 let allDocs   = {};
 let showAll   = false;
 let userProfile = null;
+let accountSchedules = {};
+let accountReminderSaving = false;
 let currentUid = null;
 let pendingResourceOpen = null;
 let latestUnreadMessages = 0;
@@ -2048,6 +2050,7 @@ function openAccountModal() {
   // Pré-remplir le profil
   try { fillProfileForm(); } catch(e) { console.warn('[FTS] Mon compte formulaire non chargé :', e); }
   try { renderProfileEnfants(); } catch(e) { console.warn('[FTS] Mon compte enfants non chargés :', e); }
+  try { renderAccountReminderSettings(); } catch(e) { console.warn('[FTS] Mon compte rappels non chargés :', e); }
 }
 
 let profileNewChildCounter = 0;
@@ -2116,6 +2119,173 @@ function renderProfileEnfants() {
   }
 
   list.innerHTML = enfants.map((e, i) => buildProfileChildCard(e, i, { idx: String(i) })).join('');
+}
+
+
+function reminderNormKey(value){
+  if(window.FTS && typeof FTS.norm === 'function') return FTS.norm(value || '');
+  return String(value||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+function makeReminderCourseKey(ownerType, ownerId, category, subcategory){
+  return [ownerType || 'self', ownerId || 'self', category || '', subcategory || ''].map(reminderNormKey).join('|');
+}
+function accountUniqueList(v){
+  if(Array.isArray(v)) return [...new Set(v.map(x => String(x || '').trim()).filter(Boolean))];
+  if(v && typeof v === 'object') return accountUniqueList(Object.values(v));
+  return String(v || '').split(',').map(x => x.trim()).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
+}
+function accountCourseLabel(category, subcategory, fallback){
+  return [category, subcategory].filter(Boolean).join(' — ') || fallback || 'Cours';
+}
+function findAccountCategoryForSub(sub, preferredCats){
+  const s = reminderNormKey(sub);
+  const preferred = accountUniqueList(preferredCats || []);
+  const preferredKeys = preferred.map(reminderNormKey);
+  let fallback = '';
+  const structure = (typeof cats !== 'undefined' && Array.isArray(cats)) ? cats : [];
+  structure.forEach(cat => {
+    const name = cat && (cat.name || cat.category || '');
+    const subs = cat && (cat.subcats || cat.subs || cat.subcategories || []);
+    const arr = Array.isArray(subs) ? subs : Object.values(subs || {});
+    if(arr.some(x => reminderNormKey(typeof x === 'string' ? x : (x && (x.name || x.label))) === s)){
+      if(!preferredKeys.length || preferredKeys.includes(reminderNormKey(name))) fallback = fallback || name;
+    }
+  });
+  return fallback || preferred[0] || '';
+}
+function collectAccountCoursesForOwner(owner){
+  const cats = accountUniqueList(owner.disciplines || owner.group || owner.groups || owner.categories);
+  const subs = accountUniqueList(owner.subgroups || owner.subgroup || owner.subcategories || owner.subcategory);
+  const rows = [];
+  if(subs.length){
+    subs.forEach(sub => {
+      const cat = findAccountCategoryForSub(sub, cats);
+      rows.push({
+        ownerType: owner.ownerType || 'self', ownerId: owner.ownerId || 'self', ownerName: owner.ownerName || '',
+        childId: owner.childId || '', childName: owner.childName || '', category: cat, subcategory: sub,
+        courseLabel: accountCourseLabel(cat, sub)
+      });
+    });
+  }
+  cats.forEach(cat => {
+    if(rows.some(r => reminderNormKey(r.category) === reminderNormKey(cat))) return;
+    rows.push({ ownerType: owner.ownerType || 'self', ownerId: owner.ownerId || 'self', ownerName: owner.ownerName || '', childId: owner.childId || '', childName: owner.childName || '', category: cat, subcategory: '', courseLabel: cat });
+  });
+  return rows;
+}
+function accountCoursesFromProfile(){
+  const u = userProfile || {};
+  const rows = [];
+  const parentName = u.firstName || (u.name ? String(u.name).split(' ')[0] : '') || 'Moi';
+  rows.push(...collectAccountCoursesForOwner(Object.assign({}, u, { ownerType:'self', ownerId:'self', ownerName:parentName })));
+  (Array.isArray(u.enfants) ? u.enfants : []).forEach((child, idx) => {
+    const childId = child.id || ('enfant_' + (idx + 1));
+    const childName = child.prenom || child.firstName || child.name || ('Enfant ' + (idx + 1));
+    rows.push(...collectAccountCoursesForOwner(Object.assign({}, child, { ownerType:'child', ownerId:childId, childId, childName, ownerName:childName })));
+  });
+  return rows;
+}
+function accountCoursesFromSchedules(){
+  const rows = [];
+  Object.values(accountSchedules || {}).forEach(s => {
+    if(!s || s.active === false || s.uid !== currentUid) return;
+    const ownerType = s.courseOwnerType || (s.childName ? 'child' : 'self');
+    const ownerId = ownerType === 'child' ? (s.childId || s.childName || '') : 'self';
+    const category = s.targetCategory || s.category || '';
+    const subcategory = s.targetSubcategory || s.subcategory || s.lessonType || '';
+    rows.push({
+      ownerType, ownerId, ownerName:s.courseOwnerName || s.childName || (userProfile && userProfile.firstName) || 'Moi',
+      childId:s.childId || '', childName:s.childName || '', category, subcategory,
+      courseLabel:s.courseLabel || accountCourseLabel(category, subcategory, s.title || s.lessonType || 'Cours'),
+      scheduleId:s.id || '', scheduleReminder24h:s.reminder24h === true, scheduleReminder1h:s.reminder1h === true
+    });
+  });
+  return rows;
+}
+function buildAccountReminderRows(){
+  const map = new Map();
+  accountCoursesFromProfile().concat(accountCoursesFromSchedules()).forEach(row => {
+    const ownerId = row.ownerType === 'child' ? (row.childId || row.ownerId || row.ownerName) : 'self';
+    const key = makeReminderCourseKey(row.ownerType, ownerId, row.category || row.courseLabel, row.subcategory || '');
+    if(!map.has(key)) map.set(key, Object.assign({}, row, { key, ownerId }));
+    else map.set(key, Object.assign({}, map.get(key), row, { key, ownerId }));
+  });
+  return Array.from(map.values()).filter(r => r.courseLabel).sort((a,b)=>String(a.courseLabel).localeCompare(String(b.courseLabel),'fr'));
+}
+function prefForAccountRow(row){
+  const prefs = (userProfile && userProfile.reminderPrefs) || {};
+  return Object.assign({ reminder24h: !!row.scheduleReminder24h, reminder1h: !!row.scheduleReminder1h, paused:false }, prefs[row.key] || {});
+}
+async function loadAccountSchedules(){
+  if(!FTS.Services || !FTS.Services.Schedules || !currentUid) return {};
+  try{
+    const all = await FTS.Services.Schedules.all();
+    accountSchedules = all || {};
+  }catch(e){ console.warn('[FTS] Mon compte schedules', e); accountSchedules = {}; }
+  return accountSchedules;
+}
+async function renderAccountReminderSettings(){
+  const list = document.getElementById('account-reminders-list');
+  if(!list || !currentUid) return;
+  list.innerHTML = '<div class="profile-family-empty">Chargement des rappels…</div>';
+  await loadAccountSchedules();
+  const rows = buildAccountReminderRows();
+  if(!rows.length){
+    list.innerHTML = '<div class="profile-family-empty">Aucun cours trouvé pour le moment. Tu pourras activer les rappels quand tes cours seront ajoutés.</div>';
+    return;
+  }
+  list.innerHTML = rows.map(row => {
+    const pref = prefForAccountRow(row);
+    const owner = row.ownerType === 'child' ? (row.childName || row.ownerName || 'Enfant') : 'Moi';
+    const paused = !!pref.paused;
+    return `<article class="account-reminder-card ${paused ? 'is-paused' : ''}" data-reminder-pref-key="${FTS.esc(row.key)}">
+      <div class="account-reminder-main">
+        <div><strong>${FTS.esc(row.courseLabel)}</strong><small>${row.ownerType === 'child' ? 'Pour ' + FTS.esc(owner) : 'Pour moi'}</small></div>
+        <button type="button" class="account-btn account-btn-small" data-account-reminder-action="toggle-pause">${paused ? 'Réactiver' : 'Suspendre'}</button>
+      </div>
+      <div class="account-reminder-checks">
+        <label><input type="checkbox" data-account-reminder-action="toggle-24h" ${pref.reminder24h ? 'checked' : ''} ${paused ? 'disabled' : ''}> 24h avant</label>
+        <label><input type="checkbox" data-account-reminder-action="toggle-1h" ${pref.reminder1h ? 'checked' : ''} ${paused ? 'disabled' : ''}> 1h avant</label>
+      </div>
+      <div class="account-reminder-state">${paused ? '⏸️ Rappels suspendus pour ce cours' : '🔔 Rappels actifs selon tes choix'}</div>
+    </article>`;
+  }).join('');
+}
+async function updateAccountReminderPref(key, patch){
+  if(!key || !currentUid || accountReminderSaving) return;
+  const rows = buildAccountReminderRows();
+  const row = rows.find(r => r.key === key);
+  if(!row) return;
+  const current = prefForAccountRow(row);
+  const next = Object.assign({}, current, row, patch || {}, { updatedAt: Date.now() });
+  const btnMsg = document.getElementById('account-reminders-msg');
+  try{
+    accountReminderSaving = true;
+    if(btnMsg){ btnMsg.textContent = 'Enregistrement…'; btnMsg.className = 'account-msg'; }
+    const nextPrefs = Object.assign({}, userProfile.reminderPrefs || {}, { [key]: next });
+    await db.ref('fts_users/' + currentUid).update({ reminderPrefs: nextPrefs });
+    userProfile.reminderPrefs = nextPrefs;
+    if(btnMsg){ btnMsg.textContent = '✓ Préférences enregistrées.'; btnMsg.className = 'account-msg ok'; }
+    renderAccountReminderSettings();
+  }catch(e){
+    console.warn('[FTS] update reminder prefs', e);
+    if(btnMsg){ btnMsg.textContent = 'Erreur lors de la sauvegarde des rappels.'; btnMsg.className = 'account-msg err'; }
+  }finally{ accountReminderSaving = false; }
+}
+function handleAccountReminderClick(target){
+  const card = target && target.closest('[data-reminder-pref-key]');
+  if(!card) return false;
+  const key = card.dataset.reminderPrefKey || '';
+  const row = buildAccountReminderRows().find(r => r.key === key);
+  if(!row) return true;
+  const pref = prefForAccountRow(row);
+  const actionEl = target.closest('[data-account-reminder-action]');
+  if(!actionEl) return false;
+  const action = actionEl.dataset.accountReminderAction;
+  if(action === 'toggle-pause') updateAccountReminderPref(key, { paused: !pref.paused });
+  if(action === 'toggle-24h') updateAccountReminderPref(key, { reminder24h: !!actionEl.checked, paused:false });
+  if(action === 'toggle-1h') updateAccountReminderPref(key, { reminder1h: !!actionEl.checked, paused:false });
+  return true;
 }
 
 function addProfileChildCard() {
@@ -2857,6 +3027,11 @@ function bindMembresUiEvents() {
     if (removeProfileChild) {
       e.preventDefault();
       removeProfileChildCard(removeProfileChild);
+      return;
+    }
+
+    if (handleAccountReminderClick(e.target)) {
+      e.preventDefault();
       return;
     }
 

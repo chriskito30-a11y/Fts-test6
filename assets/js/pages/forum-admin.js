@@ -459,6 +459,20 @@ function buildApprovalOccurrences(startAt, intervalDays, count, excludedText){
   }
   return out;
 }
+
+async function approvalDefaultExcludedDates(){
+  const svc = window.FTS && FTS.Services && FTS.Services.CalendarExclusions;
+  if(!svc) return '';
+  try{
+    const cfg = await svc.ensureFresh({ maxAgeMs: 330 * 24 * 60 * 60 * 1000 });
+    return svc.effectiveList(cfg).join('\n');
+  }catch(e){
+    try{
+      const cfg = await svc.read();
+      return svc.effectiveList(cfg).join('\n');
+    }catch(_e){ return ''; }
+  }
+}
 function approvalOffsetsFromPref(pref){
   const offsets = [];
   if(pref.reminder24h) offsets.push(24*60);
@@ -602,9 +616,10 @@ function nextLocalDatetimeValue(){
   const pad = n => String(n).padStart(2,'0');
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
-function openApprovalReminderModalIfNeeded(uid, user){
+async function openApprovalReminderModalIfNeeded(uid, user){
   const prefs = reminderPrefRows(user);
-  if(!prefs.length) return Promise.resolve('skip');
+  if(!prefs.length) return 'skip';
+  const defaultExcludedDates = await approvalDefaultExcludedDates();
   return new Promise(resolve => {
     const overlay = ensureApprovalReminderModal();
     const list = document.getElementById('approval-reminder-list');
@@ -625,7 +640,7 @@ function openApprovalReminderModalIfNeeded(uid, user){
           <label><span>Nombre de séances</span><select data-field="count"><option value="31">31 séances</option><option value="30">30 séances</option><option value="10">10 séances</option><option value="5">5 séances</option><option value="1">1 séance</option></select></label>
           <label><span>Durée</span><select data-field="duration"><option value="30">30 min</option><option value="45">45 min</option><option value="60" selected>1h</option><option value="90">1h30</option></select></label>
         </div>
-        <label class="approval-full"><span>Dates à exclure, optionnel</span><textarea data-field="excludedDates" rows="2" placeholder="2026-10-21\n2026-10-28"></textarea></label>
+        <label class="approval-full"><span>Dates à exclure, optionnel</span><textarea data-field="excludedDates" rows="2" placeholder="2026-10-21\n2026-10-28">${FTS.esc(defaultExcludedDates)}</textarea></label>
         <label class="approval-full"><span>Note ajoutée aux rappels, optionnel</span><input data-field="note" placeholder="Ex : Pensez au carnet / partitions…"></label>
       </article>`;
     }).join('');

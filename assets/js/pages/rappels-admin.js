@@ -14,6 +14,9 @@
   let selectedReminderId = '';
   let filterStatus = 'all';
   let isSaving = false;
+  let calendarExclusions = null;
+  let calendarExclusionsMap = {};
+  let calendarExclusionsReady = false;
 
   function $(id){ return document.getElementById(id); }
   function esc(v){ return window.FTS && FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v); }
@@ -45,7 +48,7 @@
         $('auth-loading').style.display = 'none';
         $('admin-shell').style.display = 'block';
         bindEvents();
-        await Promise.all([loadUsers(), loadCategories()]);
+        await Promise.all([loadUsers(), loadCategories(), loadCalendarExclusions()]);
         setDefaultDates();
         renderUsers();
         renderCategories();
@@ -109,6 +112,79 @@
     }
   }
 
+
+  function countMap(obj){ return obj && typeof obj === 'object' ? Object.keys(obj).length : 0; }
+  function updateCalendarExclusionUi(){
+    const svc = FTS.Services && FTS.Services.CalendarExclusions;
+    const cfg = calendarExclusions || (svc && svc.normalizeConfig ? svc.normalizeConfig({}) : {});
+    if($('exclude-school-holidays')) $('exclude-school-holidays').checked = cfg.excludeSchoolHolidays !== false;
+    if($('exclude-public-holidays')) $('exclude-public-holidays').checked = cfg.excludePublicHolidays !== false;
+    const summary = $('calendar-exclusion-summary');
+    if(summary){
+      const school = countMap(cfg.schoolBreaksCache);
+      const hol = countMap(cfg.publicHolidaysCache);
+      const manual = countMap(cfg.manualDates);
+      const parts = [];
+      if(school) parts.push(school + ' jour(s) vacances');
+      if(hol) parts.push(hol + ' jour(s) fériés');
+      if(manual) parts.push(manual + ' date(s) manuelles globales');
+      summary.textContent = parts.length ? parts.join(' · ') : 'Aucune exclusion automatique chargée pour le moment.';
+    }
+    calendarExclusionsMap = svc && svc.effectiveMap ? svc.effectiveMap(cfg) : {};
+    calendarExclusionsReady = true;
+  }
+
+  async function loadCalendarExclusions(){
+    const svc = FTS.Services && FTS.Services.CalendarExclusions;
+    if(!svc){ calendarExclusionsReady = true; return; }
+    try{
+      calendarExclusions = await svc.ensureFresh({ maxAgeMs: 330 * 24 * 60 * 60 * 1000 });
+    }catch(e){
+      console.warn('[FTS Rappels Admin] exclusions calendrier', e);
+      try{ calendarExclusions = await svc.read(); }catch(_e){ calendarExclusions = null; }
+    }
+    updateCalendarExclusionUi();
+  }
+
+  async function refreshCalendarExclusions(){
+    const svc = FTS.Services && FTS.Services.CalendarExclusions;
+    if(!svc){ msg('Service exclusions non chargé.', false); return; }
+    const btn = $('btn-refresh-exclusions');
+    const old = btn ? btn.textContent : '';
+    try{
+      if(btn){ btn.disabled = true; btn.textContent = 'Actualisation…'; }
+      calendarExclusions = await svc.refresh();
+      updateCalendarExclusionUi();
+      updatePreview();
+      msg('Vacances et jours fériés actualisés.', true);
+    }catch(e){
+      console.warn('[FTS Rappels Admin] refresh exclusions', e);
+      msg('Impossible d’actualiser automatiquement. Le cache existant reste utilisé.', false);
+    }finally{
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Actualiser'; }
+    }
+  }
+
+  async function saveCalendarExclusionToggles(){
+    const svc = FTS.Services && FTS.Services.CalendarExclusions;
+    if(!svc) return;
+    try{
+      calendarExclusions = await svc.save({
+        excludeSchoolHolidays: !!$('exclude-school-holidays')?.checked,
+        excludePublicHolidays: !!$('exclude-public-holidays')?.checked
+      });
+      updateCalendarExclusionUi();
+      updatePreview();
+    }catch(e){
+      console.warn('[FTS Rappels Admin] save exclusion toggles', e);
+      msg('Impossible de sauvegarder les options d’exclusion.', false);
+    }
+  }
+
+  function globalExcludedDateSet(){
+    return new Set(Object.keys(calendarExclusionsMap || {}));
+  }
+
   function normalizeCategoryStructure(rows){
     return (Array.isArray(rows) ? rows : [])
       .filter(c => c && c.active !== false)
@@ -143,6 +219,9 @@
     $('btn-create-reminders')?.addEventListener('click', createReminders);
     $('btn-reset-form')?.addEventListener('click', resetForm);
     $('btn-fill-music-demo')?.addEventListener('click', fillMusicDemo);
+    $('btn-refresh-exclusions')?.addEventListener('click', refreshCalendarExclusions);
+    $('exclude-school-holidays')?.addEventListener('change', saveCalendarExclusionToggles);
+    $('exclude-public-holidays')?.addEventListener('change', saveCalendarExclusionToggles);
     document.addEventListener('click', handleDocumentClick);
   }
 
@@ -583,6 +662,7 @@
 
   function buildOccurrences(firstAt, mode, repeatUntil, manualText, excludedText){
     const excluded = parseExcludedDates(excludedText);
+    globalExcludedDateSet().forEach(d => excluded.add(d));
     const base = firstAt ? new Date(firstAt) : new Date();
     const fallbackHour = Number.isFinite(base.getHours()) ? base.getHours() : 17;
     const fallbackMinute = Number.isFinite(base.getMinutes()) ? base.getMinutes() : 30;
@@ -804,7 +884,9 @@
   }
 
   function excludedDatesForSchedule(data){
-    return Array.from(parseExcludedDates(data.excludedDatesText || ''));
+    const set = parseExcludedDates(data.excludedDatesText || '');
+    globalExcludedDateSet().forEach(d => set.add(d));
+    return Array.from(set).sort();
   }
 
   function buildSchedulePayload(data){
