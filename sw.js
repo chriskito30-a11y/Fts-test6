@@ -1,4 +1,4 @@
-const CACHE = 'fts-v75-reminders-user-exclusions';
+const CACHE = 'fts-v77-email-automation';
 const FILES = [
   './manifest.json',
   './index.html',
