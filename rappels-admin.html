@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
-<link href="assets/css/pages/rappels-admin.css?v=70" rel="stylesheet"/>
+<link href="assets/css/pages/rappels-admin.css?v=74" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -164,10 +164,10 @@
             <small>Format accepté : 2026-06-03 17:30 ou 03/06/2026 17:30.</small>
           </div>
           <div class="field">
-            <label for="excluded-dates">Dates à exclure</label>
+            <label for="excluded-dates">Dates manuelles à exclure</label>
             <textarea id="excluded-dates" placeholder="Une date par ligne : 2026-05-20
 Utile pour vacances, jours fériés, absence prof…"></textarea>
-            <small>Ajoute ici les exceptions ponctuelles. Les vacances scolaires et jours fériés automatiques sont gérés juste dessous.</small>
+            <small>Ajoute uniquement les exceptions ponctuelles. Les vacances scolaires et jours fériés sont appliqués automatiquement sans remplir ce champ.</small>
           </div>
 
           <div class="calendar-exclusion-panel" id="calendar-exclusion-panel">
@@ -280,9 +280,9 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/reminders.service.js?v=69"></script>
-<script src="assets/js/services/calendar-exclusions.service.js?v=73"></script>
+<script src="assets/js/services/calendar-exclusions.service.js?v=74"></script>
 <script src="assets/js/services/schedules.service.js?v=69"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=69"></script>
-<script src="assets/js/pages/rappels-admin.js?v=73"></script>
+<script src="assets/js/pages/rappels-admin.js?v=74"></script>
 </body>
 </html>

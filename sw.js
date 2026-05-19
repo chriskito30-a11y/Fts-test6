@@ -1,4 +1,4 @@
-const CACHE = 'fts-v73-reminders-user-exclusions';
+const CACHE = 'fts-v74-reminders-user-exclusions';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -93,7 +93,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v1' && k !== FTS_RUNTIME_CACHE && k !== 'fts-notification-dedupe-v1').map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v74' && k !== FTS_RUNTIME_CACHE && k !== 'fts-notification-dedupe-v74').map(k => caches.delete(k)))
     )
   );
   e.waitUntil((async function(){
@@ -107,7 +107,7 @@ self.addEventListener('activate', e => {
 
 
 // Stocke l'UID actif côté Service Worker pour bloquer les notifications MP destinées à un autre compte.
-const FTS_SW_DB = 'fts-sw-state-v1';
+const FTS_SW_DB = 'fts-sw-state-v74';
 const FTS_SW_STORE = 'state';
 
 function openSwStateDb(){
@@ -191,8 +191,8 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v52-runtime';
-const FTS_FILES_CACHE = 'fts-offline-files-v1';
+const FTS_RUNTIME_CACHE = 'fts-v74-runtime';
+const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
   return /firebaseio\.com|googleapis\.com\/identitytoolkit|securetoken\.googleapis\.com|gstatic\.com\/firebasejs/.test(url.hostname + url.pathname);
@@ -259,7 +259,7 @@ function normalizeNotificationUrl(rawUrl){
 }
 
 // ═══ NOTIFICATIONS PUSH ═══════════════════════════
-const NOTIF_DEDUPE_CACHE = 'fts-notification-dedupe-v1';
+const NOTIF_DEDUPE_CACHE = 'fts-notification-dedupe-v74';
 const NOTIF_DEDUPE_TTL = 10 * 60 * 1000; // 10 min : absorbe doublons d'abonnements / retries
 
 function notificationDedupeKey(data){
