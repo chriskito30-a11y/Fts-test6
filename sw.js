@@ -1,4 +1,4 @@
-const CACHE = 'fts-v64-make-ready-actions';
+const CACHE = 'fts-v65-native-admin-dispatch';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -53,6 +53,7 @@ const FILES = [
   './assets/js/services/users.service.js',
   './assets/js/services/reminders.service.js',
   './assets/js/services/schedules.service.js',
+  './assets/js/services/reminder-dispatcher.service.js',
   './assets/js/pages/admin.js',
   './assets/js/pages/auth.js',
   './assets/js/pages/calendrier-admin.js',
