@@ -122,6 +122,12 @@
       renderSelectedReminder();
       return;
     }
+    const copy = event.target.closest('[data-copy-reminder]');
+    if(copy){
+      const id = copy.getAttribute('data-id') || selectedReminderId;
+      copyReminderText(id);
+      return;
+    }
     const action = event.target.closest('[data-reminder-action]');
     if(action){
       const id = action.getAttribute('data-id') || selectedReminderId;
@@ -243,22 +249,93 @@
     return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
   }
 
+  function reminderTarget(r){
+    if(!r) return 'Ciblage';
+    if(r.uid) return r.recipientName || r.recipientEmail || 'Membre';
+    return [r.targetCategory, r.targetSubcategory].filter(Boolean).join(' · ') || 'Groupe / catégorie';
+  }
+
+  function kindLabel(kind){
+    if(kind === 'music_individual') return 'Cours individuel musique';
+    if(kind === 'group') return 'Rappel de groupe';
+    if(kind === 'exceptional') return 'Rendez-vous exceptionnel';
+    return 'Rappel';
+  }
+
+  function offsetLabel(minutes){
+    const m = parseInt(minutes || 0, 10);
+    if(m === 60) return '1h avant';
+    if(m === 1440) return '24h avant';
+    if(m > 60) return Math.round(m / 60) + 'h avant';
+    return (m || '—') + ' min avant';
+  }
+
+  function buildPreviewReminder(data, offset){
+    return {
+      kind: data.kind,
+      uid: data.kind === 'music_individual' ? data.uid : '',
+      recipientName: data.uid && data.user ? displayName(data.user) : '',
+      recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
+      targetCategory: data.kind !== 'music_individual' ? data.category : '',
+      targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
+      title: data.title,
+      body: buildMessage(data, offset),
+      lessonType: data.lessonType,
+      teacher: data.teacher,
+      place: data.place,
+      durationMinutes: data.duration,
+      eventAt: data.eventAt,
+      sendAt: data.eventAt ? data.eventAt - offset * 60 * 1000 : 0,
+      reminderOffsetMinutes: offset,
+      status: data.standby ? 'standby' : 'pending',
+      botLabel: 'Rappel automatique Fais Ton Show',
+      channel: 'dm_auto',
+      messageType: 'auto-reminder',
+      bot: true,
+      makeReady: !data.standby
+    };
+  }
+
+  function renderBotConversation(r, options){
+    options = options || {};
+    const status = r.status || 'standby';
+    const target = reminderTarget(r);
+    const body = esc(r.body || '').replace(/\n/g, '<br>');
+    const statusText = options.statusText || statusLabel(status);
+    const modeText = r.makeReady ? 'Make pourra traiter ce rappel' : 'Stand-by : aucun envoi automatique';
+    return `<div class="bot-conversation ${options.compact ? 'compact' : ''}">
+      <div class="bot-thread-head">
+        <span>Simulation conversation</span>
+        <strong>${esc(target)}</strong>
+      </div>
+      <div class="bot-system-separator">Aperçu uniquement — aucun MP réel envoyé depuis cette page</div>
+      <div class="bot-chat-row">
+        <div class="bot-mini-avatar" aria-hidden="true">🤖</div>
+        <div class="bot-chat-bubble">
+          <div class="bot-auto-head">
+            <span class="bot-badge">🤖 ${esc(r.botLabel || 'Rappel automatique Fais Ton Show')}</span>
+            <span class="badge ${esc(status)}">${esc(statusText)}</span>
+          </div>
+          <div class="bot-title">${esc(r.title || kindLabel(r.kind))}</div>
+          <div class="bot-text">${body}</div>
+          <div class="bot-chipline">
+            <span>📅 ${esc(formatFullDateTime(r.eventAt))}</span>
+            <span>⏰ ${esc(offsetLabel(r.reminderOffsetMinutes))}</span>
+            ${r.teacher ? `<span>👤 ${esc(r.teacher)}</span>` : ''}
+            ${r.place ? `<span>📍 ${esc(r.place)}</span>` : ''}
+          </div>
+          <div class="bot-auto-footer">Message automatique identifiable · ${esc(modeText)}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   function updatePreview(){
     const data = getFormData();
     const offset = data.offsets.includes(60) ? 60 : (data.offsets[0] || 24*60);
-    const previewTitle = data.uid && data.user ? displayName(data.user) : (data.kind === 'music_individual' ? 'Membre sélectionné' : [data.category || 'Groupe', data.subcategory].filter(Boolean).join(' · ') || 'Ciblage groupe');
-    const body = buildMessage(data, offset);
-    const status = data.standby ? 'Stand-by test' : 'Prêt à envoyer plus tard';
     const el = $('bot-preview');
     if(!el) return;
-    el.innerHTML = `<div class="bot-bubble">
-      <div class="bot-avatar">🤖</div>
-      <div class="bot-msg">
-        <div class="bot-badge">🤖 Rappel automatique · ${esc(status)}</div>
-        <div class="bot-title">${esc(previewTitle)}</div>
-        <div class="bot-text">${esc(body).replace(/\n/g,'<br>')}</div>
-      </div>
-    </div>`;
+    el.innerHTML = renderBotConversation(buildPreviewReminder(data, offset), { compact:true, statusText: data.standby ? 'Stand-by test' : 'Prêt Make' });
   }
 
   async function createReminders(){
@@ -363,25 +440,21 @@
     if(!wrap) return;
     const r = selectedReminderId ? reminders[selectedReminderId] : null;
     if(!r){
-      wrap.innerHTML = '<div class="empty">Sélectionne un rappel pour voir le détail et les actions.</div>';
+      wrap.innerHTML = '<div class="empty">Sélectionne un rappel pour voir le détail, le rendu bot et les actions.</div>';
       return;
     }
-    const status = r.status || 'standby';
-    const target = r.uid ? (r.recipientName || r.recipientEmail || 'Membre') : [r.targetCategory, r.targetSubcategory].filter(Boolean).join(' · ');
-    wrap.innerHTML = `<div class="preview-card">
-      <div class="bot-bubble">
-        <div class="bot-avatar">🤖</div>
-        <div class="bot-msg">
-          <div class="bot-badge">🤖 Rappel automatique · ${esc(statusLabel(status))}</div>
-          <div class="bot-title">${esc(target || 'Ciblage')}</div>
-          <div class="bot-text">${esc(r.body || '').replace(/\n/g,'<br>')}</div>
-        </div>
-      </div>
-      <div class="helper-box">
-        <strong>Détail technique</strong>
-        <p>eventAt : ${esc(formatFullDateTime(r.eventAt))}<br>sendAt : ${esc(formatFullDateTime(r.sendAt))}<br>type : ${esc(r.kind || '')} · canal futur : ${esc(r.channel || 'dm_auto')}</p>
+    wrap.innerHTML = `<div class="preview-card selected-bot-card">
+      ${renderBotConversation(r)}
+      <div class="tech-grid">
+        <div><span>eventAt</span><strong>${esc(formatFullDateTime(r.eventAt))}</strong></div>
+        <div><span>sendAt</span><strong>${esc(formatFullDateTime(r.sendAt))}</strong></div>
+        <div><span>type</span><strong>${esc(kindLabel(r.kind))}</strong></div>
+        <div><span>canal futur</span><strong>${esc(r.channel || 'dm_auto')}</strong></div>
+        <div><span>messageType</span><strong>${esc(r.messageType || 'auto-reminder')}</strong></div>
+        <div><span>makeReady</span><strong>${r.makeReady ? 'true' : 'false'}</strong></div>
       </div>
       <div class="row-actions">
+        <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
         <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en stand-by</button>
         <button class="btn-outline btn-sm" data-reminder-action="pending" data-id="${esc(selectedReminderId)}">Activer test pending</button>
         <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
@@ -395,6 +468,17 @@
     if(status === 'sent') return 'Envoyé';
     if(status === 'cancelled') return 'Annulé';
     return 'Stand-by';
+  }
+
+  async function copyReminderText(id){
+    const r = id ? reminders[id] : null;
+    if(!r || !r.body){ msg('Aucun texte à copier.', false); return; }
+    try{
+      await navigator.clipboard.writeText(r.body);
+      msg('Texte du rappel copié.', true);
+    }catch(e){
+      msg('Copie impossible sur ce navigateur.', false);
+    }
   }
 
   async function setReminderStatus(id, status){
