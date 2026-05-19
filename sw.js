@@ -1,4 +1,4 @@
-const CACHE = 'fts-v70-reminder-prefs';
+const CACHE = 'fts-v71-reminder-prefs';
 const FILES = [
   './manifest.json',
   './index.html',
