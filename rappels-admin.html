@@ -167,7 +167,27 @@
             <label for="excluded-dates">Dates à exclure</label>
             <textarea id="excluded-dates" placeholder="Une date par ligne : 2026-05-20
 Utile pour vacances, jours fériés, absence prof…"></textarea>
-            <small>Première version safe : on exclut les dates indiquées manuellement. Le calendrier vacances automatisé viendra ensuite.</small>
+            <small>Ajoute ici les exceptions ponctuelles. Les vacances scolaires et jours fériés automatiques sont gérés juste dessous.</small>
+          </div>
+
+          <div class="calendar-exclusion-panel" id="calendar-exclusion-panel">
+            <div class="calendar-exclusion-head">
+              <div>
+                <strong>Exclusions automatiques</strong>
+                <small id="calendar-exclusion-summary">Chargement des vacances et jours fériés…</small>
+              </div>
+              <button type="button" class="btn-outline btn-sm" id="btn-refresh-exclusions">Actualiser</button>
+            </div>
+            <div class="calendar-exclusion-options">
+              <label class="check-row calendar-check">
+                <input type="checkbox" id="exclude-school-holidays" checked>
+                <span><strong>Vacances scolaires Montpellier</strong><span>Exclues automatiquement si disponibles en cache.</span></span>
+              </label>
+              <label class="check-row calendar-check">
+                <input type="checkbox" id="exclude-public-holidays" checked>
+                <span><strong>Jours fériés France</strong><span>Exclus automatiquement si disponibles en cache.</span></span>
+              </label>
+            </div>
           </div>
           <div class="planning-summary" id="planning-summary">—</div>
         </div>
@@ -260,8 +280,9 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/reminders.service.js?v=69"></script>
+<script src="assets/js/services/calendar-exclusions.service.js?v=73"></script>
 <script src="assets/js/services/schedules.service.js?v=69"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=69"></script>
-<script src="assets/js/pages/rappels-admin.js?v=70"></script>
+<script src="assets/js/pages/rappels-admin.js?v=73"></script>
 </body>
 </html>

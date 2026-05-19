@@ -1,4 +1,4 @@
-const CACHE = 'fts-v71-reminder-prefs';
+const CACHE = 'fts-v73-reminders-user-exclusions';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -54,6 +54,7 @@ const FILES = [
   './assets/js/services/reminders.service.js',
   './assets/js/services/schedules.service.js',
   './assets/js/services/reminder-dispatcher.service.js',
+  './assets/js/services/calendar-exclusions.service.js',
   './assets/js/pages/admin.js',
   './assets/js/pages/auth.js',
   './assets/js/pages/calendrier-admin.js',
