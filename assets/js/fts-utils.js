@@ -318,6 +318,97 @@ FTS.ensureResourceCategory = async function(db, resource) {
   await ref.update(updates);
 };
 
+
+
+/* FTS_DM_UNREAD_TOTAL_HELPER
+   Écoute centralisée et légère du total MP non lus.
+   - une seule écoute userConvs par page
+   - une écoute live par conversation active
+   - nettoyage automatique des anciennes conversations
+   - évite les rafraîchissements Promise/once répétitifs à chaque changement d'index
+*/
+(function(){
+  'use strict';
+  window.FTS = window.FTS || {};
+  if (window.FTS.listenDmUnreadTotal) return;
+
+  window.FTS.listenDmUnreadTotal = function(db, uid, onTotal, options){
+    options = options || {};
+    if (!db || !uid || typeof onTotal !== 'function') return function(){};
+
+    var userConvsRef = db.ref('fts_dm/userConvs/' + uid);
+    var convListeners = {};
+    var totals = {};
+    var stopped = false;
+    var lastTotal = null;
+
+    function emit(extra){
+      if (stopped) return;
+      var total = Object.keys(totals).reduce(function(sum, id){
+        return sum + (Number(totals[id] || 0) || 0);
+      }, 0);
+      if (total === lastTotal && !extra) return;
+      lastTotal = total;
+      try { onTotal(total, extra || {}); } catch(e) { console.warn('[FTS] listenDmUnreadTotal callback:', e); }
+    }
+
+    function detachConv(id){
+      var entry = convListeners[id];
+      if (entry && entry.ref && entry.cb) {
+        try { entry.ref.off('value', entry.cb); } catch(e) {}
+      }
+      delete convListeners[id];
+      delete totals[id];
+    }
+
+    var userCb = function(snap){
+      if (stopped) return;
+      var convIds = snap && snap.val() ? Object.keys(snap.val()) : [];
+      var active = convIds.reduce(function(acc, id){ acc[id] = true; return acc; }, {});
+
+      Object.keys(convListeners).forEach(function(id){
+        if (!active[id]) detachConv(id);
+      });
+
+      if (!convIds.length) {
+        totals = {};
+        emit({ empty:true });
+        return;
+      }
+
+      convIds.forEach(function(id){
+        if (convListeners[id]) return;
+        var ref = db.ref('fts_dm/conversations/' + id + '/unread/' + uid);
+        var cb = function(s){
+          totals[id] = Number((s && s.val()) || 0) || 0;
+          emit({ convId:id });
+        };
+        convListeners[id] = { ref:ref, cb:cb };
+        ref.on('value', cb);
+      });
+      emit({ indexed:true });
+    };
+
+    userConvsRef.on('value', userCb);
+
+    var cleanup = function(){
+      if (stopped) return;
+      stopped = true;
+      try { userConvsRef.off('value', userCb); } catch(e) {}
+      Object.keys(convListeners).forEach(detachConv);
+      convListeners = {};
+      totals = {};
+    };
+
+    if (options.autoCleanup !== false) {
+      window.addEventListener('pagehide', cleanup, { once:true });
+    }
+
+    return cleanup;
+  };
+})();
+/* END_FTS_DM_UNREAD_TOTAL_HELPER */
+
 /* FTS_DATA_ACTION_DELEGATION */
 (function(){
   'use strict';
