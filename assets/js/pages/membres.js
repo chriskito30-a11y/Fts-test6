@@ -193,6 +193,7 @@ function canSeeDocInCategory(doc, cat) {
 
       // Guide installation PWA : affiché uniquement sur navigateur mobile, jamais en mode app installée.
       initPwaInstallCoach();
+      initFirstStepsOnboarding(user.uid, userProfile);
 
       // Nom d'affichage
       document.getElementById('user-display-name').textContent =
@@ -1672,6 +1673,7 @@ async function toggleNotifications(){
       body:JSON.stringify({uid: currentUid, subscription: sub.toJSON(), group: groups.join(', '), subgroup: subgroups.join(', '), groups, subgroups, source:'membres'})
     });
     updateNotifBtn(true);
+    try { markFirstStepDone('notifs'); } catch(e) {}
   }catch(e){ alert('Erreur notifications : ' + (e && e.message ? e.message : e)); }
 }
 function listenResourceNotificationFallback(uid){
@@ -1988,6 +1990,7 @@ async function saveProfileInfo() {
 
   if (saved) {
     setAccountMsg('profile-msg', '✓ Profil enregistré.', 'ok');
+    try { firstStepsProfile = Object.assign({}, firstStepsProfile || {}, userProfile || {}); markFirstStepDone('profile'); } catch(e) {}
     try { fillAccountIdentity(); } catch(e) { console.warn('[FTS] Rafraîchissement identité impossible :', e); }
     try { renderProfileEnfants(); } catch(e) { console.warn('[FTS] Rafraîchissement enfants impossible :', e); }
     try {
@@ -2024,6 +2027,10 @@ function closeGuideModal() {
 
 function handleGuideAction(action) {
   if (!action) return;
+  if (action === 'messages' || action === 'forum') {
+    try { markFirstStepDone('messages'); } catch(e) {}
+    return;
+  }
   if (action === 'docs') {
     closeGuideModal();
     if (window.FTSNav && typeof window.FTSNav.openDocumentsModal === 'function') {
@@ -2170,6 +2177,201 @@ if (accountModal) {
 }
 
 
+
+
+/* ── GUIDE PREMIERS PAS APRÈS INSTALLATION PWA ──────────────── */
+const FIRST_STEPS = ['profile', 'notifs', 'docs', 'messages'];
+let firstStepsState = {};
+let firstStepsUid = null;
+let firstStepsProfile = null;
+let firstStepsSaveTimer = null;
+
+function firstStepsStorageKey(uid) {
+  return 'fts-first-steps-v1-' + String(uid || 'anonymous');
+}
+
+function readFirstStepsLocal(uid) {
+  try {
+    const raw = localStorage.getItem(firstStepsStorageKey(uid));
+    const parsed = raw ? JSON.parse(raw) : {};
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch(e) { return {}; }
+}
+
+function writeFirstStepsLocal(uid, state) {
+  try { localStorage.setItem(firstStepsStorageKey(uid), JSON.stringify(state || {})); } catch(e) {}
+}
+
+function hasUsableProfileInfo(profile) {
+  if (!profile) return false;
+  const first = String(profile.firstName || profile.prenom || profile.name || '').trim();
+  const last  = String(profile.lastName || profile.nom || '').trim();
+  const tel   = String(profile.tel || profile.phone || profile.telephone || '').trim();
+  return Boolean(first && (last || tel));
+}
+
+function notificationsReadyForFirstSteps() {
+  try {
+    return window.Notification && Notification.permission === 'granted';
+  } catch(e) { return false; }
+}
+
+function isFirstStepsCompleted(profile) {
+  return Boolean(profile && (profile.onboardingCompleted === true || profile.firstStepsCompleted === true));
+}
+
+function shouldShowFirstSteps(profile) {
+  return isPwaStandaloneMode() && !isFirstStepsCompleted(profile) && !(firstStepsState && firstStepsState.completed === true);
+}
+
+function mergeFirstStepsAutoState(profile) {
+  const state = Object.assign({}, firstStepsState || {});
+  if (hasUsableProfileInfo(profile)) state.profile = true;
+  if (notificationsReadyForFirstSteps()) state.notifs = true;
+  return state;
+}
+
+function countFirstStepsDone(state) {
+  return FIRST_STEPS.filter(step => state && state[step] === true).length;
+}
+
+function renderFirstSteps() {
+  const panel = document.getElementById('first-steps-panel');
+  if (!panel) return;
+
+  if (!shouldShowFirstSteps(firstStepsProfile)) {
+    panel.classList.add('u-initial-hidden');
+    panel.hidden = true;
+    return;
+  }
+
+  firstStepsState = mergeFirstStepsAutoState(firstStepsProfile);
+  const doneCount = countFirstStepsDone(firstStepsState);
+  const complete = doneCount >= FIRST_STEPS.length;
+
+  panel.hidden = false;
+  panel.classList.toggle('u-initial-hidden', complete);
+  panel.setAttribute('aria-hidden', complete ? 'true' : 'false');
+
+  const progress = document.getElementById('first-steps-progress');
+  if (progress) progress.textContent = doneCount + '/' + FIRST_STEPS.length;
+
+  FIRST_STEPS.forEach(function(step) {
+    const item = panel.querySelector('[data-first-step="' + step + '"]');
+    if (!item) return;
+    const isDone = firstStepsState[step] === true;
+    item.classList.toggle('is-done', isDone);
+    item.setAttribute('aria-pressed', isDone ? 'true' : 'false');
+    const check = item.querySelector('.first-step-check');
+    if (check) check.textContent = isDone ? '✓' : '○';
+    const action = item.querySelector('.first-step-action');
+    if (action) action.textContent = isDone ? 'Fait' : (step === 'notifs' ? 'Activer' : step === 'docs' ? 'Voir' : step === 'messages' ? 'Découvrir' : 'Ouvrir');
+  });
+
+  const done = document.getElementById('first-steps-done');
+  if (done) done.classList.toggle('u-initial-hidden', !complete);
+
+  writeFirstStepsLocal(firstStepsUid, firstStepsState);
+  if (complete) completeFirstStepsOnboarding();
+}
+
+function saveFirstStepsProgressSoon() {
+  if (!firstStepsUid) return;
+  if (firstStepsSaveTimer) clearTimeout(firstStepsSaveTimer);
+  firstStepsSaveTimer = setTimeout(async function() {
+    firstStepsSaveTimer = null;
+    try {
+      await db.ref('fts_users/' + firstStepsUid + '/onboardingProgress').update(Object.assign({}, firstStepsState, { updatedAt: Date.now() }));
+    } catch(e) {
+      // Non bloquant : la progression locale suffit si les règles refusent une sous-écriture.
+      console.warn('[FTS] Progression premiers pas non synchronisée :', e);
+    }
+  }, 450);
+}
+
+async function completeFirstStepsOnboarding() {
+  if (!firstStepsUid || (firstStepsProfile && isFirstStepsCompleted(firstStepsProfile))) return;
+  const panel = document.getElementById('first-steps-panel');
+  try {
+    const updates = {
+      onboardingCompleted: true,
+      onboardingCompletedAt: Date.now(),
+      onboardingProgress: Object.assign({}, firstStepsState, { completedAt: Date.now() })
+    };
+    await db.ref('fts_users/' + firstStepsUid).update(updates);
+    firstStepsProfile = Object.assign({}, firstStepsProfile || {}, updates);
+    userProfile = Object.assign({}, userProfile || {}, updates);
+  } catch(e) {
+    // Non bloquant : localStorage évite que le guide revienne en boucle sur cet appareil.
+    console.warn('[FTS] Fin premiers pas non synchronisée :', e);
+  }
+  firstStepsProfile = Object.assign({}, firstStepsProfile || {}, { onboardingCompleted: true, onboardingCompletedAt: Date.now() });
+  userProfile = Object.assign({}, userProfile || {}, { onboardingCompleted: true, onboardingCompletedAt: Date.now() });
+  try {
+    const local = Object.assign({}, firstStepsState, { completed: true, completedAt: Date.now() });
+    writeFirstStepsLocal(firstStepsUid, local);
+  } catch(e) {}
+  if (panel) {
+    panel.classList.add('u-initial-hidden');
+    panel.hidden = true;
+    panel.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function markFirstStepDone(step) {
+  if (!FIRST_STEPS.includes(step)) return;
+  firstStepsState[step] = true;
+  writeFirstStepsLocal(firstStepsUid, firstStepsState);
+  saveFirstStepsProgressSoon();
+  renderFirstSteps();
+}
+
+function handleFirstStepAction(step) {
+  if (!step) return;
+  if (step === 'notifs' && firstStepsState && firstStepsState.notifs === true) {
+    renderFirstSteps();
+    return;
+  }
+  if (step === 'profile') {
+    markFirstStepDone('profile');
+    openAccountModal();
+    return;
+  }
+  if (step === 'notifs') {
+    toggleNotifications();
+    return;
+  }
+  if (step === 'docs') {
+    markFirstStepDone('docs');
+    if (window.FTSNav && typeof window.FTSNav.openDocumentsModal === 'function') {
+      window.FTSNav.openDocumentsModal();
+    } else {
+      const firstCat = document.querySelector('.profile-pill[data-cat-index]');
+      if (firstCat) firstCat.click();
+    }
+    return;
+  }
+  if (step === 'messages') {
+    markFirstStepDone('messages');
+    openGuideModal();
+  }
+}
+
+function initFirstStepsOnboarding(uid, profile) {
+  firstStepsUid = uid;
+  firstStepsProfile = profile || {};
+  const remoteProgress = (profile && profile.onboardingProgress && typeof profile.onboardingProgress === 'object') ? profile.onboardingProgress : {};
+  firstStepsState = Object.assign({}, readFirstStepsLocal(uid), remoteProgress);
+  if (isFirstStepsCompleted(profile)) {
+    firstStepsState.completed = true;
+    writeFirstStepsLocal(uid, firstStepsState);
+  }
+  renderFirstSteps();
+}
+
+window.addEventListener('appinstalled', function() {
+  setTimeout(function(){ renderFirstSteps(); }, 700);
+});
 
 /* ── GUIDE INSTALLATION PWA MOBILE ───────────────────────────── */
 let deferredInstallPrompt = null;
@@ -2400,6 +2602,18 @@ function bindMembresUiEvents() {
   bindClick('pwa-install-main', triggerAndroidInstallPrompt);
 
   document.addEventListener('click', function(e) {
+
+    const firstStepBtn = e.target.closest('[data-first-step]');
+    if (firstStepBtn) {
+      e.preventDefault();
+      handleFirstStepAction(firstStepBtn.dataset.firstStep);
+      return;
+    }
+
+    const documentsBtn = e.target.closest('[data-action="open-documents-modal"]');
+    if (documentsBtn) {
+      try { markFirstStepDone('docs'); } catch(err) {}
+    }
 
     const removeProfileChild = e.target.closest('[data-action="remove-profile-child"]');
     if (removeProfileChild) {
