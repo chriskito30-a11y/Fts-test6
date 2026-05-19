@@ -575,21 +575,64 @@
     return '';
   }
 
+  function buildReminderPayload(data, eventAt, offset, sendAt, seriesId, options){
+    options = options || {};
+    const occurrenceData = Object.assign({}, data, { eventAt });
+    return {
+      kind: data.kind,
+      uid: data.kind === 'music_individual' ? data.uid : '',
+      recipientName: data.uid && data.user ? displayName(data.user) : '',
+      recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
+      targetCategory: data.kind !== 'music_individual' ? data.category : '',
+      targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
+      title: data.title,
+      body: buildMessage(occurrenceData, offset),
+      lessonType: data.lessonType,
+      teacher: data.teacher,
+      place: data.place,
+      durationMinutes: data.duration,
+      eventAt,
+      sendAt,
+      reminderOffsetMinutes: offset,
+      status: data.standby ? 'standby' : 'pending',
+      auto: true,
+      bot: true,
+      channel: 'dm_auto',
+      messageType: 'auto-reminder',
+      botLabel: 'Rappel automatique Fais Ton Show',
+      createdBy: currentUser ? currentUser.uid : '',
+      createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
+      makeReady: !data.standby,
+      seriesId,
+      scheduleId: options.scheduleId || '',
+      source: options.source || 'manual-reminder',
+      recurrenceMode: data.planningMode,
+      excludedDatesText: data.excludedDatesText || ''
+    };
+  }
+
   async function createReminderRecords(data, options){
     options = options || {};
     if(!FTS.Services || !FTS.Services.Reminders) throw new Error('Service rappels non chargé');
     const now = Date.now();
     const candidates = [];
-    data.occurrences.forEach(ts => data.offsets.forEach(offset => {
-      const sendAt = ts - offset * 60 * 1000;
-      if(sendAt <= now){
-        if(!options.skipPast) candidates.push({ eventAt:ts, offset, sendAt, past:true });
-        return;
-      }
-      candidates.push({ eventAt:ts, offset, sendAt, past:false });
-    }));
+    data.occurrences.forEach(ts => {
+      data.offsets.forEach(offset => {
+        const sendAt = ts - offset * 60 * 1000;
+        if(sendAt <= now){
+          if(options.skipPast) return;
+          candidates.push({ eventAt:ts, offset, sendAt, past:true });
+          return;
+        }
+        candidates.push({ eventAt:ts, offset, sendAt, past:false });
+      });
+    });
+
     const invalid = candidates.filter(x => x.past);
-    if(invalid.length && !options.skipPast) throw new Error('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou décoche 24h/1h.');
+    if(invalid.length && !options.skipPast){
+      throw new Error('Un ou plusieurs rappels seraient déjà dans le passé. Change la date ou décoche 24h/1h.');
+    }
+
     const usable = candidates.filter(x => !x.past);
     if(!usable.length){
       if(options.skipPast) return [];
@@ -600,43 +643,9 @@
     const created = [];
     const seriesId = db.ref('fts_scheduled_reminders').push().key || ('series_' + Date.now());
     for(const item of usable){
-      const eventAt = item.eventAt;
-      const offset = item.offset;
-      const sendAt = item.sendAt;
-      const occurrenceData = Object.assign({}, data, { eventAt });
-        const payload = {
-          kind: data.kind,
-          uid: data.kind === 'music_individual' ? data.uid : '',
-          recipientName: data.uid && data.user ? displayName(data.user) : '',
-          recipientEmail: data.uid && data.user ? (data.user.email || '') : '',
-          targetCategory: data.kind !== 'music_individual' ? data.category : '',
-          targetSubcategory: data.kind !== 'music_individual' ? data.subcategory : '',
-          title: data.title,
-          body: buildMessage(occurrenceData, offset),
-          lessonType: data.lessonType,
-          teacher: data.teacher,
-          place: data.place,
-          durationMinutes: data.duration,
-          eventAt,
-          sendAt,
-          reminderOffsetMinutes: offset,
-          status: data.standby ? 'standby' : 'pending',
-          auto: true,
-          bot: true,
-          channel:'dm_auto',
-          messageType:'auto-reminder',
-          botLabel: 'Rappel automatique Fais Ton Show',
-          createdBy: currentUser ? currentUser.uid : '',
-          createdByName: currentProfile ? displayName(currentProfile) : 'Admin',
-          makeReady: !data.standby,
-          seriesId,
-          scheduleId: options.scheduleId || '',
-          source: options.source || 'manual-reminder',
-          recurrenceMode: data.planningMode,
-          excludedDatesText: data.excludedDatesText || ''
-        };
-        const id = await FTS.Services.Reminders.create(payload);
-        created.push(id);
+      const payload = buildReminderPayload(data, item.eventAt, item.offset, item.sendAt, seriesId, options);
+      const id = await FTS.Services.Reminders.create(payload);
+      created.push(id);
     }
     return created;
   }
@@ -647,6 +656,7 @@
     const validation = validateReminderData(data, { requireOffsets:true });
     if(validation){ msg(validation, false); return; }
     const totalToCreate = data.occurrences.length * data.offsets.length;
+    if(totalToCreate > 80){ msg('Trop de rappels à créer d’un coup. Réduis la période ou les dates.', false); return; }
     if(totalToCreate > 12 && !confirm('Créer ' + totalToCreate + ' rappels test ?')) return;
 
     isSaving = true;
@@ -654,7 +664,7 @@
     const old = btn ? btn.textContent : '';
     if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
     try{
-      const created = await createReminderRecords(data, { source:'reminders-button' });
+      const created = await createReminderRecords(data, { source:'reminders-button', skipPast:false });
       msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Aucun MP réel envoyé automatiquement.`, true);
       resetForm(false);
     }catch(e){
