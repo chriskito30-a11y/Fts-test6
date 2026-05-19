@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
-<link href="assets/css/pages/rappels-admin.css?v=57" rel="stylesheet"/>
+<link href="assets/css/pages/rappels-admin.css?v=58" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -26,7 +26,7 @@
   <header class="fts-admin-pagehead" aria-label="En-tête administrateur">
     <div class="fts-admin-brand">
       <div class="fts-admin-logo">ADMIN <span>RAPPELS</span></div>
-      <div class="fts-admin-sub">Module test isolé — rendu bot + aucun MP réel envoyé</div>
+      <div class="fts-admin-sub">Module test isolé — planning, rappels et MP test réel</div>
     </div>
     <div class="fts-admin-actions">
       <a class="fts-admin-ghost" href="admin.html">Centre admin</a>
@@ -38,12 +38,13 @@
     <section class="reminder-hero">
       <div class="hero-kicker">Prototype opérationnel</div>
       <h1 class="hero-title">Rappels automatiques</h1>
-      <p class="hero-sub">Prépare des rappels de cours individuels ou de groupes en mode test. Les rappels sont stockés dans une branche Firebase dédiée et n’envoient aucun message réel tant que le module Make n’est pas branché.</p>
+      <p class="hero-sub">Prépare des créneaux uniques ou récurrents, génère les rappels 24h/1h, teste le rendu bot et envoie un MP test réel uniquement au clic admin.</p>
       <div class="safe-strip" aria-label="Garanties de sécurité">
         <span class="safe-pill">✅ fts_dm intact</span>
         <span class="safe-pill">✅ unread intact</span>
         <span class="safe-pill">✅ notifications intactes</span>
         <span class="safe-pill">✅ mode stand-by par défaut</span>
+        <span class="safe-pill">✅ répétitions test isolées</span>
       </div>
     </section>
 
@@ -95,7 +96,7 @@
 
         <div class="form-grid">
           <div class="field">
-            <label for="lesson-at">Date et heure du créneau</label>
+            <label for="lesson-at">Premier créneau / date de référence</label>
             <input id="lesson-at" type="datetime-local"/>
           </div>
           <div class="field">
@@ -108,6 +109,41 @@
               <option value="120">2 heures</option>
             </select>
           </div>
+        </div>
+
+        <div class="planning-box" aria-label="Planification des créneaux">
+          <div class="planning-head">
+            <strong>Planification</strong>
+            <span>Génère plusieurs séances sans toucher aux MP réels.</span>
+          </div>
+          <div class="form-grid">
+            <div class="field">
+              <label for="planning-mode">Rythme</label>
+              <select id="planning-mode">
+                <option value="single">Une seule date</option>
+                <option value="weekly">Toutes les semaines</option>
+                <option value="biweekly">Tous les 15 jours</option>
+                <option value="triweekly">Toutes les 3 semaines</option>
+                <option value="manual">Dates manuelles</option>
+              </select>
+            </div>
+            <div class="field" id="field-repeat-until">
+              <label for="repeat-until">Jusqu’au</label>
+              <input id="repeat-until" type="date"/>
+            </div>
+          </div>
+          <div class="field u-hidden" id="field-manual-dates">
+            <label for="manual-dates">Dates manuelles</label>
+            <textarea id="manual-dates" placeholder="Une date par ligne : 2026-06-03 17:30"></textarea>
+            <small>Format accepté : 2026-06-03 17:30 ou 03/06/2026 17:30.</small>
+          </div>
+          <div class="field">
+            <label for="excluded-dates">Dates à exclure</label>
+            <textarea id="excluded-dates" placeholder="Une date par ligne : 2026-05-20
+Utile pour vacances, jours fériés, absence prof…"></textarea>
+            <small>Première version safe : on exclut les dates indiquées manuellement. Le calendrier vacances automatisé viendra ensuite.</small>
+          </div>
+          <div class="planning-summary" id="planning-summary">—</div>
         </div>
 
         <div class="field">
@@ -147,7 +183,7 @@
         <div class="list-head">
           <div>
             <div class="mini-title">Rappels programmés</div>
-            <div class="hint">Liste issue de <code>fts_scheduled_reminders</code>. Aucun envoi réel depuis cette page.</div>
+            <div class="hint">Liste issue de <code>fts_scheduled_reminders</code>. Les MP réels ne partent que via le bouton test admin.</div>
           </div>
           <div class="list-count" id="reminder-count">—</div>
         </div>
@@ -166,7 +202,7 @@
 
         <div class="helper-box">
           <strong>Prochaine étape après validation</strong>
-          <p>Make pourra lire uniquement les rappels <b>pending</b> dont <b>sendAt</b> est passé, créer un MP automatique avec <b>messageType:auto-reminder</b>, puis passer le rappel en <b>sent</b>.</p>
+          <p>Le scénario Make pourra lire uniquement les rappels <b>pending</b> dont <b>sendAt</b> est passé, créer un MP automatique avec <b>messageType:auto-reminder</b>, puis passer le rappel en <b>sent</b>.</p>
         </div>
 
         <div id="selected-reminder" class="selected-reminder">
@@ -195,7 +231,7 @@
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
-<script src="assets/js/services/reminders.service.js?v=56"></script>
-<script src="assets/js/pages/rappels-admin.js?v=57"></script>
+<script src="assets/js/services/reminders.service.js?v=58"></script>
+<script src="assets/js/pages/rappels-admin.js?v=58"></script>
 </body>
 </html>
