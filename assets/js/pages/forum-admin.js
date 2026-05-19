@@ -14,6 +14,8 @@ let db, firebaseOk    = false;
 let allUsers          = {};
 let allGroups         = [];
 let currentMsgChannel = "general";
+let currentAdminUser = null;
+let currentAdminProfile = null;
 const adminBusyActions = {};
 
 
@@ -50,6 +52,8 @@ document.addEventListener("DOMContentLoaded", function() {
       }
 
       // ✅ Admin confirmé — afficher le dashboard
+      currentAdminUser = user;
+      currentAdminProfile = profile || {};
       document.getElementById("auth-loading").style.display = "none";
       document.getElementById("dashboard").style.display    = "block";
       await loadGroups();
@@ -146,6 +150,7 @@ function normalizeAdminUser(id, u) {
     specialBadge: u.specialBadge || null,
     stats: u.stats || {},
     ts: u.createdAt || u.ts || Date.now(),
+    reminderPrefs: u.reminderPrefs || {},
   };
 }
 
@@ -234,6 +239,7 @@ function renderPending() {
         <div class="user-group">
           ${FTS.esc(u.group || "Aucune discipline")}${u.subgroup ? " — " + FTS.esc(u.subgroup) : ""}
         </div>
+        ${adminReminderPrefsSummary(u) ? `<div class="user-reminder-summary">${adminReminderPrefsSummary(u)}</div>` : ''}
         ${u.hasEnfant && u.enfants.length ? u.enfants.map(e =>
           `<span class="enfant-tag">🎩 ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${childInfoHtml(e)}${e.disciplines && e.disciplines.length ? ' · ' + FTS.esc(e.disciplines.join(', ')) : ''}</span>`
         ).join('') : ''}
@@ -384,6 +390,287 @@ function renderCategorySummary() {
   }).join('');
 }
 
+
+/* ── VALIDATION + RAPPELS DEMANDÉS À L'INSCRIPTION ──────────────
+   Ajout léger : uniquement si fts_users/{uid}/reminderPrefs contient
+   des demandes 24h/1h. Crée les mêmes branches que rappels-admin :
+   fts_schedules + fts_scheduled_reminders. Ne touche pas à fts_dm.
+─────────────────────────────────────────────────────────────── */
+function reminderNormKey(value){
+  if(window.FTS && typeof FTS.norm === 'function') return FTS.norm(value || '');
+  return String(value||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+function reminderPrefRows(u){
+  const prefs = u && u.reminderPrefs && typeof u.reminderPrefs === 'object' ? u.reminderPrefs : {};
+  return Object.entries(prefs).map(([key, p]) => ({ key, ...(p || {}) }))
+    .filter(p => p && (p.reminder24h || p.reminder1h))
+    .sort((a,b)=>String(a.courseLabel||'').localeCompare(String(b.courseLabel||''),'fr'));
+}
+function adminReminderPrefsSummary(u){
+  const rows = reminderPrefRows(u);
+  if(!rows.length) return '';
+  const short = rows.slice(0,3).map(p => {
+    const bits = [];
+    if(p.reminder24h) bits.push('24h');
+    if(p.reminder1h) bits.push('1h');
+    return `🔔 ${FTS.esc(p.courseLabel || p.category || 'Cours')} <span>${FTS.esc(bits.join(' + '))}</span>`;
+  }).join(' ');
+  return short + (rows.length > 3 ? ` <em>+${rows.length-3}</em>` : '');
+}
+function firstNameOfUser(u){
+  return (u && (u.firstName || String(u.name||'').split(' ')[0] || u.email || '')) || '';
+}
+function formatApprovalDateTime(ts){
+  if(!ts) return 'date à définir';
+  const d = new Date(ts);
+  return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }) + ' à ' + d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+}
+function localDateTimeToTs(value){
+  if(!value) return 0;
+  const d = new Date(value);
+  const ts = d.getTime();
+  return Number.isFinite(ts) ? ts : 0;
+}
+function addDays(ts, days){ return ts + days * 24 * 60 * 60 * 1000; }
+function parseExcludedDateSet(text){
+  const set = new Set();
+  String(text || '').split(/\n|,|;/).map(x=>x.trim()).filter(Boolean).forEach(x=>{
+    const m = x.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if(m) set.add(x);
+  });
+  return set;
+}
+function dateKey(ts){
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function buildApprovalOccurrences(startAt, intervalDays, count, excludedText){
+  const out = [];
+  const excluded = parseExcludedDateSet(excludedText);
+  let cursor = startAt;
+  let guard = 0;
+  while(out.length < count && guard < 120){
+    if(!excluded.has(dateKey(cursor))) out.push(cursor);
+    cursor = addDays(cursor, intervalDays);
+    guard++;
+  }
+  return out;
+}
+function approvalOffsetsFromPref(pref){
+  const offsets = [];
+  if(pref.reminder24h) offsets.push(24*60);
+  if(pref.reminder1h) offsets.push(60);
+  return offsets;
+}
+function reminderTitleFromPref(pref){
+  const label = pref.courseLabel || [pref.category, pref.subcategory].filter(Boolean).join(' — ') || 'cours';
+  return 'Cours de ' + label;
+}
+function reminderBodyFromPref(user, pref, eventAt, offset, extra){
+  const before = offset === 60 ? 'commence dans 1h' : 'est prévu demain';
+  const parentFirst = firstNameOfUser(user) || 'Bonjour';
+  const course = pref.courseLabel || [pref.category, pref.subcategory].filter(Boolean).join(' — ') || 'cours';
+  const childName = pref.childName || (pref.ownerType === 'child' ? pref.ownerName : '');
+  const lines = [];
+  lines.push(`Bonjour ${parentFirst},`);
+  if(pref.ownerType === 'child' && childName){
+    lines.push(`le cours de ${course} de ${childName} ${before}.`);
+  }else{
+    lines.push(`ton cours de ${course} ${before}.`);
+  }
+  lines.push(`📅 ${formatApprovalDateTime(eventAt)}`);
+  if(extra) lines.push(extra);
+  return lines.join('\n');
+}
+async function createApprovalPlanningAndReminders(uid, user, pref, cfg){
+  const startAt = localDateTimeToTs(cfg.startAt);
+  if(!startAt) throw new Error('Date/heure invalide pour ' + (pref.courseLabel || 'un cours'));
+  const count = Math.max(1, Math.min(60, parseInt(cfg.count || '1', 10) || 1));
+  const intervalDays = parseInt(cfg.intervalDays || '7', 10) || 7;
+  const duration = Math.max(5, parseInt(cfg.duration || '60', 10) || 60);
+  const offsets = approvalOffsetsFromPref(pref);
+  if(!offsets.length) return { scheduleId:null, reminders:0 };
+  const occurrences = buildApprovalOccurrences(startAt, intervalDays, count, cfg.excludedDates || '');
+  const now = Date.now();
+  const scheduleRef = db.ref('fts_schedules').push();
+  const scheduleId = scheduleRef.key;
+  const schedulePayload = {
+    id: scheduleId,
+    active: true,
+    kind: 'music_individual',
+    uid,
+    recipientName: user.name || [user.firstName, user.lastName].filter(Boolean).join(' ') || '',
+    recipientEmail: user.email || '',
+    title: reminderTitleFromPref(pref),
+    courseLabel: pref.courseLabel || '',
+    courseOwnerType: pref.ownerType || '',
+    courseOwnerName: pref.ownerName || '',
+    childId: pref.childId || pref.ownerId || '',
+    childName: pref.childName || (pref.ownerType === 'child' ? pref.ownerName : ''),
+    targetCategory: '',
+    targetSubcategory: '',
+    lessonType: pref.subcategory || pref.category || pref.courseLabel || '',
+    durationMinutes: duration,
+    recurrenceMode: intervalDays === 14 ? 'biweekly' : intervalDays === 21 ? 'triweekly' : 'weekly',
+    startAt,
+    occurrenceCount: count,
+    intervalDays,
+    generatedOccurrences: occurrences,
+    excludedDates: Array.from(parseExcludedDateSet(cfg.excludedDates || '')),
+    remindersEnabled: true,
+    reminder24h: !!pref.reminder24h,
+    reminder1h: !!pref.reminder1h,
+    reminderPrefsApplied: { reminder24h: !!pref.reminder24h, reminder1h: !!pref.reminder1h },
+    source: 'forum-admin-approval',
+    createdAt: now,
+    updatedAt: now,
+    createdBy: currentAdminUser ? currentAdminUser.uid : '',
+    createdByName: currentAdminProfile ? (currentAdminProfile.name || currentAdminProfile.firstName || 'Admin') : 'Admin'
+  };
+  await scheduleRef.set(schedulePayload);
+  const seriesId = db.ref('fts_scheduled_reminders').push().key || ('series_' + now);
+  let created = 0;
+  for(const eventAt of occurrences){
+    for(const offset of offsets){
+      const sendAt = eventAt - offset * 60 * 1000;
+      if(sendAt <= now) continue;
+      const payload = {
+        kind: 'music_individual',
+        uid,
+        recipientName: schedulePayload.recipientName,
+        recipientEmail: schedulePayload.recipientEmail,
+        title: schedulePayload.title,
+        courseLabel: schedulePayload.courseLabel,
+        courseOwnerType: schedulePayload.courseOwnerType,
+        courseOwnerName: schedulePayload.courseOwnerName,
+        childId: schedulePayload.childId,
+        childName: schedulePayload.childName,
+        body: reminderBodyFromPref(user, pref, eventAt, offset, cfg.note || ''),
+        lessonType: schedulePayload.lessonType,
+        durationMinutes: duration,
+        eventAt,
+        sendAt,
+        reminderOffsetMinutes: offset,
+        status: 'pending',
+        auto: true,
+        bot: true,
+        channel: 'dm_auto',
+        messageType: 'auto-reminder',
+        botLabel: 'Rappel automatique Fais Ton Show',
+        createdAt: now,
+        updatedAt: now,
+        createdBy: schedulePayload.createdBy,
+        createdByName: schedulePayload.createdByName,
+        dispatchMode: 'native-admin',
+        seriesId,
+        scheduleId,
+        source: 'forum-admin-approval',
+        recurrenceMode: schedulePayload.recurrenceMode,
+        excludedDatesText: cfg.excludedDates || ''
+      };
+      await db.ref('fts_scheduled_reminders').push(payload);
+      created++;
+    }
+  }
+  return { scheduleId, reminders:created };
+}
+function ensureApprovalReminderModal(){
+  let overlay = document.getElementById('approval-reminder-modal');
+  if(overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.id = 'approval-reminder-modal';
+  overlay.className = 'modal-overlay hidden approval-reminder-overlay';
+  overlay.innerHTML = `<div class="modal approval-reminder-modal">
+    <h3>Préparer les rappels demandés</h3>
+    <p class="approval-reminder-intro">Ce membre a demandé des rappels à l'inscription. Renseigne rapidement le jour et l'heure des cours concernés, puis valide l'inscription.</p>
+    <div id="approval-reminder-list"></div>
+    <div class="modal-row approval-reminder-actions">
+      <button class="btn-cancel" type="button" data-approval-action="cancel">Annuler</button>
+      <button class="btn-action" type="button" data-approval-action="skip">Valider sans créer de rappels</button>
+      <button class="btn-confirm" type="button" data-approval-action="create">Créer rappels + valider</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+function nextLocalDatetimeValue(){
+  const d = new Date(Date.now() + 24*60*60*1000);
+  d.setMinutes(0,0,0);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function openApprovalReminderModalIfNeeded(uid, user){
+  const prefs = reminderPrefRows(user);
+  if(!prefs.length) return Promise.resolve('skip');
+  return new Promise(resolve => {
+    const overlay = ensureApprovalReminderModal();
+    const list = document.getElementById('approval-reminder-list');
+    const defaultDate = nextLocalDatetimeValue();
+    list.innerHTML = prefs.map((p, idx) => {
+      const bits = [];
+      if(p.reminder24h) bits.push('24h');
+      if(p.reminder1h) bits.push('1h');
+      const owner = p.ownerType === 'child' ? (p.childName || p.ownerName || 'Enfant') : (user.firstName || user.name || 'Adhérent');
+      return `<article class="approval-reminder-card" data-pref-index="${idx}">
+        <div class="approval-reminder-card-head">
+          <div><strong>${FTS.esc(p.courseLabel || p.category || 'Cours')}</strong><span>${FTS.esc(owner)} · ${FTS.esc(bits.join(' + '))}</span></div>
+          <label class="approval-enable"><input type="checkbox" data-field="enabled" checked> Créer</label>
+        </div>
+        <div class="approval-reminder-grid">
+          <label><span>Premier cours</span><input type="datetime-local" data-field="startAt" value="${defaultDate}"></label>
+          <label><span>Fréquence</span><select data-field="intervalDays"><option value="7">Chaque semaine</option><option value="14">Tous les 15 jours</option><option value="21">Toutes les 3 semaines</option></select></label>
+          <label><span>Nombre de séances</span><select data-field="count"><option value="31">31 séances</option><option value="30">30 séances</option><option value="10">10 séances</option><option value="5">5 séances</option><option value="1">1 séance</option></select></label>
+          <label><span>Durée</span><select data-field="duration"><option value="30">30 min</option><option value="45">45 min</option><option value="60" selected>1h</option><option value="90">1h30</option></select></label>
+        </div>
+        <label class="approval-full"><span>Dates à exclure, optionnel</span><textarea data-field="excludedDates" rows="2" placeholder="2026-10-21\n2026-10-28"></textarea></label>
+        <label class="approval-full"><span>Note ajoutée aux rappels, optionnel</span><input data-field="note" placeholder="Ex : Pensez au carnet / partitions…"></label>
+      </article>`;
+    }).join('');
+    overlay.classList.remove('hidden');
+    const cleanup = () => {
+      overlay.classList.add('hidden');
+      overlay.onclick = null;
+    };
+    overlay.onclick = async ev => {
+      const btn = ev.target.closest('[data-approval-action]');
+      if(!btn) return;
+      const action = btn.dataset.approvalAction;
+      if(action === 'cancel'){ cleanup(); resolve('cancel'); return; }
+      if(action === 'skip'){ cleanup(); resolve('skip'); return; }
+      if(action === 'create'){
+        btn.disabled = true;
+        const old = btn.textContent;
+        btn.textContent = 'Création…';
+        try{
+          let total = 0;
+          const cards = Array.from(list.querySelectorAll('.approval-reminder-card'));
+          for(const card of cards){
+            const idx = parseInt(card.dataset.prefIndex, 10);
+            const pref = prefs[idx];
+            if(!card.querySelector('[data-field="enabled"]')?.checked) continue;
+            const val = field => card.querySelector(`[data-field="${field}"]`)?.value || '';
+            const result = await createApprovalPlanningAndReminders(uid, user, pref, {
+              startAt: val('startAt'), intervalDays: val('intervalDays'), count: val('count'), duration: val('duration'), excludedDates: val('excludedDates'), note: val('note')
+            });
+            total += result.reminders || 0;
+          }
+          cleanup();
+          if(total) alert(total + ' rappel(s) créé(s). Validation du membre en cours.');
+          resolve('created');
+        }catch(e){
+          console.warn('[FTS Admin approval reminders]', e);
+          alert('Impossible de créer les rappels : ' + (e && e.message ? e.message : e));
+          btn.disabled = false;
+          btn.textContent = old;
+        }
+      }
+    };
+  });
+}
+
 /* ── ACTIONS UTILISATEURS ────────────────────────────────────────
    ✅ Double écriture : fts_forum/users + fts_users
    C'est ce qui synchronise membres.html et forum.html
@@ -414,6 +701,12 @@ async function approveUser(id) {
   adminBusyActions[busyKey] = true;
   try{
     const u = allUsers[id] || {};
+
+    // Si le membre a demandé des rappels à l'inscription, on propose immédiatement
+    // de préparer le planning/rappels AVANT validation finale. L'admin peut ignorer.
+    const reminderResult = await openApprovalReminderModalIfNeeded(id, u);
+    if(reminderResult === 'cancel') return;
+
     // Source officielle : fts_users
     await db.ref("fts_users/" + id + "/status").set("active");
     // Compatibilité forum : création/mise à jour du profil forum au moment de la validation
