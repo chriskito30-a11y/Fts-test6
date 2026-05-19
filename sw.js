@@ -1,4 +1,4 @@
-const CACHE = 'fts-v67-native-admin-dispatch-boot';
+const CACHE = 'fts-v68-native-admin-dispatch-safe';
 const FILES = [
   './manifest.json',
   './index.html',

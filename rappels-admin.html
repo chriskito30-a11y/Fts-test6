@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
-<link href="assets/css/pages/rappels-admin.css?v=67" rel="stylesheet"/>
+<link href="assets/css/pages/rappels-admin.css?v=68" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -36,7 +36,7 @@
 
   <main class="layout">
     <section class="reminder-hero">
-      <div class="hero-kicker">Dispatch natif admin actif</div>
+      <div class="hero-kicker">Dispatch natif admin</div>
       <h1 class="hero-title">Rappels automatiques</h1>
       <p class="hero-sub">Crée une source planning propre et prépare les rappels 24h/1h. Les rappels pending sont envoyés automatiquement par l’app quand une page admin est ouverte.</p>
       <div class="safe-strip" aria-label="Garanties de sécurité">
@@ -165,6 +165,11 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
           <input id="reminder-1h" type="checkbox" checked/>
           <span><strong>Rappel 1h avant</strong><span>Prépare un rappel court avant le créneau.</span></span>
         </label>
+        <label class="check-row" style="display:none" aria-hidden="true">
+          <input id="standby-mode" type="checkbox"/>
+          <span><strong>Mode pause</strong><span>Option technique masquée.</span></span>
+        </label>
+
         <div class="preview-card" id="bot-preview"></div>
 
         <div class="row-actions">
@@ -229,9 +234,9 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
-<script src="assets/js/services/reminders.service.js?v=67"></script>
-<script src="assets/js/services/schedules.service.js?v=67"></script>
-<script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/rappels-admin.js?v=67"></script>
+<script src="assets/js/services/reminders.service.js?v=68"></script>
+<script src="assets/js/services/schedules.service.js?v=68"></script>
+<script src="assets/js/services/reminder-dispatcher.service.js?v=68"></script>
+<script src="assets/js/pages/rappels-admin.js?v=68"></script>
 </body>
 </html>
