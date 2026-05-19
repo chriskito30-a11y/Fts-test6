@@ -493,3 +493,11 @@ button.fts-doc-open { appearance: none; -webkit-appearance: none; }
   .fts-doc-open small { font-size: .72rem; }
   .fts-doc-dl { min-width: 0; padding-inline: 6px; }
 }
+
+/* V76 — sécurité cache + titres longs docs */
+.fts-doc-row, .fts-doc-open, .fts-doc-open span { min-width: 0; }
+.fts-doc-open strong { max-width: 100%; }
+@media (max-width: 560px) {
+  .fts-doc-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .fts-doc-open strong { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+}
