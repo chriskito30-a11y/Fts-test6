@@ -126,7 +126,7 @@
     $('reminder-user')?.addEventListener('change', updatePreview);
     $('reminder-category')?.addEventListener('change', () => { renderSubcategories(); updatePreview(); });
     $('reminder-subcategory')?.addEventListener('change', updatePreview);
-    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','standby-mode','reminder-24h','reminder-1h','repeat-until','manual-dates','excluded-dates'].forEach(id => {
+    ['lesson-title','lesson-type','teacher-name','place-name','lesson-at','duration-min','message-extra','reminder-24h','reminder-1h','repeat-until','manual-dates','excluded-dates'].forEach(id => {
       $(id)?.addEventListener('input', updatePreview);
       $(id)?.addEventListener('change', updatePreview);
     });
@@ -258,7 +258,7 @@
     const place = ($('place-name')?.value || '').trim();
     const duration = parseInt($('duration-min')?.value || '30', 10) || 30;
     const extra = ($('message-extra')?.value || '').trim();
-    const standby = !!$('standby-mode')?.checked;
+    const standby = false;
     const planningMode = $('planning-mode')?.value || 'single';
     const repeatUntil = parseDateOnly($('repeat-until')?.value || '');
     const manualDatesText = $('manual-dates')?.value || '';
@@ -410,7 +410,7 @@
     if(data.teacher) lines.push(`👤 Prof : ${data.teacher}`);
     if(data.place) lines.push(`📍 Lieu : ${data.place}`);
     if(data.extra) lines.push(data.extra);
-    if(who && data.kind !== 'music_individual') lines.push(`Destinataire test : ${who}`);
+    if(who && data.kind !== 'music_individual') lines.push(`Destinataire cible : ${who}`);
     return lines.join('\n');
   }
 
@@ -483,13 +483,13 @@
     const cleanBody = cleanBotBody(r.body || '') || (r.title || kindLabel(r.kind));
     const body = esc(cleanBody).replace(/\n/g, '<br>');
     const statusText = options.statusText || statusLabel(status);
-    const modeText = options.realMode ? 'Test réel : MP + push envoyés manuellement' : (status === 'pending' ? 'Dispatch natif admin : envoi automatique quand sendAt est passé' : 'Stand-by : aucun envoi automatique');
+    const modeText = options.realMode ? 'Test manuel : MP + push envoyés maintenant' : (status === 'pending' ? 'Dispatch natif admin : envoi automatique quand sendAt est passé' : 'En pause : aucun envoi automatique');
     return `<div class="bot-conversation ${options.compact ? 'compact' : ''}">
       <div class="bot-thread-head">
         <span>Simulation conversation</span>
         <strong>${esc(target)}</strong>
       </div>
-      <div class="bot-system-separator">${options.realMode ? 'Rendu proche du MP réel envoyé au compte test' : 'Aperçu uniquement — aucun MP réel envoyé depuis cette page'}</div>
+      <div class="bot-system-separator">${options.realMode ? 'Rendu du message automatique envoyé au membre' : 'Aperçu du message automatique'}</div>
       <div class="bot-chat-row">
         <div class="bot-mini-avatar" aria-hidden="true">🤖</div>
         <div class="bot-chat-bubble">
@@ -520,7 +520,7 @@
     if(!el) return;
     const count = data.occurrences.length;
     const countHtml = count > 1 ? `<div class="preview-series-note">Aperçu sur la première séance · ${count} séances au total · ${count * Math.max(data.offsets.length,1)} rappel(s) possible(s)</div>` : '';
-    el.innerHTML = countHtml + renderBotConversation(buildPreviewReminder(previewData, offset), { compact:true, statusText: data.standby ? 'Stand-by test' : 'À envoyer' });
+    el.innerHTML = countHtml + renderBotConversation(buildPreviewReminder(previewData, offset), { compact:true, statusText: 'À envoyer' });
   }
 
   function parsedManualDatesForSchedule(data){
@@ -687,7 +687,7 @@
     if(validation){ msg(validation, false); return; }
     const totalToCreate = data.occurrences.length * data.offsets.length;
     if(totalToCreate > 80){ msg('Trop de rappels à créer d’un coup. Réduis la période ou les dates.', false); return; }
-    if(totalToCreate > 12 && !confirm('Créer ' + totalToCreate + ' rappels test ?')) return;
+    if(totalToCreate > 12 && !confirm('Créer ' + totalToCreate + ' rappels automatiques ?')) return;
 
     isSaving = true;
     const btn = $('btn-create-reminders');
@@ -695,14 +695,14 @@
     if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
     try{
       const created = await createReminderRecords(data, { source:'reminders-button', skipPast:false });
-      msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Dispatch natif admin actif pour les rappels pending.`, true);
+      msg(`${created.length} rappel(s) créé(s) pour ${data.occurrences.length} séance(s). Envoi automatique natif actif pour les rappels pending.`, true);
       resetForm(false);
     }catch(e){
       console.warn('[FTS Rappels Admin] create', e);
       msg(e && e.message ? e.message : 'Erreur pendant la création du rappel. Vérifie les rules fts_scheduled_reminders.', false);
     }finally{
       isSaving = false;
-      if(btn){ btn.disabled = false; btn.textContent = old || 'Créer les rappels test'; }
+      if(btn){ btn.disabled = false; btn.textContent = old || 'Créer les rappels'; }
     }
   }
 
@@ -768,10 +768,9 @@
       </div>
       <div class="row-actions">
         <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
-        ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer MP test réel</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">MP test indisponible</button>`}
-        <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en stand-by</button>
-        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="activate-series" data-id="${esc(selectedReminderId)}">Activer la série</button>` : ''}
-        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="standby-series" data-id="${esc(selectedReminderId)}">Remettre la série en stand-by</button>` : ''}
+        ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer un MP de test maintenant</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">Test MP indisponible</button>`}
+        <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en pause</button>
+        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="standby-series" data-id="${esc(selectedReminderId)}">Mettre la série en pause</button>` : ''}
         <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
         <button class="btn-outline danger btn-sm" data-reminder-action="delete" data-id="${esc(selectedReminderId)}">Supprimer</button>
       </div>
@@ -784,7 +783,7 @@
     if(status === 'sent') return 'Envoyé';
     if(status === 'sent_test') return 'Test réel envoyé';
     if(status === 'cancelled') return 'Annulé';
-    return 'Stand-by';
+    return 'En pause';
   }
 
 
@@ -793,11 +792,11 @@
   async function sendRealTestDm(id){
     const r = id ? reminders[id] : null;
     if(!r){ msg('Sélectionne un rappel.', false); return; }
-    if(!r.uid){ msg('Le test MP réel est réservé aux rappels avec un membre ciblé.', false); return; }
+    if(!r.uid){ msg('Le test MP est réservé aux rappels avec un membre ciblé.', false); return; }
     if(!currentUser || !currentUser.uid){ msg('Session admin introuvable.', false); return; }
     const recipient = users[r.uid] || null;
     const recipientName = r.recipientName || displayName(recipient) || 'Membre';
-    const ok = confirm('Envoyer un MP automatique RÉEL au compte test : ' + recipientName + ' ?\n\nCela créera une conversation/notification comme un vrai message.');
+    const ok = confirm('Envoyer maintenant un MP automatique au membre : ' + recipientName + ' ?\n\nCela créera une conversation/notification comme un vrai message.');
     if(!ok) return;
 
     const actionBtn = Array.from(document.querySelectorAll('[data-reminder-action="send-test-dm"]')).find(btn => btn.getAttribute('data-id') === id);
@@ -868,12 +867,12 @@
         realDmRecipientUid:uid
       });
       selectedReminderId = id;
-      msg('MP test réel envoyé. Vérifie le compte test : conversation + notification push si activée.', true);
+      msg('MP automatique envoyé maintenant. Vérifie le compte membre : conversation + notification push si activée.', true);
     }catch(e){
       console.warn('[FTS Rappels Admin] test MP réel', e);
-      msg('Erreur pendant le test MP réel : ' + (e && e.message ? e.message : 'vérifie console/rules'), false);
+      msg('Erreur pendant le test MP : ' + (e && e.message ? e.message : 'vérifie console/rules'), false);
     }finally{
-      if(actionBtn){ actionBtn.disabled = false; actionBtn.textContent = old || 'Envoyer MP test réel'; }
+      if(actionBtn){ actionBtn.disabled = false; actionBtn.textContent = old || 'Envoyer un MP de test maintenant'; }
     }
   }
 
@@ -960,19 +959,19 @@
     const base = reminders[id];
     const ids = linkedReminderIds(base);
     if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
-    if(!confirm('Remettre ' + ids.length + ' rappel(s) de cette série en stand-by ?')) return;
+    if(!confirm('Remettre ' + ids.length + ' rappel(s) de cette série en pause ?')) return;
     try{
       await Promise.all(ids.map(x => FTS.Services.Reminders.standby(x)));
-      msg(ids.length + ' rappel(s) remis en stand-by.', true);
+      msg(ids.length + ' rappel(s) mis en pause.', true);
     }catch(e){
       console.warn('[FTS Rappels Admin] standby series', e);
-      msg('Impossible de remettre la série en stand-by.', false);
+      msg('Impossible de remettre la série en pause.', false);
     }
   }
 
   async function deleteReminder(id){
     if(!id) return;
-    if(!confirm('Supprimer ce rappel test ?')) return;
+    if(!confirm('Supprimer ce rappel ?')) return;
     try{
       await FTS.Services.Reminders.remove(id);
       if(selectedReminderId === id) selectedReminderId = '';
@@ -991,7 +990,6 @@
     if($('duration-min')) $('duration-min').value = '30';
     if($('planning-mode')) $('planning-mode').value = 'single';
     if($('repeat-until')) $('repeat-until').value = '';
-    if($('standby-mode')) $('standby-mode').checked = false;
     if($('reminder-24h')) $('reminder-24h').checked = true;
     if($('reminder-1h')) $('reminder-1h').checked = true;
     setDefaultDates();
