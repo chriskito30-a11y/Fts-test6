@@ -132,6 +132,7 @@
       var nav = a.getAttribute('data-nav');
       var active = false;
       if (nav === 'membres' && page === 'membres.html') active = true;
+      if (nav === 'documents' && page === 'repetition.html') active = true;
       if (nav === 'messages' && (page === 'hub-messages.html' || page === 'messages.html' || page === 'forum.html' || page === 'sondages.html')) active = true;
       if (nav === 'prof' && page === 'profs.html') active = true;
       if (nav === 'admin' && page === 'admin.html') active = true;
@@ -445,6 +446,28 @@
     return url;
   }
 
+
+  function isPdfResource(r){
+    var type = String((r && r.type) || '').toLowerCase().trim();
+    var url = String((r && r.url) || '').toLowerCase().trim();
+    return type === 'pdf' || type.indexOf('pdf') !== -1 || /\.pdf(\?|#|$)/i.test(url);
+  }
+
+  function isRepetitionCompatible(r){
+    if (!r) return false;
+    if (r.rehearsal === true || r.repetition === true || r.scriptRehearsal === true) return true;
+    if (!isPdfResource(r)) return false;
+    var typeHint = norm([r.type, r.kind, r.format, r.tags].join(' '));
+    if (typeHint.indexOf('repetition') !== -1 || typeHint.indexOf('script') !== -1 || typeHint.indexOf('texte') !== -1) return true;
+    var cat = norm([r.cat, r.category].join(' '));
+    return cat.indexOf('theatre') !== -1 || cat.indexOf('comedie') !== -1 || cat.indexOf('singer show') !== -1 || cat.indexOf('singer academy') !== -1;
+  }
+
+  function repetitionUrlForResource(r){
+    var key = r && r.key ? String(r.key) : '';
+    return key ? 'repetition.html?resource=' + encodeURIComponent(key) + '&autoload=1' : 'repetition.html';
+  }
+
   function isTextResource(r){
     var type = String((r && r.type) || '').toLowerCase().trim();
     var url = String((r && r.url) || '').trim();
@@ -521,7 +544,10 @@
         }
         var safeUrl = esc(r.url || '#');
         var dl = esc(resourceDownloadUrl(r.url || ''));
-        return '<div class="fts-doc-row"><a class="fts-doc-open" href="' + safeUrl + '" target="_blank" rel="noopener"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document') + '</strong>' + sub + '</span></a><a class="fts-doc-dl" href="' + dl + '" target="_blank" rel="noopener" download aria-label="Télécharger ' + esc(r.name || 'Document') + '">⬇ <span>Télécharger</span></a></div>';
+        var rehearse = isRepetitionCompatible(r)
+          ? '<a class="fts-doc-dl fts-doc-rehearse" href="' + esc(repetitionUrlForResource(r)) + '" aria-label="Répéter ' + esc(r.name || 'Document') + '">🎭 <span>Répéter</span></a>'
+          : '';
+        return '<div class="fts-doc-row"><a class="fts-doc-open" href="' + safeUrl + '" target="_blank" rel="noopener"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document') + '</strong>' + sub + '</span></a><div class="fts-doc-actions"><a class="fts-doc-dl" href="' + dl + '" target="_blank" rel="noopener" download aria-label="Télécharger ' + esc(r.name || 'Document') + '">⬇ <span>Télécharger</span></a>' + rehearse + '</div></div>';
       }).join('');
       return '<section class="fts-doc-group"><h3>' + catIcon(cat) + ' ' + esc(cat) + '</h3>' + items + '</section>';
     }).join('');
