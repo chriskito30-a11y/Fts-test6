@@ -1495,3 +1495,115 @@ body[data-rep-view="rehearse"] .rep-shell{
   body[data-rep-view="rehearse"] .rep-current{min-height:150px !important;}
   body[data-rep-view="rehearse"] .rep-player-head{gap:.45rem !important;}
 }
+
+/* ================================================================
+   V113 — correction barre de contrôle mobile
+   - Annule les anciens centrages transform/left:50% qui pouvaient décaler la barre hors écran.
+   - Force une barre bornée à la largeur du viewport.
+   - Garde les boutons dans un ordre stable et cliquables.
+   ================================================================ */
+body[data-rep-view="rehearse"] .rep-actions-player{
+  left: max(4px, env(safe-area-inset-left, 0px)) !important;
+  right: max(4px, env(safe-area-inset-right, 0px)) !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  transform: none !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+@media(max-width:760px){
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    left: max(3px, env(safe-area-inset-left, 0px)) !important;
+    right: max(3px, env(safe-area-inset-right, 0px)) !important;
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+    gap: .16rem !important;
+    padding: .24rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    font-size: .58rem !important;
+    letter-spacing: -.02em !important;
+    padding-left: .08rem !important;
+    padding-right: .08rem !important;
+  }
+}
+@media(max-width:360px){
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    gap: .12rem !important;
+    padding: .2rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    font-size: .52rem !important;
+  }
+}
+
+
+/* ================================================================
+   V114 — barre vraiment responsive + texte utilisateur simplifié
+   - Evite tout débordement horizontal sur mobile.
+   - Conserve la barre collée à la navigation basse.
+   - Les boutons restent accessibles même sur petits écrans.
+   ================================================================ */
+html, body{
+  overflow-x:hidden !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player{
+  position: fixed !important;
+  z-index: 9999 !important;
+  left: calc(env(safe-area-inset-left, 0px) + 4px) !important;
+  right: calc(env(safe-area-inset-right, 0px) + 4px) !important;
+  bottom: calc(var(--rep-bottom-nav-height, 64px) + env(safe-area-inset-bottom, 0px) + 2px) !important;
+  width: auto !important;
+  max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 8px) !important;
+  min-width: 0 !important;
+  transform:none !important;
+  box-sizing:border-box !important;
+  display:grid !important;
+  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  gap:.14rem !important;
+  padding:.22rem !important;
+  border-radius:18px 18px 0 0 !important;
+  overflow:visible !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+  min-width:0 !important;
+  width:100% !important;
+  max-width:100% !important;
+  height:30px !important;
+  min-height:30px !important;
+  padding:.08rem .06rem !important;
+  font-size:.56rem !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+body[data-rep-view="rehearse"] .rep-shell{
+  padding-bottom: calc(var(--rep-bottom-nav-height, 64px) + 54px + env(safe-area-inset-bottom, 0px)) !important;
+}
+@media(max-width:380px){
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    left: calc(env(safe-area-inset-left, 0px) + 2px) !important;
+    right: calc(env(safe-area-inset-right, 0px) + 2px) !important;
+    max-width: calc(100vw - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px) - 4px) !important;
+    gap:.1rem !important;
+    padding:.18rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    font-size:.5rem !important;
+    padding-left:.04rem !important;
+    padding-right:.04rem !important;
+  }
+}
