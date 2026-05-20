@@ -1,4 +1,4 @@
-const CACHE = 'fts-v116-repetition-controls-readable';
+const CACHE = 'fts-v117-repetition-editor-preview';
 const FILES = [
   './manifest.json',
   './index.html',
