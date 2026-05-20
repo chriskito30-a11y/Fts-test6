@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V111';
+  const REPETITION_VERSION = 'V112';
 
   const els = {};
   const state = {
@@ -46,7 +46,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -65,6 +65,7 @@
         btn.addEventListener('click', () => applyTrainingPreset(btn.getAttribute('data-preset') || 'discover'));
       });
     }
+    if (els.repRestartBtn) els.repRestartBtn.addEventListener('click', restartFromBeginning);
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
@@ -187,7 +188,7 @@
   function initPdfEngine(){
     if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      setPdfStatus('Les PDF texte peuvent être analysés. Les PDF scannés/image ne seront pas lus sans OCR.');
+      setPdfStatus('Choisis un PDF, puis l’app te proposera automatiquement ton rôle.');
     } else {
       setPdfStatus('Analyse PDF indisponible : la librairie PDF n’a pas été chargée.', false);
     }
@@ -1284,7 +1285,7 @@
     const isIgnored = isIgnoredSpeakerLine(line, role);
 
     renderCurrentLine(line, isOwn, isIgnored);
-    renderLineList();
+    if (document.body.classList.contains('rep-show-script')) renderLineList();
     setButtons();
 
     if (isIgnored) {
@@ -1485,8 +1486,26 @@
     advance();
   }
 
+  function restartFromBeginning(){
+    if (!state.lines.length) return;
+    const wasPlaying = !!state.playing;
+    clearPendingTimeout();
+    state.playToken += 1;
+    stopSpeechOnly(true);
+    state.currentIndex = 0;
+    state.awaitingUser = false;
+    state.playing = wasPlaying;
+    refreshPlayer(document.body.classList.contains('rep-show-script'));
+    saveCurrentScriptSettings();
+    if (wasPlaying) playCurrent();
+  }
+
   function previousLine(){
-    stopSpeechOnly();
+    if (!state.lines.length) return;
+    const wasPlaying = !!state.playing;
+    clearPendingTimeout();
+    state.playToken += 1;
+    stopSpeechOnly(true);
     if (state.focusDifficultOnly) {
       const prev = nextDifficultIndex(state.currentIndex, -1);
       if (prev >= 0) state.currentIndex = prev;
@@ -1494,24 +1513,30 @@
       state.currentIndex = Math.max(0, state.currentIndex - 1);
     }
     state.awaitingUser = false;
-    refreshPlayer();
+    state.playing = wasPlaying;
+    refreshPlayer(document.body.classList.contains('rep-show-script'));
     saveCurrentScriptSettings();
-    if (state.playing) playCurrent();
+    if (wasPlaying) playCurrent();
   }
 
   function nextLineManual(){
-    stopSpeechOnly();
+    if (!state.lines.length) return;
+    const wasPlaying = !!state.playing;
+    clearPendingTimeout();
+    state.playToken += 1;
+    stopSpeechOnly(true);
     if (state.focusDifficultOnly) {
       const next = nextDifficultIndex(state.currentIndex, 1);
       if (next >= 0) state.currentIndex = next;
-      else finishDifficultReview();
+      else { finishDifficultReview(); return; }
     } else {
       state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
     }
     state.awaitingUser = false;
-    refreshPlayer();
+    state.playing = wasPlaying;
+    refreshPlayer(document.body.classList.contains('rep-show-script'));
     saveCurrentScriptSettings();
-    if (state.playing) playCurrent();
+    if (wasPlaying) playCurrent();
   }
 
   function stop(resetText = true){
@@ -1613,6 +1638,7 @@
     document.body.classList.toggle('is-playing', !!state.playing);
     document.body.classList.toggle('has-script-ready', !!hasLines);
     els.repStartBtn.disabled = !hasLines || state.playing;
+    if (els.repRestartBtn) els.repRestartBtn.disabled = !hasLines || state.currentIndex <= 0;
     els.repStopBtn.disabled = !hasLines || !state.playing;
     els.repPrevBtn.disabled = !hasLines || state.currentIndex <= 0;
     els.repNextBtn.disabled = !hasLines || state.currentIndex >= state.lines.length - 1;
