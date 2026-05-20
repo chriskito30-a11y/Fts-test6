@@ -1607,3 +1607,52 @@ body[data-rep-view="rehearse"] .rep-shell{
     padding-right:.04rem !important;
   }
 }
+
+
+/* ================================================================
+   V115 — lisibilité boutons + option nom du personnage
+   - Libellés courts sur la barre de répétition.
+   - Boutons plus compacts et non coupés sur petits écrans.
+   ================================================================ */
+body[data-rep-view="rehearse"] .rep-actions-player{
+  grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  gap: .12rem !important;
+  padding: .18rem .2rem !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+  height: 30px !important;
+  min-height: 30px !important;
+  font-size: .58rem !important;
+  font-weight: 850 !important;
+  letter-spacing: -.035em !important;
+  padding: .05rem .04rem !important;
+  line-height: .95 !important;
+  border-radius: 9px !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn-mini{
+  font-size: .76rem !important;
+  letter-spacing: 0 !important;
+}
+@media(max-width:430px){
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    gap: .08rem !important;
+    padding: .16rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    height: 28px !important;
+    min-height: 28px !important;
+    font-size: .52rem !important;
+    border-radius: 8px !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn-mini{
+    font-size: .7rem !important;
+  }
+}
+@media(max-width:360px){
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    font-size: .48rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn-mini{
+    font-size: .64rem !important;
+  }
+}
