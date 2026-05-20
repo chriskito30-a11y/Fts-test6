@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V104';
+  const REPETITION_VERSION = 'V110';
 
   const els = {};
   const state = {
@@ -24,7 +24,9 @@
     currentScriptId: '',
     currentScriptLabel: '',
     sections: [],
-    directResourceHandled: false
+    directResourceHandled: false,
+    difficultLines: new Set(),
+    focusDifficultOnly: false
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -42,7 +44,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -53,10 +55,18 @@
     els.repStartBtn.addEventListener('click', start);
     els.repContinueBtn.addEventListener('click', continueAfterOwnLine);
     if (els.repCueBtn) els.repCueBtn.addEventListener('click', cueOwnLine);
+    if (els.repDifficultBtn) els.repDifficultBtn.addEventListener('click', toggleDifficultLine);
+    if (els.repReviewDifficultBtn) els.repReviewDifficultBtn.addEventListener('click', startDifficultReview);
+    if (els.repExitDifficultBtn) els.repExitDifficultBtn.addEventListener('click', exitDifficultReview);
+    if (els.repTrainingPresets) {
+      els.repTrainingPresets.querySelectorAll('[data-preset]').forEach(btn => {
+        btn.addEventListener('click', () => applyTrainingPreset(btn.getAttribute('data-preset') || 'discover'));
+      });
+    }
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
-    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; refreshPlayer(); renderRoleChoices(); saveCurrentScriptSettings(); });
+    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; refreshPlayer(); renderRoleChoices(); updateDifficultUi(); saveCurrentScriptSettings(); });
     els.repMode.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     els.repPause.addEventListener('change', saveCurrentScriptSettings);
@@ -812,6 +822,7 @@
     renderRoleReadControls();
     renderSectionNavigation();
     renderLineList();
+    updateDifficultUi();
     setButtons();
   }
 
@@ -839,6 +850,7 @@
         stop(false);
         state.currentIndex = 0;
         state.awaitingUser = false;
+        state.focusDifficultOnly = false;
         refreshPlayer();
         renderRoleChoices();
         scrollToPlayer();
@@ -877,6 +889,7 @@
     stopSpeechOnly();
     state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, index));
     state.awaitingUser = false;
+    state.focusDifficultOnly = false;
     refreshPlayer();
     saveCurrentScriptSettings();
     if (state.playing) playCurrent();
@@ -1013,6 +1026,122 @@
     return '';
   }
 
+
+  function applyTrainingPreset(preset){
+    const map = {
+      discover: { mode:'manual', ownLines:'show', pause:'4500', rate:'0.85' },
+      learn:    { mode:'manual', ownLines:'initials', pause:'4500', rate:'1' },
+      run:      { mode:'auto', ownLines:'hide', pause:'2500', rate:'1' }
+    };
+    const cfg = map[preset] || map.discover;
+    if (els.repMode) els.repMode.value = cfg.mode;
+    if (els.repOwnLines) els.repOwnLines.value = cfg.ownLines;
+    if (els.repPause) els.repPause.value = cfg.pause;
+    if (els.repRate) els.repRate.value = cfg.rate;
+    state.focusDifficultOnly = false;
+    refreshPlayer();
+    renderPresetState(preset);
+    saveCurrentScriptSettings();
+  }
+
+  function renderPresetState(activePreset){
+    if (!els.repTrainingPresets) return;
+    els.repTrainingPresets.querySelectorAll('[data-preset]').forEach(btn => {
+      btn.classList.toggle('is-active', btn.getAttribute('data-preset') === activePreset);
+    });
+  }
+
+  function currentOwnLineIndex(){
+    const role = els.repRoleSelect ? els.repRoleSelect.value : '';
+    const line = state.lines[state.currentIndex];
+    return line && line.kind === 'line' && role && line.speaker === role ? state.currentIndex : -1;
+  }
+
+  function getDifficultIndexesForRole(){
+    const role = els.repRoleSelect ? els.repRoleSelect.value : '';
+    return Array.from(state.difficultLines || [])
+      .map(Number)
+      .filter(index => Number.isFinite(index) && index >= 0 && index < state.lines.length)
+      .filter(index => {
+        const line = state.lines[index];
+        return line && line.kind === 'line' && (!role || line.speaker === role);
+      })
+      .sort((a,b)=>a-b);
+  }
+
+  function toggleDifficultLine(){
+    const index = currentOwnLineIndex();
+    if (index < 0) return;
+    if (state.difficultLines.has(index)) state.difficultLines.delete(index);
+    else state.difficultLines.add(index);
+    updateDifficultUi();
+    renderLineList();
+    refreshPlayer(false);
+    saveCurrentScriptSettings();
+  }
+
+  function startDifficultReview(){
+    const role = els.repRoleSelect ? els.repRoleSelect.value : '';
+    if (!role) {
+      alert('Choisis d’abord ton personnage.');
+      return;
+    }
+    const indexes = getDifficultIndexesForRole();
+    if (!indexes.length) {
+      alert('Aucune réplique marquée à retravailler pour ce rôle.');
+      return;
+    }
+    stop(false);
+    state.focusDifficultOnly = true;
+    state.currentIndex = indexes.find(i => i >= state.currentIndex) || indexes[0];
+    state.awaitingUser = false;
+    els.repMode.value = 'manual';
+    refreshPlayer();
+    updateDifficultUi();
+    scrollToPlayer();
+    saveCurrentScriptSettings();
+  }
+
+  function exitDifficultReview(){
+    state.focusDifficultOnly = false;
+    refreshPlayer();
+    updateDifficultUi();
+    saveCurrentScriptSettings();
+  }
+
+  function nextDifficultIndex(fromIndex, direction){
+    const indexes = getDifficultIndexesForRole();
+    if (!indexes.length) return -1;
+    if (direction < 0) {
+      for (let i = indexes.length - 1; i >= 0; i -= 1) if (indexes[i] < fromIndex) return indexes[i];
+      return indexes[indexes.length - 1];
+    }
+    for (const index of indexes) if (index > fromIndex) return index;
+    return -1;
+  }
+
+  function updateDifficultUi(){
+    const indexes = getDifficultIndexesForRole();
+    const currentOwn = currentOwnLineIndex();
+    const isMarked = currentOwn >= 0 && state.difficultLines.has(currentOwn);
+    if (els.repDifficultCount) {
+      const count = indexes.length;
+      els.repDifficultCount.textContent = count + ' réplique' + (count > 1 ? 's' : '') + ' à retravailler';
+    }
+    if (els.repDifficultBtn) {
+      els.repDifficultBtn.disabled = currentOwn < 0;
+      els.repDifficultBtn.textContent = isMarked ? '⭐ Marquée' : '⭐ À retravailler';
+      els.repDifficultBtn.classList.toggle('is-active', isMarked);
+    }
+    if (els.repReviewDifficultBtn) {
+      els.repReviewDifficultBtn.disabled = !indexes.length;
+      els.repReviewDifficultBtn.textContent = indexes.length ? 'Réviser ⭐ (' + indexes.length + ')' : 'Réviser ⭐';
+    }
+    if (els.repExitDifficultBtn) {
+      els.repExitDifficultBtn.hidden = !state.focusDifficultOnly;
+    }
+  }
+
   function renderLineList(){
     if (!state.lines.length) {
       els.repLineList.innerHTML = '<div class="rep-empty">Le texte analysé apparaîtra ici.</div>';
@@ -1026,10 +1155,12 @@
       if (line.kind === 'stage') classes.push('stage');
       if (line.sectionType) classes.push('section');
       if (isIgnoredSpeakerLine(line, role)) classes.push('ignored');
+      if (state.difficultLines && state.difficultLines.has(index)) classes.push('difficult');
       const ignoredNote = isIgnoredSpeakerLine(line, role) ? '<small class="rep-line-note">Rôle ignoré — cette ligne sera passée</small>' : '';
+      const difficultNote = state.difficultLines && state.difficultLines.has(index) ? '<small class="rep-line-note rep-line-star">⭐ À retravailler</small>' : '';
       return `<div class="${classes.join(' ')}" data-line-index="${index}">
         <div class="rep-line-role">${escapeHtml(line.speaker)}</div>
-        <div class="rep-line-text">${escapeHtml(displayTextForLine(line))}${ignoredNote}</div>
+        <div class="rep-line-text">${escapeHtml(displayTextForLine(line))}${ignoredNote}${difficultNote}</div>
       </div>`;
     }).join('');
 
@@ -1234,13 +1365,31 @@
 
   function advance(){
     state.awaitingUser = false;
-    state.currentIndex += 1;
+    if (state.focusDifficultOnly) {
+      const next = nextDifficultIndex(state.currentIndex, 1);
+      if (next < 0) {
+        finishDifficultReview();
+        return;
+      }
+      state.currentIndex = next;
+    } else {
+      state.currentIndex += 1;
+    }
     saveCurrentScriptSettings();
     if (state.currentIndex >= state.lines.length) {
       finish();
       return;
     }
     playCurrent();
+  }
+
+  function finishDifficultReview(){
+    stop(false);
+    state.focusDifficultOnly = false;
+    els.repProgressText.textContent = 'Révision des répliques difficiles terminée.';
+    updateDifficultUi();
+    refreshPlayer(false);
+    saveCurrentScriptSettings();
   }
 
   function cueOwnLine(){
@@ -1269,7 +1418,12 @@
 
   function previousLine(){
     stopSpeechOnly();
-    state.currentIndex = Math.max(0, state.currentIndex - 1);
+    if (state.focusDifficultOnly) {
+      const prev = nextDifficultIndex(state.currentIndex, -1);
+      if (prev >= 0) state.currentIndex = prev;
+    } else {
+      state.currentIndex = Math.max(0, state.currentIndex - 1);
+    }
     state.awaitingUser = false;
     refreshPlayer();
     saveCurrentScriptSettings();
@@ -1278,7 +1432,13 @@
 
   function nextLineManual(){
     stopSpeechOnly();
-    state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
+    if (state.focusDifficultOnly) {
+      const next = nextDifficultIndex(state.currentIndex, 1);
+      if (next >= 0) state.currentIndex = next;
+      else finishDifficultReview();
+    } else {
+      state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
+    }
     state.awaitingUser = false;
     refreshPlayer();
     saveCurrentScriptSettings();
@@ -1344,9 +1504,10 @@
     if (!line) return renderEmpty();
     const total = state.lines.length;
     const percent = total ? ((state.currentIndex + 1) / total) * 100 : 0;
-    els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other');
+    const isDifficult = state.difficultLines && state.difficultLines.has(state.currentIndex);
+    els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other') + (isDifficult ? ' is-difficult' : '') + (state.focusDifficultOnly ? ' is-focus-difficult' : '');
     els.repCurrentLine.innerHTML = `
-      <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : isOwn ? 'À toi' : escapeHtml(line.speaker)}</p>
+      <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : isOwn ? 'À toi' : escapeHtml(line.speaker)}${isDifficult ? ' · ⭐' : ''}</p>
       <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
@@ -1354,6 +1515,8 @@
     const mode = els.repMode.value;
     els.repProgressText.textContent = isIgnored
       ? 'Cette ligne sera passée.'
+      : state.focusDifficultOnly
+        ? 'Révision des répliques marquées : dis ta ligne, puis valide.'
       : isOwn
         ? (mode === 'auto' ? 'Réplique muette : dis ta ligne, l’app enchaînera automatiquement.' : 'À toi : dis ta réplique, puis valide pour continuer.')
         : (state.playing ? 'L’app donne la réplique.' : 'Prêt à lancer depuis cette réplique.');
@@ -1387,6 +1550,7 @@
       const role = els.repRoleSelect.value;
       els.repCueBtn.disabled = !(state.awaitingUser && line && line.kind === 'line' && role && line.speaker === role);
     }
+    updateDifficultUi();
   }
 
   function renderEmpty(){
@@ -1405,7 +1569,10 @@
     state.lines = [];
     state.characters = [];
     state.currentIndex = 0;
+    state.focusDifficultOnly = false;
     state.ignoredSpeakers = new Set();
+    state.difficultLines = new Set();
+    state.focusDifficultOnly = false;
     state.roleVoicePrefs = {};
     state.currentScriptId = '';
     state.currentScriptLabel = '';
@@ -1524,6 +1691,7 @@
       const meta = [
         settings.role ? 'Rôle : ' + settings.role : '',
         Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '',
+        settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length + ' ⭐' : '',
         date
       ].filter(Boolean).join(' · ');
       return `<article class="rep-offline-item" data-script-id="${escapeAttr(item.id)}">
@@ -1597,7 +1765,7 @@
     const settings = getScriptSettings(cached.id) || {};
     const date = cached.updatedAt ? new Date(cached.updatedAt).toLocaleDateString('fr-FR') : '';
     if (els.repResumeMeta) {
-      els.repResumeMeta.textContent = [settings.role ? 'Rôle : ' + settings.role : '', Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '', date].filter(Boolean).join(' · ');
+      els.repResumeMeta.textContent = [settings.role ? 'Rôle : ' + settings.role : '', Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '', settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length + ' ⭐' : '', date].filter(Boolean).join(' · ');
     }
   }
 
@@ -1641,11 +1809,14 @@
     if (settings.rate) els.repRate.value = String(settings.rate);
     if (settings.voice !== undefined) els.repVoice.value = String(settings.voice || '');
     state.ignoredSpeakers = new Set((settings.ignoredSpeakers || []).filter(name => state.characters.includes(name)));
+    state.difficultLines = new Set((settings.difficultLines || []).map(Number).filter(index => Number.isFinite(index) && index >= 0 && index < state.lines.length));
+    state.focusDifficultOnly = false;
     state.roleVoicePrefs = Object.assign({}, settings.roleVoicePrefs || {});
     if (Number.isFinite(settings.currentIndex)) state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, settings.currentIndex));
     renderRoleChoices();
     renderRoleReadControls();
     renderSectionNavigation();
+    updateDifficultUi();
     refreshPlayer();
   }
 
@@ -1660,6 +1831,7 @@
         rate: els.repRate ? els.repRate.value : '1',
         voice: els.repVoice ? els.repVoice.value : '',
         ignoredSpeakers: Array.from(state.ignoredSpeakers || []),
+        difficultLines: Array.from(state.difficultLines || []),
         roleVoicePrefs: Object.assign({}, state.roleVoicePrefs || {}),
         currentIndex: state.currentIndex || 0,
         updatedAt: Date.now()
