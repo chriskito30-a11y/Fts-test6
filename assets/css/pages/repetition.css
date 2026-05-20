@@ -64,3 +64,24 @@ h2{margin:0 0 12px;font-size:1.22rem;letter-spacing:-.025em}
 .rep-note{margin-top:12px;margin-bottom:0;border:1px solid rgba(52,211,153,.22);background:rgba(52,211,153,.08);border-radius:16px;padding:11px 12px;color:rgba(255,255,255,.82)}
 .rep-note.is-error{border-color:rgba(251,113,133,.35);background:rgba(251,113,133,.1);color:#fecdd3}
 @media(max-width:760px){.rep-section-head{display:block}.rep-mini-status{display:inline-flex;margin-top:8px}.rep-doc-loader{grid-template-columns:1fr}.rep-doc-loader .rep-btn{width:100%}}
+
+.rep-debug{
+  margin-top:10px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;
+  background:rgba(255,255,255,.04);
+  padding:10px 12px;
+}
+.rep-debug summary{
+  cursor:pointer;
+  font-weight:800;
+  color:#e9ddff;
+}
+.rep-debug pre{
+  margin:10px 0 0;
+  white-space:pre-wrap;
+  word-break:break-word;
+  font-size:.82rem;
+  line-height:1.45;
+  color:#cfc3e9;
+}
