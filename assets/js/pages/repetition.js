@@ -46,7 +46,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -71,6 +71,7 @@
     els.repStopBtn.addEventListener('click', stop);
     els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; refreshPlayer(); renderRoleChoices(); updateDifficultUi(); saveCurrentScriptSettings(); if (getSelectedRole() && (state.currentView === 'role' || state.currentView === 'library')) setView('mode'); });
     els.repMode.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
+    if (els.repReadSpeakerName) els.repReadSpeakerName.addEventListener('change', () => { saveCurrentScriptSettings(); });
     els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     els.repPause.addEventListener('change', saveCurrentScriptSettings);
     els.repRate.addEventListener('change', saveCurrentScriptSettings);
@@ -1346,8 +1347,13 @@
       state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 80);
       return;
     }
-    const prefix = includeSpeaker && line && line.speaker ? `${line.speaker}. ` : '';
+    const shouldReadSpeaker = includeSpeaker && shouldReadSpeakerName();
+    const prefix = shouldReadSpeaker && line && line.speaker ? `${line.speaker}. ` : '';
     speak(prefix + text, onEnd, { speaker: line && line.speaker ? line.speaker : '' });
+  }
+
+  function shouldReadSpeakerName(){
+    return !els.repReadSpeakerName || els.repReadSpeakerName.value !== 'no';
   }
 
   function getSpeakableText(text){
@@ -1909,6 +1915,7 @@
     if (!settings) return;
     if (settings.role && state.characters.includes(settings.role)) els.repRoleSelect.value = settings.role;
     if (settings.mode && els.repMode.querySelector(`option[value="${cssEscape(settings.mode)}"]`)) els.repMode.value = settings.mode;
+    if (settings.readSpeakerName && els.repReadSpeakerName && els.repReadSpeakerName.querySelector(`option[value="${cssEscape(settings.readSpeakerName)}"]`)) els.repReadSpeakerName.value = settings.readSpeakerName;
     if (settings.ownLines && els.repOwnLines.querySelector(`option[value="${cssEscape(settings.ownLines)}"]`)) els.repOwnLines.value = settings.ownLines;
     if (settings.pause) els.repPause.value = String(settings.pause);
     if (settings.rate) els.repRate.value = String(settings.rate);
@@ -1931,6 +1938,7 @@
       const payload = {
         role: els.repRoleSelect ? els.repRoleSelect.value : '',
         mode: els.repMode ? els.repMode.value : 'manual',
+        readSpeakerName: els.repReadSpeakerName ? els.repReadSpeakerName.value : 'yes',
         ownLines: els.repOwnLines ? els.repOwnLines.value : 'show',
         pause: els.repPause ? els.repPause.value : '4500',
         rate: els.repRate ? els.repRate.value : '1',
