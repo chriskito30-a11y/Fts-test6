@@ -1,4 +1,4 @@
-const CACHE = 'fts-v80-admin-member-readonly';
+const CACHE = 'fts-v81-approval-review';
 const FILES = [
   './manifest.json',
   './index.html',
