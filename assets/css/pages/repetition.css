@@ -486,3 +486,60 @@ button, select, textarea, input{font:inherit}
   opacity:.78;
   border-style:dashed;
 }
+
+
+/* V96 — voix par rôle */
+.rep-role-voice-details{
+  margin-top:12px;
+  border-top:1px solid rgba(255,255,255,.10);
+  padding-top:10px;
+}
+.rep-role-voice-details summary{
+  cursor:pointer;
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+  color:var(--fts-text,#fff);
+  list-style:none;
+}
+.rep-role-voice-details summary::-webkit-details-marker{display:none}
+.rep-role-voice-details summary small{
+  color:rgba(255,255,255,.62);
+  font-size:.76rem;
+  text-align:right;
+}
+.rep-role-voice-list{
+  margin-top:10px;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+}
+.rep-role-voice-item{
+  display:grid;
+  grid-template-columns:minmax(90px,.55fr) minmax(150px,1fr);
+  gap:8px;
+  align-items:center;
+  padding:8px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:14px;
+  background:rgba(0,0,0,.16);
+}
+.rep-role-voice-item > span{
+  color:var(--fts-text,#fff);
+  font-weight:700;
+  font-size:.86rem;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.rep-role-voice-note{
+  margin:10px 0 0;
+  color:rgba(255,255,255,.58);
+  font-size:.78rem;
+  line-height:1.35;
+}
+@media (max-width:640px){
+  .rep-role-voice-item{grid-template-columns:1fr;}
+  .rep-role-voice-details summary{flex-direction:column;}
+  .rep-role-voice-details summary small{text-align:left;}
+}
