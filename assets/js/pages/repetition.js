@@ -32,7 +32,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -51,6 +51,7 @@
     els.repOwnLines.addEventListener('change', refreshPlayer);
     if (els.repResourceSelect) els.repResourceSelect.addEventListener('change', onResourceSelectChange);
     if (els.repLoadResourcePdfBtn) els.repLoadResourcePdfBtn.addEventListener('click', loadSelectedResourcePdf);
+    if (els.repReloadAppPdfBtn) els.repReloadAppPdfBtn.addEventListener('click', () => loadAppDocumentsForCurrentUser(true));
     if (els.repLocalPdfInput) els.repLocalPdfInput.addEventListener('change', onLocalPdfChange);
     if (els.repLoadLocalPdfBtn) els.repLoadLocalPdfBtn.addEventListener('click', loadLocalPdf);
     if ('speechSynthesis' in window) {
@@ -115,26 +116,130 @@
         renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
         return;
       }
-      setAppStatus('Chargement des PDF…');
-      try {
-        const [profileSnap, resourceSnap] = await Promise.all([
-          state.db.ref('fts_users/' + user.uid).once('value'),
-          state.db.ref('fts_ressources').once('value')
-        ]);
-        state.profile = Object.assign({ uid: user.uid }, profileSnap.val() || {});
-        const raw = resourceSnap.val() || {};
-        state.resources = Object.keys(raw)
-          .map(key => normalizeResource(raw[key] || {}, key))
-          .filter(resource => resource.active && isPdfResource(resource) && canProfileSeeResource(state.profile, resource))
-          .sort((a,b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
-        renderResourceOptions(state.resources);
-        setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''}` : 'Aucun PDF disponible');
-      } catch (err) {
-        console.warn('[FTS Répétition] ressources', err);
-        setAppStatus('Lecture impossible');
-        renderResourceOptions([], 'Impossible de charger les PDF de l’app');
-      }
+      await loadAppDocumentsForCurrentUser(false);
     });
+  }
+
+
+  async function loadAppDocumentsForCurrentUser(manual){
+    if (!els.repAppStatus || !els.repResourceSelect) return;
+    const user = state.authUser || (firebase.auth && firebase.auth().currentUser) || null;
+    if (!user) {
+      state.profile = null;
+      state.resources = [];
+      setAppStatus('Non connecté');
+      renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
+      setAppDebug('Utilisateur non connecté.');
+      return;
+    }
+
+    setAppStatus(manual ? 'Rechargement des PDF…' : 'Chargement des PDF…');
+    renderResourceOptions([], manual ? 'Rechargement…' : 'Chargement des documents…');
+    if (els.repReloadAppPdfBtn) els.repReloadAppPdfBtn.disabled = true;
+
+    const debug = {
+      uid: user.uid,
+      email: user.email || '',
+      profileRead: false,
+      resourcesRead: false,
+      resourcesPath: '',
+      totalResources: 0,
+      pdfResources: 0,
+      visiblePdfResources: 0,
+      categoriesDetectees: [],
+      sousCategoriesDetectees: [],
+      erreurProfil: '',
+      erreurRessources: ''
+    };
+
+    try {
+      let profileData = null;
+      try {
+        const profileSnap = await state.db.ref('fts_users/' + user.uid).once('value');
+        profileData = profileSnap.val() || {};
+        debug.profileRead = true;
+      } catch (profileErr) {
+        debug.erreurProfil = getErrorMessage(profileErr);
+        throw new Error('Profil membre inaccessible : ' + debug.erreurProfil);
+      }
+
+      state.profile = Object.assign({ uid: user.uid, email:user.email || '' }, profileData || {});
+      const access = collectProfileAccess(state.profile);
+      debug.categoriesDetectees = Array.from(access.cats).sort();
+      debug.sousCategoriesDetectees = Array.from(access.subs).sort();
+
+      let raw = null;
+      const paths = ['fts_ressources', 'fts_resources'];
+      for (const path of paths) {
+        try {
+          const snap = await state.db.ref(path).once('value');
+          raw = snap.val() || {};
+          debug.resourcesPath = path;
+          debug.resourcesRead = true;
+          break;
+        } catch (resourceErr) {
+          debug.erreurRessources = `${path} : ${getErrorMessage(resourceErr)}`;
+          console.warn('[FTS Répétition] lecture ressources', path, resourceErr);
+        }
+      }
+      if (!debug.resourcesRead) {
+        throw new Error('Ressources inaccessibles : ' + (debug.erreurRessources || 'permission refusée'));
+      }
+
+      const normalized = Object.keys(raw || {}).map(key => normalizeResource(raw[key] || {}, key));
+      debug.totalResources = normalized.length;
+      const pdfs = normalized.filter(resource => resource.active && isPdfResource(resource));
+      debug.pdfResources = pdfs.length;
+      state.resources = pdfs
+        .filter(resource => canProfileSeeResource(state.profile, resource))
+        .sort((a,b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+      debug.visiblePdfResources = state.resources.length;
+
+      renderResourceOptions(state.resources);
+      setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''}` : 'Aucun PDF disponible');
+      setAppDebug(formatAppDebug(debug));
+    } catch (err) {
+      console.warn('[FTS Répétition] ressources', err);
+      state.resources = [];
+      setAppStatus('Lecture impossible');
+      renderResourceOptions([], getFriendlyLoadError(err));
+      setAppDebug(formatAppDebug(debug, err));
+    } finally {
+      if (els.repReloadAppPdfBtn) els.repReloadAppPdfBtn.disabled = false;
+    }
+  }
+
+  function getFriendlyLoadError(err){
+    const msg = getErrorMessage(err);
+    if (/permission|PERMISSION_DENIED/i.test(msg)) return 'Accès refusé par Firebase. Vérifie que le compte est actif.';
+    if (/Profil membre/i.test(msg)) return 'Impossible de lire ton profil membre.';
+    if (/Ressources/i.test(msg)) return 'Impossible de lire les ressources de l’app.';
+    return 'Impossible de charger les PDF de l’app';
+  }
+
+  function getErrorMessage(err){
+    return err && (err.message || err.code) ? String(err.message || err.code) : String(err || 'Erreur inconnue');
+  }
+
+  function setAppDebug(text){
+    if (els.repAppDebug) els.repAppDebug.textContent = text || '';
+  }
+
+  function formatAppDebug(debug, err){
+    const lines = [];
+    lines.push('Utilisateur : ' + (debug.email || debug.uid || 'inconnu'));
+    lines.push('Profil lisible : ' + (debug.profileRead ? 'oui' : 'non'));
+    lines.push('Ressources lisibles : ' + (debug.resourcesRead ? 'oui' : 'non'));
+    if (debug.resourcesPath) lines.push('Branche ressources : ' + debug.resourcesPath);
+    if (debug.erreurProfil) lines.push('Erreur profil : ' + debug.erreurProfil);
+    if (debug.erreurRessources) lines.push('Erreur ressources : ' + debug.erreurRessources);
+    lines.push('Catégories détectées : ' + (debug.categoriesDetectees.length ? debug.categoriesDetectees.join(', ') : 'aucune'));
+    lines.push('Sous-catégories détectées : ' + (debug.sousCategoriesDetectees.length ? debug.sousCategoriesDetectees.join(', ') : 'aucune'));
+    lines.push('Ressources totales : ' + debug.totalResources);
+    lines.push('PDF trouvés : ' + debug.pdfResources);
+    lines.push('PDF visibles après filtrage : ' + debug.visiblePdfResources);
+    if (err) lines.push('Erreur finale : ' + getErrorMessage(err));
+    return lines.join('\n');
   }
 
   function normalizeResource(r, key){
@@ -188,10 +293,15 @@
     addSubgroupsByCat(profile.subgroupsByCat || profile.subcategoriesByCat || profile.groupsByCat, cats, subs);
 
     // Parents : inclure les accès des enfants, car le parent doit voir les documents de ses enfants.
-    const children = Array.isArray(profile.enfants) ? profile.enfants : (Array.isArray(profile.children) ? profile.children : []);
+    const children = [];
+    if (Array.isArray(profile.enfants)) children.push(...profile.enfants);
+    if (Array.isArray(profile.children)) children.push(...profile.children);
+    if (profile.enfants && typeof profile.enfants === 'object' && !Array.isArray(profile.enfants)) children.push(...Object.values(profile.enfants));
+    if (profile.children && typeof profile.children === 'object' && !Array.isArray(profile.children)) children.push(...Object.values(profile.children));
     children.forEach(child => {
-      addList(child.disciplines || child.categories || child.category || child.group || child.groups, cats);
-      addList(child.subgroups || child.subcategories || child.subcats || child.subgroup || child.subcategory, subs);
+      if (!child || typeof child !== 'object') return;
+      addList(child.disciplines || child.categories || child.category || child.group || child.groups || child.cours || child.activities, cats);
+      addList(child.subgroups || child.subcategories || child.subcats || child.subgroup || child.subcategory || child.sections || child.groupes, subs);
       addSubgroupsByCat(child.subgroupsByCat || child.subcategoriesByCat || child.groupsByCat, cats, subs);
     });
 
