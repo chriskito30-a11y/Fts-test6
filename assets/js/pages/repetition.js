@@ -1,6 +1,8 @@
 (function(){
   'use strict';
 
+  const REPETITION_VERSION = 'V88';
+
   const els = {};
   const state = {
     lines: [],
@@ -93,7 +95,7 @@
   function initAppDocuments(){
     if (!els.repAppStatus || !els.repResourceSelect) return;
     if (typeof firebase === 'undefined' || !window.FTS || !FTS.initFirebase) {
-      setAppStatus('App non connectée');
+      setAppStatus('App non connectée — ' + REPETITION_VERSION);
       renderResourceOptions([], 'Connexion Firebase indisponible');
       return;
     }
@@ -102,7 +104,7 @@
       state.db = FTS.initFirebase();
     } catch (err) {
       console.warn('[FTS Répétition] Firebase init', err);
-      setAppStatus('Connexion app impossible');
+      setAppStatus('Connexion app impossible — ' + REPETITION_VERSION);
       renderResourceOptions([], 'Impossible de se connecter à l’app');
       return;
     }
@@ -112,7 +114,7 @@
       if (!user) {
         state.profile = null;
         state.resources = [];
-        setAppStatus('Non connecté');
+        setAppStatus('Non connecté — ' + REPETITION_VERSION);
         renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
         return;
       }
@@ -127,7 +129,7 @@
     if (!user) {
       state.profile = null;
       state.resources = [];
-      setAppStatus('Non connecté');
+      setAppStatus('Non connecté — ' + REPETITION_VERSION);
       renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
       setAppDebug('Utilisateur non connecté.');
       return;
@@ -169,21 +171,15 @@
       debug.sousCategoriesDetectees = Array.from(access.subs).sort();
 
       let raw = null;
-      const paths = ['fts_ressources', 'fts_resources'];
-      for (const path of paths) {
-        try {
-          const snap = await state.db.ref(path).once('value');
-          raw = snap.val() || {};
-          debug.resourcesPath = path;
-          debug.resourcesRead = true;
-          break;
-        } catch (resourceErr) {
-          debug.erreurRessources = `${path} : ${getErrorMessage(resourceErr)}`;
-          console.warn('[FTS Répétition] lecture ressources', path, resourceErr);
-        }
-      }
-      if (!debug.resourcesRead) {
-        throw new Error('Ressources inaccessibles : ' + (debug.erreurRessources || 'permission refusée'));
+      try {
+        const snap = await state.db.ref('fts_ressources').once('value');
+        raw = snap.val() || {};
+        debug.resourcesPath = 'fts_ressources';
+        debug.resourcesRead = true;
+      } catch (resourceErr) {
+        debug.erreurRessources = 'fts_ressources : ' + getErrorMessage(resourceErr);
+        console.warn('[FTS Répétition] lecture ressources fts_ressources', resourceErr);
+        throw new Error('Ressources inaccessibles : ' + debug.erreurRessources);
       }
 
       const normalized = Object.keys(raw || {}).map(key => normalizeResource(raw[key] || {}, key));
@@ -196,12 +192,12 @@
       debug.visiblePdfResources = state.resources.length;
 
       renderResourceOptions(state.resources);
-      setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''}` : 'Aucun PDF disponible');
+      setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''} — ${REPETITION_VERSION}` : 'Aucun PDF disponible — ' + REPETITION_VERSION);
       setAppDebug(formatAppDebug(debug));
     } catch (err) {
       console.warn('[FTS Répétition] ressources', err);
       state.resources = [];
-      setAppStatus('Lecture impossible');
+      setAppStatus('Lecture impossible — ' + REPETITION_VERSION);
       renderResourceOptions([], getFriendlyLoadError(err));
       setAppDebug(formatAppDebug(debug, err));
     } finally {
@@ -211,7 +207,7 @@
 
   function getFriendlyLoadError(err){
     const msg = getErrorMessage(err);
-    if (/permission|PERMISSION_DENIED/i.test(msg)) return 'Accès refusé par Firebase. Vérifie que le compte est actif.';
+    if (/permission|PERMISSION_DENIED|denied/i.test(msg)) return 'Accès refusé par Firebase : ce compte ne peut pas lire fts_ressources. Ouvre le détail ci-dessous.';
     if (/Profil membre/i.test(msg)) return 'Impossible de lire ton profil membre.';
     if (/Ressources/i.test(msg)) return 'Impossible de lire les ressources de l’app.';
     return 'Impossible de charger les PDF de l’app';
@@ -227,6 +223,7 @@
 
   function formatAppDebug(debug, err){
     const lines = [];
+    lines.push('Module répétition : ' + REPETITION_VERSION);
     lines.push('Utilisateur : ' + (debug.email || debug.uid || 'inconnu'));
     lines.push('Profil lisible : ' + (debug.profileRead ? 'oui' : 'non'));
     lines.push('Ressources lisibles : ' + (debug.resourcesRead ? 'oui' : 'non'));
@@ -301,7 +298,7 @@
     children.forEach(child => {
       if (!child || typeof child !== 'object') return;
       addList(child.disciplines || child.categories || child.category || child.group || child.groups || child.cours || child.activities, cats);
-      addList(child.subgroups || child.subcategories || child.subcats || child.subgroup || child.subcategory || child.sections || child.groupes, subs);
+      addList(child.subgroups || child.subcategories || child.subcats || child.subgroup || child.subcategory || child.sections || child.groupes || child.groups, subs);
       addSubgroupsByCat(child.subgroupsByCat || child.subcategoriesByCat || child.groupsByCat, cats, subs);
     });
 
