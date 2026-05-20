@@ -1,9 +1,10 @@
-const CACHE = 'fts-v81-approval-review';
+const CACHE = 'fts-v102-repetition-integration';
 const FILES = [
   './manifest.json',
   './index.html',
   './auth.html',
   './membres.html',
+  './repetition.html',
   './forum.html',
   './messages.html',
   './faq.html',
@@ -27,12 +28,12 @@ const FILES = [
   './assets/css/pages/forum.css',
   './assets/css/pages/index.css',
   './assets/css/pages/membres.css',
+  './assets/css/pages/repetition.css',
   './assets/css/pages/messages.css',
   './assets/css/pages/profs.css',
   './assets/css/pages/saison-admin.css',
   './assets/css/pages/saison.css',
   './assets/css/fts-nav.css',
-  './assets/css/fts-admin-mode.css',
   './assets/css/pages/hub-messages.css',
   './assets/css/pages/sondages.css',
   './assets/css/pages/rappels-admin.css',
@@ -43,7 +44,6 @@ const FILES = [
   './assets/js/fts-offline.js',
   './assets/js/fts-pwa.js',
   './assets/js/fts-utils.js',
-  './assets/js/fts-admin-mode.js',
   './assets/js/services/auth.service.js',
   './assets/js/services/content.service.js',
   './assets/js/services/events.service.js',
@@ -65,6 +65,7 @@ const FILES = [
   './assets/js/pages/forum.js',
   './assets/js/pages/index.js',
   './assets/js/pages/membres.js',
+  './assets/js/pages/repetition.js',
   './assets/js/pages/messages.js',
   './assets/js/pages/profs.js',
   './assets/js/pages/saison-admin.js',
@@ -193,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v78-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v102-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
@@ -344,4 +345,4 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-// FTS cache bump V79 admin daily cockpit
+// FTS cache bump V102 — assistant répétition intégré
