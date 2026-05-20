@@ -10,7 +10,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=46" rel="stylesheet"/>
-<link href="assets/css/fts-admin-mode.css?v=78" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=79" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -52,8 +52,13 @@
 </section>
 
 <section class="fts-admin-action-panel" aria-label="Actions rapides administrateur">
-  <h2>Nouvelle action rapide</h2>
-  <p>Choisis l’objectif, pas la page technique. C’est plus simple pour déléguer l’administration.</p>
+  <div class="fts-admin-action-head">
+    <div>
+      <h2>Nouvelle action rapide</h2>
+      <p>Choisis l’objectif, pas la page technique. C’est plus simple pour déléguer l’administration.</p>
+    </div>
+    <button type="button" class="fts-admin-primary-action" id="admin-open-action-guide">+ Nouvelle action</button>
+  </div>
   <div class="fts-admin-action-grid">
     <a class="fts-admin-action-btn" href="forum-admin.html"><span>👥</span><span><b>Gérer un membre</b><small>Validation, rôle, accès, enfants</small></span></a>
     <a class="fts-admin-action-btn" href="profs.html"><span>📁</span><span><b>Ajouter une ressource</b><small>Document, texte, audio, vidéo</small></span></a>
@@ -63,6 +68,57 @@
     <a class="fts-admin-action-btn" href="admin.html" data-admin-advanced><span>⚙️</span><span><b>Voir tous les outils</b><small>Mode avancé activé sur cette page</small></span></a>
   </div>
 </section>
+
+<section class="fts-admin-today-panel" aria-label="À surveiller aujourd’hui">
+  <div class="fts-admin-section-head">
+    <div>
+      <div class="fts-admin-simple-kicker">Tableau de bord vivant</div>
+      <h2>À surveiller aujourd’hui</h2>
+      <p>Vue rapide pour savoir quoi vérifier sans ouvrir toutes les pages admin.</p>
+    </div>
+    <a class="fts-admin-mini-link" href="rappels-admin.html">Voir rappels</a>
+  </div>
+  <div class="fts-admin-today-grid" id="admin-today-grid">
+    <div class="fts-admin-today-skeleton">Chargement des points à vérifier…</div>
+  </div>
+</section>
+
+<section class="fts-admin-search-panel" aria-label="Recherche rapide membre ou enfant">
+  <div class="fts-admin-section-head">
+    <div>
+      <div class="fts-admin-simple-kicker">Recherche rapide</div>
+      <h2>Retrouver un membre ou un enfant</h2>
+      <p>Tape un prénom, nom, email, téléphone, activité ou groupe. Aucun changement n’est fait ici : c’est une recherche de confort.</p>
+    </div>
+    <a class="fts-admin-mini-link" href="forum-admin.html#tab-members">Gestion complète</a>
+  </div>
+  <div class="fts-admin-search-box">
+    <input id="admin-global-search" type="search" placeholder="Ex : Sophie, Léo, guitare, théâtre adulte…" autocomplete="off"/>
+  </div>
+  <div class="fts-admin-search-results" id="admin-global-search-results">
+    <div class="fts-admin-search-empty">Commence à taper pour afficher les résultats.</div>
+  </div>
+</section>
+
+<div class="fts-admin-action-modal" id="admin-action-modal" aria-hidden="true">
+  <div class="fts-admin-action-backdrop" data-admin-close-action-guide></div>
+  <div class="fts-admin-action-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-action-title">
+    <button type="button" class="fts-admin-action-close" data-admin-close-action-guide aria-label="Fermer">×</button>
+    <div class="fts-admin-simple-kicker">Assistant admin</div>
+    <h2 id="admin-action-title">Que veux-tu faire ?</h2>
+    <p>Choisis une action concrète. L’app t’envoie vers la bonne page, sans devoir retenir où se trouve chaque outil.</p>
+    <div class="fts-admin-action-choice-grid">
+      <a href="forum-admin.html#tab-pending"><span>⏳</span><strong>Valider une inscription</strong><small>Demandes en attente, accès, rappels à créer.</small></a>
+      <a href="contenus-admin.html"><span>📣</span><strong>Publier une annonce</strong><small>Info générale ou ciblée.</small></a>
+      <a href="profs.html"><span>📁</span><strong>Ajouter un document</strong><small>PDF, audio, vidéo, texte ou lien.</small></a>
+      <a href="calendrier-admin.html"><span>📅</span><strong>Ajouter une date</strong><small>Événement, spectacle, répétition, stage.</small></a>
+      <a href="sondages.html"><span>📊</span><strong>Créer un sondage</strong><small>Question ciblée + notifications.</small></a>
+      <a href="rappels-admin.html"><span>🤖</span><strong>Programmer un rappel</strong><small>Cours, groupe ou rendez-vous.</small></a>
+      <a href="forum-admin.html#tab-members"><span>🔎</span><strong>Modifier un membre</strong><small>Rôle, enfants, disciplines, groupes.</small></a>
+      <a href="saison-admin.html"><span>🎭</span><strong>Préparer la saison</strong><small>Activités, formules, inscriptions.</small></a>
+    </div>
+  </div>
+</div>
 
 <section aria-label="Résumé administration" class="admin-overview" id="admin-overview">
   <article class="overview-card overview-waiting">
@@ -173,7 +229,7 @@
 <div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
 
 <script src="assets/js/fts-utils.js"></script>
-<script src="assets/js/fts-admin-mode.js?v=78"></script>
+<script src="assets/js/fts-admin-mode.js?v=79"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
@@ -185,6 +241,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/admin.js?v=78"></script>
+<script src="assets/js/pages/admin.js?v=79"></script>
 </body>
 </html>

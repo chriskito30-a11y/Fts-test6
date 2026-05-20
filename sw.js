@@ -1,4 +1,4 @@
-const CACHE = 'fts-v78-admin-simple-mode';
+const CACHE = 'fts-v79-admin-daily-cockpit';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -344,4 +344,4 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-// FTS cache bump topbar compact v3
+// FTS cache bump V79 admin daily cockpit
