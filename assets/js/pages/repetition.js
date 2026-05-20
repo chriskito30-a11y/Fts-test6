@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V97';
+  const REPETITION_VERSION = 'V98';
 
   const els = {};
   const state = {
@@ -51,7 +51,7 @@
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
-    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; refreshPlayer(); });
+    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; refreshPlayer(); renderRoleChoices(); });
     els.repMode.addEventListener('change', refreshPlayer);
     els.repOwnLines.addEventListener('change', refreshPlayer);
     if (els.repResourceSelect) els.repResourceSelect.addEventListener('change', onResourceSelectChange);
@@ -495,9 +495,11 @@
     analyze();
     const lineCount = state.lines.filter(l => l.kind === 'line').length;
     const roleCount = state.characters.length;
-    setPdfStatus(`PDF analysé : ${lineCount} réplique${lineCount>1?'s':''}, ${roleCount} rôle${roleCount>1?'s':''} détecté${roleCount>1?'s':''}.`);
+    setPdfStatus(`Texte prêt : ${lineCount} réplique${lineCount>1?'s':''}, ${roleCount} personnage${roleCount>1?'s':''}. Choisis ton rôle puis appuie sur Play.`);
     if (!lineCount || !roleCount) {
       setPdfStatus(`Le PDF “${label}” a été lu, mais aucun rôle n’a été détecté. Vérifie que les répliques sont bien en début de ligne avec un séparateur, ex. Alice : Bonjour.`, false);
+    } else {
+      scrollToRoleChoice();
     }
   }
 
@@ -620,21 +622,71 @@
       <div><strong>${state.characters.length}</strong><span>rôle${state.characters.length>1?'s':''}</span></div>
       <div><strong>${stageCount}</strong><span>didascalie${stageCount>1?'s':''}</span></div>
     `;
-    els.repCharacters.innerHTML = state.characters.length
-      ? state.characters.map(name => `<span class="rep-tag">${escapeHtml(name)}</span>`).join('')
-      : '<span class="rep-tag">Aucun rôle détecté</span>';
-
-    renderRoleReadControls();
-
     els.repRoleSelect.disabled = !state.characters.length;
     els.repRoleSelect.innerHTML = state.characters.length
       ? '<option value="">Choisir mon rôle</option>' + state.characters.map(name => `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`).join('')
       : '<option value="">Aucun rôle détecté</option>';
 
+    renderRoleChoices();
+    renderRoleReadControls();
     renderLineList();
     setButtons();
   }
 
+
+  function renderRoleChoices(){
+    if (!els.repCharacters) return;
+    if (!state.characters.length) {
+      els.repCharacters.innerHTML = '<span class="rep-tag">Aucun rôle détecté</span>';
+      return;
+    }
+    const selected = els.repRoleSelect.value;
+    const counts = countLinesBySpeaker();
+    els.repCharacters.innerHTML = state.characters.map(name => {
+      const active = selected === name ? ' is-active' : '';
+      const count = counts[name] || 0;
+      return `<button class="rep-role-card${active}" type="button" data-role="${escapeAttr(name)}">
+        <strong>${escapeHtml(name)}</strong>
+        <span>${count} réplique${count>1?'s':''}</span>
+      </button>`;
+    }).join('');
+    els.repCharacters.querySelectorAll('[data-role]').forEach(button => {
+      button.addEventListener('click', () => {
+        const role = button.getAttribute('data-role') || '';
+        els.repRoleSelect.value = role;
+        stop(false);
+        state.currentIndex = 0;
+        state.awaitingUser = false;
+        refreshPlayer();
+        renderRoleChoices();
+        scrollToPlayer();
+      });
+    });
+  }
+
+  function countLinesBySpeaker(){
+    const counts = {};
+    state.lines.forEach(line => {
+      if (line && line.kind === 'line' && line.speaker) counts[line.speaker] = (counts[line.speaker] || 0) + 1;
+    });
+    return counts;
+  }
+
+
+
+  function scrollToRoleChoice(){
+    try {
+      const target = els.repCharacters || els.repRoleSelect;
+      if (target && target.scrollIntoView) target.scrollIntoView({ behavior:'smooth', block:'center' });
+    } catch(e) {}
+  }
+
+  function scrollToPlayer(){
+    try {
+      const target = document.querySelector('.rep-player');
+      if (target && target.scrollIntoView) target.scrollIntoView({ behavior:'smooth', block:'start' });
+    } catch(e) {}
+  }
 
   function renderRoleReadControls(){
     if (!els.repRoleReadControls) return;
@@ -775,6 +827,14 @@
         refreshPlayer();
       });
     });
+    keepActiveLineVisible();
+  }
+
+  function keepActiveLineVisible(){
+    if (!els.repLineList) return;
+    const active = els.repLineList.querySelector('.rep-line.active');
+    if (!active) return;
+    try { active.scrollIntoView({ behavior:'smooth', block:'center', inline:'nearest' }); } catch(e) {}
   }
 
   function start(){
@@ -832,7 +892,9 @@
     setButtons();
 
     if (mode === 'auto') {
-      state.timeoutId = setTimeout(() => { if (token === state.playToken && state.playing) advance(); }, Number(els.repPause.value) || 4500);
+      const delay = computeSilentLineDelay(line);
+      els.repProgressText.textContent = `Réplique muette : à toi de parler, l’app enchaîne dans ${Math.round(delay/1000)} s.`;
+      state.timeoutId = setTimeout(() => { if (token === state.playToken && state.playing) advance(); }, delay);
       return;
     }
 
@@ -849,6 +911,16 @@
     // Le rôle choisi par l'élève reste toujours actif pour pouvoir s'arrêter dessus.
     if (selectedRole && line.speaker === selectedRole) return false;
     return state.ignoredSpeakers && state.ignoredSpeakers.has(line.speaker);
+  }
+
+
+  function computeSilentLineDelay(line){
+    const minDelay = Number(els.repPause.value) || 4500;
+    const text = getSpeakableText(line && line.text ? line.text : '');
+    const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+    // En mode muet, on simule le temps de lecture de l'élève : minimum choisi + durée selon longueur.
+    const estimated = 1400 + (words * 430);
+    return Math.max(minDelay, Math.min(18000, estimated));
   }
 
   function speakLine(line, includeSpeaker, onEnd){
@@ -1059,11 +1131,12 @@
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
     els.repMeterBar.style.width = `${Math.max(0,Math.min(100,percent))}%`;
+    const mode = els.repMode.value;
     els.repProgressText.textContent = isIgnored
       ? 'Cette ligne sera passée.'
       : isOwn
-        ? 'L’app attend ta réplique.'
-        : (state.playing ? 'Lecture en cours.' : 'Prêt à lancer depuis cette réplique.');
+        ? (mode === 'auto' ? 'Réplique muette : dis ta ligne, l’app enchaînera automatiquement.' : 'À toi : dis ta réplique, puis valide pour continuer.')
+        : (state.playing ? 'L’app donne la réplique.' : 'Prêt à lancer depuis cette réplique.');
   }
 
   function displayTextForLine(line){
@@ -1098,7 +1171,7 @@
 
   function renderEmpty(){
     els.repCurrentLine.className = 'rep-current';
-    els.repCurrentLine.innerHTML = '<p class="rep-current-role">En attente</p><p class="rep-current-text">Analyse un texte, choisis ton rôle, puis lance la répétition.</p>';
+    els.repCurrentLine.innerHTML = '<p class="rep-current-role">En attente</p><p class="rep-current-text">Choisis un PDF, choisis ton rôle, puis appuie sur Play.</p>';
     els.repProgressText.textContent = 'Aucun texte lancé.';
     els.repCounter.textContent = '0 / 0';
     els.repMeterBar.style.width = '0%';
