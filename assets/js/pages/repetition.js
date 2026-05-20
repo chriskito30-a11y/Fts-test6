@@ -15,7 +15,8 @@
     profile: null,
     resources: [],
     localPdfFile: null,
-    loadingPdf: false
+    loadingPdf: false,
+    playToken: 0
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -501,6 +502,7 @@
       return;
     }
     stopSpeechOnly();
+    state.playToken += 1;
     state.playing = true;
     state.awaitingUser = false;
     state.currentIndex = Math.min(state.currentIndex, state.lines.length - 1);
@@ -511,6 +513,7 @@
   function playCurrent(){
     clearPendingTimeout();
     if (!state.playing || !state.lines.length) return;
+    const token = state.playToken;
     if (state.currentIndex >= state.lines.length) {
       finish();
       return;
@@ -526,12 +529,12 @@
     setButtons();
 
     if (line.kind === 'stage') {
-      speak(line.text, () => advance());
+      speak(line.text, () => { if (token === state.playToken && state.playing) advance(); });
       return;
     }
 
     if (mode === 'full' || !isOwn) {
-      speak(`${line.speaker}. ${line.text}`, () => advance());
+      speak(`${line.speaker}. ${line.text}`, () => { if (token === state.playToken && state.playing) advance(); });
       return;
     }
 
@@ -539,13 +542,13 @@
     setButtons();
 
     if (mode === 'auto') {
-      state.timeoutId = setTimeout(() => advance(), Number(els.repPause.value) || 4500);
+      state.timeoutId = setTimeout(() => { if (token === state.playToken && state.playing) advance(); }, Number(els.repPause.value) || 4500);
       return;
     }
 
     if (mode === 'confirm') {
       state.timeoutId = setTimeout(() => {
-        speak(`${line.speaker}. ${line.text}`, () => advance());
+        speak(`${line.speaker}. ${line.text}`, () => { if (token === state.playToken && state.playing) advance(); });
       }, Number(els.repPause.value) || 4500);
     }
   }
@@ -600,15 +603,27 @@
 
   function stop(resetText = true){
     clearPendingTimeout();
-    stopSpeechOnly(false);
+    state.playToken += 1;
     state.playing = false;
     state.awaitingUser = false;
+    stopSpeechOnly(true);
     setButtons();
     if (resetText) refreshPlayer();
   }
 
   function stopSpeechOnly(cancel = true){
-    if (cancel && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    if (!('speechSynthesis' in window)) return;
+    if (!cancel) return;
+    try {
+      window.speechSynthesis.pause();
+      window.speechSynthesis.cancel();
+      // Certains navigateurs mobiles gardent une utterance en file si cancel arrive pendant onstart.
+      setTimeout(() => {
+        try { window.speechSynthesis.cancel(); } catch(e) {}
+      }, 0);
+    } catch (err) {
+      try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
   }
 
   function clearPendingTimeout(){
