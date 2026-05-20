@@ -1656,3 +1656,135 @@ body[data-rep-view="rehearse"] .rep-actions-player .rep-btn-mini{
     font-size: .64rem !important;
   }
 }
+
+/* ================================================================
+   V116 — barre mobile lisible + actions bibliothèque compactes
+   - Plus de texte coupé dans les boutons.
+   - Barre de répétition en deux lignes sur mobile : navigation puis actions.
+   - Boutons alignés avec le contour or FTS.
+   ================================================================ */
+body[data-rep-view="rehearse"]{
+  --rep-control-height: 92px;
+}
+body[data-rep-view="rehearse"] .rep-actions-player{
+  border:1px solid rgba(246,220,130,.72) !important;
+  background:linear-gradient(180deg,rgba(12,12,12,.98),rgba(4,4,4,.98)) !important;
+  box-shadow:0 -10px 30px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.04) inset !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+  background:linear-gradient(180deg,#ffe45c 0%,#e0b900 100%) !important;
+  border:1px solid rgba(255,238,128,.95) !important;
+  color:#080808 !important;
+  box-shadow:0 5px 12px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.45) !important;
+  overflow:hidden !important;
+  text-overflow:clip !important;
+  white-space:nowrap !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn:disabled{
+  background:linear-gradient(180deg,#4a4312 0%,#28250b 100%) !important;
+  border-color:rgba(246,220,130,.22) !important;
+  color:rgba(255,238,128,.34) !important;
+  opacity:1 !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn-mini,
+body[data-rep-view="rehearse"] .rep-actions-player #repDifficultBtn{
+  font-size:1rem !important;
+  letter-spacing:0 !important;
+}
+body[data-rep-view="rehearse"] .rep-shell{
+  padding-bottom: calc(var(--rep-bottom-nav-height, 64px) + var(--rep-control-height) + env(safe-area-inset-bottom, 0px) + 12px) !important;
+}
+
+/* Bibliothèque locale : boutons lisibles sur mobile */
+.rep-offline-actions{
+  display:grid !important;
+  grid-template-columns:minmax(130px,1fr) 42px 42px !important;
+  gap:.4rem !important;
+  align-items:center !important;
+  justify-content:stretch !important;
+}
+.rep-offline-actions .rep-btn{
+  width:100% !important;
+  min-width:0 !important;
+  min-height:40px !important;
+  padding:.5rem .55rem !important;
+  white-space:nowrap !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+.rep-offline-actions .rep-btn-icon-only,
+.rep-offline-actions [data-offline-settings]{
+  width:42px !important;
+  min-width:42px !important;
+  padding:0 !important;
+  font-size:1rem !important;
+}
+.rep-resume-actions .rep-btn{
+  min-width:110px !important;
+}
+
+@media(max-width:760px){
+  body[data-rep-view="rehearse"]{
+    --rep-control-height: 92px;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    grid-auto-rows:38px !important;
+    gap:.34rem !important;
+    padding:.42rem !important;
+    border-radius:16px 16px 0 0 !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    height:38px !important;
+    min-height:38px !important;
+    border-radius:12px !important;
+    font-size:.78rem !important;
+    line-height:1 !important;
+    padding:.15rem .25rem !important;
+    letter-spacing:0 !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn-mini,
+  body[data-rep-view="rehearse"] .rep-actions-player #repDifficultBtn{
+    font-size:1.05rem !important;
+    padding:0 !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player #repRestartBtn{order:1;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repPrevBtn{order:2;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repStartBtn{order:3;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repStopBtn{order:4;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repNextBtn{order:5;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repContinueBtn{order:6;grid-column:span 2;font-size:.82rem !important;font-weight:950 !important;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repCueBtn{order:7;grid-column:span 2;font-size:.82rem !important;font-weight:950 !important;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repDifficultBtn{order:8;grid-column:span 1;}
+  body[data-rep-view="rehearse"] .rep-actions-player #repReviewDifficultBtn,
+  body[data-rep-view="rehearse"] .rep-actions-player #repExitDifficultBtn{
+    display:none !important;
+  }
+  .rep-offline-actions{
+    grid-template-columns:minmax(120px,1fr) 42px 42px !important;
+  }
+  .rep-offline-actions .rep-btn{min-height:42px !important;}
+}
+
+@media(max-width:360px){
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    gap:.24rem !important;
+    padding:.34rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    font-size:.72rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn-mini,
+  body[data-rep-view="rehearse"] .rep-actions-player #repDifficultBtn{
+    font-size:.98rem !important;
+  }
+  .rep-offline-actions{
+    grid-template-columns:minmax(110px,1fr) 40px 40px !important;
+    gap:.3rem !important;
+  }
+  .rep-offline-actions .rep-btn-icon-only,
+  .rep-offline-actions [data-offline-settings]{
+    width:40px !important;
+    min-width:40px !important;
+  }
+}
