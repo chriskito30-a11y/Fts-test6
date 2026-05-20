@@ -1,4 +1,4 @@
-const CACHE = 'fts-v117-repetition-editor-preview';
+const CACHE = 'fts-v118-repetition-review-shortcut';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v115-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v118-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
