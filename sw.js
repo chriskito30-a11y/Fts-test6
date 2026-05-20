@@ -1,4 +1,4 @@
-const CACHE = 'fts-v105-repetition-shortcut';
+const CACHE = 'fts-v106-repetition-contrast';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v105-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v106-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
