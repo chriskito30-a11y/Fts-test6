@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V94';
+  const REPETITION_VERSION = 'V95';
 
   const els = {};
   const state = {
@@ -18,7 +18,8 @@
     resources: [],
     localPdfFile: null,
     loadingPdf: false,
-    playToken: 0
+    playToken: 0,
+    ignoredSpeakers: new Set()
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -34,7 +35,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -608,6 +609,8 @@
       ? state.characters.map(name => `<span class="rep-tag">${escapeHtml(name)}</span>`).join('')
       : '<span class="rep-tag">Aucun rôle détecté</span>';
 
+    renderRoleReadControls();
+
     els.repRoleSelect.disabled = !state.characters.length;
     els.repRoleSelect.innerHTML = state.characters.length
       ? '<option value="">Choisir mon rôle</option>' + state.characters.map(name => `<option value="${escapeAttr(name)}">${escapeHtml(name)}</option>`).join('')
@@ -615,6 +618,44 @@
 
     renderLineList();
     setButtons();
+  }
+
+
+  function renderRoleReadControls(){
+    if (!els.repRoleReadControls) return;
+    if (!state.characters.length) {
+      els.repRoleReadControls.innerHTML = '<p class="rep-help">Les rôles détectés apparaîtront ici.</p>';
+      return;
+    }
+
+    // Si un nouveau texte est analysé, on conserve seulement les rôles encore présents.
+    state.ignoredSpeakers = new Set(Array.from(state.ignoredSpeakers || []).filter(name => state.characters.includes(name)));
+
+    els.repRoleReadControls.innerHTML = `
+      <div class="rep-role-read-head">
+        <strong>Rôles à faire lire par l’app</strong>
+        <small>Décoche un faux rôle ou un rôle à ignorer : ses lignes seront passées.</small>
+      </div>
+      <div class="rep-role-read-list">
+        ${state.characters.map(name => {
+          const checked = !state.ignoredSpeakers.has(name);
+          return `<label class="rep-role-read-item ${checked ? '' : 'is-muted'}">
+            <input type="checkbox" value="${escapeAttr(name)}" ${checked ? 'checked' : ''} />
+            <span>${escapeHtml(name)}</span>
+          </label>`;
+        }).join('')}
+      </div>
+    `;
+
+    els.repRoleReadControls.querySelectorAll('input[type="checkbox"]').forEach(input => {
+      input.addEventListener('change', () => {
+        const name = input.value;
+        if (input.checked) state.ignoredSpeakers.delete(name);
+        else state.ignoredSpeakers.add(name);
+        refreshPlayer();
+        renderLineList();
+      });
+    });
   }
 
   function renderLineList(){
@@ -627,9 +668,11 @@
       const classes = ['rep-line'];
       if (index === state.currentIndex) classes.push('active');
       if (line.speaker === role) classes.push('own');
+      if (isIgnoredSpeakerLine(line, role)) classes.push('ignored');
+      const ignoredNote = isIgnoredSpeakerLine(line, role) ? '<small class="rep-line-note">Rôle ignoré — cette ligne sera passée</small>' : '';
       return `<div class="${classes.join(' ')}" data-line-index="${index}">
         <div class="rep-line-role">${escapeHtml(line.speaker)}</div>
-        <div class="rep-line-text">${escapeHtml(displayTextForLine(line))}</div>
+        <div class="rep-line-text">${escapeHtml(displayTextForLine(line))}${ignoredNote}</div>
       </div>`;
     }).join('');
 
@@ -671,18 +714,26 @@
     const role = els.repRoleSelect.value;
     const mode = els.repMode.value;
     const isOwn = mode !== 'full' && line.speaker === role;
+    const isIgnored = isIgnoredSpeakerLine(line, role);
 
-    renderCurrentLine(line, isOwn);
+    renderCurrentLine(line, isOwn, isIgnored);
     renderLineList();
     setButtons();
 
+    if (isIgnored) {
+      els.repProgressText.textContent = 'Rôle ignoré : l’app passe cette ligne.';
+      state.timeoutId = setTimeout(() => { if (token === state.playToken && state.playing) advance(); }, 80);
+      return;
+    }
+
+    // renderCurrentLine a déjà mis à jour l'aperçu ci-dessus.
     if (line.kind === 'stage') {
-      speak(line.text, () => { if (token === state.playToken && state.playing) advance(); });
+      speakLine(line, false, () => { if (token === state.playToken && state.playing) advance(); });
       return;
     }
 
     if (mode === 'full' || !isOwn) {
-      speak(`${line.speaker}. ${line.text}`, () => { if (token === state.playToken && state.playing) advance(); });
+      speakLine(line, true, () => { if (token === state.playToken && state.playing) advance(); });
       return;
     }
 
@@ -696,9 +747,49 @@
 
     if (mode === 'confirm') {
       state.timeoutId = setTimeout(() => {
-        speak(`${line.speaker}. ${line.text}`, () => { if (token === state.playToken && state.playing) advance(); });
+        speakLine(line, true, () => { if (token === state.playToken && state.playing) advance(); });
       }, Number(els.repPause.value) || 4500);
     }
+  }
+
+
+  function isIgnoredSpeakerLine(line, selectedRole){
+    if (!line || line.kind !== 'line') return false;
+    // Le rôle choisi par l'élève reste toujours actif pour pouvoir s'arrêter dessus.
+    if (selectedRole && line.speaker === selectedRole) return false;
+    return state.ignoredSpeakers && state.ignoredSpeakers.has(line.speaker);
+  }
+
+  function speakLine(line, includeSpeaker, onEnd){
+    const text = getSpeakableText(line ? line.text : '');
+    if (!text) {
+      state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 80);
+      return;
+    }
+    const prefix = includeSpeaker && line && line.speaker ? `${line.speaker}. ` : '';
+    speak(prefix + text, onEnd);
+  }
+
+  function getSpeakableText(text){
+    return stripInlineStageDirections(text)
+      .replace(/\s+([,.;:!?])/g, '$1')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  function stripInlineStageDirections(text){
+    let value = String(text || '');
+    // Retire les didascalies intégrées : (il s'avance), [elle rit], *en chantant*.
+    // On boucle pour gérer plusieurs indications dans une même réplique.
+    let previous = '';
+    while (previous !== value) {
+      previous = value;
+      value = value
+        .replace(/\([^()]*\)/g, ' ')
+        .replace(/\[[^\[\]]*\]/g, ' ')
+        .replace(/\*[^*]*\*/g, ' ');
+    }
+    return value;
   }
 
   function speak(text, onEnd, options){
@@ -740,12 +831,12 @@
     clearPendingTimeout();
     state.awaitingUser = true;
     setButtons();
-    speak(`${line.speaker}. ${line.text}`, () => {
+    speakLine(line, true, () => {
       if (state.playing) {
         state.awaitingUser = true;
         setButtons();
       }
-    }, { noStop:false });
+    });
   }
 
   function continueAfterOwnLine(){
@@ -818,25 +909,28 @@
     const line = state.lines[state.currentIndex] || state.lines[0];
     const role = els.repRoleSelect.value;
     const isOwn = els.repMode.value !== 'full' && line && line.speaker === role;
-    renderCurrentLine(line, isOwn);
+    const isIgnored = isIgnoredSpeakerLine(line, role);
+    renderCurrentLine(line, isOwn, isIgnored);
     if (renderList) renderLineList();
     setButtons();
   }
 
-  function renderCurrentLine(line, isOwn){
+  function renderCurrentLine(line, isOwn, isIgnored){
     if (!line) return renderEmpty();
     const total = state.lines.length;
     const percent = total ? ((state.currentIndex + 1) / total) * 100 : 0;
-    els.repCurrentLine.className = 'rep-current' + (isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other');
+    els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other');
     els.repCurrentLine.innerHTML = `
-      <p class="rep-current-role">${isOwn ? 'À toi' : escapeHtml(line.speaker)}</p>
+      <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : isOwn ? 'À toi' : escapeHtml(line.speaker)}</p>
       <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
     els.repMeterBar.style.width = `${Math.max(0,Math.min(100,percent))}%`;
-    els.repProgressText.textContent = isOwn
-      ? 'L’app attend ta réplique.'
-      : (state.playing ? 'Lecture en cours.' : 'Prêt à lancer depuis cette réplique.');
+    els.repProgressText.textContent = isIgnored
+      ? 'Cette ligne sera passée.'
+      : isOwn
+        ? 'L’app attend ta réplique.'
+        : (state.playing ? 'Lecture en cours.' : 'Prêt à lancer depuis cette réplique.');
   }
 
   function displayTextForLine(line){
@@ -885,6 +979,7 @@
     state.lines = [];
     state.characters = [];
     state.currentIndex = 0;
+    state.ignoredSpeakers = new Set();
     els.repStats.innerHTML = '<div><strong>0</strong><span>réplique</span></div><div><strong>0</strong><span>rôle</span></div><div><strong>0</strong><span>didascalie</span></div>';
     els.repCharacters.innerHTML = '';
     els.repRoleSelect.disabled = true;
