@@ -198,8 +198,8 @@
     if (!els.repAppStatus || !els.repResourceSelect) return;
     if (typeof firebase === 'undefined' || !window.FTS || !FTS.initFirebase) {
       setAppStatus('Connexion app indisponible');
-      renderResourceOptions([], 'Connexion Firebase indisponible');
-      setAppDebug('Firebase indisponible sur cette page.', true);
+      renderResourceOptions([], 'Connexion indisponible');
+      setAppDebug('Connexion indisponible pour charger les textes de l’app.', true);
       return;
     }
 
@@ -1877,7 +1877,7 @@
     const cached = getLastCachedScript();
     if (!cached || !cached.text) return;
     applyExtractedText(cached.text, cached.label || 'Dernière répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Dernière répétition', fromCache:true }));
-    setPdfStatus('Répétition reprise depuis cet appareil. Firebase n’a pas besoin de relire ce PDF.');
+    setPdfStatus('Texte prêt à reprendre.');
     if (getSelectedRole()) setView('rehearse');
   }
 
