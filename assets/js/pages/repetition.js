@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V95';
+  const REPETITION_VERSION = 'V96';
 
   const els = {};
   const state = {
@@ -19,7 +19,8 @@
     localPdfFile: null,
     loadingPdf: false,
     playToken: 0,
-    ignoredSpeakers: new Set()
+    ignoredSpeakers: new Set(),
+    roleVoicePrefs: {}
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -82,6 +83,7 @@
     }).join('');
     if (current) els.repVoice.value = current;
     updateSpeechStatus();
+    if (state.characters && state.characters.length) renderRoleReadControls();
   }
 
   function initPdfEngine(){
@@ -630,6 +632,9 @@
 
     // Si un nouveau texte est analysé, on conserve seulement les rôles encore présents.
     state.ignoredSpeakers = new Set(Array.from(state.ignoredSpeakers || []).filter(name => state.characters.includes(name)));
+    Object.keys(state.roleVoicePrefs || {}).forEach(name => {
+      if (!state.characters.includes(name)) delete state.roleVoicePrefs[name];
+    });
 
     els.repRoleReadControls.innerHTML = `
       <div class="rep-role-read-head">
@@ -645,6 +650,23 @@
           </label>`;
         }).join('')}
       </div>
+      <details class="rep-role-voice-details">
+        <summary>
+          <span>Voix par rôle</span>
+          <small>Optionnel · français France homme/femme ou voix précise</small>
+        </summary>
+        <div class="rep-role-voice-list">
+          ${state.characters.map(name => `
+            <label class="rep-role-voice-item">
+              <span>${escapeHtml(name)}</span>
+              <select class="rep-select rep-role-voice-select" data-speaker="${escapeAttr(name)}">
+                ${renderRoleVoiceOptions(state.roleVoicePrefs[name] || '')}
+              </select>
+            </label>
+          `).join('')}
+        </div>
+        <p class="rep-role-voice-note">Selon le téléphone ou le navigateur, les voix homme/femme disponibles peuvent varier. Si aucune voix correspondante n’existe, l’app utilise la meilleure voix française disponible.</p>
+      </details>
     `;
 
     els.repRoleReadControls.querySelectorAll('input[type="checkbox"]').forEach(input => {
@@ -656,6 +678,56 @@
         renderLineList();
       });
     });
+
+    els.repRoleReadControls.querySelectorAll('.rep-role-voice-select').forEach(select => {
+      select.addEventListener('change', () => {
+        const name = select.getAttribute('data-speaker') || '';
+        if (!name) return;
+        if (select.value) state.roleVoicePrefs[name] = select.value;
+        else delete state.roleVoicePrefs[name];
+      });
+    });
+  }
+
+  function renderRoleVoiceOptions(selectedValue){
+    const choices = [
+      { value:'', label:'Voix automatique' },
+      { value:'fr-female', label:'Voix française femme' },
+      { value:'fr-male', label:'Voix française homme' }
+    ];
+    const frenchVoices = getFrenchVoices();
+    const voiceChoices = frenchVoices.length ? frenchVoices : state.voices;
+    const options = choices.map(choice => `<option value="${escapeAttr(choice.value)}" ${selectedValue === choice.value ? 'selected' : ''}>${escapeHtml(choice.label)}</option>`);
+    if (voiceChoices.length) {
+      options.push('<option value="" disabled>──────────</option>');
+      voiceChoices.forEach(voice => {
+        const index = state.voices.indexOf(voice);
+        const value = 'voice:' + index;
+        const gender = inferVoiceGender(voice);
+        const genderLabel = gender === 'female' ? ' · femme' : gender === 'male' ? ' · homme' : '';
+        const label = `${voice.name}${voice.lang ? ' — ' + voice.lang : ''}${genderLabel}`;
+        options.push(`<option value="${escapeAttr(value)}" ${selectedValue === value ? 'selected' : ''}>${escapeHtml(label)}</option>`);
+      });
+    }
+    return options.join('');
+  }
+
+  function getFrenchVoices(){
+    const voices = state.voices || [];
+    const frFR = voices.filter(v => /^fr[-_]FR$/i.test(String(v.lang || '')) || /français.*france|france.*français|french.*france|france.*french/i.test(`${v.name} ${v.lang}`));
+    const fr = voices.filter(v => /^fr/i.test(String(v.lang || '')) || /fran[cç]ais|french/i.test(`${v.name} ${v.lang}`));
+    const result = [];
+    frFR.concat(fr).forEach(v => { if (!result.includes(v)) result.push(v); });
+    return result;
+  }
+
+  function inferVoiceGender(voice){
+    const label = norm(`${voice && voice.name ? voice.name : ''} ${voice && voice.voiceURI ? voice.voiceURI : ''}`);
+    const female = ['amelie','amélie','audrey','aurelie','aurélie','marie','julie','lucie','lea','léa','celine','céline','claire','chloe','chloé','manon','camille','sophie','florence','isabelle','virginie','hortense','zoe','zoé','female','femme','woman'];
+    const male = ['thomas','nicolas','bernard','paul','jacques','pierre','claude','antoine','henri','louis','mathieu','alain','guillaume','jean','male','homme','man'];
+    if (female.some(name => label.includes(norm(name)))) return 'female';
+    if (male.some(name => label.includes(norm(name)))) return 'male';
+    return '';
   }
 
   function renderLineList(){
@@ -767,7 +839,7 @@
       return;
     }
     const prefix = includeSpeaker && line && line.speaker ? `${line.speaker}. ` : '';
-    speak(prefix + text, onEnd);
+    speak(prefix + text, onEnd, { speaker: line && line.speaker ? line.speaker : '' });
   }
 
   function getSpeakableText(text){
@@ -804,11 +876,42 @@
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'fr-FR';
     utterance.rate = Number(els.repRate.value) || 1;
-    const voiceIndex = els.repVoice.value;
-    if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) utterance.voice = state.voices[Number(voiceIndex)];
+    const selectedVoice = resolveVoiceForSpeaker(options && options.speaker ? options.speaker : '');
+    if (selectedVoice) utterance.voice = selectedVoice;
     utterance.onend = () => onEnd && onEnd();
     utterance.onerror = () => onEnd && onEnd();
     window.speechSynthesis.speak(utterance);
+  }
+
+  function resolveVoiceForSpeaker(speaker){
+    const pref = speaker && state.roleVoicePrefs ? state.roleVoicePrefs[speaker] : '';
+    if (pref) {
+      const roleVoice = voiceFromPreference(pref);
+      if (roleVoice) return roleVoice;
+    }
+
+    const voiceIndex = els.repVoice.value;
+    if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) return state.voices[Number(voiceIndex)];
+
+    const french = getFrenchVoices();
+    return french[0] || null;
+  }
+
+  function voiceFromPreference(pref){
+    if (!pref) return null;
+    if (String(pref).startsWith('voice:')) {
+      const index = Number(String(pref).replace('voice:', ''));
+      return state.voices[index] || null;
+    }
+
+    const french = getFrenchVoices();
+    if (pref === 'fr-female') {
+      return french.find(v => inferVoiceGender(v) === 'female') || french[0] || null;
+    }
+    if (pref === 'fr-male') {
+      return french.find(v => inferVoiceGender(v) === 'male') || french.find(v => inferVoiceGender(v) !== 'female') || french[0] || null;
+    }
+    return null;
   }
 
   function advance(){
@@ -980,6 +1083,7 @@
     state.characters = [];
     state.currentIndex = 0;
     state.ignoredSpeakers = new Set();
+    state.roleVoicePrefs = {};
     els.repStats.innerHTML = '<div><strong>0</strong><span>réplique</span></div><div><strong>0</strong><span>rôle</span></div><div><strong>0</strong><span>didascalie</span></div>';
     els.repCharacters.innerHTML = '';
     els.repRoleSelect.disabled = true;
