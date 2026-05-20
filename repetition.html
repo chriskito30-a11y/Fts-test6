@@ -15,7 +15,7 @@
         <p class="rep-kicker eyebrow">Fais Ton Show</p>
         <h1>Assistant <span>répétition</span></h1>
         <div class="title-line"></div>
-        <p class="rep-lead page-slogan">Choisis ton texte, choisis ton personnage, puis laisse l’app te donner la réplique.</p>
+        <p class="rep-lead page-slogan">Choisis ton texte, choisis ton personnage, appuie sur Play : l’app te donne la réplique et s’arrête sur tes lignes.</p>
       </div>
       <div class="rep-status-pill" id="repSpeechStatus">Voix non lancée</div>
     </header>
@@ -23,20 +23,20 @@
     <section class="rep-card card rep-app-docs" aria-labelledby="rep-app-docs-title">
       <div class="rep-section-head">
         <div>
-          <h2 id="rep-app-docs-title">Documents de l’application</h2>
-          <p class="rep-help">Charge un PDF déjà publié dans les ressources Fais Ton Show. La liste respecte tes catégories et sous-catégories, ou celles de tes enfants. Tu peux aussi importer un PDF depuis cet appareil. Le PDF doit contenir du texte sélectionnable pour être analysé automatiquement.</p>
+          <h2 id="rep-app-docs-title">1. Choisis ton texte</h2>
+          <p class="rep-help">Sélectionne un PDF autorisé pour tes groupes, puis lance la préparation. La liste respecte tes catégories/sous-catégories, ou celles de tes enfants.</p>
         </div>
         <span class="rep-mini-status" id="repAppStatus">Connexion à l’app…</span>
       </div>
       <div class="rep-doc-loader">
         <label>
-          PDF publié dans l’application
+          Mon texte
           <select id="repResourceSelect" class="rep-select">
             <option value="">Chargement des documents…</option>
           </select>
         </label>
-        <button class="rep-btn rep-btn-primary" id="repLoadResourcePdfBtn" type="button" disabled>Analyser ce PDF</button>
-        <button class="rep-btn" id="repReloadAppPdfBtn" type="button">Recharger mes PDF</button>
+        <button class="rep-btn rep-btn-primary" id="repLoadResourcePdfBtn" type="button" disabled>Commencer à réviser</button>
+        <button class="rep-btn" id="repReloadAppPdfBtn" type="button">Actualiser</button>
       </div>
       <details class="rep-debug" id="repAppDebugWrap" hidden>
         <summary>Détail du chargement</summary>
@@ -44,27 +44,30 @@
       </details>
       <div class="rep-doc-loader rep-doc-loader-local">
         <label>
-          PDF depuis ce téléphone / PC
+          Importer un PDF depuis cet appareil
           <input id="repLocalPdfInput" class="rep-file" type="file" accept="application/pdf,.pdf" />
         </label>
-        <button class="rep-btn" id="repLoadLocalPdfBtn" type="button" disabled>Analyser le PDF importé</button>
+        <button class="rep-btn" id="repLoadLocalPdfBtn" type="button" disabled>Commencer avec ce PDF</button>
       </div>
-      <p class="rep-help rep-note" id="repPdfStatus">Astuce : si un PDF Google Drive refuse l’analyse directe, télécharge-le puis utilise l’import depuis ce téléphone / PC.</p>
+      <p class="rep-help rep-note" id="repPdfStatus">Choisis un PDF, puis l’app te proposera automatiquement ton rôle.</p>
     </section>
 
     <section class="rep-card card rep-grid-2" aria-labelledby="rep-input-title">
-      <div>
-        <h2 id="rep-input-title">1. Texte</h2>
-        <p class="rep-help">Format conseillé : <strong>Rôle : Réplique</strong>, une réplique par ligne. Les majuscules ne sont pas obligatoires. Les didascalies peuvent être entre crochets ou entre parenthèses dans une réplique.</p>
-        <textarea id="repScriptInput" class="rep-textarea" rows="14" placeholder="Colle ici ton texte de répétition…"></textarea>
-        <div class="rep-actions">
-          <button class="rep-btn rep-btn-primary" id="repAnalyzeBtn" type="button">Analyser le texte</button>
-          <button class="rep-btn" id="repClearBtn" type="button">Effacer</button>
+      <details class="rep-advanced-text">
+        <summary><span>Texte détecté / correction</span><small>Optionnel</small></summary>
+        <div class="rep-advanced-text-body">
+          <h2 id="rep-input-title">Texte détecté</h2>
+          <p class="rep-help">Zone avancée : le texte extrait apparaît ici. Tu peux corriger une ligne si besoin, puis relancer l’analyse.</p>
+          <textarea id="repScriptInput" class="rep-textarea" rows="14" placeholder="Colle ici ton texte de répétition…"></textarea>
+          <div class="rep-actions">
+            <button class="rep-btn rep-btn-primary" id="repAnalyzeBtn" type="button">Ré-analyser le texte</button>
+            <button class="rep-btn" id="repClearBtn" type="button">Effacer</button>
+          </div>
         </div>
-      </div>
+      </details>
 
-      <aside class="rep-panel" aria-live="polite">
-        <h2>2. Analyse</h2>
+      <aside class="rep-panel rep-role-panel" aria-live="polite">
+        <h2>2. Choisis ton personnage</h2>
         <div class="rep-stats" id="repStats">
           <div><strong>0</strong><span>réplique</span></div>
           <div><strong>0</strong><span>rôle</span></div>
@@ -80,15 +83,15 @@
     </section>
 
     <section class="rep-card card rep-options-card" aria-labelledby="rep-options-title">
-      <details class="rep-options-details"><summary><span>3. Options de répétition</span><small>Réglages facultatifs</small></summary>
+      <details class="rep-options-details"><summary><span>Options</span><small>Affichage, rythme, voix</small></summary>
       <div class="rep-options">
         <label>
           Mode
           <select id="repMode" class="rep-select">
-            <option value="manual">Donne-moi la réplique — j’appuie pour continuer</option>
-            <option value="auto">Donne-moi la réplique — pause automatique</option>
-            <option value="confirm">Pause puis confirmation de ma réplique</option>
-            <option value="full">Lecture complète</option>
+            <option value="manual">Play classique — je valide mes répliques</option>
+            <option value="auto">Réplique muette — l’app enchaîne automatiquement</option>
+            <option value="confirm">Pause puis confirmation vocale de ma réplique</option>
+            <option value="full">Lecture complète du texte</option>
           </select>
         </label>
         <label>
@@ -100,7 +103,7 @@
           </select>
         </label>
         <label>
-          Pause automatique
+          Temps minimum pour mes répliques
           <select id="repPause" class="rep-select">
             <option value="2500">Courte</option>
             <option value="4500" selected>Normale</option>
@@ -128,7 +131,7 @@
     <section class="rep-card card rep-player" aria-labelledby="rep-player-title">
       <div class="rep-player-head">
         <div>
-          <h2 id="rep-player-title">4. Répétition</h2>
+          <h2 id="rep-player-title">3. Réviser</h2>
           <p id="repProgressText" class="rep-help">Aucun texte lancé.</p>
         </div>
         <div class="rep-counter" id="repCounter">0 / 0</div>
@@ -142,7 +145,7 @@
       <div class="rep-meter" aria-hidden="true"><span id="repMeterBar"></span></div>
 
       <div class="rep-actions rep-actions-player">
-        <button class="rep-btn rep-btn-primary" id="repStartBtn" type="button" disabled>Lancer</button>
+        <button class="rep-btn rep-btn-primary" id="repStartBtn" type="button" disabled>▶ Play</button>
         <button class="rep-btn" id="repContinueBtn" type="button" disabled>J’ai dit ma réplique</button>
         <button class="rep-btn rep-btn-memory" id="repCueBtn" type="button" disabled>Me souffler ma réplique</button>
         <button class="rep-btn" id="repPrevBtn" type="button" disabled>Précédent</button>
@@ -154,8 +157,8 @@
     <section class="rep-card card" aria-labelledby="rep-list-title">
       <div class="rep-section-head">
         <div>
-          <h2 id="rep-list-title">Aperçu du texte</h2>
-          <p class="rep-help">Les répliques de ton personnage suivent ton réglage d’affichage. La ligne en cours est mise en avant au fur et à mesure.</p>
+          <h2 id="rep-list-title">Script</h2>
+          <p class="rep-help">Ligne en cours surlignée. Tes répliques peuvent être affichées, masquées ou réduites aux premières lettres selon les options.</p>
         </div>
       </div>
       <div id="repLineList" class="rep-line-list rep-script-preview"></div>
@@ -168,6 +171,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
-  <script src="assets/js/pages/repetition.js?v=97" defer></script>
+  <script src="assets/js/pages/repetition.js?v=98" defer></script>
 </body>
 </html>
