@@ -9,7 +9,13 @@
     playing: false,
     awaitingUser: false,
     timeoutId: null,
-    voices: []
+    voices: [],
+    db: null,
+    authUser: null,
+    profile: null,
+    resources: [],
+    localPdfFile: null,
+    loadingPdf: false
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -18,12 +24,14 @@
     bindElements();
     bindEvents();
     loadVoices();
+    initPdfEngine();
+    initAppDocuments();
     renderEmpty();
     updateSpeechStatus();
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -39,6 +47,10 @@
     els.repRoleSelect.addEventListener('change', refreshPlayer);
     els.repMode.addEventListener('change', refreshPlayer);
     els.repOwnLines.addEventListener('change', refreshPlayer);
+    if (els.repResourceSelect) els.repResourceSelect.addEventListener('change', onResourceSelectChange);
+    if (els.repLoadResourcePdfBtn) els.repLoadResourcePdfBtn.addEventListener('click', loadSelectedResourcePdf);
+    if (els.repLocalPdfInput) els.repLocalPdfInput.addEventListener('change', onLocalPdfChange);
+    if (els.repLoadLocalPdfBtn) els.repLoadLocalPdfBtn.addEventListener('click', loadLocalPdf);
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
@@ -64,6 +76,274 @@
     }).join('');
     if (current) els.repVoice.value = current;
     updateSpeechStatus();
+  }
+
+  function initPdfEngine(){
+    if (window.pdfjsLib && window.pdfjsLib.GlobalWorkerOptions) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      setPdfStatus('Les PDF texte peuvent être analysés. Les PDF scannés/image ne seront pas lus sans OCR.');
+    } else {
+      setPdfStatus('Analyse PDF indisponible : la librairie PDF n’a pas été chargée.', false);
+    }
+  }
+
+  function initAppDocuments(){
+    if (!els.repAppStatus || !els.repResourceSelect) return;
+    if (typeof firebase === 'undefined' || !window.FTS || !FTS.initFirebase) {
+      setAppStatus('App non connectée');
+      renderResourceOptions([], 'Connexion Firebase indisponible');
+      return;
+    }
+
+    try {
+      state.db = FTS.initFirebase();
+    } catch (err) {
+      console.warn('[FTS Répétition] Firebase init', err);
+      setAppStatus('Connexion app impossible');
+      renderResourceOptions([], 'Impossible de se connecter à l’app');
+      return;
+    }
+
+    firebase.auth().onAuthStateChanged(async user => {
+      state.authUser = user || null;
+      if (!user) {
+        state.profile = null;
+        state.resources = [];
+        setAppStatus('Non connecté');
+        renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
+        return;
+      }
+      setAppStatus('Chargement des PDF…');
+      try {
+        const [profileSnap, resourceSnap] = await Promise.all([
+          state.db.ref('fts_users/' + user.uid).once('value'),
+          state.db.ref('fts_ressources').once('value')
+        ]);
+        state.profile = Object.assign({ uid: user.uid }, profileSnap.val() || {});
+        const raw = resourceSnap.val() || {};
+        state.resources = Object.keys(raw)
+          .map(key => normalizeResource(raw[key] || {}, key))
+          .filter(resource => resource.active && isPdfResource(resource) && canProfileSeeResource(state.profile, resource))
+          .sort((a,b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+        renderResourceOptions(state.resources);
+        setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''}` : 'Aucun PDF disponible');
+      } catch (err) {
+        console.warn('[FTS Répétition] ressources', err);
+        setAppStatus('Lecture impossible');
+        renderResourceOptions([], 'Impossible de charger les PDF de l’app');
+      }
+    });
+  }
+
+  function normalizeResource(r, key){
+    const cat = r.cat || r.category || r.categorie || r.Categorie || '';
+    const subcat = r.subcat || r.subcategory || r.sousCategorie || r.sous_categorie || r['Sous-categorie'] || r['Sous-catégorie'] || '';
+    const name = r.name || r.nom || r.Nom || r.titre || r.title || 'Document sans titre';
+    const url = r.url || r.content || r.link || r.lien || r.text || r['Contenu ou Lien Google Drive'] || '';
+    const type = String(r.type || r.Type || '').toLowerCase();
+    const active = r.active !== false && r.status !== 'inactive' && r.visible !== false;
+    return Object.assign({}, r, { key, id:key, cat, category:cat, subcat, subcategory:subcat, name, title:name, url, content:url, type, active });
+  }
+
+  function isPdfResource(resource){
+    const url = String(resource.url || '').toLowerCase();
+    const type = String(resource.type || '').toLowerCase();
+    return type.includes('pdf') || /\.pdf(?:$|[?#])/i.test(url) || /drive\.google\.com/i.test(url);
+  }
+
+  function canProfileSeeResource(profile, resource){
+    if (!profile) return false;
+    if (profile.role === 'admin' || profile.role === 'prof') return true;
+    const cat = norm(resource.cat || resource.category || '');
+    const sub = norm(resource.subcat || resource.subcategory || '');
+    if (!cat && !sub) return true;
+    const tokens = collectProfileTokens(profile);
+    if (cat && tokens.has(cat)) return true;
+    if (sub && tokens.has(sub)) return true;
+    return false;
+  }
+
+  function collectProfileTokens(profile){
+    const tokens = new Set();
+    addTokensFromValue(profile.disciplines, tokens);
+    addTokensFromValue(profile.categories, tokens);
+    addTokensFromValue(profile.category, tokens);
+    addTokensFromValue(profile.subcategories, tokens);
+    addTokensFromValue(profile.subcats, tokens);
+    addTokensFromValue(profile.groups, tokens);
+    addTokensFromValue(profile.groupe, tokens);
+    addTokensFromValue(profile.children, tokens);
+    addTokensFromValue(profile.enfants, tokens);
+    return tokens;
+  }
+
+  function addTokensFromValue(value, tokens){
+    if (!value) return;
+    if (typeof value === 'string') {
+      value.split(/[;,|]/).forEach(part => { const n = norm(part); if (n) tokens.add(n); });
+      const n = norm(value); if (n) tokens.add(n);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach(v => addTokensFromValue(v, tokens));
+      return;
+    }
+    if (typeof value === 'object') {
+      Object.keys(value).forEach(k => {
+        if (value[k] === true || typeof value[k] === 'string' || Array.isArray(value[k]) || typeof value[k] === 'object') {
+          const nk = norm(k); if (nk) tokens.add(nk);
+          addTokensFromValue(value[k], tokens);
+        }
+      });
+    }
+  }
+
+  function norm(value){
+    if (window.FTS && typeof FTS.norm === 'function') return FTS.norm(value);
+    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  }
+
+  function renderResourceOptions(resources, emptyLabel){
+    if (!els.repResourceSelect) return;
+    if (!resources.length) {
+      els.repResourceSelect.innerHTML = `<option value="">${escapeHtml(emptyLabel || 'Aucun PDF disponible')}</option>`;
+      els.repLoadResourcePdfBtn.disabled = true;
+      return;
+    }
+    els.repResourceSelect.innerHTML = '<option value="">Choisir un PDF…</option>' + resources.map(resource => {
+      const meta = [resource.cat, resource.subcat].filter(Boolean).join(' · ');
+      const label = `${resource.name}${meta ? ' — ' + meta : ''}`;
+      return `<option value="${escapeAttr(resource.key)}">${escapeHtml(label)}</option>`;
+    }).join('');
+    els.repLoadResourcePdfBtn.disabled = true;
+  }
+
+  function onResourceSelectChange(){
+    els.repLoadResourcePdfBtn.disabled = !els.repResourceSelect.value || state.loadingPdf;
+  }
+
+  function onLocalPdfChange(){
+    state.localPdfFile = els.repLocalPdfInput && els.repLocalPdfInput.files && els.repLocalPdfInput.files[0] ? els.repLocalPdfInput.files[0] : null;
+    els.repLoadLocalPdfBtn.disabled = !state.localPdfFile || state.loadingPdf;
+    if (state.localPdfFile) setPdfStatus(`PDF sélectionné : ${state.localPdfFile.name}`);
+  }
+
+  async function loadSelectedResourcePdf(){
+    const key = els.repResourceSelect.value;
+    const resource = state.resources.find(r => r.key === key);
+    if (!resource) return;
+    await runPdfLoad(async () => {
+      setPdfStatus(`Chargement de “${resource.name}”…`);
+      const url = normalizePdfUrl(resource.url || resource.content || '');
+      if (!url) throw new Error('Cette ressource n’a pas de lien PDF exploitable.');
+      const text = await extractPdfTextFromUrl(url);
+      applyExtractedText(text, resource.name);
+    });
+  }
+
+  async function loadLocalPdf(){
+    if (!state.localPdfFile) return;
+    await runPdfLoad(async () => {
+      setPdfStatus(`Analyse de “${state.localPdfFile.name}”…`);
+      const buffer = await state.localPdfFile.arrayBuffer();
+      const text = await extractPdfTextFromBuffer(buffer);
+      applyExtractedText(text, state.localPdfFile.name);
+    });
+  }
+
+  async function runPdfLoad(task){
+    if (state.loadingPdf) return;
+    state.loadingPdf = true;
+    updatePdfButtons();
+    stop(false);
+    try {
+      await task();
+    } catch (err) {
+      console.warn('[FTS Répétition] PDF', err);
+      const message = err && err.message ? err.message : 'Analyse PDF impossible.';
+      setPdfStatus(`${message} Si le PDF est sur Google Drive, télécharge-le puis utilise l’import depuis ce téléphone / PC.`, false);
+    } finally {
+      state.loadingPdf = false;
+      updatePdfButtons();
+    }
+  }
+
+  function updatePdfButtons(){
+    if (els.repLoadResourcePdfBtn) els.repLoadResourcePdfBtn.disabled = state.loadingPdf || !els.repResourceSelect.value;
+    if (els.repLoadLocalPdfBtn) els.repLoadLocalPdfBtn.disabled = state.loadingPdf || !state.localPdfFile;
+  }
+
+  function normalizePdfUrl(url){
+    let value = String(url || '').trim();
+    if (!value) return '';
+    const drive = value.match(/drive\.google\.com\/file\/d\/([^/]+)/i) || value.match(/[?&]id=([^&]+)/i);
+    if (/drive\.google\.com/i.test(value) && drive && drive[1]) {
+      value = `https://drive.google.com/uc?export=download&id=${encodeURIComponent(drive[1])}`;
+    }
+    return value;
+  }
+
+  async function extractPdfTextFromUrl(url){
+    if (!window.pdfjsLib) throw new Error('La lecture PDF n’est pas disponible sur ce navigateur.');
+    const response = await fetch(url, { mode:'cors' });
+    if (!response.ok) throw new Error(`PDF inaccessible (${response.status}).`);
+    const buffer = await response.arrayBuffer();
+    return extractPdfTextFromBuffer(buffer);
+  }
+
+  async function extractPdfTextFromBuffer(buffer){
+    if (!window.pdfjsLib) throw new Error('La lecture PDF n’est pas disponible sur ce navigateur.');
+    const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+    const pages = [];
+    for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+      setPdfStatus(`Analyse PDF : page ${pageNumber}/${pdf.numPages}…`);
+      const page = await pdf.getPage(pageNumber);
+      pages.push(await extractPageText(page));
+    }
+    const text = pages.join('\n\n').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+    if (!text || text.length < 20) throw new Error('Aucun texte exploitable trouvé dans ce PDF. Il est peut-être scanné en image.');
+    return text;
+  }
+
+  async function extractPageText(page){
+    const content = await page.getTextContent();
+    const items = (content.items || []).map(item => ({
+      text: String(item.str || '').trim(),
+      x: item.transform ? item.transform[4] : 0,
+      y: item.transform ? item.transform[5] : 0
+    })).filter(item => item.text);
+    items.sort((a,b) => Math.abs(b.y - a.y) > 2 ? b.y - a.y : a.x - b.x);
+    const lines = [];
+    items.forEach(item => {
+      const last = lines[lines.length - 1];
+      if (!last || Math.abs(last.y - item.y) > 3) {
+        lines.push({ y:item.y, parts:[item] });
+      } else {
+        last.parts.push(item);
+      }
+    });
+    return lines.map(line => line.parts.sort((a,b)=>a.x-b.x).map(part => part.text).join(' ').replace(/\s+/g,' ').trim()).filter(Boolean).join('\n');
+  }
+
+  function applyExtractedText(text, label){
+    els.repScriptInput.value = text;
+    analyze();
+    const lineCount = state.lines.filter(l => l.kind === 'line').length;
+    const roleCount = state.characters.length;
+    setPdfStatus(`PDF analysé : ${lineCount} réplique${lineCount>1?'s':''}, ${roleCount} rôle${roleCount>1?'s':''} détecté${roleCount>1?'s':''}.`);
+    if (!lineCount || !roleCount) {
+      setPdfStatus(`Le PDF “${label}” a été lu, mais aucun rôle n’a été détecté. Vérifie que les répliques sont bien en début de ligne avec un séparateur, ex. Alice : Bonjour.`, false);
+    }
+  }
+
+  function setAppStatus(text){
+    if (els.repAppStatus) els.repAppStatus.textContent = text;
+  }
+
+  function setPdfStatus(text, ok = true){
+    if (!els.repPdfStatus) return;
+    els.repPdfStatus.textContent = text;
+    els.repPdfStatus.classList.toggle('is-error', ok === false);
   }
 
   function analyze(){
