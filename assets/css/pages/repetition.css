@@ -1427,3 +1427,71 @@ body[data-rep-view="library"] .rep-shell{padding-bottom:calc(var(--rep-bottom-na
   body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{font-size:.68rem!important;}
   .rep-step{font-size:.58rem;}
 }
+
+
+/* ================================================================
+   V112 — corrections UX répétition
+   - textes simplifiés
+   - barre compacte dans un ordre stable
+   - retour début
+   - évite les boutons qui changent de place
+   ================================================================ */
+body[data-rep-view="rehearse"]{
+  --rep-control-height: 50px;
+}
+body[data-rep-view="rehearse"] .rep-actions-player{
+  grid-template-columns:repeat(8,minmax(0,1fr)) !important;
+  min-height:50px !important;
+  padding:.32rem .38rem !important;
+  gap:.28rem !important;
+  border-radius:14px 14px 0 0 !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+  height:34px !important;
+  min-height:34px !important;
+  padding:.18rem .28rem !important;
+  font-size:.68rem !important;
+  border-radius:10px !important;
+  line-height:1.05 !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn:disabled{
+  display:inline-flex !important;
+  opacity:.34 !important;
+  filter:grayscale(.25);
+  pointer-events:none;
+}
+body[data-rep-view="rehearse"] .rep-actions-player #repContinueBtn,
+body[data-rep-view="rehearse"] .rep-actions-player #repCueBtn,
+body[data-rep-view="rehearse"] .rep-actions-player #repDifficultBtn{
+  display:inline-flex !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player #repReviewDifficultBtn,
+body[data-rep-view="rehearse"] .rep-actions-player #repExitDifficultBtn{
+  display:none !important;
+}
+body[data-rep-view="rehearse"] .rep-current{
+  min-height:170px !important;
+}
+body[data-rep-view="rehearse"] .rep-current-text{
+  font-size:clamp(1.12rem, 3.45vw, 1.9rem) !important;
+}
+body[data-rep-view="rehearse"] .rep-shell{
+  padding-bottom: calc(var(--rep-bottom-nav-height) + 68px) !important;
+}
+@media(max-width:760px){
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    left:6px !important;
+    right:6px !important;
+    grid-template-columns:repeat(8,minmax(0,1fr)) !important;
+    gap:.2rem !important;
+    padding:.28rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-actions-player .rep-btn{
+    height:32px !important;
+    min-height:32px !important;
+    font-size:.62rem !important;
+    padding:.12rem .14rem !important;
+  }
+  body[data-rep-view="rehearse"] .rep-current{min-height:150px !important;}
+  body[data-rep-view="rehearse"] .rep-player-head{gap:.45rem !important;}
+}
