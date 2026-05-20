@@ -1788,3 +1788,60 @@ body[data-rep-view="rehearse"] .rep-shell{
     min-width:40px !important;
   }
 }
+
+
+/* V117 — éditeur texte détecté plus lisible */
+.rep-editor-preview{
+  margin-top:10px;
+  padding:12px;
+  border:1px solid rgba(245,207,74,.28);
+  border-radius:16px;
+  background:rgba(0,0,0,.25);
+  max-height:260px;
+  overflow:auto;
+  color:#fff7d2;
+  font-size:.94rem;
+  line-height:1.55;
+}
+.rep-preview-line{
+  padding:8px 0;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+.rep-preview-line strong{
+  color:#ffe733;
+  letter-spacing:.03em;
+}
+.rep-preview-line em,
+.rep-preview-continuation em,
+.rep-preview-stage em{
+  color:#f6dca0;
+  font-style:italic;
+  opacity:.95;
+}
+.rep-preview-section{
+  margin:12px 0 6px;
+  padding:7px 10px;
+  border-radius:999px;
+  display:inline-block;
+  background:rgba(245,207,74,.14);
+  border:1px solid rgba(245,207,74,.32);
+  color:#ffe733;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-size:.78rem;
+}
+.rep-preview-stage,
+.rep-preview-continuation{
+  padding:7px 0;
+  color:#e8dcc5;
+  border-bottom:1px dashed rgba(255,255,255,.07);
+}
+.rep-preview-muted{
+  margin:0;
+  color:rgba(255,255,255,.64);
+}
+.rep-textarea{
+  line-height:1.6;
+  white-space:pre-wrap;
+}
