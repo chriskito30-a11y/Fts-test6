@@ -32,7 +32,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -42,6 +42,7 @@
     els.repClearBtn.addEventListener('click', clearAll);
     els.repStartBtn.addEventListener('click', start);
     els.repContinueBtn.addEventListener('click', continueAfterOwnLine);
+    if (els.repCueBtn) els.repCueBtn.addEventListener('click', cueOwnLine);
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
@@ -154,54 +155,75 @@
 
   function canProfileSeeResource(profile, resource){
     if (!profile) return false;
-    if (profile.role === 'admin' || profile.role === 'prof') return true;
-    const cat = norm(resource.cat || resource.category || '');
-    const sub = norm(resource.subcat || resource.subcategory || '');
-    if (!cat && !sub) return true;
-    const tokens = collectProfileTokens(profile);
-    if (cat && tokens.has(cat)) return true;
-    if (sub && tokens.has(sub)) return true;
-    return false;
+    const status = String(profile.status || '').toLowerCase();
+    const role = String(profile.role || '').toLowerCase();
+    if (role === 'admin') return true;
+    if (status && status !== 'active') return false;
+
+    const targetCat = norm(resource.cat || resource.category || resource.group || '');
+    const targetSub = norm(resource.subcat || resource.subcategory || resource.subgroup || resource.section || '');
+
+    // Document non ciblé : visible pour les membres connectés actifs.
+    if (!targetCat && !targetSub) return true;
+
+    const access = collectProfileAccess(profile);
+
+    // Règle stricte identique à l'espace membre :
+    // - document de catégorie seule = visible à tous les membres de cette catégorie ;
+    // - document catégorie + sous-catégorie = visible seulement aux membres de cette catégorie ET sous-catégorie ;
+    // - document sous-catégorie seule = visible seulement aux membres de cette sous-catégorie.
+    if (targetCat && !access.cats.has(targetCat)) return false;
+    if (targetSub && !access.subs.has(targetSub)) return false;
+    return true;
   }
 
-  function collectProfileTokens(profile){
-    const tokens = new Set();
-    addTokensFromValue(profile.disciplines, tokens);
-    addTokensFromValue(profile.categories, tokens);
-    addTokensFromValue(profile.category, tokens);
-    addTokensFromValue(profile.subcategories, tokens);
-    addTokensFromValue(profile.subcats, tokens);
-    addTokensFromValue(profile.groups, tokens);
-    addTokensFromValue(profile.groupe, tokens);
-    addTokensFromValue(profile.children, tokens);
-    addTokensFromValue(profile.enfants, tokens);
-    return tokens;
+  function collectProfileAccess(profile){
+    const cats = new Set();
+    const subs = new Set();
+
+    addList(profile.disciplines || profile.categories || profile.category || profile.group || profile.groups, cats);
+    addList(profile.subgroups || profile.subcategories || profile.subcats || profile.subgroup || profile.subcategory, subs);
+
+    // Accès par catégorie si le profil les stocke ainsi : { Théâtre: ["Ados"] }
+    addSubgroupsByCat(profile.subgroupsByCat || profile.subcategoriesByCat || profile.groupsByCat, cats, subs);
+
+    // Parents : inclure les accès des enfants, car le parent doit voir les documents de ses enfants.
+    const children = Array.isArray(profile.enfants) ? profile.enfants : (Array.isArray(profile.children) ? profile.children : []);
+    children.forEach(child => {
+      addList(child.disciplines || child.categories || child.category || child.group || child.groups, cats);
+      addList(child.subgroups || child.subcategories || child.subcats || child.subgroup || child.subcategory, subs);
+      addSubgroupsByCat(child.subgroupsByCat || child.subcategoriesByCat || child.groupsByCat, cats, subs);
+    });
+
+    return { cats, subs };
   }
 
-  function addTokensFromValue(value, tokens){
+  function addSubgroupsByCat(value, cats, subs){
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return;
+    Object.keys(value).forEach(catName => {
+      const catNorm = norm(catName);
+      if (catNorm) cats.add(catNorm);
+      addList(value[catName], subs);
+    });
+  }
+
+  function addList(value, target){
     if (!value) return;
     if (typeof value === 'string') {
-      value.split(/[;,|]/).forEach(part => { const n = norm(part); if (n) tokens.add(n); });
-      const n = norm(value); if (n) tokens.add(n);
+      value.split(/[;,|]/).forEach(part => { const n = norm(part); if (n) target.add(n); });
+      const n = norm(value); if (n) target.add(n);
       return;
     }
     if (Array.isArray(value)) {
-      value.forEach(v => addTokensFromValue(v, tokens));
+      value.forEach(v => addList(v, target));
       return;
     }
     if (typeof value === 'object') {
       Object.keys(value).forEach(k => {
-        if (value[k] === true || typeof value[k] === 'string' || Array.isArray(value[k]) || typeof value[k] === 'object') {
-          const nk = norm(k); if (nk) tokens.add(nk);
-          addTokensFromValue(value[k], tokens);
-        }
+        if (value[k] === true) { const nk = norm(k); if (nk) target.add(nk); }
+        else addList(value[k], target);
       });
     }
-  }
-
-  function norm(value){
-    if (window.FTS && typeof FTS.norm === 'function') return FTS.norm(value);
-    return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
   }
 
   function renderResourceOptions(resources, emptyLabel){
@@ -553,12 +575,13 @@
     }
   }
 
-  function speak(text, onEnd){
+  function speak(text, onEnd, options){
+    const opts = options || {};
     if (!('speechSynthesis' in window)) {
-      state.timeoutId = setTimeout(onEnd, 900);
+      state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 900);
       return;
     }
-    stopSpeechOnly(false);
+    if (opts.noStop !== true) stopSpeechOnly(true);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'fr-FR';
     utterance.rate = Number(els.repRate.value) || 1;
@@ -577,6 +600,24 @@
       return;
     }
     playCurrent();
+  }
+
+  function cueOwnLine(){
+    const line = state.lines[state.currentIndex];
+    const role = els.repRoleSelect.value;
+    if (!line || line.kind !== 'line' || !role || line.speaker !== role) return;
+
+    // En cas de trou de mémoire, l'app souffle la vraie réplique sans avancer.
+    // On coupe l'avance automatique/confirmation pour laisser l'élève reprendre la main.
+    clearPendingTimeout();
+    state.awaitingUser = true;
+    setButtons();
+    speak(`${line.speaker}. ${line.text}`, () => {
+      if (state.playing) {
+        state.awaitingUser = true;
+        setButtons();
+      }
+    }, { noStop:false });
   }
 
   function continueAfterOwnLine(){
@@ -693,6 +734,11 @@
     els.repPrevBtn.disabled = !hasLines || state.currentIndex <= 0;
     els.repNextBtn.disabled = !hasLines || state.currentIndex >= state.lines.length - 1;
     els.repContinueBtn.disabled = !state.awaitingUser;
+    if (els.repCueBtn) {
+      const line = state.lines[state.currentIndex];
+      const role = els.repRoleSelect.value;
+      els.repCueBtn.disabled = !(state.awaitingUser && line && line.kind === 'line' && role && line.speaker === role);
+    }
   }
 
   function renderEmpty(){
