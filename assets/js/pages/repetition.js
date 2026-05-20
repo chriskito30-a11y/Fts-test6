@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V92';
+  const REPETITION_VERSION = 'V93';
 
   const els = {};
   const state = {
@@ -619,29 +619,23 @@
 
   function renderLineList(){
     if (!state.lines.length) {
-      els.repLineList.innerHTML = '<div class="rep-empty">L’aperçu du texte apparaîtra ici après analyse.</div>';
+      els.repLineList.innerHTML = '<div class="rep-empty">Le texte analysé apparaîtra ici.</div>';
       return;
     }
     const role = els.repRoleSelect.value;
-    const ownMode = els.repOwnLines.value;
     els.repLineList.innerHTML = state.lines.map((line,index)=>{
-      const isOwn = role && line.kind === 'line' && line.speaker === role;
       const classes = ['rep-line'];
       if (index === state.currentIndex) classes.push('active');
-      if (line.kind === 'stage') classes.push('stage');
-      else if (isOwn) classes.push('own');
-      else classes.push('other');
-      if (isOwn && ownMode === 'hide') classes.push('is-masked');
-      const label = line.kind === 'stage' ? (line.speaker || 'Indication') : line.speaker;
+      if (line.speaker === role) classes.push('own');
       return `<div class="${classes.join(' ')}" data-line-index="${index}">
-        <div class="rep-line-role">${escapeHtml(label)}</div>
-        <div class="rep-line-text">${escapeHtml(displayTextForLine(line, { preview:true }))}</div>
+        <div class="rep-line-role">${escapeHtml(line.speaker)}</div>
+        <div class="rep-line-text">${escapeHtml(displayTextForLine(line))}</div>
       </div>`;
     }).join('');
 
     els.repLineList.querySelectorAll('[data-line-index]').forEach(node => {
       node.addEventListener('click', () => {
-        stop(false);
+        stopSpeechOnly();
         state.currentIndex = Number(node.getAttribute('data-line-index')) || 0;
         state.awaitingUser = false;
         refreshPlayer();
@@ -655,10 +649,9 @@
       alert('Choisis ton rôle avant de lancer la répétition.');
       return;
     }
-    stopSpeechOnly(true);
+    stopSpeechOnly();
     state.playToken += 1;
     state.playing = true;
-    els.repSpeechStatus.textContent = 'Lancement de la voix…';
     state.awaitingUser = false;
     state.currentIndex = Math.min(state.currentIndex, state.lines.length - 1);
     setButtons();
@@ -710,117 +703,19 @@
 
   function speak(text, onEnd, options){
     const opts = options || {};
-    const token = state.playToken;
-    const cleanText = String(text || '').replace(/\s+/g, ' ').trim();
-    if (!cleanText) {
-      if (onEnd) onEnd();
+    if (!('speechSynthesis' in window)) {
+      state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 900);
       return;
     }
-
-    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
-      els.repSpeechStatus.textContent = 'Voix indisponible sur cet appareil';
-      // Pas de voix : on n'avance pas automatiquement, sinon l'élève voit défiler sans lecture.
-      state.playing = false;
-      state.awaitingUser = false;
-      setButtons();
-      return;
-    }
-
-    // Important mobile : ne pas appeler cancel() avant chaque ligne.
-    // Certaines versions iOS/Android déclenchent ensuite onerror et l'app avançait sans lire.
-    // On annule seulement quand l'utilisateur stoppe, change de ligne, relance ou demande un soufflage.
-    if (opts.cancelBefore === true) stopSpeechOnly(true);
-
-    try { window.speechSynthesis.resume(); } catch(e) {}
-
-    const chunks = splitForSpeech(cleanText, 220);
-    let chunkIndex = 0;
-    let finished = false;
-
-    const failVoice = (event) => {
-      if (token !== state.playToken || finished) return;
-      finished = true;
-      console.warn('[FTS Répétition] speech error', event);
-      clearPendingTimeout();
-      state.playing = false;
-      state.awaitingUser = false;
-      els.repSpeechStatus.textContent = 'Lecture vocale impossible — réessaie ou change de voix';
-      els.repProgressText.textContent = 'La voix du téléphone/PC n’a pas lu cette ligne. Essaie Stop puis Lancer, ou choisis une autre voix.';
-      setButtons();
-      refreshPlayer(false);
-    };
-
-    const speakNextChunk = () => {
-      if (token !== state.playToken || finished) return;
-      if (chunkIndex >= chunks.length) {
-        finished = true;
-        els.repSpeechStatus.textContent = 'Voix prête';
-        if (onEnd) onEnd();
-        return;
-      }
-
-      const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
-      utterance.lang = 'fr-FR';
-      utterance.rate = Number(els.repRate.value) || 1;
-      const voiceIndex = els.repVoice.value;
-      if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) utterance.voice = state.voices[Number(voiceIndex)];
-
-      let started = false;
-      const watchdog = setTimeout(() => {
-        if (!started && token === state.playToken && !finished) {
-          // Certains mobiles restent muets sans déclencher onerror.
-          failVoice({ type:'speech_start_timeout' });
-        }
-      }, 3500);
-
-      utterance.onstart = () => {
-        started = true;
-        clearTimeout(watchdog);
-        els.repSpeechStatus.textContent = 'Lecture en cours';
-      };
-      utterance.onend = () => {
-        clearTimeout(watchdog);
-        if (token !== state.playToken || finished) return;
-        chunkIndex += 1;
-        // Petite respiration entre deux morceaux longs, sans perdre la main utilisateur.
-        setTimeout(speakNextChunk, 40);
-      };
-      utterance.onerror = (event) => {
-        clearTimeout(watchdog);
-        failVoice(event);
-      };
-
-      try {
-        window.speechSynthesis.speak(utterance);
-      } catch (err) {
-        clearTimeout(watchdog);
-        failVoice(err);
-      }
-    };
-
-    speakNextChunk();
-  }
-
-  function splitForSpeech(text, maxLength){
-    const value = String(text || '').replace(/\s+/g, ' ').trim();
-    if (value.length <= maxLength) return [value];
-    const parts = [];
-    let remaining = value;
-    while (remaining.length > maxLength) {
-      let cut = Math.max(
-        remaining.lastIndexOf('. ', maxLength),
-        remaining.lastIndexOf(' !', maxLength),
-        remaining.lastIndexOf(' ?', maxLength),
-        remaining.lastIndexOf('; ', maxLength),
-        remaining.lastIndexOf(', ', maxLength),
-        remaining.lastIndexOf(' ', maxLength)
-      );
-      if (cut < 80) cut = maxLength;
-      parts.push(remaining.slice(0, cut).trim());
-      remaining = remaining.slice(cut).trim();
-    }
-    if (remaining) parts.push(remaining);
-    return parts.filter(Boolean);
+    if (opts.noStop !== true) stopSpeechOnly(true);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = 'fr-FR';
+    utterance.rate = Number(els.repRate.value) || 1;
+    const voiceIndex = els.repVoice.value;
+    if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) utterance.voice = state.voices[Number(voiceIndex)];
+    utterance.onend = () => onEnd && onEnd();
+    utterance.onerror = () => onEnd && onEnd();
+    window.speechSynthesis.speak(utterance);
   }
 
   function advance(){
@@ -848,7 +743,7 @@
         state.awaitingUser = true;
         setButtons();
       }
-    }, { cancelBefore:true });
+    }, { noStop:false });
   }
 
   function continueAfterOwnLine(){
@@ -858,27 +753,19 @@
   }
 
   function previousLine(){
-    const wasPlaying = state.playing;
-    clearPendingTimeout();
-    state.playToken += 1;
-    stopSpeechOnly(true);
-    state.playing = wasPlaying;
+    stopSpeechOnly();
     state.currentIndex = Math.max(0, state.currentIndex - 1);
     state.awaitingUser = false;
     refreshPlayer();
-    if (wasPlaying) playCurrent();
+    if (state.playing) playCurrent();
   }
 
   function nextLineManual(){
-    const wasPlaying = state.playing;
-    clearPendingTimeout();
-    state.playToken += 1;
-    stopSpeechOnly(true);
-    state.playing = wasPlaying;
+    stopSpeechOnly();
     state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
     state.awaitingUser = false;
     refreshPlayer();
-    if (wasPlaying) playCurrent();
+    if (state.playing) playCurrent();
   }
 
   function stop(resetText = true){
@@ -940,7 +827,7 @@
     const percent = total ? ((state.currentIndex + 1) / total) * 100 : 0;
     els.repCurrentLine.className = 'rep-current' + (isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other');
     els.repCurrentLine.innerHTML = `
-      <p class="rep-current-role">${isOwn ? 'À toi, ' + escapeHtml(line.speaker) : line.kind === 'stage' ? 'Indication' : 'Écoute · ' + escapeHtml(line.speaker)}</p>
+      <p class="rep-current-role">${isOwn ? 'À toi' : escapeHtml(line.speaker)}</p>
       <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
@@ -950,11 +837,11 @@
       : (state.playing ? 'Lecture en cours.' : 'Prêt à lancer depuis cette réplique.');
   }
 
-  function displayTextForLine(line, options){
+  function displayTextForLine(line){
     const role = els.repRoleSelect.value;
     const mode = els.repOwnLines.value;
     if (line.kind !== 'line' || line.speaker !== role) return line.text;
-    if (mode === 'hide') return options && options.preview ? 'Réplique masquée' : 'Réplique masquée — utilise “Me souffler ma réplique” en cas de trou de mémoire.';
+    if (mode === 'hide') return '••••••';
     if (mode === 'initials') return toInitials(line.text);
     return line.text;
   }
