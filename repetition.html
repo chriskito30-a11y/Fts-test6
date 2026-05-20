@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="stylesheet" href="assets/css/fts.css" />
   <link rel="stylesheet" href="assets/css/fts-nav.css?v=106" />
-  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=111" />
+  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=112" />
 </head>
 <body class="has-glow has-topbar" data-rep-view="library">
   <main class="rep-shell wrap wrap-xl">
@@ -32,7 +32,7 @@
       <div class="rep-section-head">
         <div>
           <h2 id="rep-app-docs-title">1. Choisis ton texte</h2>
-          <p class="rep-help">Sélectionne un PDF autorisé pour tes groupes, puis lance la préparation. La liste respecte tes catégories/sous-catégories, ou celles de tes enfants.</p>
+          <p class="rep-help">Choisis un texte disponible pour toi, ou ouvre un texte déjà enregistré sur cet appareil.</p>
         </div>
         <span class="rep-mini-status" id="repAppStatus">Connexion à l’app…</span>
       </div>
@@ -87,7 +87,7 @@
         <summary><span>Texte détecté / correction</span><small>Optionnel</small></summary>
         <div class="rep-advanced-text-body">
           <h2 id="rep-input-title">Texte détecté</h2>
-          <p class="rep-help">Zone avancée : le texte extrait apparaît ici. Tu peux corriger une ligne si besoin, puis relancer l’analyse.</p>
+          <p class="rep-help">Optionnel : corrige le texte uniquement si un rôle ou une réplique est mal détecté.</p>
           <textarea id="repScriptInput" class="rep-textarea" rows="14" placeholder="Colle ici ton texte de répétition…"></textarea>
           <div class="rep-actions">
             <button class="rep-btn rep-btn-primary" id="repAnalyzeBtn" type="button">Ré-analyser le texte</button>
@@ -116,7 +116,7 @@
       <div class="rep-section-head">
         <div>
           <div class="rep-view-head rep-view-head-inline"><button class="rep-icon-btn" id="repBackToRoleBtn" type="button">←</button><h2 id="rep-presets-title">Comment veux-tu répéter ?</h2></div>
-          <p class="rep-help">Choisis un profil simple : l’app règle automatiquement les options. Tu peux toujours ajuster ensuite dans Options.</p>
+          <p class="rep-help">Choisis simplement ta façon de répéter. Tu pourras modifier les réglages avec ⚙️ si besoin.</p>
         </div>
         <span class="rep-mini-status" id="repDifficultCount">0 réplique à retravailler</span>
       </div>
@@ -215,15 +215,16 @@
       <div class="rep-meter" aria-hidden="true"><span id="repMeterBar"></span></div>
 
       <div class="rep-actions rep-actions-player">
-        <button class="rep-btn rep-btn-primary" id="repStartBtn" type="button" disabled title="Play">▶</button>
+        <button class="rep-btn rep-btn-mini" id="repRestartBtn" type="button" disabled title="Retour au début">↺</button>
+        <button class="rep-btn rep-btn-mini" id="repPrevBtn" type="button" disabled title="Précédent">⏮</button>
+        <button class="rep-btn rep-btn-primary rep-btn-mini" id="repStartBtn" type="button" disabled title="Play">▶</button>
+        <button class="rep-btn rep-btn-danger rep-btn-mini" id="repStopBtn" type="button" disabled title="Stop">⏹</button>
+        <button class="rep-btn rep-btn-mini" id="repNextBtn" type="button" disabled title="Suivant">⏭</button>
         <button class="rep-btn" id="repContinueBtn" type="button" disabled data-contextual="own">J’ai dit</button>
         <button class="rep-btn rep-btn-memory" id="repCueBtn" type="button" disabled data-contextual="own">Souffler</button>
         <button class="rep-btn rep-btn-star" id="repDifficultBtn" type="button" disabled data-contextual="own">⭐</button>
         <button class="rep-btn" id="repReviewDifficultBtn" type="button" disabled>Réviser ⭐</button>
         <button class="rep-btn" id="repExitDifficultBtn" type="button" hidden>Tout revoir</button>
-        <button class="rep-btn" id="repPrevBtn" type="button" disabled title="Précédent">⏮</button>
-        <button class="rep-btn" id="repNextBtn" type="button" disabled title="Suivant">⏭</button>
-        <button class="rep-btn rep-btn-danger" id="repStopBtn" type="button" disabled title="Stop">⏹</button>
       </div>
     </section>
 
@@ -231,7 +232,7 @@
       <div class="rep-section-head">
         <div>
           <h2 id="rep-list-title">Script</h2>
-          <p class="rep-help">Script complet. Masqué par défaut pour garder la répétition lisible.</p>
+          <p class="rep-help">Texte complet, à ouvrir seulement si tu veux te repérer.</p>
         </div>
       </div>
       <div id="repLineList" class="rep-line-list rep-script-preview"></div>
@@ -265,6 +266,6 @@
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/fts-nav.js?v=106"></script>
-  <script src="assets/js/pages/repetition.js?v=111" defer></script>
+  <script src="assets/js/pages/repetition.js?v=112" defer></script>
 </body>
 </html>

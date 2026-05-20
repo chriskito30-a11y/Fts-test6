@@ -1,4 +1,4 @@
-const CACHE = 'fts-v111-repetition-ux-wizard';
+const CACHE = 'fts-v112-repetition-ux-fix';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v111-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v112-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
