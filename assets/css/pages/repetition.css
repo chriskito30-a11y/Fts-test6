@@ -433,3 +433,56 @@ button, select, textarea, input{font:inherit}
   .rep-current{min-height:130px;padding:1rem}
   .rep-current-text{font-size:1.45rem}
 }
+
+/* V95 — rôles lus/ignorés */
+.rep-role-read-controls{
+  margin: 14px 0 16px;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 18px;
+  background: rgba(255,255,255,.04);
+}
+.rep-role-read-head{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin-bottom:10px;
+}
+.rep-role-read-head strong{ color: var(--fts-text, #fff); }
+.rep-role-read-head small{ color: rgba(255,255,255,.68); line-height:1.35; }
+.rep-role-read-list{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.rep-role-read-item{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  padding:8px 10px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:999px;
+  background: rgba(255,255,255,.07);
+  cursor:pointer;
+  user-select:none;
+  font-size:.92rem;
+}
+.rep-role-read-item input{ accent-color: var(--fts-red, #e30613); }
+.rep-role-read-item.is-muted{
+  opacity:.62;
+  text-decoration: line-through;
+}
+.rep-line.ignored{
+  opacity:.52;
+  border-style:dashed;
+}
+.rep-line-note{
+  display:block;
+  margin-top:4px;
+  color: rgba(255,255,255,.58);
+  font-size:.78rem;
+}
+.rep-current.is-ignored{
+  opacity:.78;
+  border-style:dashed;
+}
