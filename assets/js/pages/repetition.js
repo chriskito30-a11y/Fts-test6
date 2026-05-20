@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V91';
+  const REPETITION_VERSION = 'V92';
 
   const els = {};
   const state = {
@@ -641,7 +641,7 @@
 
     els.repLineList.querySelectorAll('[data-line-index]').forEach(node => {
       node.addEventListener('click', () => {
-        stopSpeechOnly();
+        stop(false);
         state.currentIndex = Number(node.getAttribute('data-line-index')) || 0;
         state.awaitingUser = false;
         refreshPlayer();
@@ -655,9 +655,10 @@
       alert('Choisis ton rôle avant de lancer la répétition.');
       return;
     }
-    stopSpeechOnly();
+    stopSpeechOnly(true);
     state.playToken += 1;
     state.playing = true;
+    els.repSpeechStatus.textContent = 'Lancement de la voix…';
     state.awaitingUser = false;
     state.currentIndex = Math.min(state.currentIndex, state.lines.length - 1);
     setButtons();
@@ -709,19 +710,117 @@
 
   function speak(text, onEnd, options){
     const opts = options || {};
-    if (!('speechSynthesis' in window)) {
-      state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 900);
+    const token = state.playToken;
+    const cleanText = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!cleanText) {
+      if (onEnd) onEnd();
       return;
     }
-    if (opts.noStop !== true) stopSpeechOnly(true);
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fr-FR';
-    utterance.rate = Number(els.repRate.value) || 1;
-    const voiceIndex = els.repVoice.value;
-    if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) utterance.voice = state.voices[Number(voiceIndex)];
-    utterance.onend = () => onEnd && onEnd();
-    utterance.onerror = () => onEnd && onEnd();
-    window.speechSynthesis.speak(utterance);
+
+    if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance === 'undefined') {
+      els.repSpeechStatus.textContent = 'Voix indisponible sur cet appareil';
+      // Pas de voix : on n'avance pas automatiquement, sinon l'élève voit défiler sans lecture.
+      state.playing = false;
+      state.awaitingUser = false;
+      setButtons();
+      return;
+    }
+
+    // Important mobile : ne pas appeler cancel() avant chaque ligne.
+    // Certaines versions iOS/Android déclenchent ensuite onerror et l'app avançait sans lire.
+    // On annule seulement quand l'utilisateur stoppe, change de ligne, relance ou demande un soufflage.
+    if (opts.cancelBefore === true) stopSpeechOnly(true);
+
+    try { window.speechSynthesis.resume(); } catch(e) {}
+
+    const chunks = splitForSpeech(cleanText, 220);
+    let chunkIndex = 0;
+    let finished = false;
+
+    const failVoice = (event) => {
+      if (token !== state.playToken || finished) return;
+      finished = true;
+      console.warn('[FTS Répétition] speech error', event);
+      clearPendingTimeout();
+      state.playing = false;
+      state.awaitingUser = false;
+      els.repSpeechStatus.textContent = 'Lecture vocale impossible — réessaie ou change de voix';
+      els.repProgressText.textContent = 'La voix du téléphone/PC n’a pas lu cette ligne. Essaie Stop puis Lancer, ou choisis une autre voix.';
+      setButtons();
+      refreshPlayer(false);
+    };
+
+    const speakNextChunk = () => {
+      if (token !== state.playToken || finished) return;
+      if (chunkIndex >= chunks.length) {
+        finished = true;
+        els.repSpeechStatus.textContent = 'Voix prête';
+        if (onEnd) onEnd();
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(chunks[chunkIndex]);
+      utterance.lang = 'fr-FR';
+      utterance.rate = Number(els.repRate.value) || 1;
+      const voiceIndex = els.repVoice.value;
+      if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) utterance.voice = state.voices[Number(voiceIndex)];
+
+      let started = false;
+      const watchdog = setTimeout(() => {
+        if (!started && token === state.playToken && !finished) {
+          // Certains mobiles restent muets sans déclencher onerror.
+          failVoice({ type:'speech_start_timeout' });
+        }
+      }, 3500);
+
+      utterance.onstart = () => {
+        started = true;
+        clearTimeout(watchdog);
+        els.repSpeechStatus.textContent = 'Lecture en cours';
+      };
+      utterance.onend = () => {
+        clearTimeout(watchdog);
+        if (token !== state.playToken || finished) return;
+        chunkIndex += 1;
+        // Petite respiration entre deux morceaux longs, sans perdre la main utilisateur.
+        setTimeout(speakNextChunk, 40);
+      };
+      utterance.onerror = (event) => {
+        clearTimeout(watchdog);
+        failVoice(event);
+      };
+
+      try {
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        clearTimeout(watchdog);
+        failVoice(err);
+      }
+    };
+
+    speakNextChunk();
+  }
+
+  function splitForSpeech(text, maxLength){
+    const value = String(text || '').replace(/\s+/g, ' ').trim();
+    if (value.length <= maxLength) return [value];
+    const parts = [];
+    let remaining = value;
+    while (remaining.length > maxLength) {
+      let cut = Math.max(
+        remaining.lastIndexOf('. ', maxLength),
+        remaining.lastIndexOf(' !', maxLength),
+        remaining.lastIndexOf(' ?', maxLength),
+        remaining.lastIndexOf('; ', maxLength),
+        remaining.lastIndexOf(', ', maxLength),
+        remaining.lastIndexOf(' ', maxLength)
+      );
+      if (cut < 80) cut = maxLength;
+      parts.push(remaining.slice(0, cut).trim());
+      remaining = remaining.slice(cut).trim();
+    }
+    if (remaining) parts.push(remaining);
+    return parts.filter(Boolean);
   }
 
   function advance(){
@@ -749,7 +848,7 @@
         state.awaitingUser = true;
         setButtons();
       }
-    }, { noStop:false });
+    }, { cancelBefore:true });
   }
 
   function continueAfterOwnLine(){
@@ -759,19 +858,27 @@
   }
 
   function previousLine(){
-    stopSpeechOnly();
+    const wasPlaying = state.playing;
+    clearPendingTimeout();
+    state.playToken += 1;
+    stopSpeechOnly(true);
+    state.playing = wasPlaying;
     state.currentIndex = Math.max(0, state.currentIndex - 1);
     state.awaitingUser = false;
     refreshPlayer();
-    if (state.playing) playCurrent();
+    if (wasPlaying) playCurrent();
   }
 
   function nextLineManual(){
-    stopSpeechOnly();
+    const wasPlaying = state.playing;
+    clearPendingTimeout();
+    state.playToken += 1;
+    stopSpeechOnly(true);
+    state.playing = wasPlaying;
     state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
     state.awaitingUser = false;
     refreshPlayer();
-    if (state.playing) playCurrent();
+    if (wasPlaying) playCurrent();
   }
 
   function stop(resetText = true){
