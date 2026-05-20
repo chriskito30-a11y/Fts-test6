@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V90';
+  const REPETITION_VERSION = 'V91';
 
   const els = {};
   const state = {
@@ -48,7 +48,7 @@
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
-    els.repRoleSelect.addEventListener('change', refreshPlayer);
+    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; refreshPlayer(); });
     els.repMode.addEventListener('change', refreshPlayer);
     els.repOwnLines.addEventListener('change', refreshPlayer);
     if (els.repResourceSelect) els.repResourceSelect.addEventListener('change', onResourceSelectChange);
@@ -224,8 +224,7 @@
     if (els.repAppDebug) els.repAppDebug.textContent = text || '';
     if (els.repAppDebugWrap) {
       els.repAppDebugWrap.hidden = !isError;
-      if (isError) els.repAppDebugWrap.open = true;
-      else els.repAppDebugWrap.open = false;
+      els.repAppDebugWrap.open = !!isError;
     }
   }
 
@@ -633,9 +632,9 @@
       else if (isOwn) classes.push('own');
       else classes.push('other');
       if (isOwn && ownMode === 'hide') classes.push('is-masked');
-      const roleLabel = line.kind === 'stage' ? (line.speaker || 'Indication') : line.speaker;
+      const label = line.kind === 'stage' ? (line.speaker || 'Indication') : line.speaker;
       return `<div class="${classes.join(' ')}" data-line-index="${index}">
-        <div class="rep-line-role">${escapeHtml(roleLabel)}</div>
+        <div class="rep-line-role">${escapeHtml(label)}</div>
         <div class="rep-line-text">${escapeHtml(displayTextForLine(line, { preview:true }))}</div>
       </div>`;
     }).join('');
@@ -648,13 +647,6 @@
         refreshPlayer();
       });
     });
-
-    const active = els.repLineList.querySelector('.rep-line.active');
-    if (active) {
-      setTimeout(() => {
-        try { active.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch(e) {}
-      }, 30);
-    }
   }
 
   function start(){
