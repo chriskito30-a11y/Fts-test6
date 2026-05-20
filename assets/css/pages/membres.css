@@ -3450,3 +3450,88 @@ button.profile-pill:focus-visible {
   .doc-rehearse { width:100%; min-width:0; padding:.42rem .35rem; font-size:.68rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .doc-actions { grid-template-columns:repeat(auto-fit,minmax(92px,1fr)); }
 }
+
+
+/* ── V105 — Accès rapide Assistant répétition ───────────────────── */
+.member-repetition-shortcut {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  margin-top: .9rem;
+}
+
+.member-repetition-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: .9rem;
+  width: 100%;
+  padding: .95rem 1rem;
+  border-radius: var(--r-lg, 22px);
+  border: 1px solid rgba(248,231,2,.24);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(248,231,2,.15), transparent 32%),
+    linear-gradient(135deg, rgba(191,22,34,.22), rgba(18,18,18,.94));
+  color: var(--white);
+  text-decoration: none;
+  box-shadow: 0 14px 34px rgba(0,0,0,.28);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.member-repetition-card:hover,
+.member-repetition-card:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(248,231,2,.55);
+  outline: none;
+}
+
+.member-repetition-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: rgba(0,0,0,.34);
+  border: 1px solid rgba(255,255,255,.1);
+  font-size: 1.45rem;
+}
+
+.member-repetition-copy {
+  display: flex;
+  flex-direction: column;
+  gap: .16rem;
+  min-width: 0;
+}
+
+.member-repetition-copy strong {
+  font-size: 1rem;
+  letter-spacing: .01em;
+}
+
+.member-repetition-copy small {
+  color: rgba(255,255,255,.74);
+  line-height: 1.35;
+}
+
+.member-repetition-action {
+  padding: .48rem .72rem;
+  border-radius: 999px;
+  background: rgba(248,231,2,.13);
+  border: 1px solid rgba(248,231,2,.28);
+  color: var(--gold, #f8e702);
+  font-size: .78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .member-repetition-card {
+    grid-template-columns: auto 1fr;
+  }
+  .member-repetition-action {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    text-align: center;
+  }
+}
