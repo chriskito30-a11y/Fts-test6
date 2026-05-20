@@ -95,9 +95,9 @@
         return;
       }
 
-      const line = raw.match(/^([A-ZÀ-ÖØ-Ý0-9][A-ZÀ-ÖØ-Ý0-9 '\-_.()]{1,48})\s*(?::|：|—|–|-|\.|•)\s*(.+)$/u);
+      const line = splitRoleLine(raw);
       if (line) {
-        parsed.push({ speaker:normalizeSpeaker(line[1]), text:line[2].trim(), kind:'line' });
+        parsed.push({ speaker:normalizeSpeaker(line.speaker), text:line.text.trim(), kind:'line' });
         return;
       }
 
@@ -113,6 +113,49 @@
 
   function cleanStage(raw){
     return raw.replace(/^\[/,'').replace(/\]$/,'').replace(/^\*/,'').replace(/\*$/,'').trim();
+  }
+
+  function splitRoleLine(raw){
+    const value = String(raw || '').trim();
+    if (!value || /^[#\[*]/.test(value)) return null;
+
+    // On accepte un rôle en début de ligne, sans obligation de majuscules.
+    // Priorité aux séparateurs clairs pour éviter de couper les prénoms composés
+    // comme Jean-Pierre. Le point est accepté en dernier pour les formats "Rôle. Réplique".
+    const patterns = [
+      /^(.{1,70}?)[ \t]*(?::|：|•)[ \t]*(.+)$/u,
+      /^(.{1,70}?)[ \t]+(?:—|–|-)[ \t]+(.+)$/u,
+      /^(.{1,70}?)(?:—|–)(.+)$/u,
+      /^(.{1,70}?)[ \t]*\.[ \t]+(.+)$/u
+    ];
+
+    for (const pattern of patterns) {
+      const match = value.match(pattern);
+      if (!match) continue;
+      const speaker = sanitizeSpeakerCandidate(match[1]);
+      const text = String(match[2] || '').trim();
+      if (isValidSpeakerCandidate(speaker) && text) {
+        return { speaker, text };
+      }
+    }
+
+    return null;
+  }
+
+  function sanitizeSpeakerCandidate(value){
+    return String(value || '')
+      .replace(/[«»"“”]/g,'')
+      .replace(/\s+/g,' ')
+      .trim();
+  }
+
+  function isValidSpeakerCandidate(value){
+    if (!value) return false;
+    if (value.length > 70) return false;
+    if (!/[A-Za-zÀ-ÖØ-öø-ÿ0-9]/u.test(value)) return false;
+    if (/[?!;,]/.test(value)) return false;
+    const words = value.split(/\s+/).filter(Boolean);
+    return words.length <= 8;
   }
 
   function normalizeSpeaker(value){
