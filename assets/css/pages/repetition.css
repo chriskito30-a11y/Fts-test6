@@ -1845,3 +1845,56 @@ body[data-rep-view="rehearse"] .rep-shell{
   line-height:1.6;
   white-space:pre-wrap;
 }
+
+/* ================================================================
+   V118 — accès clair aux répliques à revoir
+   ================================================================ */
+.rep-btn-review{
+  background:var(--gold,#f6d400) !important;
+  border-color:var(--gold,#f6d400) !important;
+  color:#050505 !important;
+  font-weight:900 !important;
+}
+.rep-offline-actions.has-review{
+  grid-template-columns:minmax(110px,1fr) minmax(110px,1fr) 42px 42px !important;
+}
+.rep-resume-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+  align-items:center;
+  justify-content:flex-end;
+}
+.rep-resume-actions .rep-btn-review{
+  min-width:120px !important;
+}
+@media(max-width:760px){
+  .rep-offline-actions.has-review{
+    grid-template-columns:1fr 1fr 42px 42px !important;
+  }
+  .rep-offline-actions.has-review .rep-btn{
+    min-height:42px !important;
+    font-size:.82rem !important;
+    padding:.35rem .42rem !important;
+  }
+  .rep-resume-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+  }
+  .rep-resume-actions .rep-btn{
+    width:100%;
+  }
+  .rep-resume-actions #repForgetResumeBtn{
+    grid-column:span 2;
+  }
+}
+@media(max-width:380px){
+  .rep-offline-actions.has-review{
+    grid-template-columns:1fr 1fr !important;
+  }
+  .rep-offline-actions.has-review .rep-btn-icon-only,
+  .rep-offline-actions.has-review [data-offline-settings]{
+    min-width:0 !important;
+  }
+}
