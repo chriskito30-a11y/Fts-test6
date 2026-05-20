@@ -4,21 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Fais Ton Show — Assistant répétition</title>
-  <meta name="theme-color" content="#7c3aed" />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="stylesheet" href="assets/css/fts.css" />
   <link rel="stylesheet" href="assets/css/pages/repetition.css" />
 </head>
-<body>
-  <main class="rep-shell">
+<body class="has-glow has-topbar">
+  <main class="rep-shell wrap wrap-xl">
     <header class="rep-hero">
       <div>
-        <p class="rep-kicker">Fais Ton Show</p>
-        <h1>Assistant répétition</h1>
-        <p class="rep-lead">Colle un texte structuré, choisis ton rôle, puis laisse l’app donner les répliques des autres personnages.</p>
+        <p class="rep-kicker eyebrow">Fais Ton Show</p>
+        <h1>Assistant <span>répétition</span></h1>
+        <div class="title-line"></div>
+        <p class="rep-lead page-slogan">Choisis ton texte, choisis ton personnage, puis laisse l’app te donner la réplique.</p>
       </div>
       <div class="rep-status-pill" id="repSpeechStatus">Voix non lancée</div>
     </header>
 
-    <section class="rep-card rep-app-docs" aria-labelledby="rep-app-docs-title">
+    <section class="rep-card card rep-app-docs" aria-labelledby="rep-app-docs-title">
       <div class="rep-section-head">
         <div>
           <h2 id="rep-app-docs-title">Documents de l’application</h2>
@@ -36,7 +38,7 @@
         <button class="rep-btn rep-btn-primary" id="repLoadResourcePdfBtn" type="button" disabled>Analyser ce PDF</button>
         <button class="rep-btn" id="repReloadAppPdfBtn" type="button">Recharger mes PDF</button>
       </div>
-      <details class="rep-debug" id="repAppDebugWrap" open>
+      <details class="rep-debug" id="repAppDebugWrap" hidden>
         <summary>Détail du chargement</summary>
         <pre id="repAppDebug">En attente…</pre>
       </details>
@@ -50,7 +52,7 @@
       <p class="rep-help rep-note" id="repPdfStatus">Astuce : si un PDF Google Drive refuse l’analyse directe, télécharge-le puis utilise l’import depuis ce téléphone / PC.</p>
     </section>
 
-    <section class="rep-card rep-grid-2" aria-labelledby="rep-input-title">
+    <section class="rep-card card rep-grid-2" aria-labelledby="rep-input-title">
       <div>
         <h2 id="rep-input-title">1. Texte</h2>
         <p class="rep-help">Format conseillé : <strong>Rôle : Réplique</strong>, une réplique par ligne. Les majuscules ne sont pas obligatoires. Les didascalies peuvent être entre crochets.</p>
@@ -76,8 +78,8 @@
       </aside>
     </section>
 
-    <section class="rep-card" aria-labelledby="rep-options-title">
-      <h2 id="rep-options-title">3. Réglages</h2>
+    <section class="rep-card card rep-options-card" aria-labelledby="rep-options-title">
+      <details class="rep-options-details"><summary><span>3. Options de répétition</span><small>Réglages facultatifs</small></summary>
       <div class="rep-options">
         <label>
           Mode
@@ -119,9 +121,10 @@
           </select>
         </label>
       </div>
+      </details>
     </section>
 
-    <section class="rep-card rep-player" aria-labelledby="rep-player-title">
+    <section class="rep-card card rep-player" aria-labelledby="rep-player-title">
       <div class="rep-player-head">
         <div>
           <h2 id="rep-player-title">4. Répétition</h2>
@@ -147,9 +150,14 @@
       </div>
     </section>
 
-    <section class="rep-card" aria-labelledby="rep-list-title">
-      <h2 id="rep-list-title">Texte analysé</h2>
-      <div id="repLineList" class="rep-line-list"></div>
+    <section class="rep-card card" aria-labelledby="rep-list-title">
+      <div class="rep-section-head">
+        <div>
+          <h2 id="rep-list-title">Aperçu du texte</h2>
+          <p class="rep-help">Les répliques de ton personnage suivent ton réglage d’affichage. La ligne en cours est mise en avant au fur et à mesure.</p>
+        </div>
+      </div>
+      <div id="repLineList" class="rep-line-list rep-script-preview"></div>
     </section>
   </main>
 
@@ -159,6 +167,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
-  <script src="assets/js/pages/repetition.js?v=89" defer></script>
+  <script src="assets/js/pages/repetition.js?v=90" defer></script>
 </body>
 </html>
