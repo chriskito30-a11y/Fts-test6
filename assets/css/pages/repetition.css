@@ -37,6 +37,7 @@ h2{margin:0 0 12px;font-size:1.22rem;letter-spacing:-.025em}
 .rep-btn:disabled{opacity:.48;cursor:not-allowed}
 .rep-btn-primary{border:0;background:linear-gradient(135deg,var(--rep-primary),var(--rep-primary-2));box-shadow:0 10px 30px rgba(168,85,247,.26)}
 .rep-btn-danger{border-color:rgba(251,113,133,.42);color:#fecdd3;background:rgba(251,113,133,.11)}
+.rep-btn-memory{border-color:rgba(251,191,36,.38);color:#fde68a;background:rgba(251,191,36,.12)}
 .rep-panel{border:1px solid var(--rep-border);border-radius:22px;background:rgba(0,0,0,.16);padding:16px}
 .rep-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:8px 0 14px}
 .rep-stats div{border:1px solid var(--rep-border);border-radius:18px;background:rgba(255,255,255,.08);padding:12px;text-align:center}
