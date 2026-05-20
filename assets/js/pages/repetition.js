@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V110';
+  const REPETITION_VERSION = 'V111';
 
   const els = {};
   const state = {
@@ -26,7 +26,8 @@
     sections: [],
     directResourceHandled: false,
     difficultLines: new Set(),
-    focusDifficultOnly: false
+    focusDifficultOnly: false,
+    currentView: 'library'
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -40,11 +41,12 @@
     initAppDocuments();
     renderResumeCard();
     renderEmpty();
+    setView('library');
     updateSpeechStatus();
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -66,7 +68,7 @@
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
-    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; refreshPlayer(); renderRoleChoices(); updateDifficultUi(); saveCurrentScriptSettings(); });
+    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; refreshPlayer(); renderRoleChoices(); updateDifficultUi(); saveCurrentScriptSettings(); if (getSelectedRole() && (state.currentView === 'role' || state.currentView === 'library')) setView('mode'); });
     els.repMode.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     els.repPause.addEventListener('change', saveCurrentScriptSettings);
@@ -80,9 +82,71 @@
     if (els.repResumeBtn) els.repResumeBtn.addEventListener('click', resumeLastScript);
     if (els.repForgetResumeBtn) els.repForgetResumeBtn.addEventListener('click', forgetLastScript);
     if (els.repSectionSelect) els.repSectionSelect.addEventListener('change', goToSelectedSection);
+    document.querySelectorAll('[data-view-target]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const view = btn.getAttribute('data-view-target') || 'library';
+        if (view === 'role' && !state.lines.length) return;
+        if ((view === 'mode' || view === 'rehearse') && !getSelectedRole()) return;
+        setView(view);
+        if (view === 'rehearse') refreshPlayer();
+      });
+    });
+    if (els.repBackToLibraryBtn) els.repBackToLibraryBtn.addEventListener('click', () => setView('library'));
+    if (els.repBackToRoleBtn) els.repBackToRoleBtn.addEventListener('click', () => setView('role'));
+    if (els.repBeginRehearsalBtn) els.repBeginRehearsalBtn.addEventListener('click', () => enterRehearsal(false));
+    if (els.repOpenSettingsBtn) els.repOpenSettingsBtn.addEventListener('click', () => setView('settings'));
+    if (els.repBackToLibraryFromPlayerBtn) els.repBackToLibraryFromPlayerBtn.addEventListener('click', () => { stop(false); setView('library'); });
+    if (els.repSettingsBtn) els.repSettingsBtn.addEventListener('click', () => setView('settings'));
+    if (els.repToggleScriptBtn) els.repToggleScriptBtn.addEventListener('click', toggleScriptPanel);
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
+  }
+
+  function setView(view){
+    const allowed = ['library','role','mode','settings','rehearse'];
+    const next = allowed.includes(view) ? view : 'library';
+    state.currentView = next;
+    document.body.setAttribute('data-rep-view', next);
+    document.body.classList.toggle('rep-show-script', false);
+    document.querySelectorAll('[data-view-target]').forEach(btn => {
+      const target = btn.getAttribute('data-view-target') || '';
+      const active = target === next || (next === 'settings' && target === 'mode');
+      btn.classList.toggle('is-active', active);
+    });
+    if (next === 'rehearse') refreshPlayer(false);
+    setButtons();
+    scrollToTopSoft();
+  }
+
+  function scrollToTopSoft(){
+    try { window.scrollTo({ top:0, behavior:'smooth' }); } catch(e) { window.scrollTo(0,0); }
+  }
+
+  function getSelectedRole(){
+    return els.repRoleSelect ? els.repRoleSelect.value : '';
+  }
+
+  function enterRehearsal(autoStart){
+    if (!state.lines.length) {
+      alert('Choisis d’abord un texte.');
+      setView('library');
+      return;
+    }
+    if (els.repMode && els.repMode.value !== 'full' && !getSelectedRole()) {
+      alert('Choisis d’abord ton personnage.');
+      setView('role');
+      return;
+    }
+    setView('rehearse');
+    refreshPlayer();
+    saveCurrentScriptSettings();
+    if (autoStart) start();
+  }
+
+  function toggleScriptPanel(){
+    document.body.classList.toggle('rep-show-script');
+    if (document.body.classList.contains('rep-show-script')) renderLineList();
   }
 
   function updateSpeechStatus(){
@@ -581,8 +645,12 @@
     setPdfStatus(`Texte prêt : ${lineCount} réplique${lineCount>1?'s':''}, ${roleCount} personnage${roleCount>1?'s':''}. Choisis ton rôle puis appuie sur Play.`);
     if (!lineCount || !roleCount) {
       setPdfStatus(`Le PDF “${label}” a été lu, mais aucun rôle n’a été détecté. Vérifie que les répliques sont bien en début de ligne avec un séparateur, ex. Alice : Bonjour.`, false);
+      setView('library');
+    } else if (els.repRoleSelect && els.repRoleSelect.value) {
+      setPdfStatus(`Texte prêt : ${lineCount} réplique${lineCount>1?'s':''}, ${roleCount} personnage${roleCount>1?'s':''}. Tes réglages ont été retrouvés.`);
+      setView((scriptMeta && scriptMeta.fromCache) ? 'rehearse' : 'rehearse');
     } else {
-      scrollToRoleChoice();
+      setView('role');
     }
   }
 
@@ -853,8 +921,8 @@
         state.focusDifficultOnly = false;
         refreshPlayer();
         renderRoleChoices();
-        scrollToPlayer();
         saveCurrentScriptSettings();
+        setView(state.currentView === 'settings' ? 'settings' : 'mode');
       });
     });
   }
@@ -1042,6 +1110,7 @@
     refreshPlayer();
     renderPresetState(preset);
     saveCurrentScriptSettings();
+    if (state.currentView === 'mode') enterRehearsal(false);
   }
 
   function renderPresetState(activePreset){
@@ -1540,6 +1609,9 @@
 
   function setButtons(){
     const hasLines = state.lines.length > 0;
+    document.body.classList.toggle('is-awaiting-user', !!state.awaitingUser);
+    document.body.classList.toggle('is-playing', !!state.playing);
+    document.body.classList.toggle('has-script-ready', !!hasLines);
     els.repStartBtn.disabled = !hasLines || state.playing;
     els.repStopBtn.disabled = !hasLines || !state.playing;
     els.repPrevBtn.disabled = !hasLines || state.currentIndex <= 0;
@@ -1700,24 +1772,30 @@
           <small>${escapeHtml(meta || 'Enregistré sur cet appareil')}</small>
         </div>
         <div class="rep-offline-actions">
-          <button class="rep-btn rep-btn-primary" type="button" data-offline-open="${escapeAttr(item.id)}">Ouvrir</button>
+          <button class="rep-btn rep-btn-primary" type="button" data-offline-open="${escapeAttr(item.id)}">Reprendre</button>
+          <button class="rep-btn" type="button" data-offline-settings="${escapeAttr(item.id)}">⚙️</button>
           <button class="rep-btn" type="button" data-offline-delete="${escapeAttr(item.id)}">Supprimer</button>
         </div>
       </article>`;
     }).join('');
     els.repOfflineList.querySelectorAll('[data-offline-open]').forEach(btn => {
-      btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-open') || ''));
+      btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-open') || '', 'rehearse'));
+    });
+    els.repOfflineList.querySelectorAll('[data-offline-settings]').forEach(btn => {
+      btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-settings') || '', 'settings'));
     });
     els.repOfflineList.querySelectorAll('[data-offline-delete]').forEach(btn => {
       btn.addEventListener('click', () => deleteCachedScript(btn.getAttribute('data-offline-delete') || ''));
     });
   }
 
-  function openCachedScript(id){
+  function openCachedScript(id, view){
     const cached = getCachedScript(id);
     if (!cached || !cached.text) return;
     applyExtractedText(cached.text, cached.label || 'Texte de répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Texte de répétition', fromCache:true }));
     setPdfStatus('Texte chargé depuis cet appareil. Les réglages et la reprise ont été restaurés si disponibles.');
+    if (view === 'settings') setView('settings');
+    else if (view === 'rehearse' && getSelectedRole()) setView('rehearse');
   }
 
   function deleteCachedScript(id){
@@ -1774,6 +1852,7 @@
     if (!cached || !cached.text) return;
     applyExtractedText(cached.text, cached.label || 'Dernière répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Dernière répétition', fromCache:true }));
     setPdfStatus('Répétition reprise depuis cet appareil. Firebase n’a pas besoin de relire ce PDF.');
+    if (getSelectedRole()) setView('rehearse');
   }
 
   function forgetLastScript(){
