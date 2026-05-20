@@ -967,19 +967,23 @@ button, select, textarea, input{font:inherit}
 
 
 /* ================================================================
-   V107 — commandes flottantes + boutons dorés lisibles
+   V108 — commandes flottantes au-dessus de la bottom nav
    Objectif : garder Play / Stop / Précédent / Suivant accessibles
-   pendant la lecture du script, surtout sur mobile.
+   sans chevauchement avec la navigation basse FTS.
    ================================================================ */
+:root{
+  --rep-bottom-nav-offset: calc(78px + env(safe-area-inset-bottom, 0px));
+  --rep-floating-gap: 12px;
+}
 .rep-shell{
-  padding-bottom:170px !important;
+  padding-bottom:260px !important;
 }
 .rep-actions-player{
   position:fixed !important;
   left:50% !important;
-  bottom:calc(env(safe-area-inset-bottom, 0px) + 12px) !important;
+  bottom:calc(var(--rep-bottom-nav-offset) + var(--rep-floating-gap)) !important;
   transform:translateX(-50%) !important;
-  z-index:1200 !important;
+  z-index:1190 !important;
   width:min(1120px, calc(100vw - 22px)) !important;
   display:grid !important;
   grid-template-columns:repeat(6, minmax(0, 1fr)) !important;
@@ -1045,12 +1049,15 @@ a.rep-btn:hover:not(:disabled){
 }
 
 @media (max-width:760px){
+  :root{
+    --rep-bottom-nav-offset: calc(70px + env(safe-area-inset-bottom, 0px));
+    --rep-floating-gap: 10px;
+  }
   .rep-shell{
-    padding-bottom:248px !important;
+    padding-bottom:330px !important;
   }
   .rep-actions-player{
     width:calc(100vw - 16px) !important;
-    bottom:calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
     grid-template-columns:repeat(2, minmax(0, 1fr)) !important;
     gap:.45rem !important;
     padding:.55rem !important;
@@ -1063,10 +1070,20 @@ a.rep-btn:hover:not(:disabled){
   }
 }
 @media (min-width:761px) and (max-width:1040px){
+  :root{
+    --rep-bottom-nav-offset: 92px;
+    --rep-floating-gap: 12px;
+  }
   .rep-shell{
-    padding-bottom:210px !important;
+    padding-bottom:300px !important;
   }
   .rep-actions-player{
     grid-template-columns:repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+@media (min-width:860px){
+  :root{
+    --rep-bottom-nav-offset: 92px;
+    --rep-floating-gap: 12px;
   }
 }
