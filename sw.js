@@ -1,4 +1,4 @@
-const CACHE = 'fts-v115-repetition-speaker-option';
+const CACHE = 'fts-v116-repetition-controls-readable';
 const FILES = [
   './manifest.json',
   './index.html',
