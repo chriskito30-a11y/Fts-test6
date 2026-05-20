@@ -309,7 +309,7 @@ function adminRenderSearchResults(query){
     return `<article class="fts-admin-search-result">
       <div class="fts-admin-search-avatar">${adminText((adminDisplayName(u)||'?').charAt(0).toUpperCase())}</div>
       <div class="fts-admin-search-info"><strong>${adminText(adminDisplayName(u))}</strong><span>${adminText(u.email || 'Email non renseigné')}</span><small>${adminText(cats)} · ${adminText(childText)}</small></div>
-      <div class="fts-admin-search-actions"><a href="forum-admin.html#tab-members">Gérer</a><a href="rappels-admin.html">Rappel</a><a href="messages.html">Message</a></div>
+      <div class="fts-admin-search-actions"><button type="button" data-admin-member-read="${adminText(uid)}">Fiche</button><a href="forum-admin.html#tab-members">Gérer</a><a href="rappels-admin.html">Rappel</a><a href="messages.html">Message</a></div>
     </article>`;
   }).join('');
 }
@@ -369,3 +369,254 @@ loadAdminOverview = async function(){
 
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', adminInitActionGuide);
 else adminInitActionGuide();
+
+
+/* === FTS V80 — Fiche membre unifiée lecture seule ===
+   Objectif : afficher beaucoup d'informations sans aucune écriture Firebase.
+   Cette zone ne fait que des once('value') et ne crée/modifie rien. */
+const adminV80State = { currentUid:'', currentView:'normal', currentData:null };
+function adminV80Html(v){ return adminText(v); }
+function adminV80Date(ts){
+  const n = Number(ts || 0);
+  if(!n) return '—';
+  try{ return new Date(n).toLocaleString('fr-FR', { dateStyle:'short', timeStyle:'short' }); }catch(e){ return '—'; }
+}
+function adminV80List(value){ return adminUnique(adminNormList(value)); }
+function adminV80UserCats(u){ return adminV80List(u && (u.disciplines || u.categories || u.groups || u.group)); }
+function adminV80UserSubs(u){ return adminV80List(u && (u.subgroups || u.subcategories || u.subgroup || u.subcategory)); }
+function adminV80ChildName(c, i){ return (c && (c.firstName || c.prenom || c.name || c.displayName)) || ('Enfant ' + (Number(i || 0)+1)); }
+function adminV80ChildCats(c){ return adminV80List(c && (c.disciplines || c.categories || c.groups || c.group)); }
+function adminV80ChildSubs(c){ return adminV80List(c && (c.subgroups || c.subcategories || c.subgroup || c.subcategory)); }
+function adminV80Badges(list, empty){
+  const arr = adminUnique(list || []);
+  if(!arr.length) return `<span class="fts-member-pill">${adminV80Html(empty || 'Non renseigné')}</span>`;
+  return arr.map(x=>`<span class="fts-member-pill">${adminV80Html(x)}</span>`).join('');
+}
+function adminV80TargetArrays(obj){
+  const cats = [];
+  const subs = [];
+  function add(v, out){ adminV80List(v).forEach(x=>out.push(x)); }
+  if(!obj) return {cats:[], subs:[]};
+  add(obj.categories || obj.targetCategories || obj.cats || obj.groups || obj.targetCats, cats);
+  add(obj.subcategories || obj.targetSubcategories || obj.subs || obj.subgroups || obj.targetSubs || obj.targetSubgroups, subs);
+  if(obj.targets){
+    add(obj.targets.categories, cats); add(obj.targets.targetCategories, cats);
+    add(obj.targets.subcategories, subs); add(obj.targets.targetSubcategories, subs);
+    if(obj.targets.categories && typeof obj.targets.categories === 'object' && !Array.isArray(obj.targets.categories)) Object.keys(obj.targets.categories).forEach(k=>cats.push(k));
+    if(obj.targets.subcategories && typeof obj.targets.subcategories === 'object' && !Array.isArray(obj.targets.subcategories)) Object.keys(obj.targets.subcategories).forEach(k=>subs.push(k));
+  }
+  if(obj.targetGroups && typeof obj.targetGroups === 'object'){
+    Object.entries(obj.targetGroups).forEach(([cat, value])=>{ if(cat) cats.push(cat); add(value, subs); });
+  }
+  return { cats:adminUnique(cats), subs:adminUnique(subs) };
+}
+function adminV80AllAccess(u){
+  const cats = [...adminV80UserCats(u)];
+  const subs = [...adminV80UserSubs(u)];
+  const children = Array.isArray(u && u.enfants) ? u.enfants : [];
+  children.forEach(c=>{ cats.push(...adminV80ChildCats(c)); subs.push(...adminV80ChildSubs(c)); });
+  return { cats:adminUnique(cats).map(adminNormKey), subs:adminUnique(subs).map(adminNormKey), rawCats:adminUnique(cats), rawSubs:adminUnique(subs) };
+}
+function adminV80MatchesAccess(item, u){
+  const t = adminV80TargetArrays(item || {});
+  const access = adminV80AllAccess(u || {});
+  if(!t.cats.length && !t.subs.length) return true;
+  const catOk = t.cats.some(c=>access.cats.includes(adminNormKey(c)));
+  const subOk = t.subs.some(st=>access.subs.includes(adminNormKey(st)));
+  return catOk || subOk;
+}
+function adminV80ResourceForUser(r, u){
+  if(!r) return false;
+  if(r.active === false || r.status === 'inactive' || r.visible === false) return false;
+  const cat = r.cat || r.category || r.categorie || r.discipline || '';
+  const sub = r.subcat || r.subcategory || r.sousCategorie || r.sous_categorie || '';
+  if(!cat && !sub) return true;
+  const access = adminV80AllAccess(u || {});
+  return (cat && access.cats.includes(adminNormKey(cat))) || (sub && access.subs.includes(adminNormKey(sub)));
+}
+function adminV80EventForUser(ev, u){ return adminIsVisibleRecord(ev || {}) && adminV80MatchesAccess(ev, u); }
+function adminV80ScheduleForUser(s, uid, u){
+  if(!s || s.active === false) return false;
+  if(String(s.uid || s.userUid || s.memberUid || '') === String(uid)) return true;
+  return adminV80MatchesAccess({ categories:s.targetCategory || s.category, subcategories:s.targetSubcategory || s.subcategory, targetGroups:s.targetGroups }, u);
+}
+function adminV80ReminderForUser(r, uid){
+  if(!r) return false;
+  return String(r.uid || r.userUid || r.memberUid || r.targetUid || '') === String(uid);
+}
+function adminV80Row(title, meta, right){
+  return `<div class="fts-member-row"><div><strong>${adminV80Html(title || 'Sans titre')}</strong>${meta ? `<span>${adminV80Html(meta)}</span>` : ''}</div>${right ? `<small>${adminV80Html(right)}</small>` : ''}</div>`;
+}
+function adminV80Empty(text){ return `<div class="fts-member-empty">${adminV80Html(text || 'Aucune donnée trouvée.')}</div>`; }
+async function adminV80Read(uid){
+  const refs = [
+    ['user', 'fts_users/' + uid],
+    ['forumUser', 'fts_forum/users/' + uid],
+    ['schedules', 'fts_schedules'],
+    ['reminders', 'fts_scheduled_reminders'],
+    ['resources', 'fts_ressources'],
+    ['events', 'fts_events'],
+    ['polls', 'fts_polls'],
+    ['pollResponses', 'fts_poll_responses'],
+    ['pollUnread', 'fts_poll_unread/' + uid],
+    ['notifications', 'fts_user_notifications/' + uid],
+    ['dmUserConvs', 'fts_dm/userConvs/' + uid],
+    ['rewardHistory', 'fts_forum/rewardHistory'],
+    ['artistOfWeek', 'fts_community/artistOfWeek']
+  ];
+  const settled = await Promise.allSettled(refs.map(([,path])=>db.ref(path).once('value')));
+  const data = { uid, errors:[] };
+  settled.forEach((res, i)=>{
+    const key = refs[i][0];
+    const path = refs[i][1];
+    if(res.status === 'fulfilled') data[key] = res.value.val() || null;
+    else { data[key] = null; data.errors.push(path + ' : ' + (res.reason && res.reason.message ? res.reason.message : 'lecture impossible')); }
+  });
+  return data;
+}
+function adminV80BuildDerived(data){
+  const uid = data.uid;
+  const u = data.user || {};
+  const schedules = Object.entries(data.schedules || {}).map(([id,x])=>({id,...(x||{})})).filter(x=>adminV80ScheduleForUser(x, uid, u));
+  const reminders = Object.entries(data.reminders || {}).map(([id,x])=>({id,...(x||{})})).filter(x=>adminV80ReminderForUser(x, uid));
+  const resources = Object.entries(data.resources || {}).map(([id,x])=>({id,...(x||{})})).filter(x=>adminV80ResourceForUser(x, u));
+  const events = Object.entries(data.events || {}).map(([id,x])=>({id,...(x||{})})).filter(x=>adminV80EventForUser(x, u));
+  const polls = Object.entries(data.polls || {}).map(([id,x])=>({id,...(x||{})}));
+  const pollResponses = data.pollResponses || {};
+  const pollsReceived = polls.filter(p => (p.recipients && p.recipients[uid]) || adminV80MatchesAccess(p, u));
+  const pollsAnswered = polls.filter(p => pollResponses[p.id] && pollResponses[p.id][uid]);
+  const pollsCreated = polls.filter(p => String(p.createdByUid || '') === String(uid));
+  const notifications = Object.entries(data.notifications || {}).map(([id,x])=>({id,...(x||{})}));
+  const unreadNotifs = notifications.filter(n=>n && n.read !== true);
+  const dmConvs = Object.keys(data.dmUserConvs || {});
+  const rewards = Object.entries(data.rewardHistory || {}).map(([id,x])=>({id,...(x||{})})).filter(r=>String(r.targetUid||'')===String(uid) || String(r.assignedBy||'')===String(uid));
+  const forumStats = data.forumUser && data.forumUser.stats ? data.forumUser.stats : {};
+  return { schedules, reminders, resources, events, pollsReceived, pollsAnswered, pollsCreated, notifications, unreadNotifs, dmConvs, rewards, forumStats };
+}
+function adminV80RenderNormal(data){
+  const uid = data.uid;
+  const u = data.user || {};
+  const d = adminV80BuildDerived(data);
+  const name = adminDisplayName(u);
+  const children = Array.isArray(u.enfants) ? u.enfants : [];
+  const nextReminders = d.reminders.slice().sort((a,b)=>Number(a.sendAt||a.remindAt||a.ts||0)-Number(b.sendAt||b.remindAt||b.ts||0)).slice(0,6);
+  const nextEvents = d.events.slice().sort((a,b)=>adminParseDateTs(a)-adminParseDateTs(b)).slice(0,5);
+  return `<div class="fts-member-read-head">
+    <div class="fts-member-read-avatar">${adminV80Html((name || '?').charAt(0).toUpperCase())}</div>
+    <div><div class="fts-member-read-name">${adminV80Html(name)}</div>
+      <div class="fts-member-read-meta"><span class="fts-member-pill ${u.status==='active'?'ok':'warn'}">${adminV80Html(u.status || 'statut ?')}</span><span class="fts-member-pill">${adminV80Html(u.role || 'member')}</span><span class="fts-member-pill">${adminV80Html(u.email || 'Email non renseigné')}</span>${u.phone || u.tel ? `<span class="fts-member-pill">${adminV80Html(u.phone || u.tel)}</span>` : ''}</div>
+      <div class="fts-member-read-actions"><a href="forum-admin.html#tab-members">Gérer les accès</a><a href="rappels-admin.html">Créer / voir rappels</a><a href="messages.html">Messagerie</a></div>
+    </div>
+  </div>
+  <div class="fts-member-read-grid">
+    <section class="fts-member-read-card"><h3>Accès du compte</h3><div class="fts-member-read-meta">${adminV80Badges(adminV80UserCats(u),'Aucune discipline')}</div><div class="fts-member-read-meta">${adminV80Badges(adminV80UserSubs(u),'Aucun groupe')}</div></section>
+    <section class="fts-member-read-card"><h3>Résumé rapide</h3>
+      ${adminV80Row('Enfants renseignés', children.length ? children.map((c,i)=>adminV80ChildName(c,i)).join(', ') : 'Aucun', String(children.length))}
+      ${adminV80Row('Ressources visibles estimées', 'Selon catégories / sous-catégories du profil', String(d.resources.length))}
+      ${adminV80Row('Sondages reçus / répondus', `${d.pollsReceived.length} reçus · ${d.pollsAnswered.length} répondus`, `${Math.max(0,d.pollsReceived.length-d.pollsAnswered.length)} à vérifier`)}
+    </section>
+    <section class="fts-member-read-card full"><h3>Enfants / élèves rattachés</h3>${children.length ? `<div class="fts-member-list">${children.map((c,i)=>adminV80Row(adminV80ChildName(c,i), `Cours : ${adminUnique([...adminV80ChildCats(c), ...adminV80ChildSubs(c)]).join(', ') || 'non renseigné'}${c.birthdate ? ' · Naissance : '+c.birthdate : ''}`, c.phone || c.tel || '')).join('')}</div>` : adminV80Empty('Aucun enfant renseigné sur ce profil.')}</section>
+    <section class="fts-member-read-card"><h3>Rappels lisibles</h3>${nextReminders.length ? `<div class="fts-member-list">${nextReminders.map(r=>adminV80Row(r.title || r.courseLabel || r.label || 'Rappel', `${r.status || 'status ?'} · ${r.message || r.note || ''}`, adminV80Date(r.sendAt || r.remindAt || r.ts))).join('')}</div>` : adminV80Empty('Aucun rappel directement rattaché à ce membre.')}</section>
+    <section class="fts-member-read-card"><h3>Événements visibles estimés</h3>${nextEvents.length ? `<div class="fts-member-list">${nextEvents.map(ev=>adminV80Row(ev.title || ev.name || 'Événement', `${ev.type || 'date'} · ${ev.location || ''}`, adminV80Date(adminParseDateTs(ev)))).join('')}</div>` : adminV80Empty('Aucun événement visible détecté.')}</section>
+    <section class="fts-member-read-card"><h3>Dernières ressources visibles</h3>${d.resources.length ? `<div class="fts-member-list">${d.resources.slice(0,6).map(r=>adminV80Row(r.name || r.title || 'Ressource', `${r.cat || r.category || 'Sans catégorie'}${r.subcat || r.subcategory ? ' · '+(r.subcat || r.subcategory) : ''}`, r.type || 'doc')).join('')}</div>` : adminV80Empty('Aucune ressource visible estimée.')}</section>
+    <section class="fts-member-read-card"><h3>Communauté</h3>
+      ${adminV80Row('Conversations privées', 'D’après fts_dm/userConvs', String(d.dmConvs.length))}
+      ${adminV80Row('Notifications non lues', 'D’après fts_user_notifications', String(d.unreadNotifs.length))}
+      ${adminV80Row('XP / stats forum', Object.entries(d.forumStats || {}).map(([k,v])=>`${k}:${v}`).join(' · ') || 'Aucune stat', '')}
+    </section>
+  </div>`;
+}
+function adminV80RenderAdmin(data){
+  const uid = data.uid;
+  const u = data.user || {};
+  const d = adminV80BuildDerived(data);
+  const rawProfile = JSON.stringify({ uid, fts_users:data.user || null, fts_forum_user:data.forumUser || null }, null, 2);
+  return `<div class="fts-member-read-grid">
+    <section class="fts-member-read-card full"><h3>Lecture admin — identité complète</h3>
+      ${adminV80Row('UID Firebase', uid, '')}
+      ${adminV80Row('Création / mise à jour profil', `createdAt : ${adminV80Date(u.createdAt)} · updatedAt : ${adminV80Date(u.updatedAt)}`, '')}
+      ${adminV80Row('Préférences rappels', JSON.stringify(u.reminderPrefs || u.remindersPrefs || {}, null, 0) || '—', '')}
+    </section>
+    <section class="fts-member-read-card"><h3>Ce que le membre peut voir</h3>
+      ${adminV80Row('Ressources visibles estimées', 'fts_ressources selon accès', String(d.resources.length))}
+      ${adminV80Row('Événements visibles estimés', 'fts_events selon accès', String(d.events.length))}
+      ${adminV80Row('Sondages reçus estimés', 'fts_polls recipients/ciblage', String(d.pollsReceived.length))}
+    </section>
+    <section class="fts-member-read-card"><h3>Ce que le membre a fait</h3>
+      ${adminV80Row('Sondages répondus', 'Réponses enregistrées', String(d.pollsAnswered.length))}
+      ${adminV80Row('Sondages créés', 'Si prof/admin', String(d.pollsCreated.length))}
+      ${adminV80Row('Récompenses données/reçues', 'Historique lisible', String(d.rewards.length))}
+      ${adminV80Row('Conversations privées', 'Présence dans userConvs', String(d.dmConvs.length))}
+    </section>
+    <section class="fts-member-read-card"><h3>Planning / rappels</h3>
+      ${adminV80Row('Plannings concernés', 'fts_schedules lus et filtrés', String(d.schedules.length))}
+      ${adminV80Row('Rappels concernés', 'fts_scheduled_reminders lus et filtrés', String(d.reminders.length))}
+      ${d.reminders.slice(0,5).map(r=>adminV80Row(r.title || r.courseLabel || r.label || r.id, `${r.status || 'status ?'} · ${r.message || ''}`, adminV80Date(r.sendAt || r.remindAt || r.ts))).join('') || adminV80Empty('Aucun rappel.')}
+    </section>
+    <section class="fts-member-read-card"><h3>Notifications</h3>
+      ${adminV80Row('Total notifications', 'fts_user_notifications/' + uid, String(d.notifications.length))}
+      ${adminV80Row('Non lues', 'read !== true', String(d.unreadNotifs.length))}
+      ${d.notifications.slice(0,5).map(n=>adminV80Row(n.title || n.type || n.id, n.body || n.url || '', adminV80Date(n.createdAt || n.ts))).join('') || adminV80Empty('Aucune notification lisible.')}
+    </section>
+    <section class="fts-member-read-card"><h3>Récompenses / forum</h3>
+      ${data.forumUser && data.forumUser.specialBadge ? adminV80Row(data.forumUser.specialBadge.label || 'Badge spécial', data.forumUser.specialBadge.reason || '', adminV80Date(data.forumUser.specialBadge.until)) : adminV80Empty('Aucun badge temporaire actif détecté.')}
+      ${data.artistOfWeek && data.artistOfWeek.uid === uid ? adminV80Row('Artiste de la semaine', data.artistOfWeek.name || '', adminV80Date(data.artistOfWeek.until)) : ''}
+      ${d.rewards.slice(0,5).map(r=>adminV80Row(r.label || r.type || 'Récompense', r.reason || r.name || '', adminV80Date(r.ts))).join('')}
+    </section>
+    <section class="fts-member-read-card full"><h3>Données brutes utiles au diagnostic</h3><p>Lecture seule. Pratique pour comprendre un profil sans ouvrir Firebase.</p><pre class="fts-member-admin-json">${adminV80Html(rawProfile)}</pre></section>
+    ${data.errors && data.errors.length ? `<section class="fts-member-read-card full"><h3>Lectures indisponibles</h3>${data.errors.map(e=>adminV80Empty(e)).join('')}</section>` : ''}
+  </div>`;
+}
+function adminV80Render(){
+  const content = document.getElementById('admin-member-content');
+  if(!content || !adminV80State.currentData) return;
+  content.innerHTML = adminV80State.currentView === 'admin' ? adminV80RenderAdmin(adminV80State.currentData) : adminV80RenderNormal(adminV80State.currentData);
+}
+async function adminV80OpenMember(uid){
+  if(!uid || !db) return;
+  const modal = document.getElementById('admin-member-modal');
+  const content = document.getElementById('admin-member-content');
+  if(!modal || !content) return;
+  adminV80State.currentUid = uid;
+  adminV80State.currentView = 'normal';
+  adminV80State.currentData = null;
+  modal.classList.add('is-open');
+  modal.setAttribute('aria-hidden','false');
+  document.body.classList.add('fts-admin-modal-open');
+  document.querySelectorAll('[data-member-view]').forEach(b=>b.classList.toggle('active', b.dataset.memberView === 'normal'));
+  content.innerHTML = '<div class="fts-admin-search-empty">Chargement de la fiche membre en lecture seule…</div>';
+  try{
+    const data = await adminV80Read(uid);
+    adminV80State.currentData = data;
+    const title = document.getElementById('admin-member-title');
+    if(title) title.textContent = 'Fiche membre — ' + adminDisplayName(data.user || {});
+    adminV80Render();
+  }catch(e){
+    console.warn('[FTS Admin V80] fiche membre', e);
+    content.innerHTML = '<div class="fts-member-empty">Impossible de charger cette fiche en lecture seule.</div>';
+  }
+}
+function adminV80CloseMember(){
+  const modal = document.getElementById('admin-member-modal');
+  if(!modal) return;
+  modal.classList.remove('is-open');
+  modal.setAttribute('aria-hidden','true');
+  document.body.classList.remove('fts-admin-modal-open');
+}
+function adminV80InitMemberSheet(){
+  document.addEventListener('click', e=>{
+    const btn = e.target.closest && e.target.closest('[data-admin-member-read]');
+    if(btn){ e.preventDefault(); adminV80OpenMember(btn.getAttribute('data-admin-member-read')); return; }
+    if(e.target.closest && e.target.closest('[data-admin-close-member]')){ e.preventDefault(); adminV80CloseMember(); }
+  });
+  document.querySelectorAll('[data-member-view]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      adminV80State.currentView = btn.dataset.memberView || 'normal';
+      document.querySelectorAll('[data-member-view]').forEach(b=>b.classList.toggle('active', b === btn));
+      adminV80Render();
+    });
+  });
+  document.addEventListener('keydown', e=>{ if(e.key === 'Escape'){ const m=document.getElementById('admin-member-modal'); if(m && m.classList.contains('is-open')) adminV80CloseMember(); } });
+}
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', adminV80InitMemberSheet);
+else adminV80InitMemberSheet();
