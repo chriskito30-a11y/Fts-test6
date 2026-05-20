@@ -1638,6 +1638,26 @@ function openTextResourceDoc(key) {
   overlay.classList.remove('hidden');
 }
 
+
+function isRehearsalPdfDoc(d) {
+  if (!d) return false;
+  const type = String(d.type || '').toLowerCase().trim();
+  const url = String(d.url || '').split('?')[0].toLowerCase();
+  const isPdf = type === 'pdf' || type.includes('pdf') || /\.pdf$/i.test(url) || /drive\.google\.com/i.test(String(d.url || ''));
+  if (!isPdf) return false;
+  if (d.rehearsal === true || d.repetition === true || d.scriptRehearsal === true) return true;
+  const cat = FTS.norm(d.cat || d.category || '');
+  const typeHint = FTS.norm(type + ' ' + (d.kind || '') + ' ' + (d.format || ''));
+  if (typeHint.includes('repetition') || typeHint.includes('script')) return true;
+  return ['theatre','comedie musicale','singer show','singer academy'].some(key => cat.includes(key));
+}
+
+function repetitionUrlForDoc(d) {
+  const key = d && d.key ? String(d.key) : '';
+  if (!key) return 'repetition.html';
+  return `repetition.html?resource=${encodeURIComponent(key)}&autoload=1`;
+}
+
 function showDocs(docs, idx) {
   const el = document.getElementById('dc-' + idx);
   if (!el) return;
@@ -1665,6 +1685,9 @@ function showDocs(docs, idx) {
     const dlUrl = FTS.esc(resourceDownloadUrl(d.url));
     const title = FTS.esc(d.name || 'Document');
     const sub = d.sub ? ` · ${FTS.esc(d.sub)}` : '';
+    const rehearseAction = isRehearsalPdfDoc(d)
+      ? `<a class="doc-rehearse" href="${FTS.esc(repetitionUrlForDoc(d))}" aria-label="Répéter ${title}">🎭 Répéter</a>`
+      : '';
     return `<div class="doc-file-row doc-file-row--${FTS.esc(kind.cls)}" id="doc-${FTS.esc(d.key || '')}" data-doc-key="${FTS.esc(d.key || '')}">
               <a href="${safeUrl}" target="_blank" rel="noopener" class="doc-link" aria-label="Ouvrir ${title}">
                 <span class="doc-icon" aria-hidden="true">${kind.icon}</span>
@@ -1674,6 +1697,7 @@ function showDocs(docs, idx) {
                 </span>
               </a>
               <div class="doc-actions">
+                ${rehearseAction}
                 <a class="doc-open" href="${safeUrl}" target="_blank" rel="noopener" aria-label="Ouvrir ${title}">Ouvrir</a>
                 <a class="doc-download" href="${dlUrl}" target="_blank" rel="noopener" download aria-label="Télécharger ${title}">⬇ Télécharger</a>
                 <button type="button" class="doc-offline" data-action="toggle-resource-offline" data-offline-url="${safeUrl}" aria-label="Rendre ${title} disponible hors ligne">⬇ Hors ligne</button>

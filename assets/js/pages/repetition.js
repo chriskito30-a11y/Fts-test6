@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V101';
+  const REPETITION_VERSION = 'V102';
 
   const els = {};
   const state = {
@@ -23,7 +23,8 @@
     roleVoicePrefs: {},
     currentScriptId: '',
     currentScriptLabel: '',
-    sections: []
+    sections: [],
+    directResourceHandled: false
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -222,6 +223,7 @@
       debug.visiblePdfResources = state.resources.length;
 
       renderResourceOptions(state.resources);
+      await handleDirectResourceRequest();
       setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''} · Tout est normal` : 'Aucun PDF disponible pour tes groupes · Tout est normal');
       setAppDebug('', false);
     } catch (err) {
@@ -376,6 +378,41 @@
         if (value[k] === true) { const nk = norm(k); if (nk) target.add(nk); }
         else addList(value[k], target);
       });
+    }
+  }
+
+
+  function getDirectResourceKey(){
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return params.get('resource') || params.get('resourceId') || params.get('doc') || '';
+    } catch(e) { return ''; }
+  }
+
+  function shouldAutoLoadDirectResource(){
+    try {
+      const params = new URLSearchParams(window.location.search || '');
+      return params.get('autoload') === '1' || params.get('start') === '1';
+    } catch(e) { return false; }
+  }
+
+  async function handleDirectResourceRequest(){
+    const requestedKey = getDirectResourceKey();
+    if (!requestedKey || state.directResourceHandled || !els.repResourceSelect) return;
+    const resource = state.resources.find(r => String(r.key || '') === String(requestedKey));
+    if (!resource) {
+      state.directResourceHandled = true;
+      setPdfStatus('Ce PDF n’est pas disponible pour ce compte ou n’est pas compatible répétition.', false);
+      return;
+    }
+    els.repResourceSelect.value = resource.key;
+    onResourceSelectChange();
+    state.directResourceHandled = true;
+    if (shouldAutoLoadDirectResource()) {
+      await loadSelectedResourcePdf();
+    } else {
+      setPdfStatus(`PDF sélectionné : “${resource.name}”. Clique sur “Commencer à réviser”.`);
+      try { document.querySelector('.rep-app-docs')?.scrollIntoView({ behavior:'smooth', block:'start' }); } catch(e) {}
     }
   }
 
