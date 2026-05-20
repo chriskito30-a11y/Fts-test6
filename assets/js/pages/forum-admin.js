@@ -748,12 +748,171 @@ async function syncForumUser(id, statusOverride) {
   });
 }
 
+
+
+/* ── V81 : REVUE OBLIGATOIRE AVANT VALIDATION ───────────────────
+   Lecture seule : l'admin doit vérifier le profil avant toute validation.
+   Aucun set/update/push/remove ici, uniquement affichage des données déjà chargées.
+──────────────────────────────────────────────────────────────── */
+function adminVal(v, fallback){
+  if(v === undefined || v === null || v === '') return fallback || 'Non renseigné';
+  if(Array.isArray(v)) return v.length ? v.join(', ') : (fallback || 'Non renseigné');
+  if(typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+function adminBoolLabel(v){ return v ? 'Oui' : 'Non'; }
+function adminListHtml(items, empty){
+  const arr = normList(items);
+  if(!arr.length) return `<span class="approval-muted">${FTS.esc(empty || 'Non renseigné')}</span>`;
+  return arr.map(x => `<span class="approval-chip">${FTS.esc(x)}</span>`).join('');
+}
+function adminReminderReviewHtml(u){
+  const prefs = reminderPrefRows(u);
+  const globalPrefs = u.reminderPrefs || u.reminders || {};
+  const bits = [];
+  if(globalPrefs.reminder24h || globalPrefs.rappel24h || globalPrefs.courseReminder24h) bits.push('Rappel 24h demandé');
+  if(globalPrefs.reminder1h || globalPrefs.rappel1h || globalPrefs.courseReminder1h) bits.push('Rappel 1h demandé');
+  if(globalPrefs.paused || globalPrefs.suspended || globalPrefs.muted) bits.push('Rappels suspendus côté profil');
+  if(!prefs.length && !bits.length) return '<div class="approval-empty">Aucun rappel demandé à l’inscription.</div>';
+  const rows = prefs.map(p => {
+    const reminders = [];
+    if(p.reminder24h) reminders.push('24h');
+    if(p.reminder1h) reminders.push('1h');
+    const owner = p.ownerType === 'child' ? (p.childName || p.ownerName || 'Enfant') : (u.firstName || u.name || 'Adhérent');
+    return `<li><strong>${FTS.esc(p.courseLabel || p.category || 'Cours')}</strong><br><span>${FTS.esc(owner)} · ${FTS.esc(reminders.join(' + ') || 'rappel demandé')}</span></li>`;
+  }).join('');
+  const global = bits.length ? `<div class="approval-note">${bits.map(b => '✓ ' + FTS.esc(b)).join('<br>')}</div>` : '';
+  return `${global}${rows ? `<ul class="approval-review-list">${rows}</ul>` : ''}`;
+}
+function adminChildrenReviewHtml(u){
+  const enfants = Array.isArray(u.enfants) ? u.enfants : [];
+  if(!enfants.length) return '<div class="approval-empty">Aucun enfant renseigné sur ce profil.</div>';
+  return enfants.map((e, idx) => {
+    const name = [e.prenom, e.nom].filter(Boolean).join(' ') || ('Enfant ' + (idx+1));
+    const discs = e.disciplines || e.categories || e.groups || e.group || [];
+    const subs = e.subgroups || e.sousCategories || e.subgroup || [];
+    return `<article class="approval-child-card">
+      <div class="approval-child-title">🎭 ${FTS.esc(name)}</div>
+      <div class="approval-kv"><span>Date de naissance</span><strong>${FTS.esc(adminVal(e.birthdate || e.dateNaissance || e.naissance, 'Non renseignée'))}</strong></div>
+      <div class="approval-kv"><span>Téléphone enfant</span><strong>${FTS.esc(adminVal(e.telephone || e.phone, 'Non renseigné'))}</strong></div>
+      <div class="approval-kv approval-kv-wide"><span>Disciplines enfant</span><div>${adminListHtml(discs, 'Aucune discipline enfant')}</div></div>
+      <div class="approval-kv approval-kv-wide"><span>Groupes enfant</span><div>${adminListHtml(subs, 'Aucun groupe enfant')}</div></div>
+    </article>`;
+  }).join('');
+}
+function adminAccessReviewHtml(u){
+  const discs = u.disciplines || u.groups || u.group || [];
+  const subs = u.subgroups || u.subgroup || [];
+  const enfants = Array.isArray(u.enfants) ? u.enfants : [];
+  const childDiscs = childDisciplinesFrom(enfants);
+  const childSubs = childSubgroupsFrom(enfants);
+  const allDiscs = uniqList([...normList(discs), ...childDiscs]);
+  const allSubs = uniqList([...normList(subs), ...childSubs]);
+  return `<div class="approval-access-grid">
+    <div class="approval-access-box"><span>Accès parent/adulte</span><div>${adminListHtml(discs, 'Aucune discipline parent/adulte')}</div></div>
+    <div class="approval-access-box"><span>Groupes parent/adulte</span><div>${adminListHtml(subs, 'Aucun groupe parent/adulte')}</div></div>
+    <div class="approval-access-box"><span>Accès total détecté</span><div>${adminListHtml(allDiscs, 'Aucune discipline détectée')}</div></div>
+    <div class="approval-access-box"><span>Groupes totaux détectés</span><div>${adminListHtml(allSubs, 'Aucun groupe détecté')}</div></div>
+  </div>`;
+}
+function ensureApprovalReviewModal(){
+  let overlay = document.getElementById('approval-review-modal');
+  if(overlay) return overlay;
+  overlay = document.createElement('div');
+  overlay.id = 'approval-review-modal';
+  overlay.className = 'modal-overlay hidden approval-review-overlay';
+  overlay.innerHTML = `<div class="modal approval-review-modal" role="dialog" aria-modal="true" aria-labelledby="approval-review-title">
+    <div class="approval-review-head">
+      <div>
+        <h3 id="approval-review-title">Vérifier avant validation</h3>
+        <p>Contrôle obligatoire : vérifie le profil, les enfants, les accès et les rappels avant d’activer le compte.</p>
+      </div>
+      <button class="approval-review-close" type="button" data-approval-review-action="cancel" aria-label="Fermer">×</button>
+    </div>
+    <div id="approval-review-body"></div>
+    <div class="modal-row approval-review-actions">
+      <button class="btn-cancel" type="button" data-approval-review-action="cancel">Annuler</button>
+      <button class="btn-action" type="button" data-approval-review-action="modify">Corriger les accès</button>
+      <button class="btn-confirm" type="button" data-approval-review-action="continue">Tout est bon, continuer</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  return overlay;
+}
+function openApprovalReviewModal(uid, user){
+  return new Promise(resolve => {
+    const u = user || {};
+    const overlay = ensureApprovalReviewModal();
+    const body = document.getElementById('approval-review-body');
+    const name = u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Membre sans nom';
+    const created = fmtDate(u.ts || u.createdAt || u.created_at || '');
+    body.innerHTML = `<div class="approval-review-summary">
+      <div class="approval-review-avatar">${FTS.esc(String(name).charAt(0).toUpperCase() || '?')}</div>
+      <div>
+        <div class="approval-review-name">${FTS.esc(name)}</div>
+        <div class="approval-review-meta">${FTS.esc(u.email || 'Email non renseigné')} · ${FTS.esc(roleLabel(u.role || 'member'))} · demande ${FTS.esc(created)}</div>
+      </div>
+    </div>
+    <section class="approval-review-section">
+      <h4>1. Identité</h4>
+      <div class="approval-review-grid">
+        <div class="approval-kv"><span>Nom affiché</span><strong>${FTS.esc(adminVal(name))}</strong></div>
+        <div class="approval-kv"><span>Email</span><strong>${FTS.esc(adminVal(u.email))}</strong></div>
+        <div class="approval-kv"><span>Téléphone</span><strong>${FTS.esc(adminVal(u.telephone || u.phone))}</strong></div>
+        <div class="approval-kv"><span>Rôle demandé</span><strong>${FTS.esc(roleLabel(u.role || 'member'))}</strong></div>
+        <div class="approval-kv"><span>Statut actuel</span><strong>${FTS.esc(u.status || 'pending')}</strong></div>
+        <div class="approval-kv"><span>Profil enfant ?</span><strong>${FTS.esc(adminBoolLabel(u.hasEnfant || (Array.isArray(u.enfants) && u.enfants.length)))}</strong></div>
+      </div>
+    </section>
+    <section class="approval-review-section">
+      <h4>2. Enfant(s)</h4>
+      ${adminChildrenReviewHtml(u)}
+    </section>
+    <section class="approval-review-section">
+      <h4>3. Accès détectés</h4>
+      ${adminAccessReviewHtml(u)}
+    </section>
+    <section class="approval-review-section">
+      <h4>4. Rappels demandés</h4>
+      ${adminReminderReviewHtml(u)}
+    </section>
+    <section class="approval-review-section approval-impact">
+      <h4>5. Impact de la validation</h4>
+      <ul>
+        <li>Le compte passera en <strong>actif</strong>.</li>
+        <li>Le membre pourra accéder à son espace selon les accès détectés.</li>
+        <li>Le profil forum sera synchronisé.</li>
+        <li>Un email de validation sera envoyé si une adresse email est disponible.</li>
+        <li>Si des rappels sont demandés, l’étape suivante proposera de les préparer ou de valider sans rappel.</li>
+      </ul>
+    </section>`;
+    overlay.classList.remove('hidden');
+    const cleanup = () => { overlay.classList.add('hidden'); overlay.onclick = null; };
+    overlay.onclick = ev => {
+      const btn = ev.target.closest('[data-approval-review-action]');
+      if(!btn) return;
+      const action = btn.dataset.approvalReviewAction;
+      cleanup();
+      resolve(action || 'cancel');
+    };
+  });
+}
+
 async function approveUser(id) {
   const busyKey = 'approveUser:' + id;
   if(adminBusyActions[busyKey]) return;
   adminBusyActions[busyKey] = true;
   try{
     const u = allUsers[id] || {};
+
+    // V81 : étape de contrôle obligatoire avant validation.
+    // Lecture seule : aucune donnée n'est écrite tant que l'admin ne confirme pas.
+    const reviewResult = await openApprovalReviewModal(id, u);
+    if(reviewResult === 'cancel') return;
+    if(reviewResult === 'modify'){
+      openModModal(id);
+      return;
+    }
 
     // Si le membre a demandé des rappels à l'inscription, on propose immédiatement
     // de préparer le planning/rappels AVANT validation finale. L'admin peut ignorer.
