@@ -1201,7 +1201,9 @@
     }
     if (els.repDifficultBtn) {
       els.repDifficultBtn.disabled = currentOwn < 0;
-      els.repDifficultBtn.textContent = isMarked ? '⭐ Marquée' : '⭐ À retravailler';
+      els.repDifficultBtn.textContent = isMarked ? '★' : '⭐';
+      els.repDifficultBtn.title = isMarked ? 'Réplique marquée à retravailler' : 'Marquer cette réplique à retravailler';
+      els.repDifficultBtn.setAttribute('aria-label', els.repDifficultBtn.title);
       els.repDifficultBtn.classList.toggle('is-active', isMarked);
     }
     if (els.repReviewDifficultBtn) {
@@ -1806,7 +1808,7 @@
         <div class="rep-offline-actions">
           <button class="rep-btn rep-btn-primary" type="button" data-offline-open="${escapeAttr(item.id)}">Reprendre</button>
           <button class="rep-btn" type="button" data-offline-settings="${escapeAttr(item.id)}">⚙️</button>
-          <button class="rep-btn" type="button" data-offline-delete="${escapeAttr(item.id)}">Supprimer</button>
+          <button class="rep-btn rep-btn-icon-only" type="button" data-offline-delete="${escapeAttr(item.id)}" title="Supprimer ce texte" aria-label="Supprimer ce texte">🗑</button>
         </div>
       </article>`;
     }).join('');
