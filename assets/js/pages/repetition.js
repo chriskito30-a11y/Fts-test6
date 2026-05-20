@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V102';
+  const REPETITION_VERSION = 'V104';
 
   const els = {};
   const state = {
@@ -42,7 +42,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repSectionSelect','repSectionNav'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -140,13 +140,18 @@
 
     firebase.auth().onAuthStateChanged(async user => {
       state.authUser = user || null;
+      try {
+        if (user && user.uid) localStorage.setItem('fts_repetition_lastUid', user.uid);
+      } catch(e) {}
       renderResumeCard();
+      renderOfflineLibrary();
       if (!user) {
         state.profile = null;
         state.resources = [];
         setAppStatus('Connecte-toi pour voir tes PDF');
         renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
         setAppDebug('', false);
+        renderOfflineLibrary();
         return;
       }
       await loadAppDocumentsForCurrentUser(false);
@@ -1413,8 +1418,11 @@
   }
 
   function storagePrefix(){
-    const uid = state.authUser && state.authUser.uid ? state.authUser.uid : 'local';
-    return 'fts_repetition_' + uid + '_';
+    let uid = state.authUser && state.authUser.uid ? state.authUser.uid : '';
+    if (!uid) {
+      try { uid = localStorage.getItem('fts_repetition_lastUid') || ''; } catch(e) {}
+    }
+    return 'fts_repetition_' + (uid || 'local') + '_';
   }
 
   function getResourceScriptId(key){
@@ -1448,6 +1456,7 @@
       localStorage.setItem(storagePrefix() + 'script_' + id, JSON.stringify(payload));
       localStorage.setItem(storagePrefix() + 'lastScriptId', id);
       pruneScriptCache();
+      renderOfflineLibrary();
     } catch (err) {
       console.warn('[FTS Répétition] cache script', err);
     }
@@ -1472,6 +1481,93 @@
     }
   }
 
+  function getCachedScriptItems(){
+    try {
+      const prefix = storagePrefix() + 'script_';
+      const items = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(prefix)) continue;
+        try {
+          const cached = JSON.parse(localStorage.getItem(key) || '{}');
+          if (!cached || !cached.id || !cached.text) continue;
+          const settings = getScriptSettings(cached.id) || {};
+          items.push({
+            id: cached.id,
+            key,
+            label: cached.label || 'Texte de répétition',
+            text: cached.text || '',
+            meta: cached.meta || {},
+            updatedAt: cached.updatedAt || 0,
+            settings
+          });
+        } catch(e) {}
+      }
+      return items.sort((a,b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    } catch (err) {
+      return [];
+    }
+  }
+
+  function renderOfflineLibrary(){
+    if (!els.repOfflineLibrary || !els.repOfflineList) return;
+    const items = getCachedScriptItems();
+    if (!items.length) {
+      els.repOfflineLibrary.hidden = true;
+      return;
+    }
+    els.repOfflineLibrary.hidden = false;
+    if (els.repOfflineCount) els.repOfflineCount.textContent = `${items.length} texte${items.length>1?'s':''}`;
+    els.repOfflineList.innerHTML = items.map(item => {
+      const settings = item.settings || {};
+      const date = item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('fr-FR') : '';
+      const meta = [
+        settings.role ? 'Rôle : ' + settings.role : '',
+        Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '',
+        date
+      ].filter(Boolean).join(' · ');
+      return `<article class="rep-offline-item" data-script-id="${escapeAttr(item.id)}">
+        <div>
+          <strong>${escapeHtml(item.label)}</strong>
+          <small>${escapeHtml(meta || 'Enregistré sur cet appareil')}</small>
+        </div>
+        <div class="rep-offline-actions">
+          <button class="rep-btn rep-btn-primary" type="button" data-offline-open="${escapeAttr(item.id)}">Ouvrir</button>
+          <button class="rep-btn" type="button" data-offline-delete="${escapeAttr(item.id)}">Supprimer</button>
+        </div>
+      </article>`;
+    }).join('');
+    els.repOfflineList.querySelectorAll('[data-offline-open]').forEach(btn => {
+      btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-open') || ''));
+    });
+    els.repOfflineList.querySelectorAll('[data-offline-delete]').forEach(btn => {
+      btn.addEventListener('click', () => deleteCachedScript(btn.getAttribute('data-offline-delete') || ''));
+    });
+  }
+
+  function openCachedScript(id){
+    const cached = getCachedScript(id);
+    if (!cached || !cached.text) return;
+    applyExtractedText(cached.text, cached.label || 'Texte de répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Texte de répétition', fromCache:true }));
+    setPdfStatus('Texte chargé depuis cet appareil. Les réglages et la reprise ont été restaurés si disponibles.');
+  }
+
+  function deleteCachedScript(id){
+    if (!id) return;
+    const cached = getCachedScript(id);
+    const label = cached && cached.label ? cached.label : 'ce texte';
+    if (!confirm(`Supprimer “${label}” de cet appareil ?`)) return;
+    try {
+      localStorage.removeItem(storagePrefix() + 'script_' + id);
+      localStorage.removeItem(storagePrefix() + 'settings_' + id);
+      if (localStorage.getItem(storagePrefix() + 'lastScriptId') === id) {
+        localStorage.removeItem(storagePrefix() + 'lastScriptId');
+      }
+    } catch(e) {}
+    renderResumeCard();
+    renderOfflineLibrary();
+  }
+
   function pruneScriptCache(){
     try {
       const prefix = storagePrefix() + 'script_';
@@ -1485,7 +1581,7 @@
           } catch(e) {}
         }
       }
-      items.sort((a,b) => b.updatedAt - a.updatedAt).slice(6).forEach(item => localStorage.removeItem(item.key));
+      items.sort((a,b) => b.updatedAt - a.updatedAt).slice(30).forEach(item => localStorage.removeItem(item.key));
     } catch(e) {}
   }
 
@@ -1522,6 +1618,7 @@
       localStorage.removeItem(storagePrefix() + 'lastScriptId');
     } catch(e) {}
     renderResumeCard();
+    renderOfflineLibrary();
   }
 
   function getScriptSettings(id){
@@ -1570,6 +1667,7 @@
       localStorage.setItem(storagePrefix() + 'settings_' + state.currentScriptId, JSON.stringify(payload));
       localStorage.setItem(storagePrefix() + 'lastScriptId', state.currentScriptId);
       renderResumeCard();
+      renderOfflineLibrary();
     } catch (err) {
       console.warn('[FTS Répétition] sauvegarde réglages', err);
     }
