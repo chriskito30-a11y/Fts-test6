@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="stylesheet" href="assets/css/fts.css" />
   <link rel="stylesheet" href="assets/css/fts-nav.css?v=106" />
-  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=114" />
+  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=115" />
 </head>
 <body class="has-glow has-topbar" data-rep-view="library">
   <main class="rep-shell wrap wrap-xl">
@@ -153,6 +153,13 @@
           </select>
         </label>
         <label>
+          Nom du personnage
+          <select id="repReadSpeakerName" class="rep-select">
+            <option value="yes" selected>Lire avant la réplique</option>
+            <option value="no">Ne pas lire</option>
+          </select>
+        </label>
+        <label>
           Affichage de mes répliques
           <select id="repOwnLines" class="rep-select">
             <option value="show">Afficher</option>
@@ -220,11 +227,11 @@
         <button class="rep-btn rep-btn-primary rep-btn-mini" id="repStartBtn" type="button" disabled title="Play">▶</button>
         <button class="rep-btn rep-btn-danger rep-btn-mini" id="repStopBtn" type="button" disabled title="Stop">⏹</button>
         <button class="rep-btn rep-btn-mini" id="repNextBtn" type="button" disabled title="Suivant">⏭</button>
-        <button class="rep-btn" id="repContinueBtn" type="button" disabled data-contextual="own">J’ai dit</button>
-        <button class="rep-btn rep-btn-memory" id="repCueBtn" type="button" disabled data-contextual="own">Souffler</button>
+        <button class="rep-btn" id="repContinueBtn" type="button" disabled data-contextual="own" aria-label="J’ai dit ma réplique" title="J’ai dit ma réplique">Dit</button>
+        <button class="rep-btn rep-btn-memory" id="repCueBtn" type="button" disabled data-contextual="own" aria-label="Me souffler ma réplique" title="Me souffler ma réplique">Aide</button>
         <button class="rep-btn rep-btn-star" id="repDifficultBtn" type="button" disabled data-contextual="own">⭐</button>
-        <button class="rep-btn" id="repReviewDifficultBtn" type="button" disabled>Réviser ⭐</button>
-        <button class="rep-btn" id="repExitDifficultBtn" type="button" hidden>Tout revoir</button>
+        <button class="rep-btn" id="repReviewDifficultBtn" type="button" disabled aria-label="Réviser les répliques à retravailler" title="Réviser les répliques à retravailler">Réviser</button>
+        <button class="rep-btn" id="repExitDifficultBtn" type="button" hidden aria-label="Revenir à tout le texte" title="Revenir à tout le texte">Tout</button>
       </div>
     </section>
 
@@ -266,6 +273,6 @@
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/fts-nav.js?v=106"></script>
-  <script src="assets/js/pages/repetition.js?v=114" defer></script>
+  <script src="assets/js/pages/repetition.js?v=115" defer></script>
 </body>
 </html>
