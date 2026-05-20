@@ -18,6 +18,33 @@
       <div class="rep-status-pill" id="repSpeechStatus">Voix non lancée</div>
     </header>
 
+    <section class="rep-card rep-app-docs" aria-labelledby="rep-app-docs-title">
+      <div class="rep-section-head">
+        <div>
+          <h2 id="rep-app-docs-title">Documents de l’application</h2>
+          <p class="rep-help">Charge un PDF déjà publié dans les ressources Fais Ton Show, ou importe un PDF depuis cet appareil. Le PDF doit contenir du texte sélectionnable pour être analysé automatiquement.</p>
+        </div>
+        <span class="rep-mini-status" id="repAppStatus">Connexion à l’app…</span>
+      </div>
+      <div class="rep-doc-loader">
+        <label>
+          PDF publié dans l’application
+          <select id="repResourceSelect" class="rep-select">
+            <option value="">Chargement des documents…</option>
+          </select>
+        </label>
+        <button class="rep-btn rep-btn-primary" id="repLoadResourcePdfBtn" type="button" disabled>Analyser ce PDF</button>
+      </div>
+      <div class="rep-doc-loader rep-doc-loader-local">
+        <label>
+          PDF depuis ce téléphone / PC
+          <input id="repLocalPdfInput" class="rep-file" type="file" accept="application/pdf,.pdf" />
+        </label>
+        <button class="rep-btn" id="repLoadLocalPdfBtn" type="button" disabled>Analyser le PDF importé</button>
+      </div>
+      <p class="rep-help rep-note" id="repPdfStatus">Astuce : si un PDF Google Drive refuse l’analyse directe, télécharge-le puis utilise l’import depuis ce téléphone / PC.</p>
+    </section>
+
     <section class="rep-card rep-grid-2" aria-labelledby="rep-input-title">
       <div>
         <h2 id="rep-input-title">1. Texte</h2>
@@ -120,6 +147,12 @@
     </section>
   </main>
 
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="assets/js/fts-utils.js"></script>
+  <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/pages/repetition.js" defer></script>
 </body>
 </html>
