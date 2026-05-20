@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V93';
+  const REPETITION_VERSION = 'V94';
 
   const els = {};
   const state = {
@@ -702,12 +702,14 @@
   }
 
   function speak(text, onEnd, options){
-    const opts = options || {};
+    // IMPORTANT : ne jamais appeler speechSynthesis.cancel() au début d'une lecture.
+    // Sur mobile, cancel() peut déclencher immédiatement onend/onerror de l'utterance
+    // en cours ou tout juste ajoutée, ce qui faisait avancer toutes les lignes jusqu'à la fin.
+    // La voix est coupée uniquement par Stop / Précédent / Suivant / changement de rôle.
     if (!('speechSynthesis' in window)) {
       state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 900);
       return;
     }
-    if (opts.noStop !== true) stopSpeechOnly(true);
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'fr-FR';
     utterance.rate = Number(els.repRate.value) || 1;
