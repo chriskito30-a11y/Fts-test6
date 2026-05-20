@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V96';
+  const REPETITION_VERSION = 'V97';
 
   const els = {};
   const state = {
@@ -29,6 +29,7 @@
     bindElements();
     bindEvents();
     loadVoices();
+    scheduleVoiceReloads();
     initPdfEngine();
     initAppDocuments();
     renderEmpty();
@@ -71,19 +72,31 @@
     els.repSpeechStatus.textContent = state.voices.length ? 'Voix disponible' : 'Voix du navigateur';
   }
 
-  function loadVoices(){
+  function scheduleVoiceReloads(){
+    // Sur mobile, les voix arrivent parfois après le chargement de la page.
+    // On relit plusieurs fois sans toucher à la boucle de lecture stable.
+    [250, 900, 1800, 3200].forEach(delay => {
+      setTimeout(() => loadVoices(true), delay);
+    });
+  }
+
+  function loadVoices(silent){
     if (!('speechSynthesis' in window)) return;
+    const previousSignature = (state.voices || []).map(v => `${v.name}|${v.lang}|${v.voiceURI}`).join('||');
     state.voices = window.speechSynthesis.getVoices() || [];
     const current = els.repVoice.value;
-    const french = state.voices.filter(v => /fr|French|France/i.test(`${v.lang} ${v.name}`));
+    const french = getFrenchVoices();
     const ordered = french.length ? french.concat(state.voices.filter(v => !french.includes(v))) : state.voices;
-    els.repVoice.innerHTML = '<option value="">Voix par défaut</option>' + ordered.map((voice, index)=>{
+    els.repVoice.innerHTML = '<option value="">Voix par défaut</option>' + ordered.map((voice)=>{
       const originalIndex = state.voices.indexOf(voice);
-      return `<option value="${originalIndex}">${escapeHtml(voice.name)}${voice.lang ? ' — ' + escapeHtml(voice.lang) : ''}</option>`;
+      const gender = inferVoiceGender(voice);
+      const genderLabel = gender === 'female' ? ' · femme' : gender === 'male' ? ' · homme' : '';
+      return `<option value="${originalIndex}">${escapeHtml(voice.name)}${voice.lang ? ' — ' + escapeHtml(voice.lang) : ''}${genderLabel}</option>`;
     }).join('');
-    if (current) els.repVoice.value = current;
+    if (current && state.voices[Number(current)]) els.repVoice.value = current;
     updateSpeechStatus();
-    if (state.characters && state.characters.length) renderRoleReadControls();
+    const nextSignature = (state.voices || []).map(v => `${v.name}|${v.lang}|${v.voiceURI}`).join('||');
+    if (state.characters && state.characters.length && (!silent || previousSignature !== nextSignature)) renderRoleReadControls();
   }
 
   function initPdfEngine(){
@@ -690,16 +703,22 @@
   }
 
   function renderRoleVoiceOptions(selectedValue){
+    const frenchVoices = getFrenchVoices();
+    const hasFemale = frenchVoices.some(v => inferVoiceGender(v) === 'female');
+    const hasMale = frenchVoices.some(v => inferVoiceGender(v) === 'male');
     const choices = [
       { value:'', label:'Voix automatique' },
-      { value:'fr-female', label:'Voix française femme' },
-      { value:'fr-male', label:'Voix française homme' }
+      { value:'fr-female', label: hasFemale ? 'Voix française femme' : 'Voix française femme — non détectée sur cet appareil', disabled: !hasFemale },
+      { value:'fr-male', label: hasMale ? 'Voix française homme' : 'Voix française homme — non détectée sur cet appareil', disabled: !hasMale }
     ];
-    const frenchVoices = getFrenchVoices();
     const voiceChoices = frenchVoices.length ? frenchVoices : state.voices;
-    const options = choices.map(choice => `<option value="${escapeAttr(choice.value)}" ${selectedValue === choice.value ? 'selected' : ''}>${escapeHtml(choice.label)}</option>`);
+    const options = choices.map(choice => {
+      const disabled = choice.disabled ? 'disabled' : '';
+      const selected = selectedValue === choice.value && !choice.disabled ? 'selected' : '';
+      return `<option value="${escapeAttr(choice.value)}" ${selected} ${disabled}>${escapeHtml(choice.label)}</option>`;
+    });
     if (voiceChoices.length) {
-      options.push('<option value="" disabled>──────────</option>');
+      options.push('<option value="" disabled>────────── Voix disponibles sur cet appareil ──────────</option>');
       voiceChoices.forEach(voice => {
         const index = state.voices.indexOf(voice);
         const value = 'voice:' + index;
@@ -873,11 +892,19 @@
       state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 900);
       return;
     }
+    // Dernière tentative de chargement : sur Android/iOS, getVoices() peut se remplir tardivement.
+    if (!state.voices.length) loadVoices(true);
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fr-FR';
-    utterance.rate = Number(els.repRate.value) || 1;
     const selectedVoice = resolveVoiceForSpeaker(options && options.speaker ? options.speaker : '');
-    if (selectedVoice) utterance.voice = selectedVoice;
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+      // Très important sur mobile : certains navigateurs ignorent la voix si lang reste fr-FR
+      // alors que la voix réelle annonce fr_FR, fr-CA, fr-fr-x-..., etc.
+      utterance.lang = selectedVoice.lang || 'fr-FR';
+    } else {
+      utterance.lang = 'fr-FR';
+    }
+    utterance.rate = Number(els.repRate.value) || 1;
     utterance.onend = () => onEnd && onEnd();
     utterance.onerror = () => onEnd && onEnd();
     window.speechSynthesis.speak(utterance);
@@ -906,10 +933,13 @@
 
     const french = getFrenchVoices();
     if (pref === 'fr-female') {
+      // Ne pas faire semblant : si aucune voix femme n'est détectée sur le téléphone,
+      // on retombe sur la voix française auto. L'option est normalement désactivée dans l'UI.
       return french.find(v => inferVoiceGender(v) === 'female') || french[0] || null;
     }
     if (pref === 'fr-male') {
-      return french.find(v => inferVoiceGender(v) === 'male') || french.find(v => inferVoiceGender(v) !== 'female') || french[0] || null;
+      // Idem : Android/iOS ne fournissent parfois qu'une seule voix française.
+      return french.find(v => inferVoiceGender(v) === 'male') || french[0] || null;
     }
     return null;
   }
