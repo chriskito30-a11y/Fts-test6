@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V89';
+  const REPETITION_VERSION = 'V90';
 
   const els = {};
   const state = {
@@ -34,7 +34,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -95,8 +95,9 @@
   function initAppDocuments(){
     if (!els.repAppStatus || !els.repResourceSelect) return;
     if (typeof firebase === 'undefined' || !window.FTS || !FTS.initFirebase) {
-      setAppStatus('App non connectée — ' + REPETITION_VERSION);
+      setAppStatus('Connexion app indisponible');
       renderResourceOptions([], 'Connexion Firebase indisponible');
+      setAppDebug('Firebase indisponible sur cette page.', true);
       return;
     }
 
@@ -104,8 +105,9 @@
       state.db = FTS.initFirebase();
     } catch (err) {
       console.warn('[FTS Répétition] Firebase init', err);
-      setAppStatus('Connexion app impossible — ' + REPETITION_VERSION);
+      setAppStatus('Connexion app impossible');
       renderResourceOptions([], 'Impossible de se connecter à l’app');
+      setAppDebug(getErrorMessage(err), true);
       return;
     }
 
@@ -114,8 +116,9 @@
       if (!user) {
         state.profile = null;
         state.resources = [];
-        setAppStatus('Non connecté — ' + REPETITION_VERSION);
+        setAppStatus('Connecte-toi pour voir tes PDF');
         renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
+        setAppDebug('', false);
         return;
       }
       await loadAppDocumentsForCurrentUser(false);
@@ -129,9 +132,9 @@
     if (!user) {
       state.profile = null;
       state.resources = [];
-      setAppStatus('Non connecté — ' + REPETITION_VERSION);
+      setAppStatus('Connecte-toi pour voir tes PDF');
       renderResourceOptions([], 'Connecte-toi à l’app pour voir tes PDF');
-      setAppDebug('Utilisateur non connecté.');
+      setAppDebug('', false);
       return;
     }
 
@@ -192,14 +195,14 @@
       debug.visiblePdfResources = state.resources.length;
 
       renderResourceOptions(state.resources);
-      setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''} — ${REPETITION_VERSION}` : 'Aucun PDF disponible — ' + REPETITION_VERSION);
-      setAppDebug(formatAppDebug(debug));
+      setAppStatus(state.resources.length ? `${state.resources.length} PDF disponible${state.resources.length>1?'s':''} · Tout est normal` : 'Aucun PDF disponible pour tes groupes · Tout est normal');
+      setAppDebug('', false);
     } catch (err) {
       console.warn('[FTS Répétition] ressources', err);
       state.resources = [];
-      setAppStatus('Lecture impossible — ' + REPETITION_VERSION);
+      setAppStatus('Lecture impossible');
       renderResourceOptions([], getFriendlyLoadError(err));
-      setAppDebug(formatAppDebug(debug, err));
+      setAppDebug(formatAppDebug(debug, err), true);
     } finally {
       if (els.repReloadAppPdfBtn) els.repReloadAppPdfBtn.disabled = false;
     }
@@ -217,8 +220,13 @@
     return err && (err.message || err.code) ? String(err.message || err.code) : String(err || 'Erreur inconnue');
   }
 
-  function setAppDebug(text){
+  function setAppDebug(text, isError){
     if (els.repAppDebug) els.repAppDebug.textContent = text || '';
+    if (els.repAppDebugWrap) {
+      els.repAppDebugWrap.hidden = !isError;
+      if (isError) els.repAppDebugWrap.open = true;
+      else els.repAppDebugWrap.open = false;
+    }
   }
 
   function formatAppDebug(debug, err){
@@ -612,17 +620,23 @@
 
   function renderLineList(){
     if (!state.lines.length) {
-      els.repLineList.innerHTML = '<div class="rep-empty">Le texte analysé apparaîtra ici.</div>';
+      els.repLineList.innerHTML = '<div class="rep-empty">L’aperçu du texte apparaîtra ici après analyse.</div>';
       return;
     }
     const role = els.repRoleSelect.value;
+    const ownMode = els.repOwnLines.value;
     els.repLineList.innerHTML = state.lines.map((line,index)=>{
+      const isOwn = role && line.kind === 'line' && line.speaker === role;
       const classes = ['rep-line'];
       if (index === state.currentIndex) classes.push('active');
-      if (line.speaker === role) classes.push('own');
+      if (line.kind === 'stage') classes.push('stage');
+      else if (isOwn) classes.push('own');
+      else classes.push('other');
+      if (isOwn && ownMode === 'hide') classes.push('is-masked');
+      const roleLabel = line.kind === 'stage' ? (line.speaker || 'Indication') : line.speaker;
       return `<div class="${classes.join(' ')}" data-line-index="${index}">
-        <div class="rep-line-role">${escapeHtml(line.speaker)}</div>
-        <div class="rep-line-text">${escapeHtml(displayTextForLine(line))}</div>
+        <div class="rep-line-role">${escapeHtml(roleLabel)}</div>
+        <div class="rep-line-text">${escapeHtml(displayTextForLine(line, { preview:true }))}</div>
       </div>`;
     }).join('');
 
@@ -634,6 +648,13 @@
         refreshPlayer();
       });
     });
+
+    const active = els.repLineList.querySelector('.rep-line.active');
+    if (active) {
+      setTimeout(() => {
+        try { active.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch(e) {}
+      }, 30);
+    }
   }
 
   function start(){
@@ -820,7 +841,7 @@
     const percent = total ? ((state.currentIndex + 1) / total) * 100 : 0;
     els.repCurrentLine.className = 'rep-current' + (isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other');
     els.repCurrentLine.innerHTML = `
-      <p class="rep-current-role">${isOwn ? 'À toi' : escapeHtml(line.speaker)}</p>
+      <p class="rep-current-role">${isOwn ? 'À toi, ' + escapeHtml(line.speaker) : line.kind === 'stage' ? 'Indication' : 'Écoute · ' + escapeHtml(line.speaker)}</p>
       <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
@@ -830,11 +851,11 @@
       : (state.playing ? 'Lecture en cours.' : 'Prêt à lancer depuis cette réplique.');
   }
 
-  function displayTextForLine(line){
+  function displayTextForLine(line, options){
     const role = els.repRoleSelect.value;
     const mode = els.repOwnLines.value;
     if (line.kind !== 'line' || line.speaker !== role) return line.text;
-    if (mode === 'hide') return '••••••';
+    if (mode === 'hide') return options && options.preview ? 'Réplique masquée' : 'Réplique masquée — utilise “Me souffler ma réplique” en cas de trou de mémoire.';
     if (mode === 'initials') return toInitials(line.text);
     return line.text;
   }
