@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V88';
+  const REPETITION_VERSION = 'V89';
 
   const els = {};
   const state = {
@@ -237,6 +237,18 @@
     lines.push('PDF visibles après filtrage : ' + debug.visiblePdfResources);
     if (err) lines.push('Erreur finale : ' + getErrorMessage(err));
     return lines.join('\n');
+  }
+
+
+
+  function norm(value){
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[’']/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
   }
 
   function normalizeResource(r, key){
