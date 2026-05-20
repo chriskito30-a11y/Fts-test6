@@ -50,6 +50,17 @@
         <button class="rep-btn" id="repLoadLocalPdfBtn" type="button" disabled>Commencer avec ce PDF</button>
       </div>
       <p class="rep-help rep-note" id="repPdfStatus">Choisis un PDF, puis l’app te proposera automatiquement ton rôle.</p>
+      <div class="rep-resume-card" id="repResumeCard" hidden>
+        <div>
+          <strong>Reprendre ma dernière répétition</strong>
+          <span id="repResumeTitle">Dernier texte</span>
+          <small id="repResumeMeta"></small>
+        </div>
+        <div class="rep-resume-actions">
+          <button class="rep-btn rep-btn-primary" id="repResumeBtn" type="button">Reprendre</button>
+          <button class="rep-btn" id="repForgetResumeBtn" type="button">Oublier</button>
+        </div>
+      </div>
     </section>
 
     <section class="rep-card card rep-grid-2" aria-labelledby="rep-input-title">
@@ -137,6 +148,13 @@
         <div class="rep-counter" id="repCounter">0 / 0</div>
       </div>
 
+      <div class="rep-section-nav" id="repSectionNav" hidden>
+        <label for="repSectionSelect">Navigation rapide</label>
+        <select id="repSectionSelect" class="rep-select">
+          <option value="">Aucune scène détectée</option>
+        </select>
+      </div>
+
       <div class="rep-current" id="repCurrentLine">
         <p class="rep-current-role">En attente</p>
         <p class="rep-current-text">Analyse un texte, choisis ton rôle, puis lance la répétition.</p>
@@ -171,6 +189,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
-  <script src="assets/js/pages/repetition.js?v=98" defer></script>
+  <script src="assets/js/pages/repetition.js?v=99" defer></script>
 </body>
 </html>
