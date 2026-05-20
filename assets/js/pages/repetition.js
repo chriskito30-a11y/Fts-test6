@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V112';
+  const REPETITION_VERSION = 'V117';
 
   const els = {};
   const state = {
@@ -46,13 +46,14 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
 
   function bindEvents(){
     els.repAnalyzeBtn.addEventListener('click', analyze);
+    if (els.repScriptInput) els.repScriptInput.addEventListener('input', renderScriptEditorPreview);
     els.repClearBtn.addEventListener('click', clearAll);
     els.repStartBtn.addEventListener('click', start);
     els.repContinueBtn.addEventListener('click', continueAfterOwnLine);
@@ -634,7 +635,8 @@
   }
 
   function applyExtractedText(text, label, meta){
-    els.repScriptInput.value = text;
+    els.repScriptInput.value = formatTextForEditor(text);
+    renderScriptEditorPreview();
     const scriptMeta = meta || { id:getLocalScriptId(label || 'texte', text), label:label || 'Texte de répétition', source:'manual' };
     state.currentScriptId = scriptMeta.id || getLocalScriptId(label || 'texte', text);
     state.currentScriptLabel = scriptMeta.label || label || 'Texte de répétition';
@@ -666,9 +668,66 @@
     els.repPdfStatus.classList.toggle('is-error', ok === false);
   }
 
+  function formatTextForEditor(text){
+    const raw = String(text || '').replace(/\r\n/g, '\n').trim();
+    if (!raw) return '';
+    const lines = raw.split('\n').map(line => line.trim()).filter(Boolean);
+    const formatted = [];
+    let lastWasDialogue = false;
+    lines.forEach(line => {
+      const isStructured = !!splitRoleLine(line) || !!parseActSceneHeading(line) || /^#{1,4}\s+/.test(line) || isStageOnlyLine(line);
+      if (formatted.length && isStructured && lastWasDialogue) formatted.push('');
+      formatted.push(line);
+      lastWasDialogue = isStructured;
+    });
+    return formatted.join('\n').replace(/\n{3,}/g, '\n\n');
+  }
+
+  function isStageOnlyLine(line){
+    const value = String(line || '').trim();
+    return (value.startsWith('[') && value.endsWith(']')) || (value.startsWith('*') && value.endsWith('*'));
+  }
+
+  function escapeHtml(value){
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function formatStageInline(text){
+    return escapeHtml(text).replace(/(\([^()]*\)|\[[^\[\]]*\]|\*[^*]+\*)/g, '<em>$1</em>');
+  }
+
+  function renderScriptEditorPreview(){
+    if (!els.repScriptPreview || !els.repScriptInput) return;
+    const text = String(els.repScriptInput.value || '').trim();
+    if (!text) {
+      els.repScriptPreview.innerHTML = '<p class="rep-preview-muted">L’aperçu apparaîtra ici.</p>';
+      return;
+    }
+    const rows = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean).slice(0, 120);
+    const html = rows.map(line => {
+      const heading = line.match(/^#{1,4}\s+(.+)$/);
+      const section = parseActSceneHeading(heading ? heading[1].trim() : line);
+      if (section) return '<div class="rep-preview-section">' + escapeHtml(section.text) + '</div>';
+      if (isStageOnlyLine(line)) return '<div class="rep-preview-stage"><em>' + escapeHtml(cleanStage(line)) + '</em></div>';
+      const roleLine = splitRoleLine(line);
+      if (roleLine) {
+        return '<div class="rep-preview-line"><strong>' + escapeHtml(roleLine.speaker) + ' :</strong> <span>' + formatStageInline(roleLine.text) + '</span></div>';
+      }
+      return '<div class="rep-preview-continuation">' + formatStageInline(line) + '</div>';
+    }).join('');
+    const more = rows.length >= 120 ? '<div class="rep-preview-muted">Aperçu limité aux premières lignes.</div>' : '';
+    els.repScriptPreview.innerHTML = html + more;
+  }
+
   function analyze(){
     stop(false);
     const text = (els.repScriptInput.value || '').trim();
+    renderScriptEditorPreview();
     const lines = parseScript(text);
     state.lines = lines;
     state.characters = collectCharacters(lines);
@@ -1672,6 +1731,7 @@
   function clearAll(){
     stop(false);
     els.repScriptInput.value = '';
+    renderScriptEditorPreview();
     state.lines = [];
     state.characters = [];
     state.currentIndex = 0;
