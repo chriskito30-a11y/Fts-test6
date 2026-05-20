@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Fais Ton Show — Assistant répétition</title>
+  <meta name="theme-color" content="#7c3aed" />
+  <link rel="stylesheet" href="assets/css/pages/repetition.css" />
+</head>
+<body>
+  <main class="rep-shell">
+    <header class="rep-hero">
+      <div>
+        <p class="rep-kicker">Fais Ton Show</p>
+        <h1>Assistant répétition</h1>
+        <p class="rep-lead">Colle un texte structuré, choisis ton rôle, puis laisse l’app donner les répliques des autres personnages.</p>
+      </div>
+      <div class="rep-status-pill" id="repSpeechStatus">Voix non lancée</div>
+    </header>
+
+    <section class="rep-card rep-grid-2" aria-labelledby="rep-input-title">
+      <div>
+        <h2 id="rep-input-title">1. Texte</h2>
+        <p class="rep-help">Format conseillé : <strong>PERSONNAGE : Réplique</strong>, une réplique par ligne. Les didascalies peuvent être entre crochets.</p>
+        <textarea id="repScriptInput" class="rep-textarea" rows="14" placeholder="Colle ici ton texte de répétition…"></textarea>
+        <div class="rep-actions">
+          <button class="rep-btn rep-btn-primary" id="repAnalyzeBtn" type="button">Analyser le texte</button>
+          <button class="rep-btn" id="repClearBtn" type="button">Effacer</button>
+        </div>
+      </div>
+
+      <aside class="rep-panel" aria-live="polite">
+        <h2>2. Analyse</h2>
+        <div class="rep-stats" id="repStats">
+          <div><strong>0</strong><span>réplique</span></div>
+          <div><strong>0</strong><span>rôle</span></div>
+          <div><strong>0</strong><span>didascalie</span></div>
+        </div>
+        <div id="repCharacters" class="rep-tags" aria-label="Rôles détectés"></div>
+        <label class="rep-label" for="repRoleSelect">Mon rôle</label>
+        <select id="repRoleSelect" class="rep-select" disabled>
+          <option value="">Analyse d’abord le texte</option>
+        </select>
+      </aside>
+    </section>
+
+    <section class="rep-card" aria-labelledby="rep-options-title">
+      <h2 id="rep-options-title">3. Réglages</h2>
+      <div class="rep-options">
+        <label>
+          Mode
+          <select id="repMode" class="rep-select">
+            <option value="manual">Donne-moi la réplique — j’appuie pour continuer</option>
+            <option value="auto">Donne-moi la réplique — pause automatique</option>
+            <option value="confirm">Pause puis confirmation de ma réplique</option>
+            <option value="full">Lecture complète</option>
+          </select>
+        </label>
+        <label>
+          Affichage de mes répliques
+          <select id="repOwnLines" class="rep-select">
+            <option value="show">Afficher</option>
+            <option value="hide">Masquer</option>
+            <option value="initials">Premières lettres</option>
+          </select>
+        </label>
+        <label>
+          Pause automatique
+          <select id="repPause" class="rep-select">
+            <option value="2500">Courte</option>
+            <option value="4500" selected>Normale</option>
+            <option value="7000">Longue</option>
+          </select>
+        </label>
+        <label>
+          Vitesse de voix
+          <select id="repRate" class="rep-select">
+            <option value="0.85">Lente</option>
+            <option value="1" selected>Normale</option>
+            <option value="1.15">Rapide</option>
+          </select>
+        </label>
+        <label>
+          Voix
+          <select id="repVoice" class="rep-select">
+            <option value="">Voix par défaut</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="rep-card rep-player" aria-labelledby="rep-player-title">
+      <div class="rep-player-head">
+        <div>
+          <h2 id="rep-player-title">4. Répétition</h2>
+          <p id="repProgressText" class="rep-help">Aucun texte lancé.</p>
+        </div>
+        <div class="rep-counter" id="repCounter">0 / 0</div>
+      </div>
+
+      <div class="rep-current" id="repCurrentLine">
+        <p class="rep-current-role">En attente</p>
+        <p class="rep-current-text">Analyse un texte, choisis ton rôle, puis lance la répétition.</p>
+      </div>
+
+      <div class="rep-meter" aria-hidden="true"><span id="repMeterBar"></span></div>
+
+      <div class="rep-actions rep-actions-player">
+        <button class="rep-btn rep-btn-primary" id="repStartBtn" type="button" disabled>Lancer</button>
+        <button class="rep-btn" id="repContinueBtn" type="button" disabled>J’ai dit ma réplique</button>
+        <button class="rep-btn" id="repPrevBtn" type="button" disabled>Précédent</button>
+        <button class="rep-btn" id="repNextBtn" type="button" disabled>Suivant</button>
+        <button class="rep-btn rep-btn-danger" id="repStopBtn" type="button" disabled>Stop</button>
+      </div>
+    </section>
+
+    <section class="rep-card" aria-labelledby="rep-list-title">
+      <h2 id="rep-list-title">Texte analysé</h2>
+      <div id="repLineList" class="rep-line-list"></div>
+    </section>
+  </main>
+
+  <script src="assets/js/pages/repetition.js" defer></script>
+</body>
+</html>
