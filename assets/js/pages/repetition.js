@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V98';
+  const REPETITION_VERSION = 'V99';
 
   const els = {};
   const state = {
@@ -20,7 +20,10 @@
     loadingPdf: false,
     playToken: 0,
     ignoredSpeakers: new Set(),
-    roleVoicePrefs: {}
+    roleVoicePrefs: {},
+    currentScriptId: '',
+    currentScriptLabel: '',
+    sections: []
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -32,12 +35,13 @@
     scheduleVoiceReloads();
     initPdfEngine();
     initAppDocuments();
+    renderResumeCard();
     renderEmpty();
     updateSpeechStatus();
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repSectionSelect','repSectionNav'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -51,14 +55,20 @@
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
-    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; refreshPlayer(); renderRoleChoices(); });
-    els.repMode.addEventListener('change', refreshPlayer);
-    els.repOwnLines.addEventListener('change', refreshPlayer);
+    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; refreshPlayer(); renderRoleChoices(); saveCurrentScriptSettings(); });
+    els.repMode.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
+    els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
+    els.repPause.addEventListener('change', saveCurrentScriptSettings);
+    els.repRate.addEventListener('change', saveCurrentScriptSettings);
+    els.repVoice.addEventListener('change', saveCurrentScriptSettings);
     if (els.repResourceSelect) els.repResourceSelect.addEventListener('change', onResourceSelectChange);
     if (els.repLoadResourcePdfBtn) els.repLoadResourcePdfBtn.addEventListener('click', loadSelectedResourcePdf);
     if (els.repReloadAppPdfBtn) els.repReloadAppPdfBtn.addEventListener('click', () => loadAppDocumentsForCurrentUser(true));
     if (els.repLocalPdfInput) els.repLocalPdfInput.addEventListener('change', onLocalPdfChange);
     if (els.repLoadLocalPdfBtn) els.repLoadLocalPdfBtn.addEventListener('click', loadLocalPdf);
+    if (els.repResumeBtn) els.repResumeBtn.addEventListener('click', resumeLastScript);
+    if (els.repForgetResumeBtn) els.repForgetResumeBtn.addEventListener('click', forgetLastScript);
+    if (els.repSectionSelect) els.repSectionSelect.addEventListener('change', goToSelectedSection);
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
@@ -129,6 +139,7 @@
 
     firebase.auth().onAuthStateChanged(async user => {
       state.authUser = user || null;
+      renderResumeCard();
       if (!user) {
         state.profile = null;
         state.resources = [];
@@ -373,6 +384,7 @@
     if (!resources.length) {
       els.repResourceSelect.innerHTML = `<option value="">${escapeHtml(emptyLabel || 'Aucun PDF disponible')}</option>`;
       els.repLoadResourcePdfBtn.disabled = true;
+      els.repLoadResourcePdfBtn.textContent = 'Commencer à réviser';
       return;
     }
     els.repResourceSelect.innerHTML = '<option value="">Choisir un PDF…</option>' + resources.map(resource => {
@@ -381,10 +393,15 @@
       return `<option value="${escapeAttr(resource.key)}">${escapeHtml(label)}</option>`;
     }).join('');
     els.repLoadResourcePdfBtn.disabled = true;
+    els.repLoadResourcePdfBtn.textContent = 'Commencer à réviser';
   }
 
   function onResourceSelectChange(){
     els.repLoadResourcePdfBtn.disabled = !els.repResourceSelect.value || state.loadingPdf;
+    if (!els.repLoadResourcePdfBtn || !els.repResourceSelect.value) return;
+    const key = els.repResourceSelect.value;
+    const cached = getCachedScript(getResourceScriptId(key));
+    els.repLoadResourcePdfBtn.textContent = cached && cached.text ? 'Reprendre ce texte' : 'Commencer à réviser';
   }
 
   function onLocalPdfChange(){
@@ -401,8 +418,15 @@
       setPdfStatus(`Chargement de “${resource.name}”…`);
       const url = normalizePdfUrl(resource.url || resource.content || '');
       if (!url) throw new Error('Cette ressource n’a pas de lien PDF exploitable.');
+      const scriptId = getResourceScriptId(resource.key);
+      const cached = getCachedScript(scriptId);
+      if (cached && cached.text) {
+        applyExtractedText(cached.text, resource.name, { id: scriptId, label: resource.name, source:'resource', key:resource.key, fromCache:true });
+        setPdfStatus(`Texte chargé depuis cet appareil : “${resource.name}”.`);
+        return;
+      }
       const text = await extractPdfTextFromUrl(url);
-      applyExtractedText(text, resource.name);
+      applyExtractedText(text, resource.name, { id: scriptId, label: resource.name, source:'resource', key:resource.key });
     });
   }
 
@@ -412,7 +436,8 @@
       setPdfStatus(`Analyse de “${state.localPdfFile.name}”…`);
       const buffer = await state.localPdfFile.arrayBuffer();
       const text = await extractPdfTextFromBuffer(buffer);
-      applyExtractedText(text, state.localPdfFile.name);
+      const scriptId = getLocalScriptId(state.localPdfFile.name, text);
+      applyExtractedText(text, state.localPdfFile.name, { id: scriptId, label: state.localPdfFile.name, source:'local' });
     });
   }
 
@@ -490,9 +515,15 @@
     return lines.map(line => line.parts.sort((a,b)=>a.x-b.x).map(part => part.text).join(' ').replace(/\s+/g,' ').trim()).filter(Boolean).join('\n');
   }
 
-  function applyExtractedText(text, label){
+  function applyExtractedText(text, label, meta){
     els.repScriptInput.value = text;
+    const scriptMeta = meta || { id:getLocalScriptId(label || 'texte', text), label:label || 'Texte de répétition', source:'manual' };
+    state.currentScriptId = scriptMeta.id || getLocalScriptId(label || 'texte', text);
+    state.currentScriptLabel = scriptMeta.label || label || 'Texte de répétition';
+    cacheScript(state.currentScriptId, state.currentScriptLabel, text, scriptMeta);
     analyze();
+    restoreSettingsForCurrentScript();
+    renderResumeCard();
     const lineCount = state.lines.filter(l => l.kind === 'line').length;
     const roleCount = state.characters.length;
     setPdfStatus(`Texte prêt : ${lineCount} réplique${lineCount>1?'s':''}, ${roleCount} personnage${roleCount>1?'s':''}. Choisis ton rôle puis appuie sur Play.`);
@@ -521,6 +552,7 @@
     state.characters = collectCharacters(lines);
     state.currentIndex = 0;
     state.awaitingUser = false;
+    state.sections = collectSections(lines);
     renderAnalysis();
     refreshPlayer();
   }
@@ -531,9 +563,17 @@
     const parsed = [];
 
     rawLines.forEach(raw => {
-      const heading = raw.match(/^#{1,4}\s+(.+)$/);
-      if (heading) {
-        parsed.push({ speaker:'SCÈNE', text:heading[1].trim(), kind:'stage' });
+      const markdownHeading = raw.match(/^#{1,4}\s+(.+)$/);
+      if (markdownHeading) {
+        const section = parseActSceneHeading(markdownHeading[1].trim());
+        if (section) parsed.push(section);
+        else parsed.push({ speaker:'SCÈNE', text:markdownHeading[1].trim(), kind:'stage', sectionType:'heading' });
+        return;
+      }
+
+      const actScene = parseActSceneHeading(raw);
+      if (actScene) {
+        parsed.push(actScene);
         return;
       }
 
@@ -560,6 +600,24 @@
 
   function cleanStage(raw){
     return raw.replace(/^\[/,'').replace(/\]$/,'').replace(/^\*/,'').replace(/\*$/,'').trim();
+  }
+
+  function parseActSceneHeading(raw){
+    const value = String(raw || '').trim();
+    if (!value) return null;
+    const act = value.match(/^acte\s+([ivxlcdm]+|\d+)(?:\s*[-—:–.]\s*(.*))?$/i);
+    if (act) {
+      const num = act[1].trim();
+      const title = (act[2] || '').trim();
+      return { speaker:'ACTE ' + num.toUpperCase(), text:title || 'Acte ' + num.toUpperCase(), kind:'stage', sectionType:'act', sectionNumber:num.toUpperCase(), sectionTitle:title };
+    }
+    const scene = value.match(/^sc[èe]ne\s+([ivxlcdm]+|\d+)(?:\s*[-—:–.]\s*(.*))?$/i);
+    if (scene) {
+      const num = scene[1].trim();
+      const title = (scene[2] || '').trim();
+      return { speaker:'SCÈNE ' + num.toUpperCase(), text:title || 'Scène ' + num.toUpperCase(), kind:'stage', sectionType:'scene', sectionNumber:num.toUpperCase(), sectionTitle:title };
+    }
+    return null;
   }
 
   function splitRoleLine(raw){
@@ -614,6 +672,23 @@
     return Array.from(new Set(lines.filter(l => l.kind === 'line' && !excluded.has(l.speaker)).map(l => l.speaker))).sort((a,b)=>a.localeCompare(b,'fr'));
   }
 
+  function collectSections(lines){
+    const sections = [];
+    let currentAct = '';
+    (lines || []).forEach((line, index) => {
+      if (!line || line.kind !== 'stage') return;
+      if (line.sectionType === 'act') {
+        currentAct = line.speaker;
+        sections.push({ index, type:'act', label:line.speaker + (line.sectionTitle ? ' · ' + line.sectionTitle : ''), act:currentAct });
+      }
+      if (line.sectionType === 'scene') {
+        const prefix = currentAct ? currentAct + ' · ' : '';
+        sections.push({ index, type:'scene', label:prefix + line.speaker + (line.sectionTitle ? ' · ' + line.sectionTitle : ''), act:currentAct });
+      }
+    });
+    return sections;
+  }
+
   function renderAnalysis(){
     const lineCount = state.lines.filter(l => l.kind === 'line').length;
     const stageCount = state.lines.filter(l => l.kind === 'stage').length;
@@ -629,6 +704,7 @@
 
     renderRoleChoices();
     renderRoleReadControls();
+    renderSectionNavigation();
     renderLineList();
     setButtons();
   }
@@ -660,6 +736,7 @@
         refreshPlayer();
         renderRoleChoices();
         scrollToPlayer();
+        saveCurrentScriptSettings();
       });
     });
   }
@@ -670,6 +747,33 @@
       if (line && line.kind === 'line' && line.speaker) counts[line.speaker] = (counts[line.speaker] || 0) + 1;
     });
     return counts;
+  }
+
+  function renderSectionNavigation(){
+    if (!els.repSectionNav || !els.repSectionSelect) return;
+    const sections = state.sections || [];
+    if (!sections.length) {
+      els.repSectionNav.hidden = true;
+      els.repSectionSelect.innerHTML = '<option value="">Aucune scène détectée</option>';
+      return;
+    }
+    els.repSectionNav.hidden = false;
+    els.repSectionSelect.innerHTML = '<option value="">Aller à un acte / une scène…</option>' + sections.map(section => {
+      const icon = section.type === 'act' ? '🎬 ' : '🎭 ';
+      return `<option value="${section.index}">${escapeHtml(icon + section.label)}</option>`;
+    }).join('');
+  }
+
+  function goToSelectedSection(){
+    if (!els.repSectionSelect || !els.repSectionSelect.value) return;
+    const index = Number(els.repSectionSelect.value);
+    if (!Number.isFinite(index)) return;
+    stopSpeechOnly();
+    state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, index));
+    state.awaitingUser = false;
+    refreshPlayer();
+    saveCurrentScriptSettings();
+    if (state.playing) playCurrent();
   }
 
 
@@ -741,6 +845,7 @@
         else state.ignoredSpeakers.add(name);
         refreshPlayer();
         renderLineList();
+        saveCurrentScriptSettings();
       });
     });
 
@@ -750,6 +855,7 @@
         if (!name) return;
         if (select.value) state.roleVoicePrefs[name] = select.value;
         else delete state.roleVoicePrefs[name];
+        saveCurrentScriptSettings();
       });
     });
   }
@@ -811,6 +917,8 @@
       const classes = ['rep-line'];
       if (index === state.currentIndex) classes.push('active');
       if (line.speaker === role) classes.push('own');
+      if (line.kind === 'stage') classes.push('stage');
+      if (line.sectionType) classes.push('section');
       if (isIgnoredSpeakerLine(line, role)) classes.push('ignored');
       const ignoredNote = isIgnoredSpeakerLine(line, role) ? '<small class="rep-line-note">Rôle ignoré — cette ligne sera passée</small>' : '';
       return `<div class="${classes.join(' ')}" data-line-index="${index}">
@@ -825,6 +933,7 @@
         state.currentIndex = Number(node.getAttribute('data-line-index')) || 0;
         state.awaitingUser = false;
         refreshPlayer();
+        saveCurrentScriptSettings();
       });
     });
     keepActiveLineVisible();
@@ -849,6 +958,7 @@
     state.awaitingUser = false;
     state.currentIndex = Math.min(state.currentIndex, state.lines.length - 1);
     setButtons();
+    saveCurrentScriptSettings();
     playCurrent();
   }
 
@@ -1019,6 +1129,7 @@
   function advance(){
     state.awaitingUser = false;
     state.currentIndex += 1;
+    saveCurrentScriptSettings();
     if (state.currentIndex >= state.lines.length) {
       finish();
       return;
@@ -1055,6 +1166,7 @@
     state.currentIndex = Math.max(0, state.currentIndex - 1);
     state.awaitingUser = false;
     refreshPlayer();
+    saveCurrentScriptSettings();
     if (state.playing) playCurrent();
   }
 
@@ -1063,6 +1175,7 @@
     state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
     state.awaitingUser = false;
     refreshPlayer();
+    saveCurrentScriptSettings();
     if (state.playing) playCurrent();
   }
 
@@ -1103,6 +1216,7 @@
     state.currentIndex = Math.max(0, state.lines.length - 1);
     els.repProgressText.textContent = 'Répétition terminée.';
     setButtons();
+    saveCurrentScriptSettings();
     refreshPlayer(false);
   }
 
@@ -1187,11 +1301,182 @@
     state.currentIndex = 0;
     state.ignoredSpeakers = new Set();
     state.roleVoicePrefs = {};
+    state.currentScriptId = '';
+    state.currentScriptLabel = '';
+    state.sections = [];
     els.repStats.innerHTML = '<div><strong>0</strong><span>réplique</span></div><div><strong>0</strong><span>rôle</span></div><div><strong>0</strong><span>didascalie</span></div>';
     els.repCharacters.innerHTML = '';
     els.repRoleSelect.disabled = true;
     els.repRoleSelect.innerHTML = '<option value="">Analyse d’abord le texte</option>';
     renderEmpty();
+  }
+
+  function storagePrefix(){
+    const uid = state.authUser && state.authUser.uid ? state.authUser.uid : 'local';
+    return 'fts_repetition_' + uid + '_';
+  }
+
+  function getResourceScriptId(key){
+    return 'resource:' + String(key || '').trim();
+  }
+
+  function getLocalScriptId(label, text){
+    return 'local:' + simpleHash(String(label || '') + '|' + String(text || '').slice(0, 3000));
+  }
+
+  function simpleHash(value){
+    let hash = 0;
+    const text = String(value || '');
+    for (let i = 0; i < text.length; i += 1) {
+      hash = ((hash << 5) - hash) + text.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  function cacheScript(id, label, text, meta){
+    if (!id || !text) return;
+    try {
+      const payload = {
+        id,
+        label: label || 'Texte de répétition',
+        text,
+        meta: meta || {},
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(storagePrefix() + 'script_' + id, JSON.stringify(payload));
+      localStorage.setItem(storagePrefix() + 'lastScriptId', id);
+      pruneScriptCache();
+    } catch (err) {
+      console.warn('[FTS Répétition] cache script', err);
+    }
+  }
+
+  function getCachedScript(id){
+    if (!id) return null;
+    try {
+      const raw = localStorage.getItem(storagePrefix() + 'script_' + id);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function getLastCachedScript(){
+    try {
+      const id = localStorage.getItem(storagePrefix() + 'lastScriptId');
+      return id ? getCachedScript(id) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function pruneScriptCache(){
+    try {
+      const prefix = storagePrefix() + 'script_';
+      const items = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith(prefix)) {
+          try {
+            const value = JSON.parse(localStorage.getItem(key) || '{}');
+            items.push({ key, updatedAt:value.updatedAt || 0 });
+          } catch(e) {}
+        }
+      }
+      items.sort((a,b) => b.updatedAt - a.updatedAt).slice(6).forEach(item => localStorage.removeItem(item.key));
+    } catch(e) {}
+  }
+
+  function renderResumeCard(){
+    if (!els.repResumeCard) return;
+    const cached = getLastCachedScript();
+    if (!cached || !cached.text) {
+      els.repResumeCard.hidden = true;
+      return;
+    }
+    els.repResumeCard.hidden = false;
+    if (els.repResumeTitle) els.repResumeTitle.textContent = cached.label || 'Dernière répétition';
+    const settings = getScriptSettings(cached.id) || {};
+    const date = cached.updatedAt ? new Date(cached.updatedAt).toLocaleDateString('fr-FR') : '';
+    if (els.repResumeMeta) {
+      els.repResumeMeta.textContent = [settings.role ? 'Rôle : ' + settings.role : '', Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '', date].filter(Boolean).join(' · ');
+    }
+  }
+
+  function resumeLastScript(){
+    const cached = getLastCachedScript();
+    if (!cached || !cached.text) return;
+    applyExtractedText(cached.text, cached.label || 'Dernière répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Dernière répétition', fromCache:true }));
+    setPdfStatus('Répétition reprise depuis cet appareil. Firebase n’a pas besoin de relire ce PDF.');
+  }
+
+  function forgetLastScript(){
+    try {
+      const cached = getLastCachedScript();
+      if (cached && cached.id) {
+        localStorage.removeItem(storagePrefix() + 'script_' + cached.id);
+        localStorage.removeItem(storagePrefix() + 'settings_' + cached.id);
+      }
+      localStorage.removeItem(storagePrefix() + 'lastScriptId');
+    } catch(e) {}
+    renderResumeCard();
+  }
+
+  function getScriptSettings(id){
+    if (!id) return null;
+    try {
+      const raw = localStorage.getItem(storagePrefix() + 'settings_' + id);
+      return raw ? JSON.parse(raw) : null;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  function restoreSettingsForCurrentScript(){
+    const settings = getScriptSettings(state.currentScriptId);
+    if (!settings) return;
+    if (settings.role && state.characters.includes(settings.role)) els.repRoleSelect.value = settings.role;
+    if (settings.mode && els.repMode.querySelector(`option[value="${cssEscape(settings.mode)}"]`)) els.repMode.value = settings.mode;
+    if (settings.ownLines && els.repOwnLines.querySelector(`option[value="${cssEscape(settings.ownLines)}"]`)) els.repOwnLines.value = settings.ownLines;
+    if (settings.pause) els.repPause.value = String(settings.pause);
+    if (settings.rate) els.repRate.value = String(settings.rate);
+    if (settings.voice !== undefined) els.repVoice.value = String(settings.voice || '');
+    state.ignoredSpeakers = new Set((settings.ignoredSpeakers || []).filter(name => state.characters.includes(name)));
+    state.roleVoicePrefs = Object.assign({}, settings.roleVoicePrefs || {});
+    if (Number.isFinite(settings.currentIndex)) state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, settings.currentIndex));
+    renderRoleChoices();
+    renderRoleReadControls();
+    renderSectionNavigation();
+    refreshPlayer();
+  }
+
+  function saveCurrentScriptSettings(){
+    if (!state.currentScriptId) return;
+    try {
+      const payload = {
+        role: els.repRoleSelect ? els.repRoleSelect.value : '',
+        mode: els.repMode ? els.repMode.value : 'manual',
+        ownLines: els.repOwnLines ? els.repOwnLines.value : 'show',
+        pause: els.repPause ? els.repPause.value : '4500',
+        rate: els.repRate ? els.repRate.value : '1',
+        voice: els.repVoice ? els.repVoice.value : '',
+        ignoredSpeakers: Array.from(state.ignoredSpeakers || []),
+        roleVoicePrefs: Object.assign({}, state.roleVoicePrefs || {}),
+        currentIndex: state.currentIndex || 0,
+        updatedAt: Date.now()
+      };
+      localStorage.setItem(storagePrefix() + 'settings_' + state.currentScriptId, JSON.stringify(payload));
+      localStorage.setItem(storagePrefix() + 'lastScriptId', state.currentScriptId);
+      renderResumeCard();
+    } catch (err) {
+      console.warn('[FTS Répétition] sauvegarde réglages', err);
+    }
+  }
+
+  function cssEscape(value){
+    if (window.CSS && CSS.escape) return CSS.escape(String(value));
+    return String(value).replace(/"/g, '\\"');
   }
 
   function escapeHtml(value){
