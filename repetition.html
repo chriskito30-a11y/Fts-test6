@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="stylesheet" href="assets/css/fts.css" />
   <link rel="stylesheet" href="assets/css/fts-nav.css?v=106" />
-  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=109" />
+  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=110" />
 </head>
 <body class="has-glow has-topbar">
   <main class="rep-shell wrap wrap-xl">
@@ -105,6 +105,30 @@
       </aside>
     </section>
 
+    <section class="rep-card card rep-presets-card" aria-labelledby="rep-presets-title">
+      <div class="rep-section-head">
+        <div>
+          <h2 id="rep-presets-title">Comment veux-tu répéter ?</h2>
+          <p class="rep-help">Choisis un profil simple : l’app règle automatiquement les options. Tu peux toujours ajuster ensuite dans Options.</p>
+        </div>
+        <span class="rep-mini-status" id="repDifficultCount">0 réplique à retravailler</span>
+      </div>
+      <div class="rep-preset-grid" id="repTrainingPresets">
+        <button class="rep-preset-card" type="button" data-preset="discover">
+          <strong>Je découvre le texte</strong>
+          <span>Répliques visibles, vitesse douce, validation manuelle.</span>
+        </button>
+        <button class="rep-preset-card" type="button" data-preset="learn">
+          <strong>Je connais presque</strong>
+          <span>Indices avec premières lettres, validation manuelle.</span>
+        </button>
+        <button class="rep-preset-card" type="button" data-preset="run">
+          <strong>Je fais un filage</strong>
+          <span>Répliques masquées, enchaînement automatique.</span>
+        </button>
+      </div>
+    </section>
+
     <section class="rep-card card rep-options-card" aria-labelledby="rep-options-title">
       <details class="rep-options-details"><summary><span>Options</span><small>Affichage, rythme, voix</small></summary>
       <div class="rep-options">
@@ -178,6 +202,9 @@
         <button class="rep-btn rep-btn-primary" id="repStartBtn" type="button" disabled>▶ Play</button>
         <button class="rep-btn" id="repContinueBtn" type="button" disabled>J’ai dit ma réplique</button>
         <button class="rep-btn rep-btn-memory" id="repCueBtn" type="button" disabled>Me souffler ma réplique</button>
+        <button class="rep-btn rep-btn-star" id="repDifficultBtn" type="button" disabled>⭐ À retravailler</button>
+        <button class="rep-btn" id="repReviewDifficultBtn" type="button" disabled>Réviser ⭐</button>
+        <button class="rep-btn" id="repExitDifficultBtn" type="button" hidden>Tout revoir</button>
         <button class="rep-btn" id="repPrevBtn" type="button" disabled>Précédent</button>
         <button class="rep-btn" id="repNextBtn" type="button" disabled>Suivant</button>
         <button class="rep-btn rep-btn-danger" id="repStopBtn" type="button" disabled>Stop</button>
@@ -222,6 +249,6 @@
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/fts-nav.js?v=106"></script>
-  <script src="assets/js/pages/repetition.js?v=109" defer></script>
+  <script src="assets/js/pages/repetition.js?v=110" defer></script>
 </body>
 </html>

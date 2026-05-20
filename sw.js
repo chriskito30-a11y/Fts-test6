@@ -1,4 +1,4 @@
-const CACHE = 'fts-v109-repetition-floating-nav-fit';
+const CACHE = 'fts-v110-repetition-learning-tools';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v109-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v110-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
