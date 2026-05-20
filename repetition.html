@@ -6,7 +6,7 @@
   <title>Fais Ton Show — Assistant répétition</title>
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="stylesheet" href="assets/css/fts.css" />
-  <link rel="stylesheet" href="assets/css/fts-nav.css?v=103" />
+  <link rel="stylesheet" href="assets/css/fts-nav.css?v=104" />
   <link rel="stylesheet" href="assets/css/pages/repetition.css" />
 </head>
 <body class="has-glow has-topbar">
@@ -61,6 +61,17 @@
           <button class="rep-btn rep-btn-primary" id="repResumeBtn" type="button">Reprendre</button>
           <button class="rep-btn" id="repForgetResumeBtn" type="button">Oublier</button>
         </div>
+      </div>
+
+      <div class="rep-offline-library" id="repOfflineLibrary" hidden>
+        <div class="rep-offline-head">
+          <div>
+            <strong>Textes enregistrés sur cet appareil</strong>
+            <span id="repOfflineCount">0 texte</span>
+          </div>
+          <small>Disponibles même sans réseau, avec tes réglages et ta reprise.</small>
+        </div>
+        <div class="rep-offline-list" id="repOfflineList"></div>
       </div>
     </section>
 
@@ -210,7 +221,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
-  <script src="assets/js/fts-nav.js?v=103"></script>
-  <script src="assets/js/pages/repetition.js?v=103" defer></script>
+  <script src="assets/js/fts-nav.js?v=104"></script>
+  <script src="assets/js/pages/repetition.js?v=104" defer></script>
 </body>
 </html>
