@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V99';
+  const REPETITION_VERSION = 'V101';
 
   const els = {};
   const state = {
@@ -720,7 +720,15 @@
   }
 
   function normalizeSpeaker(value){
-    return String(value || '').replace(/\s+/g,' ').trim().toUpperCase();
+    // Clé de rôle stable : accents, casse et apostrophes ne doivent pas créer
+    // de faux personnages différents. Ex : "Mère" et "Mere" = MERE.
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[’']/g, ' ')
+      .replace(/\s+/g,' ')
+      .trim()
+      .toUpperCase();
   }
 
   function collectCharacters(lines){
