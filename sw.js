@@ -1,4 +1,4 @@
-const CACHE = 'fts-v79-admin-daily-cockpit';
+const CACHE = 'fts-v80-admin-member-readonly';
 const FILES = [
   './manifest.json',
   './index.html',

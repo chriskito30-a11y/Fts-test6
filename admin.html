@@ -10,7 +10,7 @@
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/admin.css?v=46" rel="stylesheet"/>
-<link href="assets/css/fts-admin-mode.css?v=79" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=80" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -99,6 +99,24 @@
     <div class="fts-admin-search-empty">Commence à taper pour afficher les résultats.</div>
   </div>
 </section>
+
+
+<div class="fts-admin-member-modal" id="admin-member-modal" aria-hidden="true">
+  <div class="fts-admin-member-backdrop" data-admin-close-member></div>
+  <div class="fts-admin-member-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-member-title">
+    <button type="button" class="fts-admin-member-close" data-admin-close-member aria-label="Fermer">×</button>
+    <div class="fts-admin-simple-kicker">Fiche membre V80 — lecture seule</div>
+    <h2 id="admin-member-title">Fiche membre</h2>
+    <p class="fts-admin-member-intro">Cette fiche regroupe les informations lisibles sans rien créer ni modifier dans Firebase.</p>
+    <div class="fts-admin-member-tabs" role="tablist" aria-label="Type de lecture">
+      <button type="button" class="active" data-member-view="normal">Lecture normale</button>
+      <button type="button" data-member-view="admin">Lecture admin complète</button>
+    </div>
+    <div id="admin-member-content" class="fts-admin-member-content">
+      <div class="fts-admin-search-empty">Sélectionne un membre dans la recherche rapide.</div>
+    </div>
+  </div>
+</div>
 
 <div class="fts-admin-action-modal" id="admin-action-modal" aria-hidden="true">
   <div class="fts-admin-action-backdrop" data-admin-close-action-guide></div>
@@ -229,7 +247,7 @@
 <div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
 
 <script src="assets/js/fts-utils.js"></script>
-<script src="assets/js/fts-admin-mode.js?v=79"></script>
+<script src="assets/js/fts-admin-mode.js?v=80"></script>
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/services/auth.service.js?v=1"></script>
 <script src="assets/js/services/users.service.js?v=1"></script>
@@ -241,6 +259,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/admin.js?v=79"></script>
+<script src="assets/js/pages/admin.js?v=80"></script>
 </body>
 </html>
