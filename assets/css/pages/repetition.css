@@ -772,3 +772,195 @@ button, select, textarea, input{font:inherit}
   .rep-offline-item{grid-template-columns:1fr}
   .rep-offline-actions{display:grid;grid-template-columns:1fr 1fr;justify-content:stretch}
 }
+
+/* V106 — contraste renforcé Assistant répétition
+   Objectif : éviter les fonds dorés trop clairs avec texte blanc, notamment sur mobile. */
+:root{
+  --rep-bg-soft:#141414;
+  --rep-bg-deep:#0f0f0f;
+  --rep-gold-soft:rgba(201,168,76,.10);
+  --rep-gold-border:rgba(201,168,76,.48);
+  --rep-gold-text:#f1d37a;
+  --rep-text:#f7f3ec;
+  --rep-muted:#c7c0b5;
+}
+
+/* Champs / sélecteurs : contraste haut, y compris sur mobile */
+.rep-select,
+.rep-file,
+.rep-textarea,
+.rep-doc-loader select,
+.rep-options select,
+.rep-section-nav select,
+.rep-role-voice-item select,
+.rep-role-panel select,
+.rep-advanced-text textarea{
+  background:#101010 !important;
+  color:var(--rep-text) !important;
+  border:1px solid rgba(255,255,255,.22) !important;
+  box-shadow:none !important;
+}
+.rep-select option,
+.rep-options select option,
+.rep-section-nav select option,
+.rep-role-panel select option{
+  background:#101010 !important;
+  color:var(--rep-text) !important;
+}
+.rep-select:focus,
+.rep-file:focus,
+.rep-textarea:focus{
+  outline:2px solid rgba(241,211,122,.75) !important;
+  outline-offset:2px;
+  border-color:rgba(241,211,122,.75) !important;
+}
+
+/* Badges dorés : fond sombre, pas jaune plein */
+.rep-status-pill,
+.rep-mini-status,
+.rep-tag,
+.rep-counter,
+.rep-note,
+.rep-section-nav,
+.rep-resume-card,
+.rep-offline-library{
+  background:linear-gradient(180deg,rgba(22,22,22,.98),rgba(12,12,12,.98)) !important;
+  border-color:var(--rep-gold-border) !important;
+  color:var(--rep-gold-text) !important;
+}
+.rep-note,
+.rep-section-nav label,
+.rep-resume-card strong,
+.rep-offline-head strong,
+.rep-options-details summary span,
+.rep-advanced-text summary,
+.rep-advanced-text summary span{
+  color:var(--rep-gold-text) !important;
+}
+.rep-help,
+.rep-options-details summary small,
+.rep-advanced-text summary small,
+.rep-offline-head small,
+.rep-offline-item small,
+.rep-resume-card small,
+.rep-role-read-head small,
+.rep-role-voice-details summary small,
+.rep-role-voice-note,
+.rep-line-note{
+  color:var(--rep-muted) !important;
+}
+
+/* Petits carrés/points dorés plus discrets */
+.rep-app-docs .rep-section-head h2::before,
+.rep-role-panel h2::before,
+.rep-player h2::before{
+  background:var(--rep-gold-text) !important;
+  box-shadow:0 0 0 3px rgba(201,168,76,.12);
+}
+
+/* Boutons : contraste renforcé */
+.rep-btn{
+  background:#161616 !important;
+  color:var(--rep-text) !important;
+  border-color:rgba(255,255,255,.24) !important;
+}
+.rep-btn:hover:not(:disabled){
+  background:#202020 !important;
+  border-color:rgba(255,255,255,.42) !important;
+  color:#fff !important;
+}
+.rep-btn-primary{
+  background:linear-gradient(180deg,#e22a22,#b91814) !important;
+  border-color:#ff5a50 !important;
+  color:#fff !important;
+  text-shadow:0 1px 1px rgba(0,0,0,.35);
+}
+.rep-btn-primary:hover:not(:disabled){
+  background:linear-gradient(180deg,#f13a32,#c8201a) !important;
+}
+.rep-btn-memory{
+  background:#17130a !important;
+  color:var(--rep-gold-text) !important;
+  border-color:rgba(241,211,122,.58) !important;
+}
+.rep-btn-danger{
+  background:#24100f !important;
+  color:#ffb4af !important;
+  border-color:rgba(255,120,112,.58) !important;
+}
+.rep-btn:disabled{
+  background:#202020 !important;
+  color:#8d8d8d !important;
+  border-color:rgba(255,255,255,.10) !important;
+}
+
+/* Cartes rôles / lignes : jamais de jaune clair derrière du blanc */
+.rep-role-card,
+.rep-line,
+.rep-current,
+.rep-role-read-item,
+.rep-role-voice-item,
+.rep-offline-item{
+  background:var(--rep-bg-deep) !important;
+  color:var(--rep-text) !important;
+}
+.rep-role-card.is-active,
+.rep-line.active,
+.rep-line.own.active,
+.rep-current.is-own,
+.rep-line.section{
+  background:linear-gradient(180deg,#211a0d,#111) !important;
+  border-color:rgba(241,211,122,.72) !important;
+  color:var(--rep-text) !important;
+}
+.rep-current.is-other{
+  background:linear-gradient(180deg,#26100f,#111) !important;
+  border-color:rgba(255,122,115,.58) !important;
+}
+.rep-role-card strong,
+.rep-role-card span,
+.rep-line-text,
+.rep-current-text,
+.rep-offline-item strong,
+.rep-resume-card span,
+.rep-offline-head span,
+.rep-role-read-head strong,
+.rep-role-voice-details summary,
+.rep-role-voice-item > span{
+  color:var(--rep-text) !important;
+}
+.rep-role-card.is-active span,
+.rep-line.own .rep-line-role,
+.rep-current-role,
+.rep-line.section .rep-line-role{
+  color:var(--rep-gold-text) !important;
+}
+.rep-line.other .rep-line-role{
+  color:#ffb4af !important;
+}
+.rep-line-role{
+  color:#d7d0c3 !important;
+}
+.rep-role-read-item.is-muted,
+.rep-line.ignored{
+  opacity:.72;
+}
+.rep-line.own.is-masked .rep-line-text{
+  color:#d7d0c3 !important;
+}
+
+/* Barre de progression lisible sur fond sombre */
+.rep-meter{
+  background:#080808 !important;
+  border-color:rgba(255,255,255,.16) !important;
+}
+.rep-meter span{
+  background:linear-gradient(90deg,#e22a22,#f1d37a) !important;
+}
+
+/* Mobile : boutons pleine largeur plus lisibles */
+@media (max-width:760px){
+  .rep-btn{min-height:46px;}
+  .rep-actions-player .rep-btn{font-size:.95rem;}
+  .rep-current-text{font-size:1.35rem;}
+}
