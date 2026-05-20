@@ -55,7 +55,7 @@
     <section class="rep-card card rep-grid-2" aria-labelledby="rep-input-title">
       <div>
         <h2 id="rep-input-title">1. Texte</h2>
-        <p class="rep-help">Format conseillé : <strong>Rôle : Réplique</strong>, une réplique par ligne. Les majuscules ne sont pas obligatoires. Les didascalies peuvent être entre crochets.</p>
+        <p class="rep-help">Format conseillé : <strong>Rôle : Réplique</strong>, une réplique par ligne. Les majuscules ne sont pas obligatoires. Les didascalies peuvent être entre crochets ou entre parenthèses dans une réplique.</p>
         <textarea id="repScriptInput" class="rep-textarea" rows="14" placeholder="Colle ici ton texte de répétition…"></textarea>
         <div class="rep-actions">
           <button class="rep-btn rep-btn-primary" id="repAnalyzeBtn" type="button">Analyser le texte</button>
@@ -71,6 +71,7 @@
           <div><strong>0</strong><span>didascalie</span></div>
         </div>
         <div id="repCharacters" class="rep-tags" aria-label="Rôles détectés"></div>
+        <div id="repRoleReadControls" class="rep-role-read-controls" aria-label="Rôles à faire lire par l’app"></div>
         <label class="rep-label" for="repRoleSelect">Mon rôle</label>
         <select id="repRoleSelect" class="rep-select" disabled>
           <option value="">Analyse d’abord le texte</option>
@@ -167,6 +168,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
-  <script src="assets/js/pages/repetition.js?v=94" defer></script>
+  <script src="assets/js/pages/repetition.js?v=95" defer></script>
 </body>
 </html>
