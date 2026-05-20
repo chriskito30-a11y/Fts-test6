@@ -46,7 +46,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -83,6 +83,7 @@
     if (els.repLocalPdfInput) els.repLocalPdfInput.addEventListener('change', onLocalPdfChange);
     if (els.repLoadLocalPdfBtn) els.repLoadLocalPdfBtn.addEventListener('click', loadLocalPdf);
     if (els.repResumeBtn) els.repResumeBtn.addEventListener('click', resumeLastScript);
+    if (els.repResumeReviewBtn) els.repResumeReviewBtn.addEventListener('click', resumeLastScriptDifficult);
     if (els.repForgetResumeBtn) els.repForgetResumeBtn.addEventListener('click', forgetLastScript);
     if (els.repSectionSelect) els.repSectionSelect.addEventListener('change', goToSelectedSection);
     document.querySelectorAll('[data-view-target]').forEach(btn => {
@@ -1860,20 +1861,28 @@
         settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length + ' ⭐' : '',
         date
       ].filter(Boolean).join(' · ');
+      const difficultCount = settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length : 0;
+      const reviewButton = difficultCount
+        ? `<button class="rep-btn rep-btn-review" type="button" data-offline-review="${escapeAttr(item.id)}">Réviser ⭐</button>`
+        : '';
       return `<article class="rep-offline-item" data-script-id="${escapeAttr(item.id)}">
         <div>
           <strong>${escapeHtml(item.label)}</strong>
           <small>${escapeHtml(meta || 'Enregistré sur cet appareil')}</small>
         </div>
-        <div class="rep-offline-actions">
+        <div class="rep-offline-actions ${difficultCount ? 'has-review' : ''}">
           <button class="rep-btn rep-btn-primary" type="button" data-offline-open="${escapeAttr(item.id)}">Reprendre</button>
-          <button class="rep-btn" type="button" data-offline-settings="${escapeAttr(item.id)}">⚙️</button>
+          ${reviewButton}
+          <button class="rep-btn" type="button" data-offline-settings="${escapeAttr(item.id)}" title="Réglages" aria-label="Réglages">⚙️</button>
           <button class="rep-btn rep-btn-icon-only" type="button" data-offline-delete="${escapeAttr(item.id)}" title="Supprimer ce texte" aria-label="Supprimer ce texte">🗑</button>
         </div>
       </article>`;
     }).join('');
     els.repOfflineList.querySelectorAll('[data-offline-open]').forEach(btn => {
       btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-open') || '', 'rehearse'));
+    });
+    els.repOfflineList.querySelectorAll('[data-offline-review]').forEach(btn => {
+      btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-review') || '', 'difficult'));
     });
     els.repOfflineList.querySelectorAll('[data-offline-settings]').forEach(btn => {
       btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-settings') || '', 'settings'));
@@ -1889,6 +1898,14 @@
     applyExtractedText(cached.text, cached.label || 'Texte de répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Texte de répétition', fromCache:true }));
     setPdfStatus('Texte chargé depuis cet appareil. Les réglages et la reprise ont été restaurés si disponibles.');
     if (view === 'settings') setView('settings');
+    else if (view === 'difficult') {
+      if (getSelectedRole()) {
+        setView('rehearse');
+        startDifficultReview();
+      } else {
+        setView('role');
+      }
+    }
     else if (view === 'rehearse' && getSelectedRole()) setView('rehearse');
   }
 
@@ -1930,14 +1947,22 @@
     const cached = getLastCachedScript();
     if (!cached || !cached.text) {
       els.repResumeCard.hidden = true;
+      if (els.repResumeReviewBtn) els.repResumeReviewBtn.hidden = true;
       return;
     }
     els.repResumeCard.hidden = false;
     if (els.repResumeTitle) els.repResumeTitle.textContent = cached.label || 'Dernière répétition';
     const settings = getScriptSettings(cached.id) || {};
     const date = cached.updatedAt ? new Date(cached.updatedAt).toLocaleDateString('fr-FR') : '';
+    const difficultCount = settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length : 0;
     if (els.repResumeMeta) {
-      els.repResumeMeta.textContent = [settings.role ? 'Rôle : ' + settings.role : '', Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '', settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length + ' ⭐' : '', date].filter(Boolean).join(' · ');
+      els.repResumeMeta.textContent = [settings.role ? 'Rôle : ' + settings.role : '', Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '', difficultCount ? difficultCount + ' ⭐' : '', date].filter(Boolean).join(' · ');
+    }
+    if (els.repResumeReviewBtn) {
+      els.repResumeReviewBtn.hidden = !difficultCount;
+      els.repResumeReviewBtn.textContent = difficultCount ? 'Réviser ⭐' : 'Réviser ⭐';
+      els.repResumeReviewBtn.title = difficultCount ? 'Réviser les répliques à retravailler' : '';
+      els.repResumeReviewBtn.setAttribute('aria-label', 'Réviser les répliques à retravailler');
     }
   }
 
@@ -1947,6 +1972,12 @@
     applyExtractedText(cached.text, cached.label || 'Dernière répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Dernière répétition', fromCache:true }));
     setPdfStatus('Texte prêt à reprendre.');
     if (getSelectedRole()) setView('rehearse');
+  }
+
+  function resumeLastScriptDifficult(){
+    const cached = getLastCachedScript();
+    if (!cached || !cached.text) return;
+    openCachedScript(cached.id, 'difficult');
   }
 
   function forgetLastScript(){
