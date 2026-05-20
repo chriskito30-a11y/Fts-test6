@@ -7,9 +7,9 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="stylesheet" href="assets/css/fts.css" />
   <link rel="stylesheet" href="assets/css/fts-nav.css?v=106" />
-  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=110" />
+  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=111" />
 </head>
-<body class="has-glow has-topbar">
+<body class="has-glow has-topbar" data-rep-view="library">
   <main class="rep-shell wrap wrap-xl">
     <header class="rep-hero">
       <div>
@@ -21,7 +21,14 @@
       <div class="rep-status-pill" id="repSpeechStatus">Voix non lancée</div>
     </header>
 
-    <section class="rep-card card rep-app-docs" aria-labelledby="rep-app-docs-title">
+    <div class="rep-stepbar" aria-label="Étapes de répétition">
+      <button type="button" class="rep-step is-active" data-view-target="library">1 · Textes</button>
+      <button type="button" class="rep-step" data-view-target="role">2 · Rôle</button>
+      <button type="button" class="rep-step" data-view-target="mode">3 · Mode</button>
+      <button type="button" class="rep-step" data-view-target="rehearse">4 · Répéter</button>
+    </div>
+
+    <section class="rep-card card rep-app-docs rep-view rep-view-library" aria-labelledby="rep-app-docs-title">
       <div class="rep-section-head">
         <div>
           <h2 id="rep-app-docs-title">1. Choisis ton texte</h2>
@@ -75,7 +82,7 @@
       </div>
     </section>
 
-    <section class="rep-card card rep-grid-2" aria-labelledby="rep-input-title">
+    <section class="rep-card card rep-grid-2 rep-view rep-view-role rep-view-settings" aria-labelledby="rep-input-title">
       <details class="rep-advanced-text">
         <summary><span>Texte détecté / correction</span><small>Optionnel</small></summary>
         <div class="rep-advanced-text-body">
@@ -90,7 +97,7 @@
       </details>
 
       <aside class="rep-panel rep-role-panel" aria-live="polite">
-        <h2>2. Choisis ton personnage</h2>
+        <div class="rep-view-head"><button class="rep-icon-btn" id="repBackToLibraryBtn" type="button">←</button><h2>2. Choisis ton personnage</h2></div>
         <div class="rep-stats" id="repStats">
           <div><strong>0</strong><span>réplique</span></div>
           <div><strong>0</strong><span>rôle</span></div>
@@ -105,10 +112,10 @@
       </aside>
     </section>
 
-    <section class="rep-card card rep-presets-card" aria-labelledby="rep-presets-title">
+    <section class="rep-card card rep-presets-card rep-view rep-view-mode" aria-labelledby="rep-presets-title">
       <div class="rep-section-head">
         <div>
-          <h2 id="rep-presets-title">Comment veux-tu répéter ?</h2>
+          <div class="rep-view-head rep-view-head-inline"><button class="rep-icon-btn" id="repBackToRoleBtn" type="button">←</button><h2 id="rep-presets-title">Comment veux-tu répéter ?</h2></div>
           <p class="rep-help">Choisis un profil simple : l’app règle automatiquement les options. Tu peux toujours ajuster ensuite dans Options.</p>
         </div>
         <span class="rep-mini-status" id="repDifficultCount">0 réplique à retravailler</span>
@@ -127,9 +134,13 @@
           <span>Répliques masquées, enchaînement automatique.</span>
         </button>
       </div>
+      <div class="rep-mode-actions">
+        <button class="rep-btn rep-btn-primary" id="repBeginRehearsalBtn" type="button">Commencer</button>
+        <button class="rep-btn" id="repOpenSettingsBtn" type="button">⚙️ Personnaliser</button>
+      </div>
     </section>
 
-    <section class="rep-card card rep-options-card" aria-labelledby="rep-options-title">
+    <section class="rep-card card rep-options-card rep-view rep-view-mode rep-view-settings" aria-labelledby="rep-options-title">
       <details class="rep-options-details"><summary><span>Options</span><small>Affichage, rythme, voix</small></summary>
       <div class="rep-options">
         <label>
@@ -175,13 +186,18 @@
       </details>
     </section>
 
-    <section class="rep-card card rep-player" aria-labelledby="rep-player-title">
+    <section class="rep-card card rep-player rep-view rep-view-rehearse" aria-labelledby="rep-player-title">
       <div class="rep-player-head">
         <div>
-          <h2 id="rep-player-title">3. Réviser</h2>
+          <h2 id="rep-player-title">Répétition</h2>
           <p id="repProgressText" class="rep-help">Aucun texte lancé.</p>
         </div>
-        <div class="rep-counter" id="repCounter">0 / 0</div>
+        <div class="rep-player-tools">
+          <button class="rep-icon-btn" id="repBackToLibraryFromPlayerBtn" type="button" title="Mes textes">←</button>
+          <button class="rep-icon-btn" id="repSettingsBtn" type="button" title="Réglages">⚙️</button>
+          <button class="rep-icon-btn" id="repToggleScriptBtn" type="button" title="Voir le script">📜</button>
+          <div class="rep-counter" id="repCounter">0 / 0</div>
+        </div>
       </div>
 
       <div class="rep-section-nav" id="repSectionNav" hidden>
@@ -199,23 +215,23 @@
       <div class="rep-meter" aria-hidden="true"><span id="repMeterBar"></span></div>
 
       <div class="rep-actions rep-actions-player">
-        <button class="rep-btn rep-btn-primary" id="repStartBtn" type="button" disabled>▶ Play</button>
-        <button class="rep-btn" id="repContinueBtn" type="button" disabled>J’ai dit ma réplique</button>
-        <button class="rep-btn rep-btn-memory" id="repCueBtn" type="button" disabled>Me souffler ma réplique</button>
-        <button class="rep-btn rep-btn-star" id="repDifficultBtn" type="button" disabled>⭐ À retravailler</button>
+        <button class="rep-btn rep-btn-primary" id="repStartBtn" type="button" disabled title="Play">▶</button>
+        <button class="rep-btn" id="repContinueBtn" type="button" disabled data-contextual="own">J’ai dit</button>
+        <button class="rep-btn rep-btn-memory" id="repCueBtn" type="button" disabled data-contextual="own">Souffler</button>
+        <button class="rep-btn rep-btn-star" id="repDifficultBtn" type="button" disabled data-contextual="own">⭐</button>
         <button class="rep-btn" id="repReviewDifficultBtn" type="button" disabled>Réviser ⭐</button>
         <button class="rep-btn" id="repExitDifficultBtn" type="button" hidden>Tout revoir</button>
-        <button class="rep-btn" id="repPrevBtn" type="button" disabled>Précédent</button>
-        <button class="rep-btn" id="repNextBtn" type="button" disabled>Suivant</button>
-        <button class="rep-btn rep-btn-danger" id="repStopBtn" type="button" disabled>Stop</button>
+        <button class="rep-btn" id="repPrevBtn" type="button" disabled title="Précédent">⏮</button>
+        <button class="rep-btn" id="repNextBtn" type="button" disabled title="Suivant">⏭</button>
+        <button class="rep-btn rep-btn-danger" id="repStopBtn" type="button" disabled title="Stop">⏹</button>
       </div>
     </section>
 
-    <section class="rep-card card" aria-labelledby="rep-list-title">
+    <section class="rep-card card rep-script-card rep-view rep-view-rehearse" aria-labelledby="rep-list-title">
       <div class="rep-section-head">
         <div>
           <h2 id="rep-list-title">Script</h2>
-          <p class="rep-help">Ligne en cours surlignée. Tes répliques peuvent être affichées, masquées ou réduites aux premières lettres selon les options.</p>
+          <p class="rep-help">Script complet. Masqué par défaut pour garder la répétition lisible.</p>
         </div>
       </div>
       <div id="repLineList" class="rep-line-list rep-script-preview"></div>
@@ -249,6 +265,6 @@
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/fts-nav.js?v=106"></script>
-  <script src="assets/js/pages/repetition.js?v=110" defer></script>
+  <script src="assets/js/pages/repetition.js?v=111" defer></script>
 </body>
 </html>
