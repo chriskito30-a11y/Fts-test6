@@ -686,3 +686,177 @@ body { overflow-x: hidden; }
 
 /* V74 — popup validation : exclusions automatiques compactes */
 .approval-auto-exclusions{margin:.55rem 0 .65rem;padding:.62rem .72rem;border-radius:14px;border:1px solid rgba(248,231,2,.2);background:rgba(248,231,2,.08);color:rgba(255,255,255,.82);font-size:.78rem;line-height:1.35}
+
+/* === V81 — Revue obligatoire avant validation d'inscription === */
+.approval-review-overlay .approval-review-modal{
+  max-width:960px;
+  width:min(94vw, 960px);
+  max-height:88vh;
+  overflow:auto;
+}
+.approval-review-head{
+  display:flex;
+  justify-content:space-between;
+  gap:14px;
+  align-items:flex-start;
+  margin-bottom:14px;
+}
+.approval-review-head h3{margin-bottom:4px;}
+.approval-review-head p{
+  margin:0;
+  color:#6d6172;
+  line-height:1.35;
+}
+.approval-review-close{
+  width:38px;
+  height:38px;
+  border:0;
+  border-radius:999px;
+  background:rgba(35,18,44,.08);
+  color:#23122c;
+  font-size:1.45rem;
+  line-height:1;
+  cursor:pointer;
+}
+.approval-review-summary{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:14px;
+  border-radius:22px;
+  background:linear-gradient(135deg,rgba(123,45,130,.12),rgba(248,231,2,.10));
+  border:1px solid rgba(123,45,130,.14);
+  margin-bottom:14px;
+}
+.approval-review-avatar{
+  width:48px;
+  height:48px;
+  border-radius:16px;
+  display:grid;
+  place-items:center;
+  background:#7b2d82;
+  color:white;
+  font-weight:900;
+  font-size:1.3rem;
+  flex:0 0 auto;
+}
+.approval-review-name{
+  font-weight:900;
+  color:#23122c;
+  font-size:1.12rem;
+}
+.approval-review-meta{
+  color:#6d6172;
+  font-size:.9rem;
+  margin-top:2px;
+}
+.approval-review-section{
+  border:1px solid rgba(123,45,130,.13);
+  background:rgba(255,255,255,.78);
+  border-radius:22px;
+  padding:14px;
+  margin:12px 0;
+}
+.approval-review-section h4{
+  margin:0 0 10px;
+  color:#23122c;
+  font-size:1rem;
+}
+.approval-review-grid,
+.approval-access-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+}
+.approval-kv,
+.approval-access-box{
+  border:1px solid rgba(35,18,44,.08);
+  background:rgba(255,255,255,.86);
+  border-radius:16px;
+  padding:10px 12px;
+  min-width:0;
+}
+.approval-kv span,
+.approval-access-box span{
+  display:block;
+  color:#75687c;
+  font-size:.78rem;
+  font-weight:800;
+  margin-bottom:4px;
+}
+.approval-kv strong{
+  color:#26172d;
+  font-size:.94rem;
+  overflow-wrap:anywhere;
+}
+.approval-kv-wide{grid-column:1/-1;}
+.approval-chip{
+  display:inline-flex;
+  align-items:center;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(123,45,130,.10);
+  color:#6f2379;
+  font-weight:800;
+  font-size:.82rem;
+  margin:2px 4px 2px 0;
+}
+.approval-muted,
+.approval-empty{
+  color:#7d7182;
+  font-size:.9rem;
+}
+.approval-child-card{
+  border:1px solid rgba(123,45,130,.11);
+  background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(255,248,253,.9));
+  border-radius:18px;
+  padding:12px;
+  margin:8px 0;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+}
+.approval-child-title{
+  grid-column:1/-1;
+  font-weight:900;
+  color:#23122c;
+  margin-bottom:2px;
+}
+.approval-review-list{
+  margin:8px 0 0 18px;
+  padding:0;
+  color:#2b2030;
+}
+.approval-review-list li{margin:8px 0;}
+.approval-review-list span{color:#75687c;}
+.approval-note{
+  border-radius:16px;
+  padding:10px 12px;
+  background:rgba(77,174,87,.10);
+  border:1px solid rgba(77,174,87,.18);
+  color:#2c6d34;
+  font-weight:800;
+}
+.approval-impact ul{
+  margin:0 0 0 18px;
+  padding:0;
+  color:#514456;
+  line-height:1.45;
+}
+.approval-review-actions{
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  position:sticky;
+  bottom:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.82),#fff 45%);
+  padding-top:10px;
+}
+@media(max-width:720px){
+  .approval-review-grid,
+  .approval-access-grid,
+  .approval-child-card{grid-template-columns:1fr;}
+  .approval-review-head{align-items:flex-start;}
+  .approval-review-actions{justify-content:stretch;}
+  .approval-review-actions button{width:100%;}
+}
