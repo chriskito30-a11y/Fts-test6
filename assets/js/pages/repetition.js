@@ -560,6 +560,7 @@
   function parseScript(text){
     if (!text) return [];
     const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const roleCandidateCounts = buildRoleCandidateCounts(rawLines);
     const parsed = [];
 
     rawLines.forEach(raw => {
@@ -583,19 +584,70 @@
       }
 
       const line = splitRoleLine(raw);
-      if (line) {
+      if (line && shouldAcceptRoleLine(line, parsed, roleCandidateCounts)) {
         parsed.push({ speaker:normalizeSpeaker(line.speaker), text:line.text.trim(), kind:'line' });
         return;
       }
 
-      if (parsed.length) {
-        parsed[parsed.length - 1].text = `${parsed[parsed.length - 1].text} ${raw}`.trim();
-      } else {
-        parsed.push({ speaker:'TEXTE', text:raw, kind:'stage' });
-      }
+      appendContinuation(parsed, raw);
     });
 
     return parsed.filter(item => item.text);
+  }
+
+  function appendContinuation(parsed, raw){
+    const value = String(raw || '').trim();
+    if (!value) return;
+    if (parsed.length) {
+      parsed[parsed.length - 1].text = `${parsed[parsed.length - 1].text} ${value}`.trim();
+    } else {
+      parsed.push({ speaker:'TEXTE', text:value, kind:'stage' });
+    }
+  }
+
+  function buildRoleCandidateCounts(rawLines){
+    const counts = {};
+    rawLines.forEach(raw => {
+      if (!raw) return;
+      if (/^#{1,4}\s+/.test(raw)) return;
+      if (parseActSceneHeading(raw)) return;
+      if ((raw.startsWith('[') && raw.endsWith(']')) || (raw.startsWith('*') && raw.endsWith('*'))) return;
+      const line = splitRoleLine(raw);
+      if (!line) return;
+      const speaker = normalizeSpeaker(line.speaker);
+      counts[speaker] = (counts[speaker] || 0) + 1;
+    });
+    return counts;
+  }
+
+  function shouldAcceptRoleLine(line, parsed, roleCandidateCounts){
+    const speaker = normalizeSpeaker(line && line.speaker ? line.speaker : '');
+    if (!speaker) return false;
+
+    const count = roleCandidateCounts[speaker] || 0;
+    if (count >= 2) return true;
+
+    const hasDialogueBefore = parsed.some(item => item && item.kind === 'line');
+    if (!hasDialogueBefore) return true;
+
+    const repeatedSpeakers = Object.keys(roleCandidateCounts || {}).filter(name => (roleCandidateCounts[name] || 0) >= 2);
+    if (!repeatedSpeakers.length) return true;
+
+    // Si un nouveau rôle n'apparaît qu'une seule fois au milieu d'une scène,
+    // c'est souvent une suite de réplique coupée à la ligne avec un ":".
+    // On accepte quand même les noms très explicites en majuscules pour garder
+    // la possibilité d'ajouter un petit rôle ponctuel.
+    if (looksLikeForcedSpeakerLabel(line.rawSpeaker || line.speaker)) return true;
+
+    return false;
+  }
+
+  function looksLikeForcedSpeakerLabel(value){
+    const raw = String(value || '').trim();
+    if (!raw) return false;
+    const letters = raw.replace(/[^A-Za-zÀ-ÖØ-öø-ÿ]/g, '');
+    if (!letters) return false;
+    return letters.length >= 2 && letters === letters.toUpperCase();
   }
 
   function cleanStage(raw){
@@ -637,10 +689,11 @@
     for (const pattern of patterns) {
       const match = value.match(pattern);
       if (!match) continue;
-      const speaker = sanitizeSpeakerCandidate(match[1]);
+      const rawSpeaker = String(match[1] || '').trim();
+      const speaker = sanitizeSpeakerCandidate(rawSpeaker);
       const text = String(match[2] || '').trim();
       if (isValidSpeakerCandidate(speaker) && text) {
-        return { speaker, text };
+        return { speaker, rawSpeaker, text };
       }
     }
 
@@ -650,6 +703,9 @@
   function sanitizeSpeakerCandidate(value){
     return String(value || '')
       .replace(/[«»"“”]/g,'')
+      .replace(/\([^)]*\)/g,'')
+      .replace(/\[[^\]]*\]/g,'')
+      .replace(/\*[^*]*\*/g,'')
       .replace(/\s+/g,' ')
       .trim();
   }
