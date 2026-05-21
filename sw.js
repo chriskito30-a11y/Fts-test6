@@ -1,4 +1,4 @@
-const CACHE = 'fts-v122-repetition-own-lines-ui-fix';
+const CACHE = 'fts-v124-repetition-resume-card';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v122-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v124-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
