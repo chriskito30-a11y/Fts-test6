@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V126';
+  const REPETITION_VERSION = 'V129';
 
   const els = {};
   const state = {
@@ -38,6 +38,7 @@
 
   function init(){
     bindElements();
+    liftPlayerControlsToViewport();
     bindEvents();
     loadVoices();
     scheduleVoiceReloads();
@@ -53,6 +54,20 @@
     ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
+  }
+
+
+
+  function liftPlayerControlsToViewport(){
+    // La barre de contrôle doit être fixée au viewport, pas à la carte répétition.
+    // Sur certains navigateurs Android/Fold, un élément `position:fixed` placé dans
+    // une carte avec effets graphiques peut se comporter comme s'il était ancré à
+    // cette carte. On la déplace donc une seule fois à la racine du document.
+    const bar = document.querySelector('.rep-actions-player');
+    if (!bar || bar.dataset.viewportLifted === '1') return;
+    bar.dataset.viewportLifted = '1';
+    bar.setAttribute('aria-label', 'Contrôles de répétition');
+    document.body.appendChild(bar);
   }
 
   function bindEvents(){
