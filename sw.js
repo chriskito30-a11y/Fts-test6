@@ -1,4 +1,4 @@
-const CACHE = 'fts-v127-repetition-scene-accordion-fix';
+const CACHE = 'fts-v128-repetition-fold-controls';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v126-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v128-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
