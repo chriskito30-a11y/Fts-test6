@@ -3202,3 +3202,23 @@ body[data-rep-view="rehearse"] .rep-actions-player{
 body[data-rep-view="rehearse"] .rep-actions-player[data-viewport-lifted="1"]{
   display:grid !important;
 }
+
+/* V135 — PDF original local */
+.rep-btn-pdf{
+  border-color:rgba(255,230,0,.42)!important;
+  background:rgba(255,230,0,.10)!important;
+  color:var(--white,#f5f2ee)!important;
+  white-space:nowrap;
+}
+.rep-btn-pdf:hover,
+.rep-btn-pdf:focus-visible{
+  background:rgba(255,230,0,.18)!important;
+  border-color:rgba(255,230,0,.65)!important;
+}
+@media (max-width:760px){
+  .rep-offline-actions .rep-btn-pdf,
+  .rep-resume-actions .rep-btn-pdf{
+    min-width:0;
+    width:100%;
+  }
+}
