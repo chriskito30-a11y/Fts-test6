@@ -629,3 +629,11 @@
   .student-contact-line { display:block; }
   .student-contact-line strong { display:block; text-align:left; margin-top:.2rem; }
 }
+
+
+/* V131 — option Assistant répétition */
+.script-rehearsal-field{border:1px solid rgba(248,231,2,.22);border-radius:18px;padding:.78rem .9rem;background:linear-gradient(135deg,rgba(248,231,2,.08),rgba(255,255,255,.025));}
+.script-rehearsal-field[hidden]{display:none!important}
+.script-rehearsal-toggle{display:flex!important;align-items:center;gap:.6rem;margin:0 0 .35rem!important;color:rgba(255,255,255,.94)!important;font-size:.9rem!important;font-weight:800!important;text-transform:none!important;letter-spacing:0!important;cursor:pointer}
+.script-rehearsal-toggle input{width:18px;height:18px;accent-color:var(--gold);flex:0 0 auto}
+@media (max-width:760px){.script-rehearsal-field{padding:.72rem}.script-rehearsal-toggle{font-size:.84rem!important}}
