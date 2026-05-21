@@ -1,4 +1,4 @@
-const CACHE = 'fts-v137-repetition-xp';
+const CACHE = 'fts-v138-forum-notifs-unread';
 const FILES = [
   './manifest.json',
   './index.html',
