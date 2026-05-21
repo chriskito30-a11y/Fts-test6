@@ -1013,19 +1013,16 @@
     return counts;
   }
 
-  function renderSectionNavigation(){
+  function updateSceneCurrentSummary(groups){
     if (!els.repSectionNav) return;
     if (!state.lines.length) {
       els.repSectionNav.hidden = true;
       if (els.repSectionSelect) els.repSectionSelect.innerHTML = '<option value="">Aucune scène détectée</option>';
-      return;
+      return null;
     }
-
-    const groups = buildSceneGroups();
+    groups = groups || buildSceneGroups();
     const currentScene = getSceneForIndex(state.currentIndex, groups);
-    if (!state.openSceneGroupKey && currentScene && currentScene.groupKey) state.openSceneGroupKey = currentScene.groupKey;
     if (currentScene) updateSceneScopeFromCurrent(false);
-
     els.repSectionNav.hidden = false;
     if (els.repSceneCurrent) {
       const count = countLinesInRange(currentScene ? currentScene.start : 0, currentScene ? currentScene.end : state.lines.length - 1);
@@ -1033,6 +1030,19 @@
       els.repSceneCurrent.innerHTML = `<strong>${escapeHtml(currentScene ? currentScene.fullLabel : 'Texte complet')}</strong><small>${count} réplique${count>1?'s':''}${roleCount ? ' · ' + roleCount + ' de mon rôle' : ''}</small>`;
     }
     if (els.repSceneOnlyToggle) els.repSceneOnlyToggle.checked = !!state.sceneOnly;
+    return currentScene;
+  }
+
+  function renderSectionNavigation(){
+    if (!els.repSectionNav) return;
+    const groups = buildSceneGroups();
+    const currentScene = updateSceneCurrentSummary(groups);
+    if (!state.lines.length) return;
+
+    // Important UX : on ouvre un acte seulement quand l'utilisateur ouvre la navigation.
+    // Pendant la lecture, la scène courante se met à jour sans redéployer/reconstruire
+    // l'accordéon, sinon le panneau envahit l'écran à chaque réplique.
+    if (!state.openSceneGroupKey && currentScene && currentScene.groupKey) state.openSceneGroupKey = currentScene.groupKey;
 
     if (els.repSectionSelect) {
       els.repSectionSelect.innerHTML = '<option value="">Aller à un acte / une scène…</option>' + groups.flatMap(group => group.scenes.map(scene => `<option value="${scene.start}">${escapeHtml(scene.fullLabel)}</option>`)).join('');
@@ -2009,7 +2019,7 @@
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
     els.repMeterBar.style.width = `${Math.max(0,Math.min(100,percent))}%`;
-    renderSectionNavigation();
+    updateSceneCurrentSummary();
     const mode = els.repMode.value;
     els.repProgressText.textContent = isIgnored
       ? 'Cette ligne sera passée.'
