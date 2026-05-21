@@ -3135,3 +3135,48 @@ body[data-rep-view="rehearse"] .rep-actions-player #repStopBtn {
     backface-visibility: hidden;
   }
 }
+
+
+/* ==============================================================
+   V129 — contrôle répétition ancré au viewport
+   - La barre est déplacée par JS dans <body> pour éviter le bug Android/Fold
+     où un fixed placé dans une carte graphique se cale au mauvais endroit.
+   - Annule le centrage spécial V128 qui supposait une bottom nav en pilule.
+   - Barre large, stable, collée au-dessus de la bottom nav.
+   ============================================================== */
+body[data-rep-view="rehearse"] .rep-actions-player[data-viewport-lifted="1"]{
+  position: fixed !important;
+  z-index: 2147483000 !important;
+  left: max(10px, env(safe-area-inset-left, 0px)) !important;
+  right: max(10px, env(safe-area-inset-right, 0px)) !important;
+  bottom: calc(var(--rep-bottom-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 4px) !important;
+  width: auto !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  transform: none !important;
+  will-change: auto !important;
+  contain: none !important;
+  backface-visibility: visible !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+}
+
+@media (min-width: 860px){
+  body[data-rep-view="rehearse"] .rep-actions-player[data-viewport-lifted="1"]{
+    left: max(24px, env(safe-area-inset-left, 0px)) !important;
+    right: max(24px, env(safe-area-inset-right, 0px)) !important;
+    bottom: calc(var(--rep-bottom-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 4px) !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 760px){
+  body[data-rep-view="rehearse"] .rep-actions-player[data-viewport-lifted="1"]{
+    left: max(8px, env(safe-area-inset-left, 0px)) !important;
+    right: max(8px, env(safe-area-inset-right, 0px)) !important;
+    bottom: calc(var(--rep-bottom-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 3px) !important;
+  }
+}
