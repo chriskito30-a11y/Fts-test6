@@ -581,8 +581,8 @@
         return;
       }
       const buffer = await fetchPdfBufferFromUrl(url);
-      const text = await extractPdfTextFromBuffer(buffer);
       const savedPdf = await cacheOriginalPdf(scriptId, resource.name, buffer, { source:'resource', key:resource.key });
+      const text = await extractPdfTextFromBuffer(cloneArrayBuffer(buffer));
       applyExtractedText(text, resource.name, { id: scriptId, label: resource.name, source:'resource', key:resource.key, pdfCached: savedPdf });
     });
   }
@@ -592,7 +592,7 @@
     await runPdfLoad(async () => {
       setPdfStatus(`Analyse de “${state.localPdfFile.name}”…`);
       const buffer = await state.localPdfFile.arrayBuffer();
-      const text = await extractPdfTextFromBuffer(buffer);
+      const text = await extractPdfTextFromBuffer(cloneArrayBuffer(buffer));
       const scriptId = getLocalScriptId(state.localPdfFile.name, text);
       const savedPdf = await cacheOriginalPdf(scriptId, state.localPdfFile.name, buffer, { source:'local' });
       applyExtractedText(text, state.localPdfFile.name, { id: scriptId, label: state.localPdfFile.name, source:'local', pdfCached: savedPdf });
@@ -635,6 +635,21 @@
     const response = await fetch(url, { mode:'cors' });
     if (!response.ok) throw new Error(`PDF inaccessible (${response.status}).`);
     return response.arrayBuffer();
+  }
+
+  function cloneArrayBuffer(buffer){
+    if (!buffer) return new ArrayBuffer(0);
+    if (buffer instanceof ArrayBuffer) return buffer.slice(0);
+    if (ArrayBuffer.isView(buffer)) return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    return new Blob([buffer], { type:'application/pdf' });
+  }
+
+  async function normalizePdfArrayBuffer(input){
+    if (!input) return new ArrayBuffer(0);
+    if (input instanceof ArrayBuffer) return input.slice(0);
+    if (ArrayBuffer.isView(input)) return input.buffer.slice(input.byteOffset, input.byteOffset + input.byteLength);
+    if (input instanceof Blob) return input.arrayBuffer();
+    return new Blob([input], { type:'application/pdf' }).arrayBuffer();
   }
 
   async function extractPdfTextFromUrl(url){
@@ -2156,14 +2171,21 @@
   async function cacheOriginalPdf(id, label, buffer, meta){
     if (!id || !buffer) return false;
     try {
-      const blob = buffer instanceof Blob ? buffer : new Blob([buffer], { type:'application/pdf' });
+      const arrayBuffer = await normalizePdfArrayBuffer(buffer);
+      const size = arrayBuffer && arrayBuffer.byteLength ? arrayBuffer.byteLength : 0;
+      if (!size) {
+        console.warn('[FTS Répétition] PDF original vide, cache annulé', { id, label });
+        return false;
+      }
       const db = await openPdfDb();
       await new Promise((resolve, reject) => {
         const tx = db.transaction(PDF_STORE_NAME, 'readwrite');
         tx.objectStore(PDF_STORE_NAME).put({
           id,
           label: label || 'PDF original',
-          blob,
+          arrayBuffer,
+          size,
+          type: 'application/pdf',
           meta: meta || {},
           updatedAt: Date.now()
         });
@@ -2218,11 +2240,17 @@
 
   async function openCachedPdf(id){
     const item = await getCachedOriginalPdf(id);
-    if (!item || !item.blob) {
+    if (!item || (!item.arrayBuffer && !item.blob)) {
       setPdfStatus('PDF original non enregistré sur cet appareil. Ouvre/analyse ce PDF une fois en ligne pour l’ajouter.', false);
       return;
     }
-    const blob = item.blob instanceof Blob ? item.blob : new Blob([item.blob], { type:'application/pdf' });
+    const blob = item.arrayBuffer
+      ? new Blob([item.arrayBuffer], { type:'application/pdf' })
+      : (item.blob instanceof Blob ? item.blob : new Blob([item.blob], { type:'application/pdf' }));
+    if (!blob.size) {
+      setPdfStatus('PDF original enregistré vide. Réanalyse ce PDF une fois pour le réparer.', false);
+      return;
+    }
     const url = URL.createObjectURL(blob);
     try {
       const opened = window.open(url, '_blank', 'noopener');
