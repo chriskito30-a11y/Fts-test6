@@ -3094,3 +3094,44 @@ body[data-rep-view="rehearse"] .rep-actions-player #repStopBtn {
 @media (max-width:390px){
   .rep-scene-actions{grid-template-columns:1fr;}
 }
+
+/* ==============================================================
+   V128 — stabilité Samsung Z Fold / écrans larges pliables
+   - Quand la bottom nav passe en pilule centrée (>=860px), la barre
+     de répétition se cale au-dessus avec la même largeur.
+   - Evite le saut de la barre lors du changement de viewport Fold.
+   - CSS uniquement, moteur de répétition inchangé.
+   ============================================================== */
+@media (min-width: 860px){
+  body[data-rep-view="rehearse"]{
+    /* fts-nav.css : bottom nav = bottom 14px + min-height 58px */
+    --rep-bottom-nav-height: calc(14px + 58px + env(safe-area-inset-bottom, 0px));
+    --rep-control-gap: 6px;
+  }
+
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    left: 50% !important;
+    right: auto !important;
+    bottom: calc(var(--rep-bottom-nav-height) + var(--rep-control-gap)) !important;
+    width: min(520px, calc(100dvw - 32px)) !important;
+    max-width: min(520px, calc(100dvw - 32px)) !important;
+    transform: translateX(-50%) translateZ(0) !important;
+    will-change: transform;
+    contain: layout paint;
+    backface-visibility: hidden;
+    grid-template-columns: repeat(8, minmax(0, 1fr)) !important;
+  }
+
+  body[data-rep-view="rehearse"] .rep-shell{
+    padding-bottom: calc(var(--rep-bottom-nav-height) + var(--rep-control-height, 92px) + 22px) !important;
+  }
+}
+
+@media (max-width: 859px){
+  body[data-rep-view="rehearse"] .rep-actions-player{
+    transform: translateZ(0) !important;
+    will-change: transform;
+    contain: layout paint;
+    backface-visibility: hidden;
+  }
+}
