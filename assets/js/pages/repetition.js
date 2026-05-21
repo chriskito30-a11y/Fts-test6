@@ -27,6 +27,7 @@
     directResourceHandled: false,
     difficultLines: new Set(),
     focusDifficultOnly: false,
+    focusOwnOnly: false,
     currentView: 'library'
   };
 
@@ -46,7 +47,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -60,7 +61,7 @@
     if (els.repCueBtn) els.repCueBtn.addEventListener('click', cueOwnLine);
     if (els.repDifficultBtn) els.repDifficultBtn.addEventListener('click', toggleDifficultLine);
     if (els.repReviewDifficultBtn) els.repReviewDifficultBtn.addEventListener('click', startDifficultReview);
-    if (els.repExitDifficultBtn) els.repExitDifficultBtn.addEventListener('click', exitDifficultReview);
+    if (els.repExitDifficultBtn) els.repExitDifficultBtn.addEventListener('click', exitFocusMode);
     if (els.repTrainingPresets) {
       els.repTrainingPresets.querySelectorAll('[data-preset]').forEach(btn => {
         btn.addEventListener('click', () => applyTrainingPreset(btn.getAttribute('data-preset') || 'discover'));
@@ -70,7 +71,7 @@
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
-    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; refreshPlayer(); renderRoleChoices(); updateDifficultUi(); saveCurrentScriptSettings(); if (getSelectedRole() && (state.currentView === 'role' || state.currentView === 'library')) setView('mode'); });
+    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; state.focusOwnOnly = false; refreshPlayer(); renderRoleChoices(); updateDifficultUi(); saveCurrentScriptSettings(); if (getSelectedRole() && (state.currentView === 'role' || state.currentView === 'library')) setView('mode'); });
     els.repMode.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     if (els.repReadSpeakerName) els.repReadSpeakerName.addEventListener('change', () => { saveCurrentScriptSettings(); });
     els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
@@ -84,6 +85,7 @@
     if (els.repLoadLocalPdfBtn) els.repLoadLocalPdfBtn.addEventListener('click', loadLocalPdf);
     if (els.repResumeBtn) els.repResumeBtn.addEventListener('click', resumeLastScript);
     if (els.repResumeReviewBtn) els.repResumeReviewBtn.addEventListener('click', resumeLastScriptDifficult);
+    if (els.repResumeOwnBtn) els.repResumeOwnBtn.addEventListener('click', resumeLastScriptOwnOnly);
     if (els.repForgetResumeBtn) els.repForgetResumeBtn.addEventListener('click', forgetLastScript);
     if (els.repSectionSelect) els.repSectionSelect.addEventListener('change', goToSelectedSection);
     document.querySelectorAll('[data-view-target]').forEach(btn => {
@@ -732,7 +734,7 @@
     const lines = parseScript(text);
     state.lines = lines;
     state.characters = collectCharacters(lines);
-    state.currentIndex = 0;
+    state.currentIndex = state.focusOwnOnly ? (getOwnIndexesForRole()[0] || 0) : 0;
     state.awaitingUser = false;
     state.sections = collectSections(lines);
     renderAnalysis();
@@ -913,6 +915,12 @@
       .toUpperCase();
   }
 
+  function findMatchingRole(value){
+    const wanted = normalizeSpeaker(value);
+    if (!wanted || !state.characters || !state.characters.length) return '';
+    return state.characters.find(name => normalizeSpeaker(name) === wanted) || '';
+  }
+
   function collectCharacters(lines){
     const excluded = new Set(['DIDASCALIE','SCÈNE','TEXTE']);
     return Array.from(new Set(lines.filter(l => l.kind === 'line' && !excluded.has(l.speaker)).map(l => l.speaker))).sort((a,b)=>a.localeCompare(b,'fr'));
@@ -981,6 +989,7 @@
         state.currentIndex = 0;
         state.awaitingUser = false;
         state.focusDifficultOnly = false;
+        state.focusOwnOnly = false;
         refreshPlayer();
         renderRoleChoices();
         saveCurrentScriptSettings();
@@ -1211,6 +1220,68 @@
     saveCurrentScriptSettings();
   }
 
+
+  function getOwnIndexesForRole(){
+    const role = els.repRoleSelect ? els.repRoleSelect.value : '';
+    if (!role) return [];
+    const roleKey = normalizeSpeaker(role);
+    return state.lines
+      .map((line,index) => ({ line, index }))
+      .filter(item => item.line && item.line.kind === 'line' && normalizeSpeaker(item.line.speaker) === roleKey)
+      .map(item => item.index);
+  }
+
+  function nextOwnIndex(fromIndex, direction){
+    const indexes = getOwnIndexesForRole();
+    if (!indexes.length) return -1;
+    if (direction < 0) {
+      for (let i = indexes.length - 1; i >= 0; i -= 1) if (indexes[i] < fromIndex) return indexes[i];
+      return indexes[indexes.length - 1];
+    }
+    for (const index of indexes) if (index > fromIndex) return index;
+    return -1;
+  }
+
+  function startOwnLinesOnly(){
+    let role = els.repRoleSelect ? els.repRoleSelect.value : '';
+    if (role) {
+      const matched = findMatchingRole(role);
+      if (matched && matched !== role && els.repRoleSelect) {
+        els.repRoleSelect.value = matched;
+        role = matched;
+      }
+    }
+    if (!role) {
+      alert('Choisis d’abord ton personnage.');
+      return false;
+    }
+    const indexes = getOwnIndexesForRole();
+    if (!indexes.length) {
+      alert('Aucune réplique trouvée pour ce rôle.');
+      return false;
+    }
+    stop(false);
+    state.focusOwnOnly = true;
+    state.focusDifficultOnly = false;
+    const target = indexes.find(i => i >= state.currentIndex) || indexes[0];
+    state.currentIndex = target;
+    state.awaitingUser = false;
+    setView('rehearse');
+    refreshPlayer();
+    updateDifficultUi();
+    scrollToPlayer();
+    saveCurrentScriptSettings();
+    return true;
+  }
+
+  function exitFocusMode(){
+    state.focusDifficultOnly = false;
+    state.focusOwnOnly = false;
+    refreshPlayer();
+    updateDifficultUi();
+    saveCurrentScriptSettings();
+  }
+
   function startDifficultReview(){
     const role = els.repRoleSelect ? els.repRoleSelect.value : '';
     if (!role) {
@@ -1224,6 +1295,7 @@
     }
     stop(false);
     state.focusDifficultOnly = true;
+    state.focusOwnOnly = false;
     const target = indexes.find(i => i >= state.currentIndex) || indexes[0];
     state.currentIndex = getDifficultReviewStartIndex(target);
     state.awaitingUser = false;
@@ -1236,6 +1308,7 @@
 
   function exitDifficultReview(){
     state.focusDifficultOnly = false;
+    state.focusOwnOnly = false;
     refreshPlayer();
     updateDifficultUi();
     saveCurrentScriptSettings();
@@ -1304,7 +1377,9 @@
       els.repReviewDifficultBtn.textContent = indexes.length ? 'Réviser ⭐ (' + indexes.length + ')' : 'Réviser ⭐';
     }
     if (els.repExitDifficultBtn) {
-      els.repExitDifficultBtn.hidden = !state.focusDifficultOnly;
+      els.repExitDifficultBtn.hidden = !(state.focusDifficultOnly || state.focusOwnOnly);
+      els.repExitDifficultBtn.textContent = state.focusOwnOnly ? 'Tout' : 'Tout';
+      els.repExitDifficultBtn.title = state.focusOwnOnly ? 'Revenir au texte complet' : 'Revenir à tout le texte';
     }
   }
 
@@ -1380,7 +1455,18 @@
     const isOwn = mode !== 'full' && line.speaker === role;
     const isIgnored = isIgnoredSpeakerLine(line, role);
 
-    renderCurrentLine(line, isOwn, isIgnored);
+    if (state.focusOwnOnly && (!role || line.kind !== 'line' || line.speaker !== role)) {
+      const target = nextOwnIndex(state.currentIndex - 1, 1);
+      if (target >= 0) {
+        state.currentIndex = target;
+        state.timeoutId = setTimeout(() => { if (token === state.playToken && state.playing) playCurrent(); }, 40);
+      } else {
+        finishOwnLinesOnly();
+      }
+      return;
+    }
+
+    renderCurrentLine(line, state.focusOwnOnly ? false : isOwn, isIgnored);
     if (document.body.classList.contains('rep-show-script')) renderLineList();
     setButtons();
 
@@ -1393,6 +1479,11 @@
     // renderCurrentLine a déjà mis à jour l'aperçu ci-dessus.
     if (line.kind === 'stage') {
       speakLine(line, false, () => { if (token === state.playToken && state.playing) advance(); });
+      return;
+    }
+
+    if (state.focusOwnOnly) {
+      speakLine(line, true, () => { if (token === state.playToken && state.playing) advance(); });
       return;
     }
 
@@ -1536,7 +1627,14 @@
 
   function advance(){
     state.awaitingUser = false;
-    if (state.focusDifficultOnly) {
+    if (state.focusOwnOnly) {
+      const next = nextOwnIndex(state.currentIndex, 1);
+      if (next < 0) {
+        finishOwnLinesOnly();
+        return;
+      }
+      state.currentIndex = next;
+    } else if (state.focusDifficultOnly) {
       const currentTarget = getCurrentDifficultTargetIndex();
       if (currentTarget >= 0) {
         // Après une réplique difficile validée, on prépare la difficulté suivante avec son contexte.
@@ -1562,6 +1660,15 @@
       return;
     }
     playCurrent();
+  }
+
+  function finishOwnLinesOnly(){
+    stop(false);
+    state.focusOwnOnly = false;
+    els.repProgressText.textContent = 'Révision de tes répliques terminée.';
+    updateDifficultUi();
+    refreshPlayer(false);
+    saveCurrentScriptSettings();
   }
 
   function finishDifficultReview(){
@@ -1603,7 +1710,7 @@
     clearPendingTimeout();
     state.playToken += 1;
     stopSpeechOnly(true);
-    state.currentIndex = 0;
+    state.currentIndex = state.focusOwnOnly ? (getOwnIndexesForRole()[0] || 0) : 0;
     state.awaitingUser = false;
     state.playing = wasPlaying;
     refreshPlayer(document.body.classList.contains('rep-show-script'));
@@ -1617,7 +1724,10 @@
     clearPendingTimeout();
     state.playToken += 1;
     stopSpeechOnly(true);
-    if (state.focusDifficultOnly) {
+    if (state.focusOwnOnly) {
+      const prev = nextOwnIndex(state.currentIndex, -1);
+      if (prev >= 0) state.currentIndex = prev;
+    } else if (state.focusDifficultOnly) {
       const currentTarget = getCurrentDifficultTargetIndex();
       const anchor = currentTarget >= 0 ? currentTarget : state.currentIndex;
       const prev = nextDifficultIndex(anchor, -1);
@@ -1638,7 +1748,10 @@
     clearPendingTimeout();
     state.playToken += 1;
     stopSpeechOnly(true);
-    if (state.focusDifficultOnly) {
+    if (state.focusOwnOnly) {
+      const prev = nextOwnIndex(state.currentIndex, -1);
+      if (prev >= 0) state.currentIndex = prev;
+    } else if (state.focusDifficultOnly) {
       const currentTarget = getCurrentDifficultTargetIndex();
       const anchor = currentTarget >= 0 ? currentTarget : state.currentIndex;
       const next = nextDifficultIndex(anchor, 1);
@@ -1702,7 +1815,7 @@
     }
     const line = state.lines[state.currentIndex] || state.lines[0];
     const role = els.repRoleSelect.value;
-    const isOwn = els.repMode.value !== 'full' && line && line.speaker === role;
+    const isOwn = !state.focusOwnOnly && els.repMode.value !== 'full' && line && line.speaker === role;
     const isIgnored = isIgnoredSpeakerLine(line, role);
     renderCurrentLine(line, isOwn, isIgnored);
     if (renderList) renderLineList();
@@ -1714,9 +1827,9 @@
     const total = state.lines.length;
     const percent = total ? ((state.currentIndex + 1) / total) * 100 : 0;
     const isDifficult = state.difficultLines && state.difficultLines.has(state.currentIndex);
-    els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other') + (isDifficult ? ' is-difficult' : '') + (state.focusDifficultOnly ? ' is-focus-difficult' : '');
+    els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other') + (isDifficult ? ' is-difficult' : '') + (state.focusDifficultOnly ? ' is-focus-difficult' : '') + (state.focusOwnOnly ? ' is-focus-own' : '');
     els.repCurrentLine.innerHTML = `
-      <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : isOwn ? 'À toi' : escapeHtml(line.speaker)}${isDifficult ? ' · ⭐' : ''}</p>
+      <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : state.focusOwnOnly ? 'Mes répliques · ' + escapeHtml(line.speaker) : isOwn ? 'À toi' : escapeHtml(line.speaker)}${isDifficult ? ' · ⭐' : ''}</p>
       <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
@@ -1724,6 +1837,8 @@
     const mode = els.repMode.value;
     els.repProgressText.textContent = isIgnored
       ? 'Cette ligne sera passée.'
+      : state.focusOwnOnly
+        ? 'Mes répliques uniquement : l’app lit seulement ton rôle.'
       : state.focusDifficultOnly
         ? 'Révision des répliques marquées : dis ta ligne, puis valide.'
       : isOwn
@@ -1751,13 +1866,14 @@
     const hasLines = state.lines.length > 0;
     document.body.classList.toggle('is-awaiting-user', !!state.awaitingUser);
     document.body.classList.toggle('is-playing', !!state.playing);
+    document.body.classList.toggle('rep-own-only', !!state.focusOwnOnly);
     document.body.classList.toggle('has-script-ready', !!hasLines);
     els.repStartBtn.disabled = !hasLines || state.playing;
-    if (els.repRestartBtn) els.repRestartBtn.disabled = !hasLines || state.currentIndex <= 0;
+    if (els.repRestartBtn) els.repRestartBtn.disabled = !hasLines || (state.focusOwnOnly ? state.currentIndex <= (getOwnIndexesForRole()[0] || 0) : state.currentIndex <= 0);
     els.repStopBtn.disabled = !hasLines || !state.playing;
-    els.repPrevBtn.disabled = !hasLines || state.currentIndex <= 0;
-    els.repNextBtn.disabled = !hasLines || state.currentIndex >= state.lines.length - 1;
-    els.repContinueBtn.disabled = !state.awaitingUser;
+    els.repPrevBtn.disabled = !hasLines || (state.focusOwnOnly ? getOwnIndexesForRole().length < 2 : state.currentIndex <= 0);
+    els.repNextBtn.disabled = !hasLines || (state.focusOwnOnly ? getOwnIndexesForRole().length < 2 : state.currentIndex >= state.lines.length - 1);
+    els.repContinueBtn.disabled = !state.awaitingUser || state.focusOwnOnly;
     if (els.repCueBtn) {
       const line = state.lines[state.currentIndex];
       const role = els.repRoleSelect.value;
@@ -1890,6 +2006,29 @@
     }
   }
 
+
+  function computeCachedProgress(item, settings){
+    const text = item && item.text ? item.text : '';
+    const roughLines = text.split(/\n+/).filter(line => line.trim()).length || 1;
+    const current = Number.isFinite(settings.currentIndex) ? Math.max(0, settings.currentIndex + 1) : 0;
+    const percent = Math.max(0, Math.min(100, Math.round((current / roughLines) * 100)));
+    return {
+      percent,
+      label: percent ? percent + '% travaillé' : 'Pas encore commencé'
+    };
+  }
+
+  function formatShortDate(value){
+    try {
+      const date = new Date(value);
+      const today = new Date();
+      if (date.toDateString() === today.toDateString()) return 'Aujourd’hui';
+      return date.toLocaleDateString('fr-FR', { day:'2-digit', month:'short' });
+    } catch(e) {
+      return '';
+    }
+  }
+
   function renderOfflineLibrary(){
     if (!els.repOfflineLibrary || !els.repOfflineList) return;
     const items = getCachedScriptItems();
@@ -1901,26 +2040,34 @@
     if (els.repOfflineCount) els.repOfflineCount.textContent = `${items.length} texte${items.length>1?'s':''}`;
     els.repOfflineList.innerHTML = items.map(item => {
       const settings = item.settings || {};
-      const date = item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('fr-FR') : '';
-      const meta = [
-        settings.role ? 'Rôle : ' + settings.role : '',
-        Number.isFinite(settings.currentIndex) ? 'Ligne ' + (settings.currentIndex + 1) : '',
-        settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length + ' ⭐' : '',
-        date
-      ].filter(Boolean).join(' · ');
+      const date = item.updatedAt ? formatShortDate(item.updatedAt) : '';
       const difficultCount = settings.difficultLines && settings.difficultLines.length ? settings.difficultLines.length : 0;
+      const progress = computeCachedProgress(item, settings);
+      const role = settings.role || 'Rôle à choisir';
       const reviewButton = difficultCount
         ? `<button class="rep-btn rep-btn-review" type="button" data-offline-review="${escapeAttr(item.id)}">Réviser ⭐</button>`
         : '';
-      return `<article class="rep-offline-item" data-script-id="${escapeAttr(item.id)}">
-        <div>
-          <strong>${escapeHtml(item.label)}</strong>
-          <small>${escapeHtml(meta || 'Enregistré sur cet appareil')}</small>
+      const ownButton = settings.role
+        ? `<button class="rep-btn rep-btn-own" type="button" data-offline-own="${escapeAttr(item.id)}">Mes répliques</button>`
+        : '';
+      return `<article class="rep-offline-item rep-offline-premium" data-script-id="${escapeAttr(item.id)}">
+        <div class="rep-offline-main">
+          <div class="rep-offline-title-row">
+            <strong>${escapeHtml(item.label)}</strong>
+            <span class="rep-offline-role">${escapeHtml(role)}</span>
+          </div>
+          <div class="rep-offline-progress"><span style="width:${progress.percent}%"></span></div>
+          <div class="rep-offline-meta">
+            <span>${progress.label}</span>
+            ${difficultCount ? `<span>${difficultCount} ⭐ à revoir</span>` : '<span>Rien à revoir</span>'}
+            ${date ? `<span>${escapeHtml(date)}</span>` : ''}
+          </div>
         </div>
         <div class="rep-offline-actions ${difficultCount ? 'has-review' : ''}">
           <button class="rep-btn rep-btn-primary" type="button" data-offline-open="${escapeAttr(item.id)}">Reprendre</button>
+          ${ownButton}
           ${reviewButton}
-          <button class="rep-btn" type="button" data-offline-settings="${escapeAttr(item.id)}" title="Réglages" aria-label="Réglages">⚙️</button>
+          <button class="rep-btn rep-btn-icon-only" type="button" data-offline-settings="${escapeAttr(item.id)}" title="Réglages" aria-label="Réglages">⚙️</button>
           <button class="rep-btn rep-btn-icon-only" type="button" data-offline-delete="${escapeAttr(item.id)}" title="Supprimer ce texte" aria-label="Supprimer ce texte">🗑</button>
         </div>
       </article>`;
@@ -1930,6 +2077,9 @@
     });
     els.repOfflineList.querySelectorAll('[data-offline-review]').forEach(btn => {
       btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-review') || '', 'difficult'));
+    });
+    els.repOfflineList.querySelectorAll('[data-offline-own]').forEach(btn => {
+      btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-own') || '', 'own'));
     });
     els.repOfflineList.querySelectorAll('[data-offline-settings]').forEach(btn => {
       btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-settings') || '', 'settings'));
@@ -1945,6 +2095,19 @@
     applyExtractedText(cached.text, cached.label || 'Texte de répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Texte de répétition', fromCache:true }));
     setPdfStatus('Texte chargé depuis cet appareil. Les réglages et la reprise ont été restaurés si disponibles.');
     if (view === 'settings') setView('settings');
+    else if (view === 'own') {
+      if (!getSelectedRole() && cached.settings && cached.settings.role) {
+        const matchedRole = findMatchingRole(cached.settings.role);
+        if (matchedRole && els.repRoleSelect) els.repRoleSelect.value = matchedRole;
+      }
+      if (getSelectedRole()) {
+        const started = startOwnLinesOnly();
+        if (!started) setView('role');
+      } else {
+        setPdfStatus('Choisis ton rôle pour voir uniquement tes répliques.');
+        setView('role');
+      }
+    }
     else if (view === 'difficult') {
       if (getSelectedRole()) {
         setView('rehearse');
@@ -2011,6 +2174,11 @@
       els.repResumeReviewBtn.title = difficultCount ? 'Réviser les répliques à retravailler' : '';
       els.repResumeReviewBtn.setAttribute('aria-label', 'Réviser les répliques à retravailler');
     }
+    if (els.repResumeOwnBtn) {
+      els.repResumeOwnBtn.hidden = !(settings && settings.role);
+      els.repResumeOwnBtn.title = 'Revoir uniquement mes répliques';
+      els.repResumeOwnBtn.setAttribute('aria-label', 'Revoir uniquement mes répliques');
+    }
   }
 
   function resumeLastScript(){
@@ -2025,6 +2193,12 @@
     const cached = getLastCachedScript();
     if (!cached || !cached.text) return;
     openCachedScript(cached.id, 'difficult');
+  }
+
+  function resumeLastScriptOwnOnly(){
+    const cached = getLastCachedScript();
+    if (!cached || !cached.text) return;
+    openCachedScript(cached.id, 'own');
   }
 
   function forgetLastScript(){
@@ -2053,7 +2227,10 @@
   function restoreSettingsForCurrentScript(){
     const settings = getScriptSettings(state.currentScriptId);
     if (!settings) return;
-    if (settings.role && state.characters.includes(settings.role)) els.repRoleSelect.value = settings.role;
+    if (settings.role) {
+      const matchedRole = findMatchingRole(settings.role);
+      if (matchedRole) els.repRoleSelect.value = matchedRole;
+    }
     if (settings.mode && els.repMode.querySelector(`option[value="${cssEscape(settings.mode)}"]`)) els.repMode.value = settings.mode;
     if (settings.readSpeakerName && els.repReadSpeakerName && els.repReadSpeakerName.querySelector(`option[value="${cssEscape(settings.readSpeakerName)}"]`)) els.repReadSpeakerName.value = settings.readSpeakerName;
     if (settings.ownLines && els.repOwnLines.querySelector(`option[value="${cssEscape(settings.ownLines)}"]`)) els.repOwnLines.value = settings.ownLines;
