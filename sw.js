@@ -1,4 +1,4 @@
-const CACHE = 'fts-v133-script-rehearsal-flag';
+const CACHE = 'fts-v134-script-rehearsal-docs';
 const FILES = [
   './manifest.json',
   './index.html',
