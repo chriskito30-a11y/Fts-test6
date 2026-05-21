@@ -1,4 +1,4 @@
-const CACHE = 'fts-v136-repetition-pdf-local-fix';
+const CACHE = 'fts-v137-repetition-xp';
 const FILES = [
   './manifest.json',
   './index.html',
