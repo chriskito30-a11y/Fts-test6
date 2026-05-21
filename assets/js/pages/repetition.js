@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V117';
+  const REPETITION_VERSION = 'V122';
 
   const els = {};
   const state = {
@@ -1725,8 +1725,9 @@
     state.playToken += 1;
     stopSpeechOnly(true);
     if (state.focusOwnOnly) {
-      const prev = nextOwnIndex(state.currentIndex, -1);
-      if (prev >= 0) state.currentIndex = prev;
+      const next = nextOwnIndex(state.currentIndex, 1);
+      if (next >= 0) state.currentIndex = next;
+      else { finishOwnLinesOnly(); return; }
     } else if (state.focusDifficultOnly) {
       const currentTarget = getCurrentDifficultTargetIndex();
       const anchor = currentTarget >= 0 ? currentTarget : state.currentIndex;
@@ -1749,8 +1750,9 @@
     state.playToken += 1;
     stopSpeechOnly(true);
     if (state.focusOwnOnly) {
-      const prev = nextOwnIndex(state.currentIndex, -1);
-      if (prev >= 0) state.currentIndex = prev;
+      const next = nextOwnIndex(state.currentIndex, 1);
+      if (next >= 0) state.currentIndex = next;
+      else { finishOwnLinesOnly(); return; }
     } else if (state.focusDifficultOnly) {
       const currentTarget = getCurrentDifficultTargetIndex();
       const anchor = currentTarget >= 0 ? currentTarget : state.currentIndex;
