@@ -1,4 +1,4 @@
-const CACHE = 'fts-v120-repetition-own-lines';
+const CACHE = 'fts-v121-repetition-own-lines-fix';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v119-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v121-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
