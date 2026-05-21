@@ -155,6 +155,15 @@ function canSeeDocInCategory(doc, cat) {
   return allowedNorms.has(FTS.norm(docSub));
 }
 
+
+function awardMemberDailyLoginXp(memberUid) {
+  // XP de connexion invisible. Max 1/jour dans FTSGamification, donc aucun risque si le forum l'appelle aussi.
+  try {
+    if (!memberUid || !db || !window.FTSGamification || !FTSGamification.awardXp) return;
+    FTSGamification.awardXp(db, memberUid, 'daily_login', 5, { maxPerDay:1 }).catch(() => {});
+  } catch(e) {}
+}
+
 /* ── INITIALISATION ──────────────────────────────────────────── */
 (function init() {
   db = FTS.initFirebase();
@@ -207,6 +216,7 @@ function canSeeDocInCategory(doc, cat) {
       await loadCategories();
       renderDashboard(userProfile, user.email);
       initMemberGamificationBadge(user.uid, userProfile, user.email);
+      awardMemberDailyLoginXp(user.uid);
 
       // Liens topbar selon rôle — strict, sans toucher à l'auth.
       updateRoleNavigation(userProfile, user.email);

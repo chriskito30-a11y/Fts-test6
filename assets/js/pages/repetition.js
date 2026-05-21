@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V135';
+  const REPETITION_VERSION = 'V137';
 
   const els = {};
   const state = {
@@ -31,7 +31,8 @@
     sceneOnly: false,
     sceneScope: null,
     openSceneGroupKey: '',
-    currentView: 'library'
+    currentView: 'library',
+    xpSession: { practice:0, own:0, difficult:0 }
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -1655,6 +1656,48 @@
     playCurrent();
   }
 
+
+  function awardRepetitionXp(action, points, maxPerDay){
+    // XP invisible : aucune alerte utilisateur. Si Firebase refuse, la répétition continue.
+    try {
+      const user = state.authUser || (firebase.auth && firebase.auth().currentUser) || null;
+      if (!user || !user.uid || !state.db || !window.FTSGamification || !FTSGamification.awardXp) return;
+      FTSGamification.awardXp(state.db, user.uid, action, points, { maxPerDay:maxPerDay || 1 }).catch(() => {});
+    } catch(e) {}
+  }
+
+  function registerRepetitionEffort(){
+    const line = state.lines[state.currentIndex];
+    const role = getSelectedRole();
+    if (!line || line.kind !== 'line' || !role || line.speaker !== role) return;
+
+    if (!state.xpSession) state.xpSession = { practice:0, own:0, difficult:0 };
+
+    if (state.focusDifficultOnly) {
+      state.xpSession.difficult += 1;
+      // Chaque réplique difficile réellement retravaillée peut tenter un gain, limité par jour.
+      awardRepetitionXp('script_rehearsal_difficult', 5, 2);
+      return;
+    }
+
+    if (state.focusOwnOnly) {
+      state.xpSession.own += 1;
+      if (state.xpSession.own >= 3) {
+        state.xpSession.own = 0;
+        awardRepetitionXp('script_rehearsal_own_lines', 5, 2);
+      }
+      return;
+    }
+
+    if (els.repMode && els.repMode.value !== 'full') {
+      state.xpSession.practice += 1;
+      if (state.xpSession.practice >= 5) {
+        state.xpSession.practice = 0;
+        awardRepetitionXp('script_rehearsal_practice', 5, 3);
+      }
+    }
+  }
+
   function playCurrent(){
     clearPendingTimeout();
     if (!state.playing || !state.lines.length) return;
@@ -1845,6 +1888,7 @@
   }
 
   function advance(){
+    registerRepetitionEffort();
     state.awaitingUser = false;
     if (state.focusOwnOnly) {
       const next = nextOwnIndex(state.currentIndex, 1);
@@ -2142,6 +2186,7 @@
     state.sceneOnly = !!settings.sceneOnly;
     state.sceneScope = settings.sceneScope || null;
     state.roleVoicePrefs = {};
+    state.xpSession = { practice:0, own:0, difficult:0 };
     state.currentScriptId = '';
     state.currentScriptLabel = '';
     state.sections = [];
