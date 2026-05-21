@@ -1,4 +1,4 @@
-const CACHE = 'fts-v119-repetition-review-dialogue';
+const CACHE = 'fts-v120-repetition-own-lines';
 const FILES = [
   './manifest.json',
   './index.html',
