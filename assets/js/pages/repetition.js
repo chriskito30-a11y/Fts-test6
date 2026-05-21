@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V129';
+  const REPETITION_VERSION = 'V135';
 
   const els = {};
   const state = {
@@ -51,7 +51,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repResumePdfBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -104,6 +104,7 @@
     if (els.repResumeBtn) els.repResumeBtn.addEventListener('click', resumeLastScript);
     if (els.repResumeReviewBtn) els.repResumeReviewBtn.addEventListener('click', resumeLastScriptDifficult);
     if (els.repResumeOwnBtn) els.repResumeOwnBtn.addEventListener('click', resumeLastScriptOwnOnly);
+    if (els.repResumePdfBtn) els.repResumePdfBtn.addEventListener('click', openLastCachedPdf);
     if (els.repForgetResumeBtn) els.repForgetResumeBtn.addEventListener('click', forgetLastScript);
     if (els.repSectionSelect) els.repSectionSelect.addEventListener('change', goToSelectedSection);
     if (els.repOpenSceneBtn) els.repOpenSceneBtn.addEventListener('click', toggleScenePanel);
@@ -573,12 +574,16 @@
       const scriptId = getResourceScriptId(resource.key);
       const cached = getCachedScript(scriptId);
       if (cached && cached.text) {
-        applyExtractedText(cached.text, resource.name, { id: scriptId, label: resource.name, source:'resource', key:resource.key, fromCache:true });
-        setPdfStatus(`Texte chargé depuis cet appareil : “${resource.name}”.`);
+        applyExtractedText(cached.text, resource.name, Object.assign({}, cached.meta || {}, { id: scriptId, label: resource.name, source:'resource', key:resource.key, fromCache:true }));
+        setPdfStatus(`Texte prêt à reprendre.`);
+        // Si le texte était déjà analysé avant la V135, on ne relit pas le PDF automatiquement
+        // pour éviter du trafic inutile. Le PDF original sera enregistré localement au prochain chargement complet.
         return;
       }
-      const text = await extractPdfTextFromUrl(url);
-      applyExtractedText(text, resource.name, { id: scriptId, label: resource.name, source:'resource', key:resource.key });
+      const buffer = await fetchPdfBufferFromUrl(url);
+      const text = await extractPdfTextFromBuffer(buffer);
+      const savedPdf = await cacheOriginalPdf(scriptId, resource.name, buffer, { source:'resource', key:resource.key });
+      applyExtractedText(text, resource.name, { id: scriptId, label: resource.name, source:'resource', key:resource.key, pdfCached: savedPdf });
     });
   }
 
@@ -589,7 +594,8 @@
       const buffer = await state.localPdfFile.arrayBuffer();
       const text = await extractPdfTextFromBuffer(buffer);
       const scriptId = getLocalScriptId(state.localPdfFile.name, text);
-      applyExtractedText(text, state.localPdfFile.name, { id: scriptId, label: state.localPdfFile.name, source:'local' });
+      const savedPdf = await cacheOriginalPdf(scriptId, state.localPdfFile.name, buffer, { source:'local' });
+      applyExtractedText(text, state.localPdfFile.name, { id: scriptId, label: state.localPdfFile.name, source:'local', pdfCached: savedPdf });
     });
   }
 
@@ -625,11 +631,15 @@
     return value;
   }
 
-  async function extractPdfTextFromUrl(url){
-    if (!window.pdfjsLib) throw new Error('La lecture PDF n’est pas disponible sur ce navigateur.');
+  async function fetchPdfBufferFromUrl(url){
     const response = await fetch(url, { mode:'cors' });
     if (!response.ok) throw new Error(`PDF inaccessible (${response.status}).`);
-    const buffer = await response.arrayBuffer();
+    return response.arrayBuffer();
+  }
+
+  async function extractPdfTextFromUrl(url){
+    if (!window.pdfjsLib) throw new Error('La lecture PDF n’est pas disponible sur ce navigateur.');
+    const buffer = await fetchPdfBufferFromUrl(url);
     return extractPdfTextFromBuffer(buffer);
   }
 
@@ -2127,6 +2137,114 @@
     renderEmpty();
   }
 
+  const PDF_DB_NAME = 'fts-repetition-pdfs-v1';
+  const PDF_STORE_NAME = 'pdfs';
+
+  function openPdfDb(){
+    return new Promise((resolve, reject) => {
+      if (!('indexedDB' in window)) return reject(new Error('Stockage local PDF indisponible.'));
+      const req = indexedDB.open(PDF_DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(PDF_STORE_NAME)) db.createObjectStore(PDF_STORE_NAME, { keyPath:'id' });
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error || new Error('Ouverture du stockage PDF impossible.'));
+    });
+  }
+
+  async function cacheOriginalPdf(id, label, buffer, meta){
+    if (!id || !buffer) return false;
+    try {
+      const blob = buffer instanceof Blob ? buffer : new Blob([buffer], { type:'application/pdf' });
+      const db = await openPdfDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(PDF_STORE_NAME, 'readwrite');
+        tx.objectStore(PDF_STORE_NAME).put({
+          id,
+          label: label || 'PDF original',
+          blob,
+          meta: meta || {},
+          updatedAt: Date.now()
+        });
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error || new Error('Enregistrement PDF impossible.'));
+      });
+      try { db.close(); } catch(_) {}
+      return true;
+    } catch (err) {
+      console.warn('[FTS Répétition] cache PDF original', err);
+      return false;
+    }
+  }
+
+  async function getCachedOriginalPdf(id){
+    if (!id) return null;
+    try {
+      const db = await openPdfDb();
+      const item = await new Promise((resolve, reject) => {
+        const tx = db.transaction(PDF_STORE_NAME, 'readonly');
+        const req = tx.objectStore(PDF_STORE_NAME).get(id);
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error || new Error('Lecture PDF local impossible.'));
+      });
+      try { db.close(); } catch(_) {}
+      return item;
+    } catch (err) {
+      console.warn('[FTS Répétition] lecture PDF original', err);
+      return null;
+    }
+  }
+
+  async function deleteCachedOriginalPdf(id){
+    if (!id) return;
+    try {
+      const db = await openPdfDb();
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(PDF_STORE_NAME, 'readwrite');
+        tx.objectStore(PDF_STORE_NAME).delete(id);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error || new Error('Suppression PDF impossible.'));
+      });
+      try { db.close(); } catch(_) {}
+    } catch (err) {
+      console.warn('[FTS Répétition] suppression PDF original', err);
+    }
+  }
+
+  function safePdfFileName(label){
+    return String(label || 'texte-repetition').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'texte-repetition';
+  }
+
+  async function openCachedPdf(id){
+    const item = await getCachedOriginalPdf(id);
+    if (!item || !item.blob) {
+      setPdfStatus('PDF original non enregistré sur cet appareil. Ouvre/analyse ce PDF une fois en ligne pour l’ajouter.', false);
+      return;
+    }
+    const blob = item.blob instanceof Blob ? item.blob : new Blob([item.blob], { type:'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    try {
+      const opened = window.open(url, '_blank', 'noopener');
+      if (!opened) {
+        const a = document.createElement('a');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.download = safePdfFileName(item.label) + '.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+      setPdfStatus('PDF original ouvert depuis cet appareil.');
+    } catch (err) {
+      console.warn('[FTS Répétition] ouverture PDF original', err);
+      setPdfStatus('Ouverture du PDF impossible sur cet appareil.', false);
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+  }
+
   function storagePrefix(){
     let uid = state.authUser && state.authUser.uid ? state.authUser.uid : '';
     if (!uid) {
@@ -2263,6 +2381,9 @@
       const ownButton = settings.role
         ? `<button class="rep-btn rep-btn-own" type="button" data-offline-own="${escapeAttr(item.id)}">Mes répliques</button>`
         : '';
+      const pdfButton = item.meta && item.meta.pdfCached
+        ? `<button class="rep-btn rep-btn-pdf" type="button" data-offline-pdf="${escapeAttr(item.id)}">Ouvrir PDF</button>`
+        : '';
       return `<article class="rep-offline-item rep-offline-premium" data-script-id="${escapeAttr(item.id)}">
         <div class="rep-offline-main">
           <div class="rep-offline-title-row">
@@ -2280,6 +2401,7 @@
           <button class="rep-btn rep-btn-primary" type="button" data-offline-open="${escapeAttr(item.id)}">Reprendre</button>
           ${ownButton}
           ${reviewButton}
+          ${pdfButton}
           <button class="rep-btn rep-btn-icon-only" type="button" data-offline-settings="${escapeAttr(item.id)}" title="Réglages" aria-label="Réglages">⚙️</button>
           <button class="rep-btn rep-btn-icon-only" type="button" data-offline-delete="${escapeAttr(item.id)}" title="Supprimer ce texte" aria-label="Supprimer ce texte">🗑</button>
         </div>
@@ -2293,6 +2415,9 @@
     });
     els.repOfflineList.querySelectorAll('[data-offline-own]').forEach(btn => {
       btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-own') || '', 'own'));
+    });
+    els.repOfflineList.querySelectorAll('[data-offline-pdf]').forEach(btn => {
+      btn.addEventListener('click', () => openCachedPdf(btn.getAttribute('data-offline-pdf') || ''));
     });
     els.repOfflineList.querySelectorAll('[data-offline-settings]').forEach(btn => {
       btn.addEventListener('click', () => openCachedScript(btn.getAttribute('data-offline-settings') || '', 'settings'));
@@ -2340,6 +2465,7 @@
     try {
       localStorage.removeItem(storagePrefix() + 'script_' + id);
       localStorage.removeItem(storagePrefix() + 'settings_' + id);
+      deleteCachedOriginalPdf(id);
       if (localStorage.getItem(storagePrefix() + 'lastScriptId') === id) {
         localStorage.removeItem(storagePrefix() + 'lastScriptId');
       }
@@ -2361,7 +2487,7 @@
           } catch(e) {}
         }
       }
-      items.sort((a,b) => b.updatedAt - a.updatedAt).slice(30).forEach(item => localStorage.removeItem(item.key));
+      items.sort((a,b) => b.updatedAt - a.updatedAt).slice(30).forEach(item => { const id = item.key.replace(prefix, ''); localStorage.removeItem(item.key); deleteCachedOriginalPdf(id); });
     } catch(e) {}
   }
 
@@ -2392,6 +2518,12 @@
       els.repResumeOwnBtn.title = 'Revoir uniquement mes répliques';
       els.repResumeOwnBtn.setAttribute('aria-label', 'Revoir uniquement mes répliques');
     }
+    if (els.repResumePdfBtn) {
+      const hasPdf = !!(cached.meta && cached.meta.pdfCached);
+      els.repResumePdfBtn.hidden = !hasPdf;
+      els.repResumePdfBtn.title = 'Ouvrir le PDF original enregistré sur cet appareil';
+      els.repResumePdfBtn.setAttribute('aria-label', 'Ouvrir le PDF original');
+    }
   }
 
   function resumeLastScript(){
@@ -2412,6 +2544,12 @@
     const cached = getLastCachedScript();
     if (!cached || !cached.text) return;
     openCachedScript(cached.id, 'own');
+  }
+
+  function openLastCachedPdf(){
+    const cached = getLastCachedScript();
+    if (!cached || !cached.id) return;
+    openCachedPdf(cached.id);
   }
 
   function forgetLastScript(){
