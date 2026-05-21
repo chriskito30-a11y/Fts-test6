@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#0a0a0a" />
   <link rel="stylesheet" href="assets/css/fts.css" />
   <link rel="stylesheet" href="assets/css/fts-nav.css?v=106" />
-  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=124" />
+  <link rel="stylesheet" href="assets/css/pages/repetition.css?v=126" />
 </head>
 <body class="has-glow has-topbar" data-rep-view="library">
   <main class="rep-shell wrap wrap-xl">
@@ -210,11 +210,24 @@
         </div>
       </div>
 
-      <div class="rep-section-nav" id="repSectionNav" hidden>
-        <label for="repSectionSelect">Navigation rapide</label>
-        <select id="repSectionSelect" class="rep-select">
+      <div class="rep-section-nav rep-scene-nav" id="repSectionNav" hidden>
+        <div class="rep-scene-current" id="repSceneCurrent">
+          <strong>Texte complet</strong><small>Navigation disponible après analyse</small>
+        </div>
+        <div class="rep-scene-actions">
+          <button class="rep-btn rep-btn-scene" id="repOpenSceneBtn" type="button">Changer de scène</button>
+          <button class="rep-btn rep-btn-scene" id="repRestartSceneBtn" type="button">Recommencer la scène</button>
+        </div>
+        <label class="rep-scene-only-toggle">
+          <input id="repSceneOnlyToggle" type="checkbox" />
+          <span>Répéter cette scène seulement</span>
+        </label>
+        <select id="repSectionSelect" class="rep-select rep-section-select-fallback" aria-label="Navigation rapide">
           <option value="">Aucune scène détectée</option>
         </select>
+        <div class="rep-scene-panel" id="repScenePanel" hidden>
+          <div class="rep-scene-accordion" id="repSceneAccordion"></div>
+        </div>
       </div>
 
       <div class="rep-current" id="repCurrentLine">
@@ -276,6 +289,6 @@
   <script src="assets/js/fts-utils.js"></script>
   <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/fts-nav.js?v=106"></script>
-  <script src="assets/js/pages/repetition.js?v=124" defer></script>
+  <script src="assets/js/pages/repetition.js?v=126" defer></script>
 </body>
 </html>

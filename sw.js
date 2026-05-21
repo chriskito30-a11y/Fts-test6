@@ -1,4 +1,4 @@
-const CACHE = 'fts-v125-repetition-mobile-cards';
+const CACHE = 'fts-v126-repetition-mobile-cards';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v125-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v126-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
