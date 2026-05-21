@@ -3180,3 +3180,25 @@ body[data-rep-view="rehearse"] .rep-actions-player[data-viewport-lifted="1"]{
     bottom: calc(var(--rep-bottom-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 3px) !important;
   }
 }
+
+
+/* ==============================================================
+   V130 — barre de contrôle visible uniquement en mode répétition
+   - Après déplacement dans <body> pour corriger le Fold, la barre ne
+     doit jamais apparaître sur les écrans Textes / Rôle / Mode / Réglages.
+   - CSS uniquement : moteur de répétition inchangé.
+   ============================================================== */
+body:not([data-rep-view="rehearse"]) .rep-actions-player{
+  display:none !important;
+  visibility:hidden !important;
+  opacity:0 !important;
+  pointer-events:none !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player{
+  visibility:visible !important;
+  opacity:1 !important;
+  pointer-events:auto !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player[data-viewport-lifted="1"]{
+  display:grid !important;
+}
