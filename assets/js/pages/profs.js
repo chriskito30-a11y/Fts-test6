@@ -181,6 +181,8 @@ async function buildCatSelectors() {
   document.getElementById("filter-cat").innerHTML =
     '<option value="">Toutes les catégories</option>' +
     cats.map(c => `<option value="${FTS.esc(c.value)}">${FTS.esc(c.label)}</option>`).join("");
+  updateScriptRehearsalField('f');
+  updateScriptRehearsalField('e');
   updateProfsStats();
 }
 
@@ -459,7 +461,7 @@ function isDanceCat(cat) {
 
 function isScriptRehearsalCategory(cat) {
   const n = normAccess(cat || '');
-  return ['theatre','comedie musicale','singer show','singer academy','chant'].some(key => n.indexOf(key) !== -1);
+  return ['theatre','comedie_musicale','singer_show','singer_academy','chant'].some(key => n.indexOf(key) !== -1);
 }
 function updateScriptRehearsalField(prefix) {
   const catEl = document.getElementById(prefix + '-cat');
@@ -467,8 +469,12 @@ function updateScriptRehearsalField(prefix) {
   const wrap = document.getElementById(prefix + '-script-rehearsal-wrap');
   const cb = document.getElementById(prefix + '-script-rehearsal');
   if (!catEl || !typeEl || !wrap || !cb) return;
-  const allowed = typeEl.value === 'pdf' && isScriptRehearsalCategory(catEl.value);
+  const type = String(typeEl.value || '').toLowerCase().trim();
+  const cat = String(catEl.value || '').trim();
+  const allowed = type === 'pdf' && isScriptRehearsalCategory(cat);
   wrap.hidden = !allowed;
+  wrap.style.display = allowed ? '' : 'none';
+  wrap.setAttribute('aria-hidden', allowed ? 'false' : 'true');
   if (!allowed) cb.checked = false;
 }
 

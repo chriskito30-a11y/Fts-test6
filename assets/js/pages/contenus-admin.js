@@ -119,16 +119,18 @@ function renderQuestionnairePreview(){
 }
 function isScriptRehearsalCategory(cat){
   const n=(FTS.norm ? FTS.norm(cat||'') : String(cat||'').toLowerCase().trim());
-  return ['theatre','comedie musicale','singer show','singer academy','chant'].some(key => n.includes(key));
+  return ['theatre','comedie_musicale','singer_show','singer_academy','chant'].some(key => n.includes(key));
 }
 function updateScriptRehearsalField(){
   const wrap=$('r-script-rehearsal-wrap');
   const cb=$('r-script-rehearsal');
   if(!wrap||!cb) return;
   const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || '').trim();
-  const type=String($('r-type')?.value||'').toLowerCase();
+  const type=String($('r-type')?.value||'').toLowerCase().trim();
   const allowed=type==='pdf' && isScriptRehearsalCategory(cat);
   wrap.hidden=!allowed;
+  wrap.style.display=allowed?'':'none';
+  wrap.setAttribute('aria-hidden', allowed?'false':'true');
   wrap.classList.toggle('is-disabled', !allowed);
   if(!allowed) cb.checked=false;
 }
