@@ -1,4 +1,4 @@
-const CACHE = 'fts-v128-repetition-fold-controls';
+const CACHE = 'fts-v129-repetition-controls-viewport';
 const FILES = [
   './manifest.json',
   './index.html',
