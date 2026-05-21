@@ -428,11 +428,13 @@ function updateSubcats() {
   const cat = document.getElementById("f-cat").value;
   _fillSubcat("f-subcat", "subcat-row", cat);
   updateDanceVideoFolder();
+  updateScriptRehearsalField('f');
   renderPublishPreview();
 }
 function updateEditSubcats() {
   const cat = document.getElementById("e-cat").value;
   _fillSubcat("e-subcat", "e-subcat-row", cat);
+  updateScriptRehearsalField('e');
 }
 function _fillSubcat(selId, rowId, cat) {
   const sel = document.getElementById(selId);
@@ -453,6 +455,21 @@ function _fillSubcat(selId, rowId, cat) {
 /* ── DOSSIERS VIDÉO DANSE ─────────────────────────────────────── */
 function isDanceCat(cat) {
   return normAccess(cat) === normAccess("Danse");
+}
+
+function isScriptRehearsalCategory(cat) {
+  const n = normAccess(cat || '');
+  return ['theatre','comedie musicale','singer show','singer academy','chant'].some(key => n.indexOf(key) !== -1);
+}
+function updateScriptRehearsalField(prefix) {
+  const catEl = document.getElementById(prefix + '-cat');
+  const typeEl = document.getElementById(prefix + '-type');
+  const wrap = document.getElementById(prefix + '-script-rehearsal-wrap');
+  const cb = document.getElementById(prefix + '-script-rehearsal');
+  if (!catEl || !typeEl || !wrap || !cb) return;
+  const allowed = typeEl.value === 'pdf' && isScriptRehearsalCategory(catEl.value);
+  wrap.hidden = !allowed;
+  if (!allowed) cb.checked = false;
 }
 
 function getDanceFolderConfig(subcat) {
@@ -519,13 +536,14 @@ function updateType() {
   t === "video" ? "block" : "none";
   document.getElementById("url-label").textContent = labels[t] || "Lien";
   updateDanceVideoFolder();
+  updateScriptRehearsalField('f');
   renderPublishPreview();
 }
 
 
 /* ── APERÇU PUBLICATION + STATS ─────────────────────────────── */
 function initPublishPreview() {
-  ["f-cat", "f-subcat", "f-type", "f-name", "f-url", "f-text"].forEach(id => {
+  ["f-cat", "f-subcat", "f-type", "f-name", "f-url", "f-text", "f-script-rehearsal"].forEach(id => {
     const el = document.getElementById(id);
     if (!el || el.dataset.previewBound === "1") return;
     el.dataset.previewBound = "1";
@@ -558,7 +576,8 @@ function renderPublishPreview() {
   pillEl.textContent = typeLabel(type);
   const target = cat ? (subcat ? cat + " · " + subcat : cat) : "Catégorie à choisir";
   const linkInfo = type === "texte" ? "texte direct" : (url ? "lien renseigné" : "lien/fichier à ajouter");
-  metaEl.textContent = target + " · " + typeLabel(type) + " · " + linkInfo;
+  const rehearsal = document.getElementById("f-script-rehearsal")?.checked === true;
+  metaEl.textContent = target + " · " + typeLabel(type) + " · " + linkInfo + (rehearsal ? " · Assistant répétition" : "");
   if (noteEl) {
     noteEl.style.display = text ? "block" : "none";
     noteEl.textContent = text;
@@ -617,6 +636,7 @@ async function doSubmit() {
   const name   = document.getElementById("f-name").value.trim();
   const url    = document.getElementById("f-url").value.trim();
   const text   = document.getElementById("f-text").value.trim();
+  const scriptRehearsal = document.getElementById("f-script-rehearsal")?.checked === true && type === "pdf" && isScriptRehearsalCategory(cat);
 
   if (!cat)                        { showMsg("Choisis une catégorie.",              "error"); return; }
   if (!name)                       { showMsg("Entre un titre.",                     "error"); return; }
@@ -640,6 +660,7 @@ async function doSubmit() {
       content,
       type,
       text:       type !== "texte" ? text : "",
+      scriptRehearsal,
       active:     true,
       status:     "active",
       visibility: "members",
@@ -670,6 +691,9 @@ async function doSubmit() {
 function resetForm() {
   ["f-name","f-url","f-text"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("f-cat").value   = "";
+  const rehearsalCb = document.getElementById("f-script-rehearsal");
+  if (rehearsalCb) rehearsalCb.checked = false;
+  updateScriptRehearsalField('f');
   document.getElementById("drop-text").style.display    = "block";
   document.getElementById("upload-progress").style.display = "none";
   document.getElementById("progress-bar").style.width   = "0%";
@@ -895,6 +919,7 @@ function renderDocs() {
         <div class="doc-item-meta">
           <span class="doc-item-cat">${FTS.esc(d.cat)}${d.subcat ? " — " + FTS.esc(d.subcat) : ""}</span>
           <span>${FTS.esc(d.type)}</span>
+          ${d.scriptRehearsal === true || d.scriptRehearsal === "true" ? '<span class="doc-item-cat">🎭 répétition</span>' : ''}
           <span>${date}</span>
           ${isAdmin && d.authorName ? `<span>par ${FTS.esc(d.authorName)}</span>` : ""}
         </div>
@@ -929,6 +954,9 @@ function openEditModal(key) {
   document.getElementById("e-name").value   = d.name || "";
   document.getElementById("e-url").value    = d.url  || "";
   document.getElementById("e-text").value   = d.text || "";
+  const editRehearsal = document.getElementById("e-script-rehearsal");
+  if (editRehearsal) editRehearsal.checked = d.scriptRehearsal === true || d.scriptRehearsal === "true";
+  updateScriptRehearsalField('e');
 
   updateEditSubcats();
   // Sélectionner la bonne sous-cat après rendu
@@ -951,6 +979,7 @@ async function saveEdit() {
   const name   = document.getElementById("e-name").value.trim();
   const url    = document.getElementById("e-url").value.trim();
   const text   = document.getElementById("e-text").value.trim();
+  const scriptRehearsal = document.getElementById("e-script-rehearsal")?.checked === true && type === "pdf" && isScriptRehearsalCategory(cat);
 
   if (!cat || !name) { alert("Catégorie et titre requis."); return; }
 
@@ -961,6 +990,7 @@ async function saveEdit() {
       type, name,
       url, content: url,
       text,
+      scriptRehearsal,
       active: true,
       status: "active",
       visibility: "members",

@@ -117,17 +117,35 @@ function renderQuestionnairePreview(){
   if(d2k && d2v) tags.push(`<span>${escText(d2k)} : ${escText(d2v)}</span>`);
   box.innerHTML=`<div class="preview-label">Aperçu accueil ${active?'':'· masqué'}</div><div class="preview-card ${active?'':'is-muted'}"><span class="preview-icon">${escText(icon)}</span><strong>${escText(title)}</strong><p>${escText(desc)}</p>${tags.length?`<div class="preview-tags">${tags.join('')}</div>`:''}</div>`;
 }
+function isScriptRehearsalCategory(cat){
+  const n=(FTS.norm ? FTS.norm(cat||'') : String(cat||'').toLowerCase().trim());
+  return ['theatre','comedie musicale','singer show','singer academy','chant'].some(key => n.includes(key));
+}
+function updateScriptRehearsalField(){
+  const wrap=$('r-script-rehearsal-wrap');
+  const cb=$('r-script-rehearsal');
+  if(!wrap||!cb) return;
+  const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || '').trim();
+  const type=String($('r-type')?.value||'').toLowerCase();
+  const allowed=type==='pdf' && isScriptRehearsalCategory(cat);
+  wrap.hidden=!allowed;
+  wrap.classList.toggle('is-disabled', !allowed);
+  if(!allowed) cb.checked=false;
+}
 function renderResourcePreview(){
+  updateScriptRehearsalField();
   const box=$('resource-preview'); if(!box) return;
   const name=$('r-name')?.value.trim() || 'Nom de la ressource';
   const type=($('r-type')?.value || 'pdf').toUpperCase();
   const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || 'Catégorie');
-  const sub=($('r-subcat-new')?.value.trim() || $('r-subcat')?.value || 'Sous-catégorie');
+  const sub=($('r-subcat-new')?.value.trim() || $('r-subcat')?.value || '');
   const active=$('r-active')?.value!=='false';
-  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
+  const rehearsal=$('r-script-rehearsal')?.checked===true;
+  const rehearsalBadge=rehearsal?'<span class="preview-type preview-type--rehearsal">🎭 Répétition</span>':'';
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span>${rehearsalBadge}<strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
 }
 function bindPreviewInputs(){
-  ['a-active','a-title','a-body','a-btn','a-url','a-expires','ta-active','ta-title','ta-body','ta-btn','ta-url','ta-expires','ta-display','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url'].forEach(id=>{
+  ['a-active','a-title','a-body','a-btn','a-url','a-expires','ta-active','ta-title','ta-body','ta-btn','ta-url','ta-expires','ta-display','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url','r-script-rehearsal'].forEach(id=>{
     const el=$(id); if(!el || el.__ftsPreviewBound) return;
     el.__ftsPreviewBound=true;
     el.addEventListener('input', renderAdminPreviews);
@@ -734,12 +752,13 @@ function listenResources(){
 function renderRList(){
   const el=$('r-list'); if(!el) return;
   const selected=$('r-key')?.value||'';
-  el.innerHTML=resources.length?resources.map(r=>`<div class="item${selected===r.key?' sel':''}" data-fts-click="editResource('${FTS.esc(r.key)}')"><div class="item-title">${FTS.esc(r.name||'Sans titre')}</div><div class="item-meta">${FTS.esc(r.cat||r.category||'Sans catégorie')}${r.subcat?' · '+FTS.esc(r.subcat):''} · ${FTS.esc(r.type||'doc')}${r.active===false||r.status==='inactive'?' · masqué':''}</div></div>`).join(''):'<div class="hint">Aucune ressource.</div>';
+  el.innerHTML=resources.length?resources.map(r=>{ const badge=(r.scriptRehearsal===true||r.scriptRehearsal==='true')?' · 🎭 répétition':''; return `<div class="item${selected===r.key?' sel':''}" data-fts-click="editResource('${FTS.esc(r.key)}')"><div class="item-title">${FTS.esc(r.name||'Sans titre')}</div><div class="item-meta">${FTS.esc(r.cat||r.category||'Sans catégorie')}${r.subcat?' · '+FTS.esc(r.subcat):''} · ${FTS.esc(r.type||'doc')}${badge}${r.active===false||r.status==='inactive'?' · masqué':''}</div></div>`; }).join(''):'<div class="hint">Aucune ressource.</div>';
 }
 function newResource(){
   ['r-key','r-name','r-url','r-cat-new','r-subcat-new'].forEach(id=>$(id).value='');
   $('r-type').value='pdf';
   $('r-active').value='true';
+  if($('r-script-rehearsal')) $('r-script-rehearsal').checked=false;
   fillCats();
   renderRList();
   renderResourcePreview();
@@ -757,6 +776,8 @@ function editResource(key){
   $('r-active').value=String(r.active!==false && r.status!=='inactive');
   $('r-name').value=r.name||'';
   $('r-url').value=r.url||r.content||r.text||'';
+  if($('r-script-rehearsal')) $('r-script-rehearsal').checked=(r.scriptRehearsal===true || r.scriptRehearsal==='true');
+  updateScriptRehearsalField();
   renderRList();
   renderResourcePreview();
 }
@@ -770,7 +791,8 @@ async function saveResource(){
     const name=$('r-name').value.trim();
     const now=Date.now();
     if(!cat||!name){ msg('msg-r','Catégorie et nom requis',false); return; }
-    const data={cat,category:cat,subcat,subcategory:subcat,type:$('r-type').value,active,status:active?'active':'inactive',visibility:'members',name,url:content,content,updatedAt:now};
+    const scriptRehearsal=($('r-script-rehearsal')?.checked===true) && $('r-type').value==='pdf' && isScriptRehearsalCategory(cat);
+    const data={cat,category:cat,subcat,subcategory:subcat,type:$('r-type').value,active,status:active?'active':'inactive',visibility:'members',name,url:content,content,scriptRehearsal,updatedAt:now};
     if(!key) data.createdAt=now;
     const ref=key?db.ref('fts_ressources/'+key):db.ref('fts_ressources').push();
     await ref.update(data);

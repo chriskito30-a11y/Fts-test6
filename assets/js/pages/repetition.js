@@ -321,7 +321,7 @@
 
       const normalized = Object.keys(raw || {}).map(key => normalizeResource(raw[key] || {}, key));
       debug.totalResources = normalized.length;
-      const pdfs = normalized.filter(resource => resource.active && isPdfResource(resource));
+      const pdfs = normalized.filter(resource => resource.active && isRehearsalPdfResource(resource));
       debug.pdfResources = pdfs.length;
       state.resources = pdfs
         .filter(resource => canProfileSeeResource(state.profile, resource))
@@ -407,6 +407,17 @@
     const url = String(resource.url || '').toLowerCase();
     const type = String(resource.type || '').toLowerCase();
     return type.includes('pdf') || /\.pdf(?:$|[?#])/i.test(url) || /drive\.google\.com/i.test(url);
+  }
+
+  function isRehearsalCategoryName(value){
+    const cat = norm(value || '');
+    return ['theatre','comedie musicale','singer show','singer academy','chant'].some(key => cat.includes(key));
+  }
+
+  function isRehearsalPdfResource(resource){
+    if (!isPdfResource(resource)) return false;
+    if (!isRehearsalCategoryName(resource.cat || resource.category || '')) return false;
+    return resource.scriptRehearsal === true || resource.scriptRehearsal === 'true';
   }
 
   function canProfileSeeResource(profile, resource){
