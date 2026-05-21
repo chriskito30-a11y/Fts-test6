@@ -591,6 +591,7 @@
             cat: d.cat || d.category || 'Documents',
             sub: d.subcat || d.subcategory || '',
             type: String(d.type || 'doc').toLowerCase().trim(),
+            scriptRehearsal: d.scriptRehearsal === true || String(d.scriptRehearsal || '').toLowerCase() === 'true',
             icon: d.icon || '',
             ts: Number(d.createdAt || d.updatedAt || 0)
           });
