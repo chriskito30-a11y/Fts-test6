@@ -153,6 +153,22 @@
     return Object.keys(unreadTotalByConv).reduce(function(sum, id){ return sum + (Number(unreadTotalByConv[id] || 0) || 0); }, 0);
   }
 
+
+  function forumInitialReadTs(profile){
+    return Number(profile && (profile.forumBaselineAt || profile.createdAt || profile.created_at || profile.ts || 0)) || 0;
+  }
+
+  function forumLastReadTs(reads, channel, profile){
+    var direct = Number((reads[channel] && reads[channel].ts) || reads[channel] || 0) || 0;
+    return direct || forumInitialReadTs(profile);
+  }
+
+  function shouldCountForumUnreadMessage(msg, uid){
+    if(!msg) return false;
+    if(msg.uid && msg.uid === uid && !(msg.system === true || msg.gamification === true || msg.notifyAll === true || msg.type === 'special_badge' || msg.type === 'artist_of_week' || msg.type === 'xp_level')) return false;
+    return true;
+  }
+
   function renderMemberUnreadTotal(){
     var total = privateUnreadTotal() + Number(forumUnreadTotal || 0) + Number(pollUnreadTotal || 0);
     ensureMessagesBadge();
@@ -227,13 +243,13 @@
       var reads = readsSnap.val() || {};
       var total = 0;
       await Promise.all(channels.map(function(ch){
-        var lastRead = Number((reads[ch] && reads[ch].ts) || reads[ch] || 0);
+        var lastRead = forumLastReadTs(reads, ch, currentForumProfile);
         if (!lastRead) return Promise.resolve();
         return db.ref('fts_forum/messages/' + ch).orderByChild('ts').startAt(lastRead + 1).limitToLast(50).once('value')
           .then(function(snap){
             snap.forEach(function(child){
               var msg = child.val() || {};
-              if (msg.uid && msg.uid === uid) return;
+              if (!shouldCountForumUnreadMessage(msg, uid)) return;
               total += 1;
             });
           }).catch(function(){});

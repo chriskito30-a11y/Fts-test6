@@ -120,10 +120,13 @@
   async function getActiveForumRecipients(db, excludeUid){
     const out = [];
     if(!db) return out;
+    const excluded = String(excludeUid || '').trim();
     try{
       const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
       snap.forEach(child => {
-        if(child.key && child.key !== excludeUid) out.push(child.key);
+        if(!child.key) return;
+        if(excluded && child.key === excluded) return;
+        out.push(child.key);
       });
     }catch(e){
       console.warn('[FTS Gamification] destinataires forum général indisponibles:', e);
@@ -131,11 +134,32 @@
     return out;
   }
 
+  function shouldNotifySenderForForumSystemMessage(msg){
+    return !!(msg && (msg.system === true || msg.gamification === true || msg.notifyAll === true || msg.type === 'special_badge' || msg.type === 'artist_of_week' || msg.type === 'xp_level'));
+  }
+
+  async function primeForumUnreadForRecipients(db, recipients, channel, messageTs){
+    if(!db || !Array.isArray(recipients) || !recipients.length || !channel || !messageTs) return;
+    const baseline = Math.max(0, Number(messageTs || now()) - 1);
+    await Promise.allSettled(recipients.map(uid => {
+      const ref = db.ref('fts_users/' + uid + '/forumReads/' + channel);
+      return ref.transaction(current => {
+        const existing = Number((current && current.ts) || current || 0);
+        // Si l'utilisateur a déjà une lecture plus récente, on ne touche à rien.
+        if(existing && existing >= baseline) return current;
+        // Si aucune lecture n'existe, on crée un point de départ juste avant le message.
+        if(!existing) return { ts: baseline };
+        return current;
+      }).catch(() => null);
+    }));
+  }
+
   async function notifyGeneralForumMessage(db, msg, msgId){
     if(!db || !msgId || !msg) return;
 
     const senderUid = String(msg.uid || '').trim();
-    const recipients = await getActiveForumRecipients(db, senderUid);
+    const includeSender = shouldNotifySenderForForumSystemMessage(msg);
+    const recipients = await getActiveForumRecipients(db, includeSender ? '' : senderUid);
     if(!recipients.length) return;
 
     const text = String(msg.text || 'Nouvelle annonce Fais Ton Show');
@@ -162,6 +186,7 @@
         };
       });
       db.ref().update(fanout).catch(() => {});
+      primeForumUnreadForRecipients(db, recipients, 'general', Number(msg.ts || now())).catch(() => {});
       db.ref('fts_debug_notifications/' + notificationKey).set({
         type: 'forum',
         channel: 'general',
@@ -430,6 +455,7 @@
         system: true,
         gamification: true,
         type: 'special_badge',
+        notifyAll: true,
         targetUid
       }
     ).catch(() => {});
@@ -509,6 +535,7 @@
             system: true,
             gamification: true,
             type: 'artist_of_week',
+            notifyAll: true,
             targetUid
           }
         ).catch(() => {});
