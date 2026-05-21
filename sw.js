@@ -1,4 +1,4 @@
-const CACHE = 'fts-v134-script-rehearsal-docs';
+const CACHE = 'fts-v135-repetition-pdf-local';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -96,7 +96,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v74' && k !== FTS_RUNTIME_CACHE && k !== 'fts-notification-dedupe-v74').map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE && k !== 'fts-offline-files-v74' && k !== FTS_RUNTIME_CACHE && k !== 'fts-notification-dedupe-v135').map(k => caches.delete(k)))
     )
   );
   e.waitUntil((async function(){
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v128-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v135-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
@@ -262,7 +262,7 @@ function normalizeNotificationUrl(rawUrl){
 }
 
 // ═══ NOTIFICATIONS PUSH ═══════════════════════════
-const NOTIF_DEDUPE_CACHE = 'fts-notification-dedupe-v74';
+const NOTIF_DEDUPE_CACHE = 'fts-notification-dedupe-v135';
 const NOTIF_DEDUPE_TTL = 10 * 60 * 1000; // 10 min : absorbe doublons d'abonnements / retries
 
 function notificationDedupeKey(data){
