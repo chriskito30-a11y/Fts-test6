@@ -117,34 +117,50 @@ function renderQuestionnairePreview(){
   if(d2k && d2v) tags.push(`<span>${escText(d2k)} : ${escText(d2v)}</span>`);
   box.innerHTML=`<div class="preview-label">Aperçu accueil ${active?'':'· masqué'}</div><div class="preview-card ${active?'':'is-muted'}"><span class="preview-icon">${escText(icon)}</span><strong>${escText(title)}</strong><p>${escText(desc)}</p>${tags.length?`<div class="preview-tags">${tags.join('')}</div>`:''}</div>`;
 }
+
+/* ── ASSISTANT RÉPÉTITION : PDF COMPATIBLE ───────────────────── */
+function normalizeRehearsalValue(value){
+  return FTS.norm ? FTS.norm(value || '') : String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+}
 function isScriptRehearsalCategory(cat){
-  const n=(FTS.norm ? FTS.norm(cat||'') : String(cat||'').toLowerCase().trim());
-  return ['theatre','comedie_musicale','singer_show','singer_academy','chant'].some(key => n.includes(key));
+  const n = normalizeRehearsalValue(cat);
+  return n.includes('theatre')
+    || n.includes('comedie musicale')
+    || n.includes('singer show')
+    || n.includes('singer academy')
+    || n === 'chant'
+    || n.includes(' chant');
 }
-function updateScriptRehearsalField(){
-  const wrap=$('r-script-rehearsal-wrap');
-  const cb=$('r-script-rehearsal');
-  if(!wrap||!cb) return;
-  const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || '').trim();
-  const type=String($('r-type')?.value||'').toLowerCase().trim();
-  const allowed=type==='pdf' && isScriptRehearsalCategory(cat);
-  wrap.hidden=!allowed;
-  wrap.style.display=allowed?'':'none';
-  wrap.setAttribute('aria-hidden', allowed?'false':'true');
-  wrap.classList.toggle('is-disabled', !allowed);
-  if(!allowed) cb.checked=false;
+function isPdfTypeValue(type){
+  const n = normalizeRehearsalValue(type);
+  return n === 'pdf' || n.includes('document pdf') || n.includes('pdf');
 }
+function currentResourceCategoryForRehearsal(){
+  return (($('r-cat-new')?.value || '').trim() || $('r-cat')?.value || '').trim();
+}
+function canShowResourceScriptRehearsalOption(){
+  return isPdfTypeValue($('r-type')?.value || '') && isScriptRehearsalCategory(currentResourceCategoryForRehearsal());
+}
+function updateResourceScriptRehearsalVisibility(){
+  const row = $('r-script-rehearsal-row');
+  const cb = $('r-script-rehearsal');
+  if(!row || !cb) return;
+  const show = canShowResourceScriptRehearsalOption();
+  row.hidden = !show;
+  row.style.display = show ? '' : 'none';
+  row.setAttribute('aria-hidden', show ? 'false' : 'true');
+  if(!show) cb.checked = false;
+}
+
 function renderResourcePreview(){
-  updateScriptRehearsalField();
+  updateResourceScriptRehearsalVisibility();
   const box=$('resource-preview'); if(!box) return;
   const name=$('r-name')?.value.trim() || 'Nom de la ressource';
   const type=($('r-type')?.value || 'pdf').toUpperCase();
   const cat=($('r-cat-new')?.value.trim() || $('r-cat')?.value || 'Catégorie');
-  const sub=($('r-subcat-new')?.value.trim() || $('r-subcat')?.value || '');
+  const sub=($('r-subcat-new')?.value.trim() || $('r-subcat')?.value || 'Sous-catégorie');
   const active=$('r-active')?.value!=='false';
-  const rehearsal=$('r-script-rehearsal')?.checked===true;
-  const rehearsalBadge=rehearsal?'<span class="preview-type preview-type--rehearsal">🎭 Répétition</span>':'';
-  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span>${rehearsalBadge}<strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
+  box.innerHTML=`<div class="preview-label">Aperçu membre ${active?'':'· masqué'}</div><div class="preview-card resource-card ${active?'':'is-muted'}"><span class="preview-type">${escText(type)}</span><strong>${escText(name)}</strong><p>${escText(cat)}${sub?' · '+escText(sub):''}</p></div>`;
 }
 function bindPreviewInputs(){
   ['a-active','a-title','a-body','a-btn','a-url','a-expires','ta-active','ta-title','ta-body','ta-btn','ta-url','ta-expires','ta-display','q-type','q-order','q-icon','q-active','q-title','q-desc','q-link','q-d1k','q-d1v','q-d2k','q-d2v','q-dtitle','q-ddesc','r-cat','r-cat-new','r-subcat','r-subcat-new','r-type','r-active','r-name','r-url','r-script-rehearsal'].forEach(id=>{
@@ -754,7 +770,7 @@ function listenResources(){
 function renderRList(){
   const el=$('r-list'); if(!el) return;
   const selected=$('r-key')?.value||'';
-  el.innerHTML=resources.length?resources.map(r=>{ const badge=(r.scriptRehearsal===true||r.scriptRehearsal==='true')?' · 🎭 répétition':''; return `<div class="item${selected===r.key?' sel':''}" data-fts-click="editResource('${FTS.esc(r.key)}')"><div class="item-title">${FTS.esc(r.name||'Sans titre')}</div><div class="item-meta">${FTS.esc(r.cat||r.category||'Sans catégorie')}${r.subcat?' · '+FTS.esc(r.subcat):''} · ${FTS.esc(r.type||'doc')}${badge}${r.active===false||r.status==='inactive'?' · masqué':''}</div></div>`; }).join(''):'<div class="hint">Aucune ressource.</div>';
+  el.innerHTML=resources.length?resources.map(r=>`<div class="item${selected===r.key?' sel':''}" data-fts-click="editResource('${FTS.esc(r.key)}')"><div class="item-title">${FTS.esc(r.name||'Sans titre')}</div><div class="item-meta">${FTS.esc(r.cat||r.category||'Sans catégorie')}${r.subcat?' · '+FTS.esc(r.subcat):''} · ${FTS.esc(r.type||'doc')}${r.scriptRehearsal?' · 🎭 répétition':''}${r.active===false||r.status==='inactive'?' · masqué':''}</div></div>`).join(''):'<div class="hint">Aucune ressource.</div>';
 }
 function newResource(){
   ['r-key','r-name','r-url','r-cat-new','r-subcat-new'].forEach(id=>$(id).value='');
@@ -778,8 +794,8 @@ function editResource(key){
   $('r-active').value=String(r.active!==false && r.status!=='inactive');
   $('r-name').value=r.name||'';
   $('r-url').value=r.url||r.content||r.text||'';
-  if($('r-script-rehearsal')) $('r-script-rehearsal').checked=(r.scriptRehearsal===true || r.scriptRehearsal==='true');
-  updateScriptRehearsalField();
+  if($('r-script-rehearsal')) $('r-script-rehearsal').checked = r.scriptRehearsal === true;
+  updateResourceScriptRehearsalVisibility();
   renderRList();
   renderResourcePreview();
 }
@@ -793,8 +809,8 @@ async function saveResource(){
     const name=$('r-name').value.trim();
     const now=Date.now();
     if(!cat||!name){ msg('msg-r','Catégorie et nom requis',false); return; }
-    const scriptRehearsal=($('r-script-rehearsal')?.checked===true) && $('r-type').value==='pdf' && isScriptRehearsalCategory(cat);
-    const data={cat,category:cat,subcat,subcategory:subcat,type:$('r-type').value,active,status:active?'active':'inactive',visibility:'members',name,url:content,content,scriptRehearsal,updatedAt:now};
+    const type=$('r-type').value;
+    const data={cat,category:cat,subcat,subcategory:subcat,type,scriptRehearsal:canShowResourceScriptRehearsalOption() && !!$('r-script-rehearsal')?.checked,active,status:active?'active':'inactive',visibility:'members',name,url:content,content,updatedAt:now};
     if(!key) data.createdAt=now;
     const ref=key?db.ref('fts_ressources/'+key):db.ref('fts_ressources').push();
     await ref.update(data);

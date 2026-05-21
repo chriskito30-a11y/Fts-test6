@@ -1639,24 +1639,16 @@ function openTextResourceDoc(key) {
 }
 
 
-function isRehearsalCategoryName(value) {
-  const cat = FTS.norm(value || '');
-  return ['theatre','comedie musicale','singer show','singer academy','chant'].some(key => cat.includes(key));
-}
-
-function isScriptRehearsalEnabled(d) {
-  if (!d) return false;
-  return d.scriptRehearsal === true || d.scriptRehearsal === 'true';
-}
-
 function isRehearsalPdfDoc(d) {
   if (!d) return false;
   const type = String(d.type || '').toLowerCase().trim();
   const url = String(d.url || '').split('?')[0].toLowerCase();
-  const isPdf = type === 'pdf' || type.includes('pdf') || /\.pdf$/i.test(url) || /drive\.google\.com/i.test(String(d.url || ''));
+  const isPdf = type === 'pdf' || type.includes('pdf') || /\.pdf(?:$|[?#])/i.test(url) || /drive\.google\.com/i.test(String(d.url || ''));
   if (!isPdf) return false;
-  if (!isRehearsalCategoryName(d.cat || d.category || '')) return false;
-  return isScriptRehearsalEnabled(d);
+  const cat = FTS.norm(d.cat || d.category || '');
+  const compatibleCat = ['theatre','comedie musicale','singer show','singer academy','chant'].some(key => cat.includes(key));
+  const flagged = d.scriptRehearsal === true || String(d.scriptRehearsal || '').toLowerCase() === 'true';
+  return compatibleCat && flagged;
 }
 
 function repetitionUrlForDoc(d) {

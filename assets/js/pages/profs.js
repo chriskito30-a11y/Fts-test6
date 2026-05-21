@@ -91,6 +91,7 @@ window.addEventListener("DOMContentLoaded", function() {
       // Charger les documents
       loadDocs();
       initPublishPreview();
+      updateScriptRehearsalVisibility();
       updateProfsStats();
 
     } catch(e) {
@@ -181,8 +182,6 @@ async function buildCatSelectors() {
   document.getElementById("filter-cat").innerHTML =
     '<option value="">Toutes les catégories</option>' +
     cats.map(c => `<option value="${FTS.esc(c.value)}">${FTS.esc(c.label)}</option>`).join("");
-  updateScriptRehearsalField('f');
-  updateScriptRehearsalField('e');
   updateProfsStats();
 }
 
@@ -430,13 +429,13 @@ function updateSubcats() {
   const cat = document.getElementById("f-cat").value;
   _fillSubcat("f-subcat", "subcat-row", cat);
   updateDanceVideoFolder();
-  updateScriptRehearsalField('f');
+  updateScriptRehearsalVisibility();
   renderPublishPreview();
 }
 function updateEditSubcats() {
   const cat = document.getElementById("e-cat").value;
   _fillSubcat("e-subcat", "e-subcat-row", cat);
-  updateScriptRehearsalField('e');
+  updateEditScriptRehearsalVisibility();
 }
 function _fillSubcat(selId, rowId, cat) {
   const sel = document.getElementById(selId);
@@ -454,28 +453,55 @@ function _fillSubcat(selId, rowId, cat) {
   }
 }
 
+
+/* ── ASSISTANT RÉPÉTITION : PDF COMPATIBLE ───────────────────── */
+function normalizeRehearsalValue(value) {
+  return FTS.norm ? FTS.norm(value || '') : String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+function isScriptRehearsalCategory(cat) {
+  const n = normalizeRehearsalValue(cat);
+  return n.includes('theatre')
+    || n.includes('comedie musicale')
+    || n.includes('singer show')
+    || n.includes('singer academy')
+    || n === 'chant'
+    || n.includes(' chant');
+}
+function isPdfTypeValue(type) {
+  const n = normalizeRehearsalValue(type);
+  return n === 'pdf' || n.includes('document pdf') || n.includes('pdf');
+}
+function canShowScriptRehearsalOption(cat, type) {
+  return isPdfTypeValue(type) && isScriptRehearsalCategory(cat);
+}
+function updateScriptRehearsalVisibility() {
+  const row = document.getElementById('f-script-rehearsal-row');
+  const cb = document.getElementById('f-script-rehearsal');
+  if (!row || !cb) return;
+  const cat = document.getElementById('f-cat')?.value || '';
+  const type = document.getElementById('f-type')?.value || '';
+  const show = canShowScriptRehearsalOption(cat, type);
+  row.hidden = !show;
+  row.style.display = show ? '' : 'none';
+  row.setAttribute('aria-hidden', show ? 'false' : 'true');
+  if (!show) cb.checked = false;
+}
+function updateEditScriptRehearsalVisibility() {
+  const row = document.getElementById('e-script-rehearsal-row');
+  const cb = document.getElementById('e-script-rehearsal');
+  if (!row || !cb) return;
+  const cat = document.getElementById('e-cat')?.value || '';
+  const type = document.getElementById('e-type')?.value || '';
+  const show = canShowScriptRehearsalOption(cat, type);
+  row.hidden = !show;
+  row.style.display = show ? '' : 'none';
+  row.setAttribute('aria-hidden', show ? 'false' : 'true');
+  if (!show) cb.checked = false;
+}
+
 /* ── DOSSIERS VIDÉO DANSE ─────────────────────────────────────── */
 function isDanceCat(cat) {
   return normAccess(cat) === normAccess("Danse");
-}
-
-function isScriptRehearsalCategory(cat) {
-  const n = normAccess(cat || '');
-  return ['theatre','comedie_musicale','singer_show','singer_academy','chant'].some(key => n.indexOf(key) !== -1);
-}
-function updateScriptRehearsalField(prefix) {
-  const catEl = document.getElementById(prefix + '-cat');
-  const typeEl = document.getElementById(prefix + '-type');
-  const wrap = document.getElementById(prefix + '-script-rehearsal-wrap');
-  const cb = document.getElementById(prefix + '-script-rehearsal');
-  if (!catEl || !typeEl || !wrap || !cb) return;
-  const type = String(typeEl.value || '').toLowerCase().trim();
-  const cat = String(catEl.value || '').trim();
-  const allowed = type === 'pdf' && isScriptRehearsalCategory(cat);
-  wrap.hidden = !allowed;
-  wrap.style.display = allowed ? '' : 'none';
-  wrap.setAttribute('aria-hidden', allowed ? 'false' : 'true');
-  if (!allowed) cb.checked = false;
 }
 
 function getDanceFolderConfig(subcat) {
@@ -542,7 +568,7 @@ function updateType() {
   t === "video" ? "block" : "none";
   document.getElementById("url-label").textContent = labels[t] || "Lien";
   updateDanceVideoFolder();
-  updateScriptRehearsalField('f');
+  updateScriptRehearsalVisibility();
   renderPublishPreview();
 }
 
@@ -582,8 +608,7 @@ function renderPublishPreview() {
   pillEl.textContent = typeLabel(type);
   const target = cat ? (subcat ? cat + " · " + subcat : cat) : "Catégorie à choisir";
   const linkInfo = type === "texte" ? "texte direct" : (url ? "lien renseigné" : "lien/fichier à ajouter");
-  const rehearsal = document.getElementById("f-script-rehearsal")?.checked === true;
-  metaEl.textContent = target + " · " + typeLabel(type) + " · " + linkInfo + (rehearsal ? " · Assistant répétition" : "");
+  metaEl.textContent = target + " · " + typeLabel(type) + " · " + linkInfo;
   if (noteEl) {
     noteEl.style.display = text ? "block" : "none";
     noteEl.textContent = text;
@@ -642,7 +667,6 @@ async function doSubmit() {
   const name   = document.getElementById("f-name").value.trim();
   const url    = document.getElementById("f-url").value.trim();
   const text   = document.getElementById("f-text").value.trim();
-  const scriptRehearsal = document.getElementById("f-script-rehearsal")?.checked === true && type === "pdf" && isScriptRehearsalCategory(cat);
 
   if (!cat)                        { showMsg("Choisis une catégorie.",              "error"); return; }
   if (!name)                       { showMsg("Entre un titre.",                     "error"); return; }
@@ -665,8 +689,8 @@ async function doSubmit() {
       url:        content,
       content,
       type,
+      scriptRehearsal: canShowScriptRehearsalOption(cat, type) && !!document.getElementById("f-script-rehearsal")?.checked,
       text:       type !== "texte" ? text : "",
-      scriptRehearsal,
       active:     true,
       status:     "active",
       visibility: "members",
@@ -697,15 +721,15 @@ async function doSubmit() {
 function resetForm() {
   ["f-name","f-url","f-text"].forEach(id => document.getElementById(id).value = "");
   document.getElementById("f-cat").value   = "";
-  const rehearsalCb = document.getElementById("f-script-rehearsal");
-  if (rehearsalCb) rehearsalCb.checked = false;
-  updateScriptRehearsalField('f');
   document.getElementById("drop-text").style.display    = "block";
   document.getElementById("upload-progress").style.display = "none";
   document.getElementById("progress-bar").style.width   = "0%";
   document.getElementById("subcat-row").style.display   = "none";
   const box = document.getElementById("dance-video-folder-box");
   if (box) box.style.display = "none";
+  const rehearsalCb = document.getElementById("f-script-rehearsal");
+  if (rehearsalCb) rehearsalCb.checked = false;
+  updateScriptRehearsalVisibility();
   renderPublishPreview();
 }
 
@@ -925,7 +949,6 @@ function renderDocs() {
         <div class="doc-item-meta">
           <span class="doc-item-cat">${FTS.esc(d.cat)}${d.subcat ? " — " + FTS.esc(d.subcat) : ""}</span>
           <span>${FTS.esc(d.type)}</span>
-          ${d.scriptRehearsal === true || d.scriptRehearsal === "true" ? '<span class="doc-item-cat">🎭 répétition</span>' : ''}
           <span>${date}</span>
           ${isAdmin && d.authorName ? `<span>par ${FTS.esc(d.authorName)}</span>` : ""}
         </div>
@@ -961,13 +984,13 @@ function openEditModal(key) {
   document.getElementById("e-url").value    = d.url  || "";
   document.getElementById("e-text").value   = d.text || "";
   const editRehearsal = document.getElementById("e-script-rehearsal");
-  if (editRehearsal) editRehearsal.checked = d.scriptRehearsal === true || d.scriptRehearsal === "true";
-  updateScriptRehearsalField('e');
+  if (editRehearsal) editRehearsal.checked = d.scriptRehearsal === true;
 
   updateEditSubcats();
   // Sélectionner la bonne sous-cat après rendu
   setTimeout(() => {
     document.getElementById("e-subcat").value = d.subcat || "";
+    updateEditScriptRehearsalVisibility();
   }, 50);
 
   document.getElementById("edit-modal").classList.remove("hidden");
@@ -985,7 +1008,6 @@ async function saveEdit() {
   const name   = document.getElementById("e-name").value.trim();
   const url    = document.getElementById("e-url").value.trim();
   const text   = document.getElementById("e-text").value.trim();
-  const scriptRehearsal = document.getElementById("e-script-rehearsal")?.checked === true && type === "pdf" && isScriptRehearsalCategory(cat);
 
   if (!cat || !name) { alert("Catégorie et titre requis."); return; }
 
@@ -994,9 +1016,9 @@ async function saveEdit() {
       cat, category: cat,
       subcat: subcat || "", subcategory: subcat || "",
       type, name,
+      scriptRehearsal: canShowScriptRehearsalOption(cat, type) && !!document.getElementById("e-script-rehearsal")?.checked,
       url, content: url,
       text,
-      scriptRehearsal,
       active: true,
       status: "active",
       visibility: "members",
