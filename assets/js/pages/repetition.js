@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V122';
+  const REPETITION_VERSION = 'V126';
 
   const els = {};
   const state = {
@@ -28,6 +28,9 @@
     difficultLines: new Set(),
     focusDifficultOnly: false,
     focusOwnOnly: false,
+    sceneOnly: false,
+    sceneScope: null,
+    openSceneGroupKey: '',
     currentView: 'library'
   };
 
@@ -47,7 +50,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -71,7 +74,7 @@
     els.repPrevBtn.addEventListener('click', previousLine);
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
-    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; state.focusOwnOnly = false; refreshPlayer(); renderRoleChoices(); updateDifficultUi(); saveCurrentScriptSettings(); if (getSelectedRole() && (state.currentView === 'role' || state.currentView === 'library')) setView('mode'); });
+    els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; state.focusOwnOnly = false; refreshPlayer(); renderRoleChoices(); renderSectionNavigation(); updateDifficultUi(); saveCurrentScriptSettings(); if (getSelectedRole() && (state.currentView === 'role' || state.currentView === 'library')) setView('mode'); });
     els.repMode.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     if (els.repReadSpeakerName) els.repReadSpeakerName.addEventListener('change', () => { saveCurrentScriptSettings(); });
     els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
@@ -88,6 +91,9 @@
     if (els.repResumeOwnBtn) els.repResumeOwnBtn.addEventListener('click', resumeLastScriptOwnOnly);
     if (els.repForgetResumeBtn) els.repForgetResumeBtn.addEventListener('click', forgetLastScript);
     if (els.repSectionSelect) els.repSectionSelect.addEventListener('change', goToSelectedSection);
+    if (els.repOpenSceneBtn) els.repOpenSceneBtn.addEventListener('click', toggleScenePanel);
+    if (els.repRestartSceneBtn) els.repRestartSceneBtn.addEventListener('click', restartCurrentScene);
+    if (els.repSceneOnlyToggle) els.repSceneOnlyToggle.addEventListener('change', () => { state.sceneOnly = !!els.repSceneOnlyToggle.checked; updateSceneScopeFromCurrent(); renderSectionNavigation(); saveCurrentScriptSettings(); });
     document.querySelectorAll('[data-view-target]').forEach(btn => {
       btn.addEventListener('click', () => {
         const view = btn.getAttribute('data-view-target') || 'library';
@@ -734,9 +740,10 @@
     const lines = parseScript(text);
     state.lines = lines;
     state.characters = collectCharacters(lines);
-    state.currentIndex = state.focusOwnOnly ? (getOwnIndexesForRole()[0] || 0) : 0;
+    state.currentIndex = state.sceneOnly && state.sceneScope ? state.sceneScope.start : (state.focusOwnOnly ? (getOwnIndexesForRole()[0] || 0) : 0);
     state.awaitingUser = false;
     state.sections = collectSections(lines);
+    state.sceneScope = null;
     renderAnalysis();
     refreshPlayer();
   }
@@ -1007,31 +1014,179 @@
   }
 
   function renderSectionNavigation(){
-    if (!els.repSectionNav || !els.repSectionSelect) return;
-    const sections = state.sections || [];
-    if (!sections.length) {
+    if (!els.repSectionNav) return;
+    if (!state.lines.length) {
       els.repSectionNav.hidden = true;
-      els.repSectionSelect.innerHTML = '<option value="">Aucune scène détectée</option>';
+      if (els.repSectionSelect) els.repSectionSelect.innerHTML = '<option value="">Aucune scène détectée</option>';
       return;
     }
+
+    const groups = buildSceneGroups();
+    const currentScene = getSceneForIndex(state.currentIndex, groups);
+    if (!state.openSceneGroupKey && currentScene && currentScene.groupKey) state.openSceneGroupKey = currentScene.groupKey;
+    if (currentScene) updateSceneScopeFromCurrent(false);
+
     els.repSectionNav.hidden = false;
-    els.repSectionSelect.innerHTML = '<option value="">Aller à un acte / une scène…</option>' + sections.map(section => {
-      const icon = section.type === 'act' ? '🎬 ' : '🎭 ';
-      return `<option value="${section.index}">${escapeHtml(icon + section.label)}</option>`;
+    if (els.repSceneCurrent) {
+      const count = countLinesInRange(currentScene ? currentScene.start : 0, currentScene ? currentScene.end : state.lines.length - 1);
+      const roleCount = countRoleLinesInRange(currentScene ? currentScene.start : 0, currentScene ? currentScene.end : state.lines.length - 1);
+      els.repSceneCurrent.innerHTML = `<strong>${escapeHtml(currentScene ? currentScene.fullLabel : 'Texte complet')}</strong><small>${count} réplique${count>1?'s':''}${roleCount ? ' · ' + roleCount + ' de mon rôle' : ''}</small>`;
+    }
+    if (els.repSceneOnlyToggle) els.repSceneOnlyToggle.checked = !!state.sceneOnly;
+
+    if (els.repSectionSelect) {
+      els.repSectionSelect.innerHTML = '<option value="">Aller à un acte / une scène…</option>' + groups.flatMap(group => group.scenes.map(scene => `<option value="${scene.start}">${escapeHtml(scene.fullLabel)}</option>`)).join('');
+    }
+    if (!els.repSceneAccordion) return;
+    els.repSceneAccordion.innerHTML = groups.map(group => {
+      const open = group.key === state.openSceneGroupKey ? ' open' : '';
+      return `<details class="rep-scene-group" data-scene-group="${escapeAttr(group.key)}"${open}>
+        <summary><span>${escapeHtml(group.label)}</span><small>${group.scenes.length} scène${group.scenes.length>1?'s':''}</small></summary>
+        <div class="rep-scene-list">
+          ${group.scenes.map(scene => {
+            const active = currentScene && scene.key === currentScene.key ? ' is-active' : '';
+            const total = countLinesInRange(scene.start, scene.end);
+            const roleTotal = countRoleLinesInRange(scene.start, scene.end);
+            return `<button class="rep-scene-choice${active}" type="button" data-scene-start="${scene.start}">
+              <span>${escapeHtml(scene.label)}</span>
+              <small>${total} réplique${total>1?'s':''}${roleTotal ? ' · ' + roleTotal + ' de mon rôle' : ''}</small>
+            </button>`;
+          }).join('')}
+        </div>
+      </details>`;
     }).join('');
+
+    els.repSceneAccordion.querySelectorAll('.rep-scene-group').forEach(details => {
+      details.addEventListener('toggle', () => {
+        if (details.open) state.openSceneGroupKey = details.getAttribute('data-scene-group') || '';
+      });
+    });
+    els.repSceneAccordion.querySelectorAll('[data-scene-start]').forEach(button => {
+      button.addEventListener('click', () => {
+        const start = Number(button.getAttribute('data-scene-start')) || 0;
+        goToSceneStart(start, true);
+      });
+    });
+  }
+
+  function buildSceneGroups(){
+    const lines = state.lines || [];
+    if (!lines.length) return [];
+    const groups = [];
+    let currentGroup = null;
+    let sceneCounter = 0;
+
+    function ensureGroup(label, startIndex){
+      const key = 'group_' + normalizeForKey(label || 'Texte');
+      let group = groups.find(g => g.key === key);
+      if (!group) {
+        group = { key, label: label || 'Texte', start:startIndex || 0, scenes:[] };
+        groups.push(group);
+      }
+      return group;
+    }
+
+    lines.forEach((line, index) => {
+      if (!line || line.kind !== 'stage') return;
+      if (line.sectionType === 'act') {
+        currentGroup = ensureGroup(line.speaker + (line.sectionTitle ? ' · ' + line.sectionTitle : ''), index);
+        return;
+      }
+      if (line.sectionType === 'scene') {
+        if (!currentGroup) currentGroup = ensureGroup('Texte', 0);
+        sceneCounter += 1;
+        const label = line.speaker + (line.sectionTitle ? ' · ' + line.sectionTitle : '');
+        currentGroup.scenes.push({ key:'scene_' + sceneCounter, label, fullLabel:(currentGroup.label !== 'Texte' ? currentGroup.label + ' · ' : '') + label, start:index, end:lines.length - 1, groupKey:currentGroup.key });
+      }
+    });
+
+    const flat = groups.flatMap(g => g.scenes);
+    if (!flat.length) {
+      const acts = lines.map((line,index)=>({line,index})).filter(item => item.line && item.line.kind === 'stage' && item.line.sectionType === 'act');
+      if (acts.length) {
+        acts.forEach((item, i) => {
+          const label = item.line.speaker + (item.line.sectionTitle ? ' · ' + item.line.sectionTitle : '');
+          const group = ensureGroup(label, item.index);
+          group.scenes.push({ key:'actscene_' + i, label:'Acte complet', fullLabel:label, start:item.index, end:(acts[i+1] ? acts[i+1].index - 1 : lines.length - 1), groupKey:group.key });
+        });
+      } else {
+        groups.push({ key:'texte', label:'Texte complet', start:0, scenes:[{ key:'scene_full', label:'Texte complet', fullLabel:'Texte complet', start:0, end:lines.length - 1, groupKey:'texte' }] });
+      }
+    }
+
+    const allScenes = groups.flatMap(g => g.scenes).sort((a,b)=>a.start-b.start);
+    allScenes.forEach((scene, i) => {
+      const next = allScenes[i+1];
+      scene.end = Math.max(scene.start, next ? next.start - 1 : lines.length - 1);
+    });
+    return groups.filter(g => g.scenes.length);
+  }
+
+  function getSceneForIndex(index, groups){
+    const allScenes = (groups || buildSceneGroups()).flatMap(g => g.scenes);
+    if (!allScenes.length) return null;
+    return allScenes.find(scene => index >= scene.start && index <= scene.end) || allScenes.find(scene => index < scene.start) || allScenes[allScenes.length - 1];
+  }
+
+  function countLinesInRange(start, end){
+    return (state.lines || []).filter((line,index) => index >= start && index <= end && line && line.kind === 'line').length;
+  }
+
+  function countRoleLinesInRange(start, end){
+    const role = getSelectedRole();
+    if (!role) return 0;
+    return (state.lines || []).filter((line,index) => index >= start && index <= end && line && line.kind === 'line' && line.speaker === role).length;
+  }
+
+  function normalizeForKey(value){
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .toLowerCase() || 'texte';
+  }
+
+  function toggleScenePanel(){
+    if (!els.repScenePanel) return;
+    els.repScenePanel.hidden = !els.repScenePanel.hidden;
+    if (!els.repScenePanel.hidden) renderSectionNavigation();
+  }
+
+  function updateSceneScopeFromCurrent(force = true){
+    if (!state.lines.length) return;
+    const scene = getSceneForIndex(state.currentIndex);
+    if (!scene) return;
+    if (force || !state.sceneScope || state.currentIndex < state.sceneScope.start || state.currentIndex > state.sceneScope.end) {
+      state.sceneScope = { start:scene.start, end:scene.end, label:scene.fullLabel };
+    }
+  }
+
+  function goToSceneStart(start, closePanel){
+    const wasPlaying = !!state.playing;
+    clearPendingTimeout();
+    state.playToken += 1;
+    stopSpeechOnly(true);
+    state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, start));
+    state.awaitingUser = false;
+    state.focusDifficultOnly = false;
+    updateSceneScopeFromCurrent(true);
+    if (closePanel && els.repScenePanel) els.repScenePanel.hidden = true;
+    refreshPlayer(document.body.classList.contains('rep-show-script'));
+    saveCurrentScriptSettings();
+    if (wasPlaying) { state.playing = true; playCurrent(); }
+  }
+
+  function restartCurrentScene(){
+    updateSceneScopeFromCurrent(true);
+    if (state.sceneScope) goToSceneStart(state.sceneScope.start, true);
   }
 
   function goToSelectedSection(){
     if (!els.repSectionSelect || !els.repSectionSelect.value) return;
     const index = Number(els.repSectionSelect.value);
     if (!Number.isFinite(index)) return;
-    stopSpeechOnly();
-    state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, index));
-    state.awaitingUser = false;
-    state.focusDifficultOnly = false;
-    refreshPlayer();
-    saveCurrentScriptSettings();
-    if (state.playing) playCurrent();
+    goToSceneStart(index, true);
   }
 
 
@@ -1435,6 +1590,7 @@
     state.playing = true;
     state.awaitingUser = false;
     state.currentIndex = Math.min(state.currentIndex, state.lines.length - 1);
+    if (state.sceneOnly) updateSceneScopeFromCurrent(true);
     setButtons();
     saveCurrentScriptSettings();
     playCurrent();
@@ -1446,6 +1602,10 @@
     const token = state.playToken;
     if (state.currentIndex >= state.lines.length) {
       finish();
+      return;
+    }
+    if (state.sceneOnly && state.sceneScope && state.currentIndex > state.sceneScope.end) {
+      finishSceneOnly();
       return;
     }
 
@@ -1654,12 +1814,23 @@
     } else {
       state.currentIndex += 1;
     }
+    if (state.sceneOnly && state.sceneScope && state.currentIndex > state.sceneScope.end) {
+      finishSceneOnly();
+      return;
+    }
     saveCurrentScriptSettings();
     if (state.currentIndex >= state.lines.length) {
       finish();
       return;
     }
     playCurrent();
+  }
+
+  function finishSceneOnly(){
+    stop(false);
+    els.repProgressText.textContent = 'Scène terminée.';
+    refreshPlayer(false);
+    saveCurrentScriptSettings();
   }
 
   function finishOwnLinesOnly(){
@@ -1710,7 +1881,7 @@
     clearPendingTimeout();
     state.playToken += 1;
     stopSpeechOnly(true);
-    state.currentIndex = state.focusOwnOnly ? (getOwnIndexesForRole()[0] || 0) : 0;
+    state.currentIndex = state.sceneOnly && state.sceneScope ? state.sceneScope.start : (state.focusOwnOnly ? (getOwnIndexesForRole()[0] || 0) : 0);
     state.awaitingUser = false;
     state.playing = wasPlaying;
     refreshPlayer(document.body.classList.contains('rep-show-script'));
@@ -1725,7 +1896,7 @@
     state.playToken += 1;
     stopSpeechOnly(true);
     if (state.focusOwnOnly) {
-      const next = nextOwnIndex(state.currentIndex, 1);
+      const next = nextOwnIndex(state.currentIndex, -1);
       if (next >= 0) state.currentIndex = next;
       else { finishOwnLinesOnly(); return; }
     } else if (state.focusDifficultOnly) {
@@ -1736,6 +1907,7 @@
     } else {
       state.currentIndex = Math.max(0, state.currentIndex - 1);
     }
+    if (state.sceneOnly && state.sceneScope && state.currentIndex < state.sceneScope.start) state.currentIndex = state.sceneScope.start;
     state.awaitingUser = false;
     state.playing = wasPlaying;
     refreshPlayer(document.body.classList.contains('rep-show-script'));
@@ -1762,6 +1934,7 @@
     } else {
       state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
     }
+    if (state.sceneOnly && state.sceneScope && state.currentIndex > state.sceneScope.end) { finishSceneOnly(); return; }
     state.awaitingUser = false;
     state.playing = wasPlaying;
     refreshPlayer(document.body.classList.contains('rep-show-script'));
@@ -1836,6 +2009,7 @@
     `;
     els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
     els.repMeterBar.style.width = `${Math.max(0,Math.min(100,percent))}%`;
+    renderSectionNavigation();
     const mode = els.repMode.value;
     els.repProgressText.textContent = isIgnored
       ? 'Cette ligne sera passée.'
@@ -1905,6 +2079,9 @@
     state.ignoredSpeakers = new Set();
     state.difficultLines = new Set();
     state.focusDifficultOnly = false;
+    state.focusOwnOnly = false;
+    state.sceneOnly = !!settings.sceneOnly;
+    state.sceneScope = settings.sceneScope || null;
     state.roleVoicePrefs = {};
     state.currentScriptId = '';
     state.currentScriptLabel = '';
@@ -2242,6 +2419,9 @@
     state.ignoredSpeakers = new Set((settings.ignoredSpeakers || []).filter(name => state.characters.includes(name)));
     state.difficultLines = new Set((settings.difficultLines || []).map(Number).filter(index => Number.isFinite(index) && index >= 0 && index < state.lines.length));
     state.focusDifficultOnly = false;
+    state.focusOwnOnly = false;
+    state.sceneOnly = !!settings.sceneOnly;
+    state.sceneScope = settings.sceneScope || null;
     state.roleVoicePrefs = Object.assign({}, settings.roleVoicePrefs || {});
     if (Number.isFinite(settings.currentIndex)) state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, settings.currentIndex));
     renderRoleChoices();
@@ -2266,6 +2446,8 @@
         difficultLines: Array.from(state.difficultLines || []),
         roleVoicePrefs: Object.assign({}, state.roleVoicePrefs || {}),
         currentIndex: state.currentIndex || 0,
+        sceneOnly: !!state.sceneOnly,
+        sceneScope: state.sceneScope || null,
         updatedAt: Date.now()
       };
       localStorage.setItem(storagePrefix() + 'settings_' + state.currentScriptId, JSON.stringify(payload));
