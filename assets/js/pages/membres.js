@@ -1393,6 +1393,7 @@ async function loadDocs(name, idx) {
           url:  d.url || d.content || d.contenu || d.link || d.lien || '',
           type: (d.type || 'doc').toLowerCase().trim(),
           key:  child.key,
+          scriptRehearsal: d.scriptRehearsal === true || String(d.scriptRehearsal || '').toLowerCase() === 'true',
           ts:   d.createdAt || d.updatedAt || 0,
         });
       });
@@ -1448,6 +1449,7 @@ async function loadRecentDocs() {
           url: d.url || d.content || d.contenu || d.link || d.lien || '',
           type: (d.type || 'doc').toLowerCase().trim(),
           key: child.key,
+          scriptRehearsal: d.scriptRehearsal === true || String(d.scriptRehearsal || '').toLowerCase() === 'true',
           ts: d.createdAt || d.updatedAt || 0,
         };
 
