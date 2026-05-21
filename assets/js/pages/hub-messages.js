@@ -123,6 +123,20 @@
   }
 
 
+
+  function hubForumInitialReadTs(){
+    return Number(currentProfile && (currentProfile.forumBaselineAt || currentProfile.createdAt || currentProfile.created_at || currentProfile.ts || 0)) || 0;
+  }
+  function hubForumLastReadTs(reads, channel){
+    var direct = Number((reads[channel] && reads[channel].ts) || reads[channel] || 0) || 0;
+    return direct || hubForumInitialReadTs();
+  }
+  function shouldCountHubForumUnreadMessage(msg){
+    if(!msg) return false;
+    if(msg.uid && msg.uid === currentUid && !(msg.system === true || msg.gamification === true || msg.notifyAll === true || msg.type === 'special_badge' || msg.type === 'artist_of_week' || msg.type === 'xp_level')) return false;
+    return true;
+  }
+
   async function refreshForumUnread(){
     if (!currentUid || !currentProfile) { setHubBadge('hub-forum-badge', 0); return; }
     try {
@@ -132,13 +146,13 @@
       var reads = readsSnap.val() || {};
       var total = 0;
       await Promise.all(channels.map(function(ch){
-        var lastRead = Number((reads[ch] && reads[ch].ts) || reads[ch] || 0);
+        var lastRead = hubForumLastReadTs(reads, ch);
         if (!lastRead) return Promise.resolve();
         return db.ref('fts_forum/messages/' + ch).orderByChild('ts').startAt(lastRead + 1).limitToLast(50).once('value')
           .then(function(snap){
             snap.forEach(function(child){
               var msg = child.val() || {};
-              if (msg.uid && msg.uid === currentUid) return;
+              if (!shouldCountHubForumUnreadMessage(msg)) return;
               total += 1;
             });
           }).catch(function(){});
