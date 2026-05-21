@@ -453,16 +453,16 @@
     return type === 'pdf' || type.indexOf('pdf') !== -1 || /\.pdf(\?|#|$)/i.test(url);
   }
 
-  function isRepetitionCategory(r){
-    var cat = norm([r && r.cat, r && r.category].join(' '));
-    return cat.indexOf('theatre') !== -1 || cat.indexOf('comedie musicale') !== -1 || cat.indexOf('singer show') !== -1 || cat.indexOf('singer academy') !== -1 || cat.indexOf('chant') !== -1;
-  }
-
   function isRepetitionCompatible(r){
-    if (!r) return false;
-    if (!isPdfResource(r)) return false;
-    if (!isRepetitionCategory(r)) return false;
-    return r.scriptRehearsal === true || r.scriptRehearsal === 'true';
+    if (!r || !isPdfResource(r)) return false;
+    var cat = norm([r.cat, r.category].join(' '));
+    var compatibleCat = cat.indexOf('theatre') !== -1
+      || cat.indexOf('comedie musicale') !== -1
+      || cat.indexOf('singer show') !== -1
+      || cat.indexOf('singer academy') !== -1
+      || cat.indexOf('chant') !== -1;
+    var flagged = r.scriptRehearsal === true || String(r.scriptRehearsal || '').toLowerCase() === 'true';
+    return compatibleCat && flagged;
   }
 
   function repetitionUrlForResource(r){
