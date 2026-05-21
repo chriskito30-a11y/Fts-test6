@@ -2871,3 +2871,184 @@ body[data-rep-view="rehearse"] .rep-actions-player #repStopBtn {
     grid-column: span 1 !important;
   }
 }
+
+
+/* =============================================================
+   V125 — Cartes mobile pleine largeur + boutons lisibles
+   Objectif : les cartes de textes enregistrés et reprise occupent
+   toute la largeur utile sur mobile, sans couper les libellés.
+   ============================================================= */
+@media (max-width: 760px){
+  .rep-offline-library,
+  .rep-resume-card{
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .rep-offline-list{
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: .72rem !important;
+  }
+
+  .rep-offline-item.rep-offline-premium{
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    padding: .9rem !important;
+  }
+
+  .rep-offline-title-row{
+    width: 100% !important;
+    gap: .55rem !important;
+  }
+
+  .rep-offline-title-row strong{
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+  }
+
+  .rep-offline-role{
+    max-width: 42% !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Actions des textes enregistrés : rangée stable, boutons jamais coupés */
+  .rep-offline-actions,
+  .rep-offline-actions.has-review,
+  .rep-offline-actions:not(.has-review){
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr) 42px 42px !important;
+    gap: .45rem !important;
+    align-items: stretch !important;
+  }
+
+  .rep-offline-actions [data-offline-open]{
+    grid-column: 1 / -1 !important;
+  }
+
+  .rep-offline-actions [data-offline-own]{
+    grid-column: 1 / 2 !important;
+  }
+
+  .rep-offline-actions [data-offline-review]{
+    grid-column: 2 / 3 !important;
+  }
+
+  .rep-offline-actions [data-offline-settings]{
+    grid-column: 3 / 4 !important;
+  }
+
+  .rep-offline-actions [data-offline-delete]{
+    grid-column: 4 / 5 !important;
+  }
+
+  .rep-offline-actions .rep-btn,
+  .rep-offline-actions a.rep-btn{
+    min-width: 0 !important;
+    width: 100% !important;
+    min-height: 40px !important;
+    height: auto !important;
+    padding: .55rem .45rem !important;
+    border-radius: 999px !important;
+    font-size: .69rem !important;
+    line-height: 1.08 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    text-align: center !important;
+  }
+
+  .rep-offline-actions [data-offline-open]{
+    font-size: .78rem !important;
+    min-height: 42px !important;
+  }
+
+  .rep-offline-actions .rep-btn-icon-only,
+  .rep-offline-actions [data-offline-settings],
+  .rep-offline-actions [data-offline-delete]{
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: .95rem !important;
+    white-space: nowrap !important;
+  }
+
+  /* Dernière répétition : Reprendre pleine largeur, actions secondaires lisibles */
+  .rep-resume-actions{
+    width: 100% !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr) 42px !important;
+    gap: .45rem !important;
+  }
+
+  .rep-resume-actions #repResumeBtn{
+    grid-column: 1 / -1 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+    font-size: .78rem !important;
+  }
+
+  .rep-resume-actions #repResumeOwnBtn:not([hidden]){
+    grid-column: 1 / 2 !important;
+  }
+
+  .rep-resume-actions #repResumeReviewBtn:not([hidden]){
+    grid-column: 2 / 3 !important;
+  }
+
+  .rep-resume-actions #repForgetResumeBtn{
+    grid-column: 3 / 4 !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+    padding: 0 !important;
+  }
+
+  .rep-resume-actions .rep-btn,
+  .rep-resume-actions .rep-btn-review,
+  .rep-resume-actions .rep-btn-own{
+    min-width: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 40px !important;
+    padding: .55rem .45rem !important;
+    border-radius: 999px !important;
+    font-size: .69rem !important;
+    line-height: 1.08 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    text-align: center !important;
+  }
+}
+
+@media (max-width: 370px){
+  .rep-offline-actions,
+  .rep-offline-actions.has-review,
+  .rep-offline-actions:not(.has-review),
+  .rep-resume-actions{
+    gap: .38rem !important;
+  }
+  .rep-offline-actions .rep-btn,
+  .rep-resume-actions .rep-btn,
+  .rep-resume-actions .rep-btn-review,
+  .rep-resume-actions .rep-btn-own{
+    font-size: .66rem !important;
+    padding-left: .34rem !important;
+    padding-right: .34rem !important;
+  }
+}
