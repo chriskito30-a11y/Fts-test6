@@ -1224,7 +1224,8 @@
     }
     stop(false);
     state.focusDifficultOnly = true;
-    state.currentIndex = indexes.find(i => i >= state.currentIndex) || indexes[0];
+    const target = indexes.find(i => i >= state.currentIndex) || indexes[0];
+    state.currentIndex = getDifficultReviewStartIndex(target);
     state.awaitingUser = false;
     els.repMode.value = 'manual';
     refreshPlayer();
@@ -1248,6 +1249,38 @@
       return indexes[indexes.length - 1];
     }
     for (const index of indexes) if (index > fromIndex) return index;
+    return -1;
+  }
+
+  function getDifficultReviewStartIndex(targetIndex){
+    // Mode “Réviser ⭐” : on replace l'élève juste avant sa réplique difficile
+    // pour que l'app donne la réplique, au lieu d'arriver directement sur sa ligne.
+    const role = els.repRoleSelect ? els.repRoleSelect.value : '';
+    const target = state.lines[targetIndex];
+    if (!target || target.kind !== 'line' || !role || target.speaker !== role) return Math.max(0, targetIndex || 0);
+
+    // On cherche la réplique lisible juste avant, idéalement un autre personnage.
+    for (let i = targetIndex - 1; i >= Math.max(0, targetIndex - 4); i -= 1) {
+      const line = state.lines[i];
+      if (!line) continue;
+      if (line.kind === 'line' && line.speaker !== role && !isIgnoredSpeakerLine(line, role)) return i;
+    }
+
+    // Si aucune réplique d'un autre rôle n'est proche, on peut garder une indication de scène juste avant.
+    for (let i = targetIndex - 1; i >= Math.max(0, targetIndex - 2); i -= 1) {
+      const line = state.lines[i];
+      if (line && line.kind === 'stage') return i;
+    }
+
+    return targetIndex;
+  }
+
+  function getCurrentDifficultTargetIndex(){
+    const role = els.repRoleSelect ? els.repRoleSelect.value : '';
+    const line = state.lines[state.currentIndex];
+    if (line && line.kind === 'line' && role && line.speaker === role && state.difficultLines && state.difficultLines.has(state.currentIndex)) {
+      return state.currentIndex;
+    }
     return -1;
   }
 
@@ -1504,12 +1537,22 @@
   function advance(){
     state.awaitingUser = false;
     if (state.focusDifficultOnly) {
-      const next = nextDifficultIndex(state.currentIndex, 1);
-      if (next < 0) {
-        finishDifficultReview();
-        return;
+      const currentTarget = getCurrentDifficultTargetIndex();
+      if (currentTarget >= 0) {
+        // Après une réplique difficile validée, on prépare la difficulté suivante avec son contexte.
+        const nextTarget = nextDifficultIndex(currentTarget, 1);
+        if (nextTarget < 0) {
+          finishDifficultReview();
+          return;
+        }
+        state.currentIndex = getDifficultReviewStartIndex(nextTarget);
+      } else {
+        // Depuis la réplique de contexte, aller à la prochaine réplique étoilée.
+        const indexes = getDifficultIndexesForRole();
+        const target = indexes.find(i => i > state.currentIndex);
+        if (Number.isFinite(target)) state.currentIndex = target;
+        else { finishDifficultReview(); return; }
       }
-      state.currentIndex = next;
     } else {
       state.currentIndex += 1;
     }
@@ -1575,8 +1618,10 @@
     state.playToken += 1;
     stopSpeechOnly(true);
     if (state.focusDifficultOnly) {
-      const prev = nextDifficultIndex(state.currentIndex, -1);
-      if (prev >= 0) state.currentIndex = prev;
+      const currentTarget = getCurrentDifficultTargetIndex();
+      const anchor = currentTarget >= 0 ? currentTarget : state.currentIndex;
+      const prev = nextDifficultIndex(anchor, -1);
+      if (prev >= 0) state.currentIndex = getDifficultReviewStartIndex(prev);
     } else {
       state.currentIndex = Math.max(0, state.currentIndex - 1);
     }
@@ -1594,8 +1639,10 @@
     state.playToken += 1;
     stopSpeechOnly(true);
     if (state.focusDifficultOnly) {
-      const next = nextDifficultIndex(state.currentIndex, 1);
-      if (next >= 0) state.currentIndex = next;
+      const currentTarget = getCurrentDifficultTargetIndex();
+      const anchor = currentTarget >= 0 ? currentTarget : state.currentIndex;
+      const next = nextDifficultIndex(anchor, 1);
+      if (next >= 0) state.currentIndex = getDifficultReviewStartIndex(next);
       else { finishDifficultReview(); return; }
     } else {
       state.currentIndex = Math.min(Math.max(0,state.lines.length - 1), state.currentIndex + 1);
