@@ -1,4 +1,4 @@
-const CACHE = 'fts-v126-repetition-mobile-cards';
+const CACHE = 'fts-v127-repetition-scene-accordion-fix';
 const FILES = [
   './manifest.json',
   './index.html',
