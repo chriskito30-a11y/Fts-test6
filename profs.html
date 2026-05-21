@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="assets/css/fts.css">
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=18">
 
-<link rel="stylesheet" href="assets/css/pages/profs.css?v=78">
+<link rel="stylesheet" href="assets/css/pages/profs.css?v=133">
 <link href="assets/css/fts-admin-mode.css?v=79" rel="stylesheet"/>
 </head>
 
@@ -178,6 +178,14 @@
           </select>
         </div>
 
+        <div class="field field-full script-rehearsal-field" id="f-script-rehearsal-row" hidden>
+          <label class="script-rehearsal-check">
+            <input type="checkbox" id="f-script-rehearsal">
+            <span>🎭 Ce PDF est un texte à répéter</span>
+          </label>
+          <small>L’assistant répétition apparaîtra pour les élèves de ce groupe. Format conseillé : <strong>Personnage : réplique</strong>.</small>
+        </div>
+
         <div class="field field-full">
           <label>Titre</label>
           <input type="text" id="f-name" placeholder="Ex : Partition cours 3…">
@@ -317,7 +325,7 @@
     </div>
     <div class="field">
       <label>Type</label>
-      <select id="e-type">
+      <select id="e-type" onchange="updateEditScriptRehearsalVisibility()">
         <option value="pdf">PDF</option>
         <option value="mp3">Audio</option>
         <option value="video">Vidéo</option>
@@ -325,6 +333,13 @@
         <option value="texte">Texte</option>
         <option value="doc">Autre</option>
       </select>
+    </div>
+    <div class="field script-rehearsal-field" id="e-script-rehearsal-row" hidden>
+      <label class="script-rehearsal-check">
+        <input type="checkbox" id="e-script-rehearsal">
+        <span>🎭 Texte à répéter</span>
+      </label>
+      <small>Affiche le bouton Répéter côté membre.</small>
     </div>
     <div class="field">
       <label>Titre</label>
@@ -361,8 +376,8 @@
 <script src="assets/js/fts-firebase.js"></script>
 <script src="assets/js/fts-gamification.js?v=3"></script>
 
-<script src="assets/js/fts-nav.js?v=18"></script>
-<script src="assets/js/pages/profs.js?v=78-51"></script>
+<script src="assets/js/fts-nav.js?v=133"></script>
+<script src="assets/js/pages/profs.js?v=133"></script>
 
 <script src="assets/js/fts-pwa.js?v=12"></script>
 

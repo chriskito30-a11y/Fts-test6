@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=54" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/contenus-admin.css?v=133" rel="stylesheet"/>
 <link href="assets/css/fts-admin-mode.css?v=79" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -109,7 +109,7 @@
 <div class="field"><label>Créer une nouvelle catégorie</label><input id="r-cat-new" placeholder="Ex : Eveil musical"/><small>Optionnel. Remplace le choix existant si rempli.</small></div>
 <div class="field"><label>Groupe / sous-catégorie</label><select id="r-subcat"></select><small>Ex : enfants, ados, adultes, groupe mercredi.</small></div>
 <div class="field"><label>Créer un nouveau groupe</label><input id="r-subcat-new" placeholder="Ex : Groupe mercredi"/><small>Optionnel. Utilisé si le groupe n’existe pas encore.</small></div>
-<div class="field"><label>Format de la ressource</label><select id="r-type"><option value="pdf">PDF</option><option value="mp3">Audio</option><option value="video">Vidéo</option><option value="image">Image</option><option value="texte">Texte</option><option value="doc">Autre lien</option></select><small>Aide les membres à comprendre le contenu.</small></div>
+<div class="field"><label>Format de la ressource</label><select id="r-type"><option value="pdf">PDF</option><option value="mp3">Audio</option><option value="video">Vidéo</option><option value="image">Image</option><option value="texte">Texte</option><option value="doc">Autre lien</option></select><small>Aide les membres à comprendre le contenu.</small></div><div class="field full script-rehearsal-field" id="r-script-rehearsal-row" hidden><label class="script-rehearsal-check"><input id="r-script-rehearsal" type="checkbox"/><span>🎭 Ce PDF est un texte à répéter</span></label><small>Affiche le bouton Répéter aux élèves concernés. Format conseillé : <strong>Personnage : réplique</strong>.</small></div>
 <div class="field"><label>Visible pour les membres</label><select id="r-active"><option value="true">Oui, visible</option><option value="false">Non, masqué</option></select><small>Masquer sans supprimer.</small></div>
 <div class="field full"><label>Nom affiché aux membres</label><input id="r-name"/><small>Ex : Partition chant — scène finale.</small></div>
 <div class="field full"><label>Lien, texte ou contenu</label><textarea id="r-url" placeholder="https://drive.google.com/... ou texte"></textarea><small>Lien Google Drive, vidéo, PDF, image ou texte directement affiché.</small></div>
@@ -170,6 +170,6 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/contenus-admin.js?v=78-54"></script>
+<script src="assets/js/pages/contenus-admin.js?v=133"></script>
 </body>
 </html>
