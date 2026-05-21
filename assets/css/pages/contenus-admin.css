@@ -172,16 +172,38 @@ button.is-admin-loading::after{
   .target-summary-chip{width:100%;border-radius:16px;align-items:flex-start;flex-direction:column;gap:.15rem}
 }
 
-
-/* V131 — option Assistant répétition dans les ressources */
+/* Assistant répétition — option PDF compatible */
 .script-rehearsal-field{
-  border:1px solid rgba(248,231,2,.22);
+  padding:1rem 1.1rem;
+  border:1px solid rgba(255,230,0,.24);
   border-radius:18px;
-  padding:.75rem .85rem;
-  background:linear-gradient(135deg,rgba(248,231,2,.08),rgba(255,255,255,.025));
+  background:linear-gradient(135deg,rgba(255,230,0,.08),rgba(255,255,255,.025));
+  box-shadow:0 14px 34px rgba(0,0,0,.18) inset;
 }
-.script-rehearsal-field[hidden]{display:none!important}
-.script-rehearsal-toggle{display:flex!important;align-items:center;gap:.6rem;margin-bottom:.35rem!important;letter-spacing:0!important;text-transform:none!important;color:rgba(255,255,255,.92)!important;font-size:.86rem!important;font-weight:700!important;cursor:pointer}
-.script-rehearsal-toggle input{width:18px;height:18px;accent-color:var(--gold);flex:0 0 auto}
-.preview-type--rehearsal{border-color:rgba(248,231,2,.42)!important;background:rgba(248,231,2,.14)!important;color:var(--gold)!important;margin-left:.35rem}
-@media (max-width:760px){.script-rehearsal-field{padding:.7rem}.script-rehearsal-toggle{font-size:.82rem!important}}
+.script-rehearsal-field[hidden]{display:none!important;}
+.script-rehearsal-check{
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  margin:0;
+  color:#fffbe6;
+  font-weight:800;
+  letter-spacing:.01em;
+  cursor:pointer;
+}
+.script-rehearsal-check input{
+  width:22px;
+  height:22px;
+  accent-color:#ffe600;
+  flex:0 0 auto;
+}
+.script-rehearsal-field small{
+  display:block;
+  margin:.45rem 0 0 2.2rem;
+  color:var(--muted,#aaa);
+  line-height:1.45;
+}
+@media(max-width:760px){
+  .script-rehearsal-field{padding:.9rem;border-radius:16px;}
+  .script-rehearsal-field small{margin-left:0;}
+}
