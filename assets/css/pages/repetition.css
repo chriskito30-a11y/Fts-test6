@@ -2302,3 +2302,572 @@ body.rep-own-only #repCueBtn{display:none!important;}
   }
   .rep-offline-role{max-width:38vw !important;}
 }
+
+/* ================================================================
+   V123 — Alignement UI repetition avec le design Fais Ton Show
+   Objectif : réutiliser l'esprit des cartes membres / compte :
+   cartes sombres arrondies, boutons en pilules, badges doux,
+   sans gros blocs carrés ni style isolé.
+   ================================================================ */
+
+/* Socle visuel proche des cartes membres / compte */
+.rep-card.card,
+.rep-panel,
+.rep-advanced-text,
+.rep-offline-library,
+.rep-resume-card {
+  background: rgba(20,20,20,.78) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 22px !important;
+  box-shadow: none !important;
+}
+
+.rep-card.card {
+  padding: 1rem !important;
+}
+
+.rep-section-head h2,
+.rep-view-head h2,
+.rep-player h2,
+.rep-panel h2 {
+  letter-spacing: -.01em;
+}
+
+.rep-help {
+  color: var(--muted) !important;
+  font-size: .78rem !important;
+  line-height: 1.45 !important;
+}
+
+/* Boutons globaux du module : pilules FTS, pas de gros rectangles */
+.rep-btn,
+a.rep-btn {
+  min-height: 40px !important;
+  border-radius: 16px !important;
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.12) !important;
+  color: rgba(255,255,255,.88) !important;
+  box-shadow: none !important;
+  font-family: var(--font-body) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.rep-btn:hover:not(:disabled),
+a.rep-btn:hover:not(:disabled) {
+  background: rgba(248,231,2,.10) !important;
+  border-color: rgba(248,231,2,.48) !important;
+  color: var(--gold) !important;
+  transform: translateY(-1px);
+}
+.rep-btn-primary,
+a.rep-btn-primary,
+.rep-btn-own {
+  background: linear-gradient(135deg, rgba(248,231,2,.96), rgba(176,124,32,.96)) !important;
+  border-color: rgba(248,231,2,.82) !important;
+  color: #111 !important;
+  font-weight: 850 !important;
+}
+.rep-btn-primary:hover:not(:disabled),
+a.rep-btn-primary:hover:not(:disabled),
+.rep-btn-own:hover:not(:disabled) {
+  color: #111 !important;
+  filter: brightness(1.04);
+}
+.rep-btn-review,
+.rep-btn-memory {
+  background: rgba(248,231,2,.10) !important;
+  border-color: rgba(248,231,2,.34) !important;
+  color: var(--gold) !important;
+}
+.rep-btn-danger {
+  background: rgba(255,90,90,.10) !important;
+  border-color: rgba(255,90,90,.28) !important;
+  color: #ffb4af !important;
+}
+.rep-btn:disabled,
+.rep-btn-primary:disabled,
+.rep-btn-memory:disabled,
+.rep-btn-danger:disabled {
+  background: rgba(255,255,255,.035) !important;
+  border-color: rgba(255,255,255,.07) !important;
+  color: rgba(255,255,255,.28) !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+/* Champs alignés avec Mon compte */
+.rep-select,
+.rep-file,
+.rep-textarea {
+  background: rgba(8,8,8,.8) !important;
+  border: 1px solid rgba(255,255,255,.09) !important;
+  border-radius: 16px !important;
+  color: var(--white) !important;
+}
+.rep-select:focus,
+.rep-file:focus,
+.rep-textarea:focus {
+  outline: none !important;
+  border-color: rgba(248,231,2,.65) !important;
+  box-shadow: 0 0 0 3px rgba(248,231,2,.08) !important;
+}
+
+/* Badges / statuts */
+.rep-status-pill,
+.rep-mini-status,
+.rep-counter,
+.rep-tag,
+.rep-note {
+  border-radius: 999px !important;
+  background: rgba(248,231,2,.10) !important;
+  border-color: rgba(248,231,2,.28) !important;
+  color: var(--gold) !important;
+  box-shadow: none !important;
+}
+.rep-counter {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Bibliothèque locale : même famille visuelle que quick-card / account-action-card */
+.rep-offline-library {
+  padding: 1rem !important;
+}
+.rep-offline-head {
+  align-items: center !important;
+  margin-bottom: .9rem !important;
+}
+.rep-offline-head strong {
+  color: var(--gold) !important;
+  font-size: .68rem !important;
+  letter-spacing: .08em !important;
+}
+.rep-offline-head span {
+  color: var(--white) !important;
+  font-size: .86rem !important;
+  font-weight: 800 !important;
+}
+.rep-offline-head small {
+  color: var(--muted) !important;
+  font-size: .68rem !important;
+}
+.rep-offline-list {
+  gap: .7rem !important;
+}
+.rep-offline-item.rep-offline-premium {
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) !important;
+  gap: .72rem !important;
+  padding: .85rem !important;
+  border-radius: 18px !important;
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow: none !important;
+}
+.rep-offline-item.rep-offline-premium::before {
+  display: none !important;
+}
+.rep-offline-item.rep-offline-premium:hover {
+  border-color: rgba(248,231,2,.38) !important;
+}
+.rep-offline-title-row {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: .6rem !important;
+  margin-bottom: .55rem !important;
+}
+.rep-offline-title-row strong {
+  color: var(--white) !important;
+  font-size: .88rem !important;
+  font-weight: 800 !important;
+  line-height: 1.22 !important;
+  letter-spacing: 0 !important;
+}
+.rep-offline-role {
+  flex: 0 0 auto !important;
+  max-width: 48% !important;
+  min-height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: .32rem !important;
+  padding: .28rem .55rem !important;
+  border-radius: 999px !important;
+  background: rgba(248,231,2,.11) !important;
+  border: 1px solid rgba(248,231,2,.24) !important;
+  color: var(--gold) !important;
+  font-size: .68rem !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  box-shadow: none !important;
+}
+.rep-offline-role::before {
+  content: '🎭' !important;
+  font-size: .75rem !important;
+}
+.rep-offline-progress {
+  height: 5px !important;
+  margin: .45rem 0 .55rem !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.09) !important;
+}
+.rep-offline-progress span {
+  background: linear-gradient(90deg, var(--gold), rgba(248,231,2,.55)) !important;
+}
+.rep-offline-meta {
+  gap: .35rem !important;
+}
+.rep-offline-meta span {
+  min-height: 24px !important;
+  padding: .24rem .5rem !important;
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+  color: var(--muted) !important;
+  font-size: .66rem !important;
+  font-weight: 700 !important;
+}
+
+/* Actions des cartes : look premium mais discret */
+.rep-offline-actions,
+.rep-offline-actions.has-review,
+.rep-offline-actions:not(.has-review) {
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: .5rem !important;
+  align-items: stretch !important;
+}
+.rep-offline-actions .rep-btn,
+.rep-offline-actions a.rep-btn {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 40px !important;
+  height: auto !important;
+  padding: .62rem .72rem !important;
+  border-radius: 16px !important;
+  font-size: .76rem !important;
+  line-height: 1.05 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+.rep-offline-actions .rep-btn-icon-only,
+.rep-offline-actions [data-offline-settings],
+.rep-offline-actions [data-offline-delete] {
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 40px !important;
+  border-radius: 16px !important;
+  font-size: .95rem !important;
+}
+
+/* Reprise dernière répétition : cohérence avec bibliothèque */
+.rep-resume-card {
+  padding: .85rem !important;
+}
+.rep-resume-card strong {
+  color: var(--gold) !important;
+  font-size: .68rem !important;
+  letter-spacing: .08em !important;
+}
+.rep-resume-card span {
+  color: var(--white) !important;
+  font-size: .88rem !important;
+}
+.rep-resume-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: .5rem !important;
+}
+.rep-resume-actions .rep-btn,
+.rep-resume-actions .rep-btn-review,
+.rep-resume-actions .rep-btn-own {
+  min-width: 0 !important;
+  width: 100% !important;
+}
+
+/* Contrôles de répétition : barre compacte, cohérente, boutons arrondis */
+body[data-rep-view="rehearse"] .rep-actions-player {
+  border-color: rgba(248,231,2,.38) !important;
+  background: rgba(10,10,10,.96) !important;
+  border-radius: 18px 18px 0 0 !important;
+  box-shadow: 0 -12px 30px rgba(0,0,0,.48) !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player .rep-btn {
+  border-radius: 13px !important;
+  background: rgba(255,255,255,.055) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.88) !important;
+  box-shadow: none !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player #repStartBtn,
+body[data-rep-view="rehearse"] .rep-actions-player #repContinueBtn {
+  background: linear-gradient(135deg, rgba(248,231,2,.96), rgba(176,124,32,.96)) !important;
+  border-color: rgba(248,231,2,.78) !important;
+  color: #111 !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player #repDifficultBtn,
+body[data-rep-view="rehearse"] .rep-actions-player #repCueBtn {
+  background: rgba(248,231,2,.10) !important;
+  border-color: rgba(248,231,2,.28) !important;
+  color: var(--gold) !important;
+}
+body[data-rep-view="rehearse"] .rep-actions-player #repStopBtn {
+  background: rgba(255,90,90,.10) !important;
+  border-color: rgba(255,90,90,.28) !important;
+  color: #ffb4af !important;
+}
+
+/* Profils : même sensation que les cartes rapides membres */
+.rep-preset-card,
+.rep-role-card {
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  border-radius: 18px !important;
+  box-shadow: none !important;
+}
+.rep-preset-card:hover,
+.rep-preset-card.is-active,
+.rep-role-card:hover,
+.rep-role-card.is-active {
+  border-color: rgba(248,231,2,.38) !important;
+  background: rgba(248,231,2,.08) !important;
+}
+.rep-preset-card strong,
+.rep-role-card strong {
+  font-family: var(--font-body) !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.rep-preset-card span,
+.rep-role-card span {
+  color: var(--muted) !important;
+}
+
+@media (min-width: 761px) {
+  .rep-offline-actions,
+  .rep-offline-actions.has-review,
+  .rep-offline-actions:not(.has-review) {
+    grid-template-columns: repeat(4, minmax(0, auto)) !important;
+    justify-content: start !important;
+  }
+  .rep-offline-actions.has-review {
+    grid-template-columns: repeat(5, minmax(0, auto)) !important;
+  }
+  .rep-offline-actions .rep-btn,
+  .rep-offline-actions a.rep-btn {
+    width: auto !important;
+    min-width: 112px !important;
+  }
+  .rep-offline-actions .rep-btn-icon-only,
+  .rep-offline-actions [data-offline-settings],
+  .rep-offline-actions [data-offline-delete] {
+    min-width: 42px !important;
+    width: 42px !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .rep-card.card { padding: .9rem !important; }
+  .rep-offline-title-row { align-items: flex-start !important; }
+  .rep-offline-title-row strong { font-size: .86rem !important; }
+  .rep-offline-role { max-width: 45% !important; }
+  .rep-offline-actions,
+  .rep-offline-actions.has-review,
+  .rep-offline-actions:not(.has-review) {
+    grid-template-columns: 1fr 1fr !important;
+    gap: .45rem !important;
+  }
+  .rep-offline-actions .rep-btn,
+  .rep-offline-actions a.rep-btn {
+    min-height: 42px !important;
+    font-size: .74rem !important;
+    padding: .58rem .52rem !important;
+  }
+  .rep-resume-card { display: grid !important; grid-template-columns: 1fr !important; gap: .75rem !important; }
+  .rep-resume-actions { width: 100% !important; }
+}
+
+
+/* =============================================================
+   V124 — Carte "Reprendre ma dernière répétition" uniformisée
+   Même esprit que les cartes de textes enregistrés : carte sombre,
+   badge discret, actions pilules, bouton principal jaune/noir.
+   ============================================================= */
+.rep-resume-card{
+  position: relative !important;
+  overflow: hidden !important;
+  display: grid !important;
+  grid-template-columns: minmax(0,1fr) auto !important;
+  gap: .85rem !important;
+  align-items: center !important;
+  padding: .9rem !important;
+  border-radius: 20px !important;
+  background: rgba(255,255,255,.045) !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  box-shadow: none !important;
+}
+.rep-resume-card::before{
+  content:'' !important;
+  position:absolute !important;
+  left:0 !important;
+  top:.75rem !important;
+  bottom:.75rem !important;
+  width:3px !important;
+  border-radius:999px !important;
+  background: linear-gradient(180deg, var(--gold), rgba(248,231,2,.35)) !important;
+  opacity:.85 !important;
+}
+.rep-resume-card > div:first-child{
+  min-width:0 !important;
+  padding-left:.28rem !important;
+}
+.rep-resume-card strong{
+  display:inline-flex !important;
+  align-items:center !important;
+  gap:.38rem !important;
+  width:fit-content !important;
+  max-width:100% !important;
+  min-height:26px !important;
+  margin-bottom:.42rem !important;
+  padding:.28rem .58rem !important;
+  border-radius:999px !important;
+  background: rgba(248,231,2,.11) !important;
+  border: 1px solid rgba(248,231,2,.24) !important;
+  color: var(--gold) !important;
+  font-size:.66rem !important;
+  font-weight:900 !important;
+  line-height:1 !important;
+  letter-spacing:.02em !important;
+  text-transform:none !important;
+  white-space:nowrap !important;
+}
+.rep-resume-card strong::before{
+  content:'▶' !important;
+  font-size:.68rem !important;
+}
+.rep-resume-card span#repResumeTitle{
+  display:block !important;
+  color:var(--white,#f5f2ee) !important;
+  font-size:.92rem !important;
+  font-weight:850 !important;
+  line-height:1.22 !important;
+  letter-spacing:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+}
+.rep-resume-card small#repResumeMeta{
+  display:block !important;
+  margin-top:.32rem !important;
+  color:var(--muted,#b8b8b8) !important;
+  font-size:.7rem !important;
+  font-weight:650 !important;
+  line-height:1.35 !important;
+}
+.rep-resume-actions{
+  display:flex !important;
+  flex-wrap:wrap !important;
+  justify-content:flex-end !important;
+  align-items:center !important;
+  gap:.42rem !important;
+  min-width:min(360px, 46vw) !important;
+}
+.rep-resume-actions .rep-btn{
+  min-width:0 !important;
+  width:auto !important;
+  min-height:38px !important;
+  height:38px !important;
+  padding:.55rem .74rem !important;
+  border-radius:999px !important;
+  font-size:.74rem !important;
+  font-weight:850 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  box-shadow:none !important;
+}
+.rep-resume-actions #repResumeBtn{
+  background: linear-gradient(135deg, rgba(248,231,2,.98), rgba(225,173,67,.96)) !important;
+  border-color: rgba(248,231,2,.75) !important;
+  color:#111 !important;
+  text-shadow:none !important;
+  min-width:118px !important;
+}
+.rep-resume-actions #repResumeOwnBtn,
+.rep-resume-actions #repResumeReviewBtn{
+  background: rgba(255,255,255,.055) !important;
+  border-color: rgba(255,255,255,.12) !important;
+  color: var(--white,#f5f2ee) !important;
+}
+.rep-resume-actions #repResumeReviewBtn{
+  border-color: rgba(248,231,2,.28) !important;
+  color: var(--gold) !important;
+}
+.rep-resume-actions #repForgetResumeBtn{
+  width:38px !important;
+  min-width:38px !important;
+  padding:0 !important;
+  display:inline-flex !important;
+  justify-content:center !important;
+  align-items:center !important;
+  background: rgba(255,255,255,.045) !important;
+  border-color: rgba(255,255,255,.10) !important;
+  color: rgba(255,255,255,.78) !important;
+}
+.rep-resume-actions #repForgetResumeBtn:hover{
+  background: rgba(255,80,70,.12) !important;
+  border-color: rgba(255,110,100,.32) !important;
+  color:#ffd1cc !important;
+}
+
+@media (max-width:760px){
+  .rep-resume-card{
+    grid-template-columns:1fr !important;
+    gap:.72rem !important;
+    padding:.85rem !important;
+  }
+  .rep-resume-card span#repResumeTitle{
+    white-space:normal !important;
+    display:-webkit-box !important;
+    -webkit-line-clamp:2 !important;
+    -webkit-box-orient:vertical !important;
+  }
+  .rep-resume-actions{
+    width:100% !important;
+    min-width:0 !important;
+    display:grid !important;
+    grid-template-columns: 1fr 1fr 42px !important;
+    gap:.45rem !important;
+  }
+  .rep-resume-actions #repResumeBtn{
+    min-width:0 !important;
+  }
+  .rep-resume-actions .rep-btn{
+    width:100% !important;
+    height:40px !important;
+    min-height:40px !important;
+    padding:.55rem .55rem !important;
+    font-size:.72rem !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+  }
+  .rep-resume-actions #repForgetResumeBtn{
+    width:42px !important;
+    min-width:42px !important;
+  }
+  .rep-resume-actions #repResumeReviewBtn:not([hidden]){
+    grid-column: span 2 !important;
+  }
+  .rep-resume-actions #repResumeOwnBtn:not([hidden]){
+    grid-column: span 1 !important;
+  }
+}
