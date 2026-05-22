@@ -1,4 +1,4 @@
-const CACHE = 'fts-v139-annonces-notifs';
+const CACHE = 'fts-v140-notifs-audit';
 const FILES = [
   './manifest.json',
   './index.html',
