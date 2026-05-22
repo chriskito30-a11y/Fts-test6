@@ -1018,10 +1018,32 @@ async function loadRewardsPanel() {
   userSel.innerHTML = '<option value="">Chargement…</option>';
   const allowedDiscs = userProfile.role === 'admin' ? null : (userProfile.disciplines || []).map(d => normAccess(d));
   const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
+  const forumUsersSnap = await db.ref('fts_forum/users').once('value').catch(() => null);
+  const forumUsers = forumUsersSnap && forumUsersSnap.exists && forumUsersSnap.exists() ? (forumUsersSnap.val() || {}) : {};
+
   const students = [];
   if (snap.exists()) {
     snap.forEach(child => {
-      students.push(...rewardAllowedStudentsFromProfile(child.key, child.val() || {}, allowedDiscs));
+      const uid = child.key;
+      const rows = rewardAllowedStudentsFromProfile(uid, child.val() || {}, allowedDiscs);
+      const forumBadge = forumUsers && forumUsers[uid] && forumUsers[uid].specialBadge ? forumUsers[uid].specialBadge : null;
+
+      // Le badge temporaire officiel est stocké dans fts_forum/users/{uid}/specialBadge.
+      // L'écriture miroir vers fts_users est volontairement non bloquante et peut être refusée aux profs par les rules.
+      // On alimente donc l'affichage "Récompenses actives" depuis fts_forum pour éviter une fausse liste vide.
+      if (forumBadge && forumBadge.label) {
+        rows.forEach(row => {
+          if (forumBadge.childId) {
+            if (row.isChild && String(row.childId) === String(forumBadge.childId)) row.specialBadge = forumBadge;
+          } else if (!row.isChild) {
+            row.specialBadge = forumBadge;
+          } else if (!rows.some(r => !r.isChild)) {
+            row.specialBadge = forumBadge;
+          }
+        });
+      }
+
+      students.push(...rows);
     });
   }
 
