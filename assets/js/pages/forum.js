@@ -849,12 +849,21 @@ async function notifyChannel(channel, body, msgId){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        ...basePayload,
+        type: basePayload.type,
+        channel: basePayload.channel,
+        title: basePayload.title,
+        body: basePayload.body,
+        url: basePayload.url,
+        senderUid: basePayload.senderUid,
+        msgId: basePayload.msgId,
+        notificationKey: basePayload.notificationKey,
         uid: recipientUid,
         uids: [recipientUid],
         recipientUids: [recipientUid],
         recipients: [recipientUid],
         forceUid: true,
+        excludeUid: uid,
+        excludeUids: [uid],
         tag: notificationKey + '-' + recipientUid,
         collapseKey: notificationKey + '-' + recipientUid
       })
