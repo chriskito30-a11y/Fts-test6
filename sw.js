@@ -1,4 +1,4 @@
-const CACHE = 'fts-v140-notifs-audit';
+const CACHE = 'fts-v142-predeploiement';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -194,7 +194,7 @@ self.addEventListener('message', function(event){
   }
 });
 
-const FTS_RUNTIME_CACHE = 'fts-v135-runtime';
+const FTS_RUNTIME_CACHE = 'fts-v142-runtime';
 const FTS_FILES_CACHE = 'fts-offline-files-v74';
 
 function isFirebaseOrAuthRequest(url){
