@@ -208,15 +208,17 @@ function userMatchesEventTargets(profile, e){
   if(!cats.length && !subs.length && !Object.keys(groups).length) return true;
 
   const userCats = collectUserCategories(profile).map(FTS.norm);
-  const userSubs = collectUserSubgroups(profile).map(FTS.norm);
 
   // Cas précis : une catégorie avec sous-catégories cochées ne doit pas notifier toute la catégorie.
   for(const [cat, list] of Object.entries(groups)){
     const catOk = userCats.includes(FTS.norm(cat));
     const wantedSubs = normArray(list);
+    const userSubsForCat = collectUserSubgroups(profile, cat).map(FTS.norm);
     if(catOk && !wantedSubs.length) return true;
-    if(catOk && wantedSubs.some(s => userSubs.includes(FTS.norm(s)))) return true;
+    if(catOk && wantedSubs.some(s => userSubsForCat.includes(FTS.norm(s)))) return true;
   }
+
+  const userSubs = collectUserSubgroups(profile).map(FTS.norm);
 
   // Anciennes données sans targetGroups : catégorie seule = toute la catégorie.
   for(const cat of cats){
@@ -238,12 +240,28 @@ function collectUserCategories(profile){
   return [...new Set([...own, ...child])];
 }
 
-function collectUserSubgroups(profile){
-  const own = normArray(profile && (profile.subgroups || profile.subcategories || profile.subgroup));
-  const child = (profile && Array.isArray(profile.enfants))
-    ? profile.enfants.flatMap(e => normArray(e.subgroups || e.subcategories || e.subgroup))
-    : [];
-  return [...new Set([...own, ...child])];
+function collectUserSubgroups(profile, targetCategory){
+  const out = [];
+  const wantedCat = FTS.norm(targetCategory || '');
+  function addByCat(value){
+    if(!value || typeof value !== 'object' || Array.isArray(value)) return;
+    Object.keys(value).forEach(cat => {
+      if(!wantedCat || FTS.norm(cat) === wantedCat) out.push(...normArray(value[cat]));
+    });
+  }
+
+  // Priorité aux sous-catégories liées à une catégorie quand l'information existe.
+  addByCat(profile && (profile.subgroupsByCat || profile.subcategoriesByCat || profile.groupsByCat));
+  if(profile && Array.isArray(profile.enfants)){
+    profile.enfants.forEach(e => addByCat(e && (e.subgroupsByCat || e.subcategoriesByCat || e.groupsByCat)));
+  }
+
+  // Compatibilité anciens profils : sous-catégories stockées en liste plate.
+  out.push(...normArray(profile && (profile.subgroups || profile.subcategories || profile.subgroup)));
+  if(profile && Array.isArray(profile.enfants)){
+    profile.enfants.forEach(e => out.push(...normArray(e.subgroups || e.subcategories || e.subgroup || e.groupes)));
+  }
+  return [...new Set(out)];
 }
 
 function listenEvents(){

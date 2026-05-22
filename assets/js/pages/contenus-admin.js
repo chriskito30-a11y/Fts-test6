@@ -350,8 +350,20 @@ function taProfileCats(u){
   }
   return out.filter((v,i,a) => a.findIndex(x => FTS.norm(x) === FTS.norm(v)) === i);
 }
-function taProfileSubs(u){
-  let out = normList(u && (u.subgroups || u.subcategories || u.subgroup || u.subcategory));
+function taProfileSubs(u, targetCategory){
+  let out = [];
+  const wantedCat = FTS.norm(targetCategory || '');
+  function addByCat(value){
+    if(!value || typeof value !== 'object' || Array.isArray(value)) return;
+    Object.keys(value).forEach(cat => {
+      if(!wantedCat || FTS.norm(cat) === wantedCat) out = out.concat(normList(value[cat]));
+    });
+  }
+  addByCat(u && (u.subgroupsByCat || u.subcategoriesByCat || u.groupsByCat));
+  if(u && u.hasEnfant && Array.isArray(u.enfants)){
+    u.enfants.forEach(e => addByCat(e && (e.subgroupsByCat || e.subcategoriesByCat || e.groupsByCat)));
+  }
+  out = out.concat(normList(u && (u.subgroups || u.subcategories || u.subgroup || u.subcategory)));
   if(u && u.hasEnfant && Array.isArray(u.enfants)){
     u.enfants.forEach(e => { out = out.concat(normList(e && (e.subgroups || e.subcategories || e.subgroup || e.subcategory || e.groupes))); });
   }
@@ -370,14 +382,16 @@ function taUserMatchesAnnouncementTargets(u, data){
   if(!cats.length && !subs.length && !Object.keys(groups).length) return true;
 
   const userCats = taProfileCats(u).map(FTS.norm);
-  const userSubs = taProfileSubs(u).map(FTS.norm);
 
   for(const [cat, list] of Object.entries(groups)){
     const catOk = userCats.includes(FTS.norm(cat));
     const wantedSubs = normList(list);
+    const userSubsForCat = taProfileSubs(u, cat).map(FTS.norm);
     if(catOk && !wantedSubs.length) return true;
-    if(catOk && wantedSubs.some(s => userSubs.includes(FTS.norm(s)))) return true;
+    if(catOk && wantedSubs.some(s => userSubsForCat.includes(FTS.norm(s)))) return true;
   }
+
+  const userSubs = taProfileSubs(u).map(FTS.norm);
 
   if(cats.some(c => userCats.includes(FTS.norm(c)))){
     const hasExplicitGroupForCat = cats.some(c => Object.prototype.hasOwnProperty.call(groups, c));

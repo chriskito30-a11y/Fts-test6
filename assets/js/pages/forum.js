@@ -721,9 +721,34 @@ async function getAdminRecipientUids(excludeUid){
     return ids;
   }catch(e){ console.warn('[FTS Forum] Admin recipients', e); return []; }
 }
-function forumUserHasSubgroup(profile, targetSubgroup){
+function forumSubgroupsByCategory(profile, targetGroup){
+  const out = [];
+  const wantedGroup = norm(targetGroup || '');
+  function addFromByCat(value){
+    if(!value || typeof value !== 'object' || Array.isArray(value)) return;
+    Object.keys(value).forEach(cat => {
+      if(!wantedGroup || norm(cat) === wantedGroup) out.push(...normList(value[cat]));
+    });
+  }
+  addFromByCat(profile && (profile.subgroupsByCat || profile.subcategoriesByCat || profile.groupsByCat));
+  if(profile && profile.hasEnfant && Array.isArray(profile.enfants)){
+    profile.enfants.forEach(child => addFromByCat(child && (child.subgroupsByCat || child.subcategoriesByCat || child.groupsByCat)));
+  }
+  return uniqList(out);
+}
+
+function forumUserHasSubgroup(profile, targetSubgroup, targetGroup){
   const target = norm(targetSubgroup || '');
   if(!target) return true;
+
+  // Priorité aux accès rattachés à une catégorie : évite les collisions futures
+  // du type Théâtre > Adultes et Danse > Adultes.
+  if(targetGroup){
+    const byCatSubs = forumSubgroupsByCategory(profile, targetGroup);
+    if(byCatSubs.length) return byCatSubs.some(s => norm(s) === target);
+  }
+
+  // Compatibilité anciens profils : sous-catégories stockées en liste plate.
   const directSubs = normList(profile && (profile.subgroups || profile.subcategories || profile.subgroup));
   const childSubs = childSubgroups(profile);
   return [...directSubs, ...childSubs].some(s => norm(s) === target);
@@ -743,11 +768,11 @@ function forumUserCanReceive(profile, info){
   // Canal de sous-catégorie : il faut appartenir à la catégorie parent ET à la sous-catégorie.
   // Cela évite qu'une future sous-catégorie portant le même nom dans deux catégories notifie trop large.
   if(info.group && info.subgroup){
-    return hasGroup && forumUserHasSubgroup(profile, info.subgroup);
+    return hasGroup && forumUserHasSubgroup(profile, info.subgroup, info.group);
   }
 
   if(info.group) return hasGroup;
-  if(info.subgroup) return forumUserHasSubgroup(profile, info.subgroup);
+  if(info.subgroup) return forumUserHasSubgroup(profile, info.subgroup, info.group);
 
   return false;
 }
