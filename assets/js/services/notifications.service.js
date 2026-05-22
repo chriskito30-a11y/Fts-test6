@@ -16,7 +16,9 @@
     logDebug(payload){ return db().ref('fts_debug_notifications').push(Object.assign({}, payload, { ts: Date.now() })); },
     async send(payload){
       if (!window.FTS.PUSH || !window.FTS.PUSH.workerUrl) throw new Error('Worker push non configuré.');
-      const res = await fetch(window.FTS.PUSH.workerUrl, {
+      const workerUrl = String(window.FTS.PUSH.workerUrl || '').replace(/\/+$/, '');
+      const endpoint = /\/notify$/.test(workerUrl) ? workerUrl : (workerUrl + '/notify');
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
