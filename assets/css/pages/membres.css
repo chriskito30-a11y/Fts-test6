@@ -2291,6 +2291,8 @@ button.profile-pill:focus-visible {
   font-size:.72rem;
   line-height:1.1;
   font-weight:900;
+  color:#171100;
+  text-shadow:none;
   white-space:nowrap;
   border:1px solid rgba(0,0,0,.08);
   background:rgba(255,255,255,.72);
@@ -2298,10 +2300,14 @@ button.profile-pill:focus-visible {
 }
 .fts-public-badge--artist{
   background:linear-gradient(135deg, #fff4a8, #ffffff);
+  color:#171100;
+  text-shadow:none;
   border-color:rgba(245,197,66,.55);
 }
 .fts-public-badge--rare{
   background:linear-gradient(135deg, #fff, #ffe7f0);
+  color:#3a1430;
+  text-shadow:none;
   border-color:rgba(255,119,170,.38);
 }
 

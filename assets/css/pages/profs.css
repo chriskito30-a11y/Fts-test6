@@ -482,7 +482,7 @@
   border-radius:999px;
   background:rgba(248,231,2,.16);
   border:1px solid rgba(248,231,2,.34);
-  color:#f8e702;
+  color:#171100;
   text-shadow:none;
   font-size:.72rem;
   font-weight:800;
@@ -491,7 +491,7 @@
 .reward-history-item.is-artist .reward-history-badge{
   background:rgba(248,231,2,.22);
   border-color:rgba(248,231,2,.46);
-  color:#f8e702;
+  color:#171100;
   text-shadow:none;
 }
 
