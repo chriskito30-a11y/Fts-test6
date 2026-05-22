@@ -225,6 +225,66 @@
     }
   }
 
+
+
+  async function notifyRewardRecipient(db, targetUid, title, body, url, meta){
+    if(!db || !targetUid) return;
+    meta = meta || {};
+    const uid = String(targetUid || '').trim();
+    if(!uid) return;
+    const ts = now();
+    const keyBase = String(meta.notificationKey || ('reward-' + uid + '-' + ts)).replace(/[^a-zA-Z0-9_-]/g, '-');
+
+    // Trace/inbox personnelle : confort uniquement, jamais bloquant.
+    try{
+      const nref = db.ref('fts_user_notifications/' + uid).push();
+      await nref.set({
+        type: meta.type || 'reward',
+        title: title || 'FTS — Récompense',
+        body: body || 'Tu as reçu une nouvelle récompense Fais Ton Show.',
+        url: url || './forum.html?channel=general',
+        targetUid: uid,
+        badge: meta.badge || '',
+        reason: meta.reason || '',
+        read: false,
+        createdAt: ts
+      }).catch(() => null);
+    }catch(e){}
+
+    try{
+      db.ref('fts_debug_notifications/' + keyBase).set({
+        type: meta.type || 'reward',
+        targetUid: uid,
+        title: title || 'FTS — Récompense',
+        body: body || '',
+        createdAt: ts
+      }).catch(() => {});
+    }catch(e){}
+
+    // Push directe au compte récompensé : ne dépend pas du fanout forum général.
+    if(window.FTS && FTS.PUSH && FTS.PUSH.workerUrl && window.fetch){
+      const endpoint = String(FTS.PUSH.workerUrl || '').replace(/\/+$/, '') + '/notify';
+      fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: meta.type || 'reward',
+          title: title || 'FTS — Récompense',
+          body: body || 'Tu as reçu une nouvelle récompense Fais Ton Show.',
+          url: url || './forum.html?channel=general',
+          targetUid: uid,
+          uid,
+          uids: [uid],
+          recipientUids: [uid],
+          recipients: [uid],
+          forceUid: true,
+          tag: keyBase,
+          collapseKey: keyBase
+        })
+      }).catch(() => {});
+    }
+  }
+
   async function pushGeneralMessage(db, text, extra){
     if(!db || !text) return null;
 
@@ -460,6 +520,15 @@
       }
     ).catch(() => {});
 
+    notifyRewardRecipient(
+      db,
+      targetUid,
+      'FTS — Nouveau badge 🏅',
+      `${displayTargetName} reçoit le badge « ${badgeLabel} » !`,
+      './forum.html?channel=general',
+      { type: 'special_badge', badge: badgeLabel, reason, notificationKey: 'reward-special-badge-' + targetUid + '-' + now() }
+    ).catch(() => {});
+
     awardXp(db, targetUid, 'special_badge_received', 30, {
       maxPerDay: 2
     }).catch(() => {});
@@ -538,6 +607,15 @@
             notifyAll: true,
             targetUid
           }
+        ).catch(() => {});
+
+        notifyRewardRecipient(
+          db,
+          targetUid,
+          'FTS — Artiste de la semaine ⭐',
+          `${displayTargetName} devient Artiste de la semaine !`,
+          './forum.html?channel=general',
+          { type: 'artist_of_week', badge: '⭐ Artiste de la semaine', reason: text || '', notificationKey: 'reward-artist-of-week-' + targetUid + '-' + now() }
         ).catch(() => {});
 
         awardXp(db, targetUid, 'artist_of_week', 100, {
