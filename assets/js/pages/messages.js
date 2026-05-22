@@ -494,11 +494,30 @@ function notifyDirectMessage(convId, convData, recipients, text, msgId){
   const isGroup = convData && convData.type === 'group';
   const title = isGroup ? ('FTS — ' + (convData.name || 'Groupe privé')) : 'FTS — Message privé';
   const body = (me.name || me.email || 'Membre') + ' : ' + text.substring(0, 90);
+  const validRecipients = uniqueUids(recipients).filter(recipientUid => recipientUid !== myUid && participants[recipientUid] === true);
+  const baseKey = 'dm-' + convId + '-' + (msgId || Date.now());
 
-  uniqueUids(recipients).forEach(uid => {
-    // Double verrou : même si une ancienne liste traîne, on n'envoie jamais à un UID hors participants.
-    if(uid === myUid || participants[uid] !== true) return;
+  // Trace interne / audit : le push reste non bloquant et strictement limité aux participants.
+  try{
+    const fanout = {};
+    validRecipients.forEach(recipientUid => {
+      const url = './messages.html?conv=' + encodeURIComponent(convId)
+        + (msgId ? '&msg=' + encodeURIComponent(msgId) : '')
+        + '&recipientUid=' + encodeURIComponent(recipientUid);
+      const nref = db.ref('fts_user_notifications/' + recipientUid).push();
+      fanout['fts_user_notifications/' + recipientUid + '/' + nref.key] = {
+        type:isGroup ? 'dm_group' : 'dm_direct', conversationId:convId, msgId, title, body, url,
+        senderUid:myUid, notificationKey:baseKey + '-' + recipientUid, read:false, createdAt:Date.now()
+      };
+    });
+    if(Object.keys(fanout).length) db.ref().update(fanout).catch(()=>{});
+    db.ref('fts_debug_notifications/' + baseKey).set({
+      type:isGroup ? 'dm_group' : 'dm_direct', conversationId:convId, msgId, senderUid:myUid,
+      recipientCount:validRecipients.length, recipients:validRecipients, createdAt:Date.now()
+    }).catch(()=>{});
+  }catch(e){}
 
+  validRecipients.forEach(uid => {
     // Le recipientUid est aussi ajouté dans l'URL : si le worker Cloudflare ne conserve pas tous
     // les champs du payload, le service worker peut quand même vérifier le vrai destinataire.
     const url = './messages.html?conv=' + encodeURIComponent(convId)
@@ -519,8 +538,8 @@ function notifyDirectMessage(convId, convData, recipients, text, msgId){
       senderUid:myUid,
       adminCopy:false,
       forceUid:true,
-      tag:'dm-' + convId + '-' + (msgId || Date.now()) + '-' + uid,
-      notificationKey:'dm-' + convId + '-' + (msgId || Date.now()) + '-' + uid,
+      tag:baseKey + '-' + uid,
+      notificationKey:baseKey + '-' + uid,
       collapseKey:'dm-' + convId + '-' + uid
     })}).catch(()=>{});
   });

@@ -773,23 +773,46 @@ function resourceTargetPayload(data) {
   };
 }
 
+function collectResourceUserCategories(u) {
+  let out = splitAccessList(u && (u.disciplines && u.disciplines.length ? u.disciplines : (u.group || u.groups || u.categories)));
+  if (u && Array.isArray(u.enfants)) {
+    u.enfants.forEach(e => {
+      out = out.concat(splitAccessList(e && (e.disciplines || e.group || e.groups || e.categories)));
+    });
+  }
+  return out.filter((v, i, a) => a.findIndex(x => normAccess(x) === normAccess(v)) === i);
+}
+
+function collectResourceUserSubgroups(u, targetCategory) {
+  let out = [];
+  const byCat = (u && u.subgroupsByCat) || {};
+  const matchingCatKey = Object.keys(byCat).find(k => normAccess(k) === normAccess(targetCategory));
+  if (matchingCatKey) out = out.concat(splitAccessList(byCat[matchingCatKey]));
+  out = out.concat(splitAccessList(u && (u.subgroups && u.subgroups.length ? u.subgroups : (u.subgroup || u.subcategories || u.subcategory))));
+  if (u && Array.isArray(u.enfants)) {
+    u.enfants.forEach(e => {
+      const childByCat = (e && e.subgroupsByCat) || {};
+      const childCatKey = Object.keys(childByCat).find(k => normAccess(k) === normAccess(targetCategory));
+      if (childCatKey) out = out.concat(splitAccessList(childByCat[childCatKey]));
+      out = out.concat(splitAccessList(e && (e.subgroups || e.subgroup || e.subcategories || e.subcategory || e.groupes)));
+    });
+  }
+  return out.filter((v, i, a) => a.findIndex(x => normAccess(x) === normAccess(v)) === i);
+}
+
 function userCanReceiveResourceNotification(u, target) {
   if (!u || u.status !== "active") return false;
   if (u.role === "admin") return true;
 
-  const cats = splitAccessList(u.disciplines && u.disciplines.length ? u.disciplines : u.group);
+  const cats = collectResourceUserCategories(u);
   const hasCat = cats.some(c => normAccess(c) === normAccess(target.category));
   if (!hasCat) return false;
 
-  // Document publié directement dans la discipline : tous les membres de cette discipline sont concernés.
+  // Document publié directement dans la discipline : tous les membres/parents de cette discipline sont concernés.
   if (!target.subcategory) return true;
 
-  // Document publié dans une section : uniquement les membres qui possèdent cette section.
-  const byCat = u.subgroupsByCat || {};
-  const matchingCatKey = Object.keys(byCat).find(k => normAccess(k) === normAccess(target.category));
-  const exactCatSubs = splitAccessList(matchingCatKey ? byCat[matchingCatKey] : []);
-  const globalSubs = splitAccessList(u.subgroups && u.subgroups.length ? u.subgroups : u.subgroup);
-  const allowedSubs = exactCatSubs.length ? exactCatSubs : globalSubs;
+  // Document publié dans une section : uniquement les membres/parents de cette section.
+  const allowedSubs = collectResourceUserSubgroups(u, target.category);
   return allowedSubs.some(s => normAccess(s) === normAccess(target.subcategory));
 }
 

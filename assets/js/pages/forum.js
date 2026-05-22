@@ -759,6 +759,20 @@ async function getForumRecipientUids(info, excludeUid){
   }catch(e){ console.warn('[FTS Forum] Forum recipients', e); }
   return [...out];
 }
+async function primeForumUnreadForRecipients(recipients, channel, messageTs){
+  if(!Array.isArray(recipients) || !recipients.length || !channel || !messageTs) return;
+  const baseline = Math.max(0, Number(messageTs || Date.now()) - 1);
+  await Promise.allSettled(recipients.map(recipientUid => {
+    const ref = db.ref('fts_users/' + recipientUid + '/forumReads/' + channel);
+    return ref.transaction(current => {
+      const existing = Number((current && current.ts) || current || 0);
+      if(existing && existing >= baseline) return current;
+      if(!existing) return { ts: baseline };
+      return current;
+    }).catch(() => null);
+  }));
+}
+
 
 async function notifyChannel(channel, body, msgId){
   if(!FTS.PUSH || !FTS.PUSH.workerUrl) return;
@@ -768,6 +782,7 @@ async function notifyChannel(channel, body, msgId){
   const recipients = await getForumRecipientUids(info, uid);
   if(!recipients.length) return;
 
+  const notificationKey = 'forum-' + channel + '-' + (msgId || Date.now());
   const basePayload = {
     type:'forum',
     channel,
@@ -777,8 +792,26 @@ async function notifyChannel(channel, body, msgId){
     body,
     url,
     senderUid:uid,
-    msgId
+    msgId,
+    notificationKey
   };
+
+  // Trace interne + baseline unread : ne bloque jamais l'envoi push.
+  try{
+    const fanout = {};
+    recipients.forEach(recipientUid => {
+      const nref = db.ref('fts_user_notifications/' + recipientUid).push();
+      fanout['fts_user_notifications/' + recipientUid + '/' + nref.key] = {
+        type:'forum', channel, group:info.group, subgroup:info.subgroup, title:'FTS — Forum',
+        body, url, msgId, senderUid:uid, notificationKey, read:false, createdAt:Date.now()
+      };
+    });
+    db.ref().update(fanout).catch(()=>{});
+    primeForumUnreadForRecipients(recipients, channel, Date.now()).catch(()=>{});
+    db.ref('fts_debug_notifications/' + notificationKey).set({
+      type:'forum', channel, msgId, senderUid:uid, recipientCount:recipients.length, recipients, createdAt:Date.now()
+    }).catch(()=>{});
+  }catch(e){}
 
   // Envoi forcé par UID pour éviter les doublons catégorie + sous-catégorie + admin.
   await Promise.allSettled(recipients.map(recipientUid =>
@@ -792,7 +825,8 @@ async function notifyChannel(channel, body, msgId){
         recipientUids: [recipientUid],
         recipients: [recipientUid],
         forceUid: true,
-        tag: 'forum-' + channel + '-' + (msgId || Date.now()) + '-' + recipientUid
+        tag: notificationKey + '-' + recipientUid,
+        collapseKey: notificationKey + '-' + recipientUid
       })
     }).catch(()=>{})
   ));

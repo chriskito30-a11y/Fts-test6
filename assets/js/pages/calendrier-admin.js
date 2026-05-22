@@ -188,15 +188,46 @@ function eventTargetLabel(e){
   return cats.join(' · ');
 }
 
+function eventTargetGroups(e){
+  return (e && e.targetGroups && typeof e.targetGroups === 'object' && !Array.isArray(e.targetGroups)) ? e.targetGroups : {};
+}
+
+function eventHasExplicitGroupForCat(groups, cat){
+  const wanted = FTS.norm(cat || '');
+  return Object.keys(groups || {}).some(k => FTS.norm(k) === wanted);
+}
+
 function userMatchesEventTargets(profile, e){
-  const cats = normArray(e.targetCategories);
-  const subs = normArray(e.targetSubgroups);
-  if(!cats.length && !subs.length) return true;
+  const groups = eventTargetGroups(e);
+  const cats = normArray(e && (e.targetCategories || e.categories || e.groups));
+  Object.keys(groups).forEach(cat => {
+    if(cat && !cats.some(c => FTS.norm(c) === FTS.norm(cat))) cats.push(cat);
+  });
+  const subs = normArray(e && (e.targetSubgroups || e.targetSubcategories || e.subgroups || e.subcategories));
+
+  if(!cats.length && !subs.length && !Object.keys(groups).length) return true;
+
   const userCats = collectUserCategories(profile).map(FTS.norm);
   const userSubs = collectUserSubgroups(profile).map(FTS.norm);
-  const catOk = cats.some(c => userCats.includes(FTS.norm(c)));
-  const subOk = subs.some(sg => userSubs.includes(FTS.norm(sg)));
-  return catOk || subOk;
+
+  // Cas précis : une catégorie avec sous-catégories cochées ne doit pas notifier toute la catégorie.
+  for(const [cat, list] of Object.entries(groups)){
+    const catOk = userCats.includes(FTS.norm(cat));
+    const wantedSubs = normArray(list);
+    if(catOk && !wantedSubs.length) return true;
+    if(catOk && wantedSubs.some(s => userSubs.includes(FTS.norm(s)))) return true;
+  }
+
+  // Anciennes données sans targetGroups : catégorie seule = toute la catégorie.
+  for(const cat of cats){
+    if(eventHasExplicitGroupForCat(groups, cat)) continue;
+    if(userCats.includes(FTS.norm(cat)) && !subs.length) return true;
+  }
+
+  // Compatibilité : si d'anciens événements ne stockent que targetSubgroups.
+  if(subs.some(sg => userSubs.includes(FTS.norm(sg)))) return true;
+
+  return false;
 }
 
 function collectUserCategories(profile){
@@ -498,35 +529,36 @@ async function notifyNewEvent(key, data){
       return;
     }
 
-    const payload = {
-      type:'event',
-      eventId:key,
-      notificationKey,
-      title:'FTS — Nouvel événement',
-      body:(data.name || data.title || 'Nouvel événement') + (details ? ' · ' + details : ''),
-      url,
-      senderUid:currentUser,
-      uids:recipientUids,
-      recipientUids,
-      recipients:recipientUids,
-      tag:notificationKey,
-      collapseKey:notificationKey,
-      forceUid:true
-    };
-
-    const res = await fetch(FTS.PUSH.workerUrl + '/notify', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    });
+    const pushResults = await Promise.allSettled(recipientUids.map(uid =>
+      fetch(FTS.PUSH.workerUrl + '/notify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          type:'event',
+          eventId:key,
+          notificationKey,
+          title:'FTS — Nouvel événement',
+          body:(data.name || data.title || 'Nouvel événement') + (details ? ' · ' + details : ''),
+          url,
+          senderUid:currentUser,
+          uid,
+          uids:[uid],
+          recipientUids:[uid],
+          recipients:[uid],
+          tag:notificationKey + '-' + uid,
+          collapseKey:notificationKey + '-' + uid,
+          forceUid:true
+        })
+      }).catch(err => ({ ok:false, status:0, error:err && err.message ? err.message : String(err) }))
+    ));
 
     await db.ref('fts_debug_notifications/' + notificationKey).set({
-      ok:res.ok,
-      status:res.status,
+      ok:pushResults.every(r => r.status === 'fulfilled' && r.value && r.value.ok !== false),
       recipientCount:recipientUids.length,
       recipients:recipientUids,
       eventId:key,
       notificationKey,
+      mode:'per_uid',
       createdAt:Date.now()
     }).catch(()=>{});
   }catch(e){ console.warn('[FTS Calendrier] Notification événement non envoyée', e); }
