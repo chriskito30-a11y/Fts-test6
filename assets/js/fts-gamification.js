@@ -225,8 +225,6 @@
     }
   }
 
-
-
   async function notifyRewardRecipient(db, targetUid, title, body, url, meta){
     if(!db || !targetUid) return;
     meta = meta || {};
@@ -235,7 +233,6 @@
     const ts = now();
     const keyBase = String(meta.notificationKey || ('reward-' + uid + '-' + ts)).replace(/[^a-zA-Z0-9_-]/g, '-');
 
-    // Trace/inbox personnelle : confort uniquement, jamais bloquant.
     try{
       const nref = db.ref('fts_user_notifications/' + uid).push();
       await nref.set({
@@ -261,7 +258,6 @@
       }).catch(() => {});
     }catch(e){}
 
-    // Push directe au compte récompensé : ne dépend pas du fanout forum général.
     if(window.FTS && FTS.PUSH && FTS.PUSH.workerUrl && window.fetch){
       const endpoint = String(FTS.PUSH.workerUrl || '').replace(/\/+$/, '') + '/notify';
       fetch(endpoint, {
