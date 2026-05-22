@@ -264,6 +264,65 @@
 .btn-save:hover { background: #b71815; }
 .btn-cancel-edit { background: #2a2a2a; color: var(--muted); }
 .btn-cancel-edit:hover { background: #333; color: var(--white); }
+
+
+/* ── RÉCOMPENSES / BADGES PROFS ──────────────────────────────── */
+.rewards-history{
+  margin-top:1rem;
+  display:flex;
+  flex-direction:column;
+  gap:.7rem;
+}
+.rewards-history-head{
+  display:flex;
+  flex-direction:column;
+  gap:.2rem;
+  font-size:.78rem;
+  margin-bottom:.2rem;
+}
+.rewards-history-head strong{ color:var(--gold); }
+.rewards-history-head small{ color:var(--muted); }
+.rewards-history-list{ display:flex; flex-direction:column; gap:.55rem; }
+.reward-history-item{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:.8rem;
+  align-items:center;
+  padding:.85rem .95rem;
+  background:#0f0f0f;
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+}
+.reward-history-item.is-artist{ border-color:rgba(248,231,2,.34); background:rgba(248,231,2,.055); }
+.reward-history-main{ min-width:0; display:flex; flex-direction:column; gap:.2rem; }
+.reward-history-main strong{ color:#fff; }
+.reward-history-main small{ color:var(--muted); line-height:1.35; }
+.reward-history-badge{
+  display:inline-flex;
+  width:max-content;
+  max-width:100%;
+  padding:.18rem .55rem;
+  border-radius:999px;
+  background:rgba(201,168,76,.12);
+  border:1px solid rgba(201,168,76,.2);
+  color:var(--gold);
+  font-size:.68rem;
+}
+.reward-history-actions{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; }
+.rewards-mini-btn{ min-height:34px !important; padding:.34rem .65rem !important; border-radius:999px !important; }
+.btn-danger.rewards-mini-btn{ background:rgba(244,67,54,.16); border:1px solid rgba(244,67,54,.26); color:#ffb3ad; }
+.rewards-history-empty{
+  color:var(--muted);
+  font-size:.8rem;
+  padding:.8rem .95rem;
+  border:1px dashed var(--border);
+  border-radius:var(--r-sm);
+}
+@media(max-width:560px){
+  .reward-history-item{ grid-template-columns:1fr; align-items:stretch; }
+  .reward-history-actions{ justify-content:flex-start; }
+}
+
 </style>
 </head>
 
@@ -325,6 +384,9 @@
       </button>
       <button class="tab-lnk" id="tab-btn-students" onclick="switchTab('students')">
         👥 Élèves <span class="tab-badge" id="students-count" style="background:#2a5a2a">0</span>
+      </button>
+      <button class="tab-lnk" id="tab-btn-rewards" onclick="switchTab('rewards')">
+        🏅 Récompenser
       </button>
     </div>
 
@@ -447,6 +509,41 @@
       </div>
     </div>
 
+    <!-- ── ONGLET RÉCOMPENSER ── -->
+    <div class="tab-pane" id="tab-rewards">
+      <div class="form-card">
+        <div class="card-title">Valoriser un élève</div>
+        <p style="color:var(--muted);font-size:.82rem;line-height:1.5;margin-top:-.6rem;margin-bottom:1.2rem">
+          Attribue un badge temporaire ou l’Artiste de la semaine. Le badge apparaît dans le forum général et déclenche la notification communautaire.
+        </p>
+        <div class="field">
+          <label>Élève / membre</label>
+          <select id="reward-user"><option value="">Chargement…</option></select>
+        </div>
+        <div class="field">
+          <label>Badge temporaire</label>
+          <select id="reward-badge"></select>
+        </div>
+        <div class="field">
+          <label>Durée</label>
+          <select id="reward-days">
+            <option value="7">7 jours</option>
+            <option value="14">14 jours</option>
+            <option value="30">30 jours</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Motif / note</label>
+          <input id="reward-reason" type="text" placeholder="Ex : belle progression, entraide, présence…">
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;margin-top:14px;flex-wrap:wrap">
+          <button class="btn-save" onclick="assignSpecialBadgeFromProfs()">Attribuer le badge</button>
+          <button class="btn-save" onclick="assignArtistOfWeekFromProfs()">⭐ Artiste de la semaine</button>
+        </div>
+        <div class="rewards-history" id="rewards-history" aria-label="Récompenses en cours"></div>
+      </div>
+    </div>
+
     <div class="bnav-spacer"></div>
 
     <footer class="page-footer">
@@ -519,6 +616,7 @@
 
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-firebase.js"></script>
+<script src="assets/js/fts-gamification.js?v=146"></script>
 
 <script>
 /* ================================================================
@@ -709,6 +807,7 @@ function switchTab(name) {
   document.getElementById("tab-" + name).classList.add("active");
   document.getElementById("tab-btn-" + name).classList.add("active");
   if (name === "students") loadStudents();
+  if (name === "rewards") loadRewardsPanel();
 }
 
 /* ── LISTE DES ÉLÈVES ─────────────────────────────────────────── */
@@ -807,6 +906,191 @@ async function loadStudents() {
   } catch(e) {
     console.warn("[FTS Profs] Chargement élèves :", e);
     el.innerHTML = "<div class='empty-manage'>Impossible de charger les élèves. Réessaie.</div>";
+  }
+}
+
+
+
+/* ── RÉCOMPENSES / BADGES TEMPORAIRES ───────────────────────── */
+let rewardVisibleStudentsCache = [];
+
+function rewardDisplayName(u) {
+  return [u && u.firstName, u && u.lastName].filter(Boolean).join(' ') || (u && (u.name || u.email)) || 'Membre';
+}
+
+function rewardChildName(e) {
+  return [e && (e.prenom || e.firstName), e && (e.nom || e.lastName)].filter(Boolean).join(' ') || (e && e.name) || 'Enfant';
+}
+
+function rewardDiscsFrom() {
+  const out = [];
+  Array.from(arguments).forEach(value => splitAccessList(value).forEach(v => { if (v) out.push(v); }));
+  return [...new Set(out)];
+}
+
+function rewardAllowedStudentsFromProfile(uid, u, allowedDiscs) {
+  const rows = [];
+  if (!u || u.role === 'admin' || u.role === 'prof') return rows;
+
+  const parentName = rewardDisplayName(u);
+  const accountDiscs = rewardDiscsFrom(u.disciplines, u.group, u.groups, u.categories, u.category);
+  const accountMatches = !allowedDiscs || accountDiscs.some(d => allowedDiscs.includes(normAccess(d)));
+
+  if (accountMatches && accountDiscs.length) {
+    rows.push({
+      uid,
+      optionValue: uid,
+      label: parentName + (accountDiscs.length ? ' · ' + accountDiscs.join(', ') : ''),
+      specialBadge: u.specialBadge || null
+    });
+  }
+
+  if (u.hasEnfant && Array.isArray(u.enfants)) {
+    u.enfants.forEach((e, index) => {
+      const childDiscs = rewardDiscsFrom(e.disciplines, e.group, e.groups, e.categories, e.category, e.subgroups, e.subgroup, e.subcategories, e.subcategory);
+      const childMatches = !allowedDiscs || childDiscs.some(d => allowedDiscs.includes(normAccess(d)));
+      if (!childMatches) return;
+      const childName = rewardChildName(e);
+      rows.push({
+        uid,
+        optionValue: uid + '::child::' + (e.id || index),
+        label: childName + ' · enfant de ' + parentName + (childDiscs.length ? ' · ' + childDiscs.join(', ') : ''),
+        isChild: true,
+        childId: String(e.id || index),
+        childName,
+        specialBadge: u.specialBadge || null
+      });
+    });
+  }
+
+  return rows;
+}
+
+function rewardUntilText(until) {
+  if (!until) return 'durée inconnue';
+  const d = new Date(Number(until));
+  return 'jusqu’au ' + d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function renderRewardsHistory(students) {
+  const box = document.getElementById('rewards-history');
+  if (!box) return;
+  const now = Date.now();
+  const active = (students || [])
+    .filter(u => u && u.specialBadge && u.specialBadge.label && (!u.specialBadge.until || Number(u.specialBadge.until) > now))
+    .sort((a, b) => Number((a.specialBadge || {}).until || 0) - Number((b.specialBadge || {}).until || 0));
+
+  if (!active.length) {
+    box.innerHTML = '<div class="rewards-history-empty">Aucune récompense temporaire active pour tes élèves.</div>';
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="rewards-history-head">
+      <strong>Récompenses actives</strong>
+      <small>Ces badges remplacent temporairement le badge XP dans le forum.</small>
+    </div>
+    <div class="rewards-history-list">
+      ${active.map(u => {
+        const b = u.specialBadge || {};
+        const isArtist = b.kind === 'artist' || String(b.label || '').includes('Artiste de la semaine');
+        return `
+          <div class="reward-history-item ${isArtist ? 'is-artist' : ''}">
+            <div class="reward-history-main">
+              <span class="reward-history-badge">${FTS.esc(b.label || 'Badge')}</span>
+              <strong>${FTS.esc(u.label || rewardDisplayName(u))}</strong>
+              <small>${FTS.esc(rewardUntilText(b.until))}${b.reason ? ' · ' + FTS.esc(b.reason) : ''}</small>
+            </div>
+            <div class="reward-history-actions">
+              <button class="btn-save rewards-mini-btn" onclick="extendRewardFromProfs('${FTS.esc(u.uid)}')">+7j</button>
+              <button class="btn-danger rewards-mini-btn" onclick="clearRewardFromProfs('${FTS.esc(u.uid)}')">Retirer</button>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+async function loadRewardsPanel() {
+  const userSel = document.getElementById('reward-user');
+  const badgeSel = document.getElementById('reward-badge');
+  if (!userSel || !badgeSel || !window.FTSGamification) return;
+
+  userSel.innerHTML = '<option value="">Chargement…</option>';
+  const allowedDiscs = userProfile.role === 'admin' ? null : (userProfile.disciplines || []).map(d => normAccess(d));
+  const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
+  const students = [];
+  if (snap.exists()) {
+    snap.forEach(child => {
+      students.push(...rewardAllowedStudentsFromProfile(child.key, child.val() || {}, allowedDiscs));
+    });
+  }
+
+  students.sort((a, b) => (a.label || '').localeCompare(b.label || '', 'fr'));
+  rewardVisibleStudentsCache = students;
+  userSel.innerHTML = students.length
+    ? students.map(u => `<option value="${FTS.esc(u.optionValue || u.uid)}">${FTS.esc(u.label || rewardDisplayName(u))}</option>`).join('')
+    : '<option value="">Aucun élève disponible</option>';
+
+  if (!badgeSel.dataset.ready) {
+    badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
+    badgeSel.dataset.ready = '1';
+  }
+  renderRewardsHistory(students);
+}
+
+async function assignSpecialBadgeFromProfs() {
+  const selectedRewardValue = document.getElementById('reward-user')?.value;
+  const selectedRewardStudent = (rewardVisibleStudentsCache || []).find(u => (u.optionValue || u.uid) === selectedRewardValue);
+  const targetUid = selectedRewardStudent && selectedRewardStudent.uid;
+  const badge = document.getElementById('reward-badge')?.value;
+  const days = document.getElementById('reward-days')?.value || 7;
+  let reason = document.getElementById('reward-reason')?.value || '';
+
+  if (!targetUid || !badge) { alert('Choisis un élève et un badge.'); return; }
+  try {
+    await FTSGamification.setSpecialBadge(db, targetUid, badge, days, currentUserUid, reason, selectedRewardStudent && selectedRewardStudent.isChild ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
+    alert('Badge temporaire attribué.');
+    loadRewardsPanel();
+  } catch(e) {
+    alert('Impossible d’attribuer le badge : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function assignArtistOfWeekFromProfs() {
+  const selectedRewardValue = document.getElementById('reward-user')?.value;
+  const selectedRewardStudent = (rewardVisibleStudentsCache || []).find(u => (u.optionValue || u.uid) === selectedRewardValue);
+  const targetUid = selectedRewardStudent && selectedRewardStudent.uid;
+  let reason = document.getElementById('reward-reason')?.value || '';
+  if (!targetUid) { alert('Choisis un élève.'); return; }
+  if (!reason) reason = 'Mise en avant par l’équipe pédagogique';
+  try {
+    await FTSGamification.setArtistOfWeek(db, targetUid, currentUserUid, reason, 7, selectedRewardStudent && selectedRewardStudent.isChild ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
+    alert('Artiste de la semaine défini.');
+    loadRewardsPanel();
+  } catch(e) {
+    alert('Impossible de définir l’artiste : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function extendRewardFromProfs(uid) {
+  if (!uid) return;
+  try {
+    await FTSGamification.extendSpecialBadge(db, uid, 7, currentUserUid);
+    loadRewardsPanel();
+  } catch(e) {
+    alert('Impossible de prolonger : ' + (e && e.message ? e.message : e));
+  }
+}
+
+async function clearRewardFromProfs(uid) {
+  if (!uid) return;
+  const student = (rewardVisibleStudentsCache || []).find(u => u.uid === uid);
+  if (!confirm('Retirer le badge temporaire de ' + (student ? (student.label || rewardDisplayName(student)) : 'ce membre') + ' ?')) return;
+  try {
+    await FTSGamification.clearSpecialBadge(db, uid, currentUserUid);
+    loadRewardsPanel();
+  } catch(e) {
+    alert('Impossible de retirer : ' + (e && e.message ? e.message : e));
   }
 }
 
