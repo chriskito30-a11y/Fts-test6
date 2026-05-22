@@ -1,4 +1,4 @@
-const CACHE = 'fts-v149-profs-rewards-fix';
+const CACHE = 'fts-v150-mobile-ux-final';
 const FILES = [
   './manifest.json',
   './index.html',
