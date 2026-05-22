@@ -480,12 +480,21 @@
   max-width:100%;
   padding:.24rem .55rem;
   border-radius:999px;
-  background:rgba(0,0,0,.42);
-  border:1px solid rgba(248,231,2,.22);
-  color:#fff;
+  background:rgba(248,231,2,.16);
+  border:1px solid rgba(248,231,2,.34);
+  color:#f8e702;
+  text-shadow:none;
   font-size:.72rem;
   font-weight:800;
 }
+
+.reward-history-item.is-artist .reward-history-badge{
+  background:rgba(248,231,2,.22);
+  border-color:rgba(248,231,2,.46);
+  color:#f8e702;
+  text-shadow:none;
+}
+
 .reward-history-actions{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; }
 .rewards-mini-btn{ min-height:34px !important; padding:.34rem .65rem !important; border-radius:999px !important; }
 .btn-danger.rewards-mini-btn{ background:rgba(244,67,54,.16); border:1px solid rgba(244,67,54,.26); color:#ffb3ad; }
