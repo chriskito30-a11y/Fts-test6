@@ -19,7 +19,7 @@ let db, auth, uid, userProfile, userData;
 let categoryStructure = [], categoryLoaded = false;
 let forumItems = [];
 let openCats = {};
-let currentChannel = null, currentListener = null, lastMsgDate = null;
+let currentChannel = null, currentChannelInfo = null, currentListener = null, lastMsgDate = null;
 let adminMode = false;
 let deepLinkHandled = false;
 let forumReadTimer = null;
@@ -185,7 +185,7 @@ function buildForumItems(){
   const userGroupNorms = isAdmin ? null : getForumGroups().map(norm);
   const userSubNorms = isAdmin ? null : getForumSubgroups().map(norm);
   const items = [{
-    id:'general', type:'channel', icon:'💬', name:'Général', desc:'Discussion ouverte à tous', preview:'Canal commun à tous les membres'
+    id:'general', type:'channel', icon:'💬', name:'Général', desc:'Discussion ouverte à tous', preview:'Canal commun à tous les membres', group:'', subgroup:''
   }];
   if(isActive){
     if(categoryStructure.length){
@@ -195,15 +195,15 @@ function buildForumItems(){
         const visibleSubs = isAdmin ? cat.subs : cat.subs.filter(s => userSubNorms?.includes(norm(s.name)));
         if(!userHasCat && !visibleSubs.length) continue;
         const channels = [];
-        if(userHasCat) channels.push({ id:catNorm, icon:catIcon(cat.category), name:'Général '+cat.category, desc:'Discussion générale — '+cat.category });
-        visibleSubs.forEach(sub => channels.push({ id:norm(sub.name), icon:'📅', name:sub.name, desc:'Canal '+sub.name }));
+        if(userHasCat) channels.push({ id:catNorm, icon:catIcon(cat.category), name:'Général '+cat.category, desc:'Discussion générale — '+cat.category, group:cat.category, subgroup:'' });
+        visibleSubs.forEach(sub => channels.push({ id:norm(sub.name), icon:'📅', name:sub.name, desc:'Canal '+sub.name, group:cat.category, subgroup:sub.name }));
         items.push({ id:'cat_'+catNorm, type:'category', icon:catIcon(cat.category), name:cat.category, desc:`${channels.length} canal${channels.length>1?'s':''} accessible${channels.length>1?'s':''}`, channels });
       }
     }else if(!categoryLoaded){
       items.push({ id:'loading', type:'info', icon:'⏳', name:'Chargement…', desc:'Chargement des catégories' });
     }else{
       const groups = getForumGroups();
-      groups.forEach(g => items.push({ id:'cat_'+norm(g), type:'category', icon:catIcon(g), name:g, desc:'Canal '+g, channels:[{id:norm(g), icon:catIcon(g), name:'Général '+g, desc:'Canal '+g}] }));
+      groups.forEach(g => items.push({ id:'cat_'+norm(g), type:'category', icon:catIcon(g), name:g, desc:'Canal '+g, channels:[{id:norm(g), icon:catIcon(g), name:'Général '+g, desc:'Canal '+g, group:g, subgroup:''}] }));
     }
   }
   forumItems = items;
@@ -303,14 +303,14 @@ function renderForumList(q=''){
         </div>
       </div>
       <div class="forum-subchannels">
-        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span>${forumUnreadBadgeHtml(ch.id)}</div>`).join('')}
+        ${(item.channels||[]).map(ch => `<div class="forum-subchannel${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}','${esc(ch.group || '')}','${esc(ch.subgroup || '')}')"><span class="forum-sub-icon">${ch.icon}</span><span class="forum-sub-name">${esc(ch.name)}</span>${forumUnreadBadgeHtml(ch.id)}</div>`).join('')}
       </div>
     </div>`;
   }).join('');
 }
 
 function renderChannelBubble(ch){
-  return `<div class="conv-item${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}')">
+  return `<div class="conv-item${ch.id===currentChannel?' active':''}" data-fts-click="selectForumChannel('${esc(ch.id)}','${esc(ch.name)}','${esc(ch.icon)}','${esc(ch.desc)}','${esc(ch.group || '')}','${esc(ch.subgroup || '')}')">
     <div class="conv-av conv-av-red-soft">${ch.icon}</div>
     <div class="conv-body">
       <div class="conv-row1"><div class="conv-name">${esc(ch.name)}</div>${forumUnreadBadgeHtml(ch.id)}</div>
@@ -337,8 +337,10 @@ function markForumChannelRead(channel){
   clearForumSystemNotifications(channel);
 }
 
-function selectForumChannel(id, name, icon, desc){
-  currentChannel = id; lastMsgDate = null;
+function selectForumChannel(id, name, icon, desc, group, subgroup){
+  currentChannel = id;
+  currentChannelInfo = { group: group || '', subgroup: subgroup || '', label: name || id };
+  lastMsgDate = null;
   markForumChannelRead(id);
   FTSChat.setAvatar(document.getElementById('chat-av'), name, {type:'category', icon});
   document.getElementById('chat-name').textContent = name;
@@ -357,7 +359,7 @@ function closeChat(){
   FTSChat.closeChat();
   document.getElementById('chat-zone').classList.remove('on');
   document.getElementById('chat-empty').style.display = 'flex';
-  currentChannel = null;
+  currentChannel = null; currentChannelInfo = null;
   if(currentListener){ currentListener(); currentListener = null; }
   renderForumList(document.getElementById('forum-search').value || '');
 }
@@ -652,7 +654,7 @@ function channelInfoById(channel){
     const catNorm = norm(cat.category);
     if(catNorm === channel) return { group:cat.category, subgroup:'', label:'Général '+cat.category };
     for(const sub of (cat.subs || [])){
-      if(norm(sub.name) === channel) return { group:'', subgroup:sub.name, label:sub.name };
+      if(norm(sub.name) === channel) return { group:cat.category, subgroup:sub.name, label:sub.name };
     }
   }
   return { group:'', subgroup:'', label:channel };
@@ -677,7 +679,7 @@ function openForumDeepLink(){
   const parent = (forumItems || []).find(item => (item.channels || []).some(c => c.id === channel));
   if(parent) openCats[parent.id] = true;
   deepLinkHandled = true;
-  selectForumChannel(ch.id, ch.name, ch.icon || '💬', ch.desc || '');
+  selectForumChannel(ch.id, ch.name, ch.icon || '💬', ch.desc || '', ch.group || '', ch.subgroup || '');
   const msgId = params.get('msg');
   if(msgId){
     setTimeout(() => {
@@ -732,17 +734,20 @@ function forumUserCanReceive(profile, info){
   if(profile.role === 'admin') return true;
   if(!info.group && !info.subgroup) return true; // Général
 
-  if(info.group){
-    const groups = [
-      ...normList(profile.disciplines || profile.groups || profile.group),
-      ...childDisciplines(profile)
-    ];
-    return groups.some(g => norm(g) === norm(info.group));
+  const groups = [
+    ...normList(profile.disciplines || profile.groups || profile.group),
+    ...childDisciplines(profile)
+  ];
+  const hasGroup = info.group ? groups.some(g => norm(g) === norm(info.group)) : false;
+
+  // Canal de sous-catégorie : il faut appartenir à la catégorie parent ET à la sous-catégorie.
+  // Cela évite qu'une future sous-catégorie portant le même nom dans deux catégories notifie trop large.
+  if(info.group && info.subgroup){
+    return hasGroup && forumUserHasSubgroup(profile, info.subgroup);
   }
 
-  if(info.subgroup){
-    return forumUserHasSubgroup(profile, info.subgroup);
-  }
+  if(info.group) return hasGroup;
+  if(info.subgroup) return forumUserHasSubgroup(profile, info.subgroup);
 
   return false;
 }
@@ -777,7 +782,7 @@ async function primeForumUnreadForRecipients(recipients, channel, messageTs){
 async function notifyChannel(channel, body, msgId){
   if(!FTS.PUSH || !FTS.PUSH.workerUrl) return;
 
-  const info = channelInfoById(channel);
+  const info = (channel === currentChannel && currentChannelInfo) ? currentChannelInfo : channelInfoById(channel);
   const url = './forum.html?channel=' + encodeURIComponent(channel) + (msgId ? '&msg=' + encodeURIComponent(msgId) : '');
   const recipients = await getForumRecipientUids(info, uid);
   if(!recipients.length) return;
