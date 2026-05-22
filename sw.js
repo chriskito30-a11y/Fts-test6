@@ -1,4 +1,4 @@
-const CACHE = 'fts-v146-profs-badges-forum-selfnotif';
+const CACHE = 'fts-v147-reward-recipient-notif';
 const FILES = [
   './manifest.json',
   './index.html',
