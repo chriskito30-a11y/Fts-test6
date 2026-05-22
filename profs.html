@@ -14,316 +14,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/css/fts.css">
+<link rel="stylesheet" href="assets/css/fts-nav.css?v=18">
 
-<style>
-
-/* ── AUTH LOADING ─────────────────────────────────────────────── */
-.auth-loading {
-  min-height: 100vh; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 1rem;
-}
-.auth-loading-logo { font-family: var(--font-display); font-size: 2.5rem; }
-.auth-loading-logo span { color: var(--red); }
-.auth-loading-sub { font-size: .65rem; color: var(--muted); letter-spacing: .15em; text-transform: uppercase; }
-.spinner { width: 24px; height: 24px; border: 2px solid #333; border-top-color: var(--red); border-radius: 50%; animation: spin .7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ── BOTTOM NAV ───────────────────────────────────────────────── */
-.bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-  background: #0d0d0d; border-top: 1px solid #1e1e1e;
-  display: flex; align-items: stretch; height: 60px;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-.bnav-item {
-  flex: 1; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 3px;
-  text-decoration: none; color: #555; font-size: .6rem;
-  letter-spacing: .08em; text-transform: uppercase;
-  transition: color .2s; border: none; background: transparent;
-  cursor: pointer; font-family: var(--font-body);
-  -webkit-tap-highlight-color: transparent;
-}
-.bnav-item.active { color: var(--white); }
-.bnav-item.active .bnav-icon { color: var(--red); }
-.bnav-icon { font-size: 1.3rem; line-height: 1; }
-.bnav-spacer { height: 72px; }
-
-/* Badge non lus */
-.bnav-icon-wrap { position: relative; display: inline-block; line-height: 1; }
-.bnav-badge {
-  position: absolute; top: -5px; right: -8px;
-  background: var(--red); color: #fff;
-  font-size: .5rem; font-weight: 700;
-  min-width: 14px; height: 14px; padding: 0 3px;
-  border-radius: 7px; text-align: center; line-height: 14px;
-  border: 2px solid #0a0a0a; display: none;
-}
-
-/* ── TABS ─────────────────────────────────────────────────────── */
-.tabs-row {
-  display: flex; gap: 0;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 1.5rem;
-}
-.tab-lnk {
-  flex: 1; padding: .75rem; background: transparent; border: none;
-  border-bottom: 2px solid transparent; margin-bottom: -1px;
-  color: var(--muted); font-family: var(--font-body); font-size: .82rem;
-  cursor: pointer; transition: all .2s; display: flex; align-items: center;
-  justify-content: center; gap: .4rem;
-}
-.tab-lnk:hover { color: var(--white); }
-.tab-lnk.active { color: var(--white); border-bottom-color: var(--red); }
-.tab-badge {
-  background: var(--red); color: var(--white); font-size: .55rem;
-  padding: .1rem .35rem; border-radius: 8px; min-width: 16px; text-align: center;
-}
-.tab-pane { display: none; }
-.tab-pane.active { display: block; animation: fadeUp .25s ease both; }
-@keyframes fadeUp { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
-
-/* ── USER BAR ─────────────────────────────────────────────────── */
-.user-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 1.5rem; padding: .8rem 1rem;
-  background: var(--grey); border: 1px solid var(--border); border-radius: var(--r-md);
-}
-.user-name { font-size: .82rem; color: var(--muted); }
-.user-name strong { color: var(--white); }
-.user-role {
-  font-size: .6rem; letter-spacing: .1em; text-transform: uppercase;
-  padding: .2rem .6rem; border-radius: 2px; margin-left: .5rem;
-}
-.role-admin { background: rgba(212,32,26,.15); color: var(--red); }
-.role-prof  { background: rgba(201,168,76,.1);  color: var(--gold); }
-.btn-signout {
-  background: transparent; border: 1px solid #333; color: #555;
-  padding: .35rem .7rem; border-radius: var(--r-sm); cursor: pointer;
-  font-size: .72rem; font-family: var(--font-body); transition: all .2s;
-}
-.btn-signout:hover { border-color: var(--red); color: var(--red); }
-
-/* ── FORMULAIRE ───────────────────────────────────────────────── */
-.form-card {
-  background: var(--grey); border: 1px solid var(--border);
-  border-radius: var(--r-md); padding: 1.8rem; margin-bottom: 1.5rem;
-}
-.form-card .card-title {
-  font-size: .65rem; letter-spacing: .2em; text-transform: uppercase;
-  color: var(--gold); margin-bottom: 1.5rem;
-}
-.field { margin-bottom: 1rem; }
-.field label {
-  display: block; font-size: .65rem; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: .4rem;
-}
-.field input, .field select, .field textarea {
-  width: 100%; background: #0e0e0e; border: 1px solid var(--border);
-  border-radius: var(--r-sm); color: var(--white); font-family: var(--font-body);
-  font-size: .88rem; padding: .7rem .9rem; outline: none; transition: border-color .2s;
-}
-.field input:focus, .field select:focus, .field textarea:focus { border-color: rgba(212,32,26,.5); }
-.field select option { background: #141414; }
-.field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
-.divider { border: none; border-top: 1px solid var(--border); margin: 1.2rem 0; }
-
-/* Drop zone */
-#drop-zone {
-  border: 2px dashed var(--border); border-radius: var(--r-sm);
-  padding: 1.5rem; text-align: center; cursor: pointer;
-  transition: all .2s; color: var(--muted); font-size: .82rem;
-}
-#drop-zone:hover, #drop-zone.dragover { border-color: var(--red); color: var(--white); }
-#drop-zone.dragover { background: rgba(201,168,76,.05); border-color: var(--gold); }
-.upload-progress-bar { background: var(--border); border-radius: 2px; height: 4px; overflow: hidden; margin-top: .5rem; }
-.upload-progress-fill { background: var(--red); height: 100%; width: 0%; transition: width .3s; }
-.upload-progress-text { font-size: .72rem; margin-top: .4rem; color: var(--gold); }
-
-
-/* Aide OneDrive danse */
-.dance-video-box {
-  display: none; margin-top: .85rem; padding: .9rem 1rem;
-  background: rgba(201,168,76,.07); border: 1px solid rgba(201,168,76,.22);
-  border-radius: var(--r-sm); font-size: .76rem; color: var(--muted); line-height: 1.55;
-}
-.dance-video-box strong { color: var(--white); font-weight: 500; }
-.dance-video-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
-.dance-video-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .35rem;
-  background: var(--red); color: var(--white); text-decoration: none;
-  border-radius: var(--r-sm); padding: .55rem .75rem; font-size: .72rem; font-weight: 600;
-}
-.dance-video-btn:hover { background: #b71815; }
-.dance-video-btn.disabled { background: #272727; color: #777; pointer-events: none; }
-.dance-video-note { margin-top: .45rem; font-size: .68rem; color: #777; }
-
-/* Message feedback */
-.msg { display: none; padding: .8rem 1rem; border-radius: var(--r-sm); font-size: .82rem; margin-top: .8rem; }
-.msg.success { background: rgba(50,120,50,.15); border: 1px solid #2a5a2a; color: #6aba6a; }
-.msg.error   { background: rgba(212,32,26,.1);  border: 1px solid rgba(212,32,26,.3); color: #e07070; }
-
-/* ── SECTION GÉRER ────────────────────────────────────────────── */
-.manage-filters {
-  display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.2rem; align-items: center;
-}
-.filter-select {
-  background: #141414; border: 1px solid var(--border); border-radius: var(--r-sm);
-  color: var(--muted); font-family: var(--font-body); font-size: .78rem;
-  padding: .45rem .8rem; outline: none; cursor: pointer; transition: border-color .2s;
-}
-.filter-select:focus { border-color: rgba(212,32,26,.5); }
-
-.doc-item {
-  background: var(--grey); border: 1px solid var(--border);
-  border-radius: var(--r-md); padding: 1rem 1.2rem; margin-bottom: .6rem;
-  display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
-  transition: border-color .2s;
-}
-.doc-item:hover { border-color: #333; }
-.doc-item-icon { font-size: 1.5rem; flex-shrink: 0; }
-.doc-item-info { flex: 1; min-width: 150px; }
-.doc-item-name { font-size: .9rem; font-weight: 500; margin-bottom: .2rem; }
-.doc-item-meta { font-size: .7rem; color: var(--muted); display: flex; gap: .6rem; flex-wrap: wrap; }
-.doc-item-cat {
-  display: inline-block; font-size: .6rem; letter-spacing: .08em; text-transform: uppercase;
-  background: rgba(201,168,76,.08); border: 1px solid rgba(201,168,76,.15);
-  color: var(--gold); padding: .15rem .5rem; border-radius: 2px;
-}
-.doc-item-actions { display: flex; gap: .4rem; flex-shrink: 0; }
-.btn-edit {
-  background: transparent; border: 1px solid #333; color: var(--muted);
-  padding: .35rem .75rem; border-radius: var(--r-sm); cursor: pointer;
-  font-size: .72rem; font-family: var(--font-body); transition: all .2s;
-}
-.btn-edit:hover { border-color: var(--gold); color: var(--gold); }
-.btn-delete {
-  background: transparent; border: 1px solid #3a1a1a; color: #aa5a5a;
-  padding: .35rem .75rem; border-radius: var(--r-sm); cursor: pointer;
-  font-size: .72rem; font-family: var(--font-body); transition: all .2s;
-}
-.btn-delete:hover { background: rgba(212,32,26,.1); border-color: var(--red); color: var(--red); }
-
-.empty-manage {
-  text-align: center; padding: 3rem 1rem;
-  color: var(--muted); font-size: .82rem; font-style: italic;
-}
-
-/* ── CARTES ÉLÈVES ────────────────────────────────────────────── */
-.student-card {
-  background: var(--grey); border: 1px solid var(--border);
-  border-radius: var(--r-md); padding: 1rem 1.2rem; margin-bottom: .6rem;
-  display: flex; align-items: flex-start; gap: 1rem;
-  transition: border-color .2s;
-}
-.student-card:hover { border-color: #333; }
-.student-avatar {
-  width: 36px; height: 36px; border-radius: 50%; background: var(--red);
-  color: var(--white); display: flex; align-items: center; justify-content: center;
-  font-size: .9rem; font-weight: 600; flex-shrink: 0; text-transform: uppercase;
-}
-.student-info { flex: 1; min-width: 0; }
-.student-name { font-size: .9rem; font-weight: 500; margin-bottom: .2rem; }
-.student-meta { font-size: .72rem; color: var(--muted); margin-bottom: .15rem; }
-.student-parent-badge {
-  font-size: .58rem; letter-spacing: .08em; text-transform: uppercase;
-  background: rgba(201,168,76,.1); border: 1px solid rgba(201,168,76,.2);
-  color: var(--gold); padding: .1rem .4rem; border-radius: 2px; margin-left: .4rem;
-}
-.student-child {
-  font-size: .76rem; color: var(--muted); margin-top: .3rem;
-  padding: .3rem .7rem;
-  background: rgba(201,168,76,.04);
-  border-left: 2px solid rgba(201,168,76,.3);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-}
-
-/* ── MODALE ÉDITION ───────────────────────────────────────────── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 1000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-.modal-overlay.hidden { display: none; }
-.modal-box {
-  background: var(--grey); border: 1px solid var(--border); border-radius: var(--r-md);
-  padding: 2rem; width: 95%; max-width: 480px; max-height: 90vh; overflow-y: auto;
-  animation: modalIn .25s ease;
-}
-@keyframes modalIn { from { opacity:0; transform:scale(.95); } to { opacity:1; transform:scale(1); } }
-.modal-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
-.modal-hdr-title { font-family: var(--font-display); font-size: 1.5rem; }
-.modal-close {
-  background: transparent; border: 1px solid #333; color: var(--muted);
-  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
-  font-size: .8rem; transition: all .2s; display: flex; align-items: center; justify-content: center;
-}
-.modal-close:hover { border-color: var(--red); color: var(--red); }
-.modal-actions { display: flex; gap: .6rem; margin-top: 1.5rem; }
-.modal-actions button {
-  flex: 1; padding: .8rem; border-radius: var(--r-sm); cursor: pointer;
-  font-family: var(--font-body); font-size: .82rem; border: none; transition: background .2s;
-}
-.btn-save    { background: var(--red);  color: var(--white); }
-.btn-save:hover { background: #b71815; }
-.btn-cancel-edit { background: #2a2a2a; color: var(--muted); }
-.btn-cancel-edit:hover { background: #333; color: var(--white); }
-
-
-/* ── RÉCOMPENSES / BADGES PROFS ──────────────────────────────── */
-.rewards-history{
-  margin-top:1rem;
-  display:flex;
-  flex-direction:column;
-  gap:.7rem;
-}
-.rewards-history-head{
-  display:flex;
-  flex-direction:column;
-  gap:.2rem;
-  font-size:.78rem;
-  margin-bottom:.2rem;
-}
-.rewards-history-head strong{ color:var(--gold); }
-.rewards-history-head small{ color:var(--muted); }
-.rewards-history-list{ display:flex; flex-direction:column; gap:.55rem; }
-.reward-history-item{
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:.8rem;
-  align-items:center;
-  padding:.85rem .95rem;
-  background:#0f0f0f;
-  border:1px solid var(--border);
-  border-radius:var(--r-sm);
-}
-.reward-history-item.is-artist{ border-color:rgba(248,231,2,.34); background:rgba(248,231,2,.055); }
-.reward-history-main{ min-width:0; display:flex; flex-direction:column; gap:.2rem; }
-.reward-history-main strong{ color:#fff; }
-.reward-history-main small{ color:var(--muted); line-height:1.35; }
-.reward-history-badge{
-  display:inline-flex;
-  width:max-content;
-  max-width:100%;
-  padding:.18rem .55rem;
-  border-radius:999px;
-  background:rgba(201,168,76,.12);
-  border:1px solid rgba(201,168,76,.2);
-  color:var(--gold);
-  font-size:.68rem;
-}
-.reward-history-actions{ display:flex; gap:.4rem; flex-wrap:wrap; justify-content:flex-end; }
-.rewards-mini-btn{ min-height:34px !important; padding:.34rem .65rem !important; border-radius:999px !important; }
-.btn-danger.rewards-mini-btn{ background:rgba(244,67,54,.16); border:1px solid rgba(244,67,54,.26); color:#ffb3ad; }
-.rewards-history-empty{
-  color:var(--muted);
-  font-size:.8rem;
-  padding:.8rem .95rem;
-  border:1px dashed var(--border);
-  border-radius:var(--r-sm);
-}
-@media(max-width:560px){
-  .reward-history-item{ grid-template-columns:1fr; align-items:stretch; }
-  .reward-history-actions{ justify-content:flex-start; }
-}
-
-</style>
+<link rel="stylesheet" href="assets/css/pages/profs.css?v=149">
+<link href="assets/css/fts-admin-mode.css?v=79" rel="stylesheet"/>
 </head>
 
 <body class="has-glow">
@@ -339,24 +33,23 @@
 <div id="page-content" style="display:none">
 
   <!-- Bottom nav -->
-  <nav class="bottom-nav" aria-label="Navigation principale">
-    <a href="membres.html" class="bnav-item">
-      <span class="bnav-icon">👤</span><span>Membres</span>
-    </a>
-    <a href="messages.html" class="bnav-item">
-      <span class="bnav-icon-wrap">
-        <span class="bnav-icon">✉️</span>
-        <span class="bnav-badge" id="msg-badge">0</span>
-      </span>
-      <span>Messages</span>
-    </a>
-    <a href="forum.html" class="bnav-item">
-      <span class="bnav-icon">💬</span><span>Forum</span>
-    </a>
-    <a href="admin.html" class="bnav-item" id="bnav-admin" style="display:none">
-      <span class="bnav-icon">🛡</span><span>Admin</span>
-    </a>
-  </nav>
+  <nav class="fts-bottom-nav fts-nav-3" aria-label="Navigation principale">
+  <a href="membres.html" class="fts-nav-item" data-nav="membres">
+    <span class="fts-nav-icon-wrap"><span class="fts-nav-icon">👤</span><span class="fts-nav-badge" id="fts-member-badge"></span></span><span class="fts-nav-label">Membres</span>
+  </a>
+  <button type="button" class="fts-nav-item fts-nav-button" data-nav="documents" data-action="open-documents-modal">
+    <span class="fts-nav-icon">📄</span><span class="fts-nav-label">Docs</span>
+  </button>
+  <a href="hub-messages.html" class="fts-nav-item" data-nav="messages">
+    <span class="fts-nav-icon">💬</span><span class="fts-nav-label">Messages</span>
+  </a>
+  <a href="profs.html" class="fts-nav-item fts-role-nav" id="fts-nav-prof" data-nav="prof" hidden aria-hidden="true">
+    <span class="fts-nav-icon">🎓</span><span class="fts-nav-label">Prof</span>
+  </a>
+  <a href="admin.html" class="fts-nav-item fts-role-nav" id="fts-nav-admin" data-nav="admin" hidden aria-hidden="true">
+    <span class="fts-nav-icon">🛡️</span><span class="fts-nav-label">Admin</span>
+  </a>
+</nav>
 
   <div class="wrap wrap-sm">
 
@@ -374,6 +67,30 @@
       <button class="btn-signout" onclick="doSignOut()">Déconnexion</button>
     </div>
 
+    <!-- Résumé rapide prof -->
+    <section class="profs-hero-card" aria-label="Résumé espace profs">
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Documents</span>
+        <span class="profs-stat-value" id="profs-stat-docs">0</span>
+        <span class="profs-stat-note">publiés</span>
+      </div>
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Élèves</span>
+        <span class="profs-stat-value" id="profs-stat-students">0</span>
+        <span class="profs-stat-note">dans tes disciplines</span>
+      </div>
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Catégories</span>
+        <span class="profs-stat-value" id="profs-stat-cats">0</span>
+        <span class="profs-stat-note" id="profs-stat-cats-note">accessibles</span>
+      </div>
+      <div class="profs-stat">
+        <span class="profs-stat-kicker">Dernier ajout</span>
+        <span class="profs-stat-value" style="font-size:1.1rem" id="profs-stat-last">—</span>
+        <span class="profs-stat-note">ressource récente</span>
+      </div>
+    </section>
+
     <!-- Onglets -->
     <div class="tabs-row">
       <button class="tab-lnk active" id="tab-btn-publish" onclick="switchTab('publish')">
@@ -385,32 +102,72 @@
       <button class="tab-lnk" id="tab-btn-students" onclick="switchTab('students')">
         👥 Élèves <span class="tab-badge" id="students-count" style="background:#2a5a2a">0</span>
       </button>
-      <button class="tab-lnk" id="tab-btn-rewards" onclick="switchTab('rewards')">
+      <button class="tab-lnk" data-admin-advanced id="tab-btn-rewards" onclick="switchTab('rewards')">
         🏅 Récompenser
       </button>
+    </div>
+
+
+    <!-- ── ONGLET RÉCOMPENSER ── -->
+    <div class="tab-pane" id="tab-rewards" data-admin-advanced>
+      <div class="form-card">
+        <div class="card-title">Valoriser un élève</div>
+        <p class="profs-card-subtitle">Attribue un badge temporaire ou l’Artiste de la semaine. Il remplacera le badge XP dans le forum pendant la durée choisie.</p>
+        <div class="profs-form-grid">
+          <div class="field">
+            <label>Élève / membre</label>
+            <select id="reward-user"><option value="">Chargement…</option></select>
+          </div>
+          <div class="field">
+            <label>Badge temporaire</label>
+            <select id="reward-badge"></select>
+          </div>
+          <div class="field">
+            <label>Durée</label>
+            <select id="reward-days">
+              <option value="7">7 jours</option>
+              <option value="14">14 jours</option>
+              <option value="30">30 jours</option>
+            </select>
+          </div>
+          <div class="field" style="grid-column:1/-1">
+            <label>Motif / note</label>
+            <input id="reward-reason" type="text" placeholder="Ex : belle progression, entraide, présence…">
+          </div>
+        </div>
+        <div class="modal-actions" style="justify-content:flex-start;margin-top:14px">
+          <button class="btn-save" onclick="assignSpecialBadgeFromProfs()">Attribuer le badge</button>
+          <button class="btn-save" onclick="assignArtistOfWeekFromProfs()">⭐ Artiste de la semaine</button>
+        </div>
+        <div class="rewards-history" id="rewards-history" aria-label="Récompenses en cours"></div>
+      </div>
     </div>
 
     <!-- ── ONGLET PUBLIER ── -->
     <div class="tab-pane active" id="tab-publish">
       <div class="form-card">
-        <div class="card-title">Publier un contenu</div>
+        <div class="card-title">Publier une ressource</div>
+        <p class="profs-card-subtitle">Ajoute un document, un audio, une vidéo ou un message pour les élèves concernés. Les catégories contrôlent automatiquement l’accès côté membre.</p>
 
+        <div class="profs-form-grid">
         <div class="field">
-          <label>Catégorie</label>
+          <label>Catégorie visible</label>
           <select id="f-cat" onchange="updateSubcats()">
             <option value="">-- Choisir --</option>
           </select>
+          <small>Choisis la discipline ou l’activité concernée.</small>
         </div>
 
         <div class="field" id="subcat-row" style="display:none">
-          <label>Section (optionnel)</label>
+          <label>Sous-catégorie / groupe</label>
           <select id="f-subcat" onchange="updateDanceVideoFolder()">
             <option value="">-- Aucune --</option>
           </select>
+          <small>Optionnel : limite la ressource à un groupe précis.</small>
         </div>
 
         <div class="field">
-          <label>Type de contenu</label>
+          <label>Type de ressource</label>
           <select id="f-type" onchange="updateType()">
             <option value="pdf">Document PDF</option>
             <option value="mp3">Audio / MP3</option>
@@ -421,17 +178,26 @@
           </select>
         </div>
 
-        <div class="field">
-          <label>Titre</label>
-          <input type="text" id="f-name" placeholder="Ex : Partition cours 3…">
+        <div class="field field-full script-rehearsal-field" id="f-script-rehearsal-row" hidden>
+          <label class="script-rehearsal-check">
+            <input type="checkbox" id="f-script-rehearsal">
+            <span>🎭 Ce PDF est un texte à répéter</span>
+          </label>
+          <small>L’assistant répétition apparaîtra pour les élèves de ce groupe. Format conseillé : <strong>Personnage : réplique</strong>.</small>
         </div>
 
-        <div class="field" id="url-row">
+        <div class="field field-full">
+          <label>Titre</label>
+          <input type="text" id="f-name" placeholder="Ex : Partition cours 3…">
+          <small>Un titre court et clair pour que les élèves le retrouvent vite.</small>
+        </div>
+
+        <div class="field field-full" id="url-row">
           <label id="url-label">Lien (Google Drive, YouTube…)</label>
           <input type="text" id="f-url" placeholder="https://…">
         </div>
 
-        <div class="field" id="upload-row">
+        <div class="field field-full" id="upload-row">
           <label>Ou glisse ton fichier directement</label>
           <div id="drop-zone" onclick="document.getElementById('f-file').click()">
             <div id="drop-text">Glisse ton fichier ici ou clique pour choisir</div>
@@ -472,17 +238,34 @@
         <p style="font-size:.7rem;color:var(--muted);font-style:italic;margin-bottom:.8rem">
           Optionnel — Note pour les élèves
         </p>
-        <div class="field">
+        <div class="field field-full">
           <textarea id="f-text" placeholder="Ex : Pensez à apporter vos partitions…"></textarea>
         </div>
 
+        </div>
+
+        <div class="profs-preview" aria-live="polite">
+          <div class="profs-preview-top">
+            <div class="profs-preview-title">Aperçu côté membre</div>
+            <span class="doc-item-cat" id="preview-type-pill">Document</span>
+          </div>
+          <div class="profs-preview-card">
+            <div class="profs-preview-name" id="preview-name">Titre de la ressource</div>
+            <div class="profs-preview-meta" id="preview-meta">Choisis une catégorie et un type pour voir le rendu.</div>
+            <div class="profs-preview-note" id="preview-note" style="display:none"></div>
+          </div>
+        </div>
+
         <div id="msg" class="msg"></div>
-        <button class="btn" id="btn-submit" onclick="doSubmit()">Publier</button>
+        <button class="btn" id="btn-submit" onclick="doSubmit()">Publier la ressource</button>
       </div>
     </div><!-- /tab-publish -->
 
     <!-- ── ONGLET GÉRER ── -->
     <div class="tab-pane" id="tab-manage">
+      <div class="profs-section-head">
+        <div><h2>Ressources publiées</h2><p>Retrouve, filtre et corrige les contenus déjà disponibles pour les membres.</p></div>
+      </div>
       <div class="manage-filters">
         <select class="filter-select" id="filter-cat" onchange="applyFilters()">
           <option value="">Toutes les catégories</option>
@@ -504,43 +287,11 @@
 
     <!-- ── ONGLET ÉLÈVES ── -->
     <div class="tab-pane" id="tab-students">
+      <div class="profs-section-head">
+        <div><h2>Élèves concernés</h2><p>Vue rapide des comptes actifs liés à tes disciplines.</p></div>
+      </div>
       <div id="students-list">
         <div class="empty-manage">Chargement…</div>
-      </div>
-    </div>
-
-    <!-- ── ONGLET RÉCOMPENSER ── -->
-    <div class="tab-pane" id="tab-rewards">
-      <div class="form-card">
-        <div class="card-title">Valoriser un élève</div>
-        <p style="color:var(--muted);font-size:.82rem;line-height:1.5;margin-top:-.6rem;margin-bottom:1.2rem">
-          Attribue un badge temporaire ou l’Artiste de la semaine. Le badge apparaît dans le forum général et déclenche la notification communautaire.
-        </p>
-        <div class="field">
-          <label>Élève / membre</label>
-          <select id="reward-user"><option value="">Chargement…</option></select>
-        </div>
-        <div class="field">
-          <label>Badge temporaire</label>
-          <select id="reward-badge"></select>
-        </div>
-        <div class="field">
-          <label>Durée</label>
-          <select id="reward-days">
-            <option value="7">7 jours</option>
-            <option value="14">14 jours</option>
-            <option value="30">30 jours</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Motif / note</label>
-          <input id="reward-reason" type="text" placeholder="Ex : belle progression, entraide, présence…">
-        </div>
-        <div class="modal-actions" style="justify-content:flex-start;margin-top:14px;flex-wrap:wrap">
-          <button class="btn-save" onclick="assignSpecialBadgeFromProfs()">Attribuer le badge</button>
-          <button class="btn-save" onclick="assignArtistOfWeekFromProfs()">⭐ Artiste de la semaine</button>
-        </div>
-        <div class="rewards-history" id="rewards-history" aria-label="Récompenses en cours"></div>
       </div>
     </div>
 
@@ -574,7 +325,7 @@
     </div>
     <div class="field">
       <label>Type</label>
-      <select id="e-type">
+      <select id="e-type" onchange="updateEditScriptRehearsalVisibility()">
         <option value="pdf">PDF</option>
         <option value="mp3">Audio</option>
         <option value="video">Vidéo</option>
@@ -582,6 +333,13 @@
         <option value="texte">Texte</option>
         <option value="doc">Autre</option>
       </select>
+    </div>
+    <div class="field script-rehearsal-field" id="e-script-rehearsal-row" hidden>
+      <label class="script-rehearsal-check">
+        <input type="checkbox" id="e-script-rehearsal">
+        <span>🎭 Texte à répéter</span>
+      </label>
+      <small>Affiche le bouton Répéter côté membre.</small>
     </div>
     <div class="field">
       <label>Titre</label>
@@ -614,1029 +372,15 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-utils.js?v=51"></script>
 <script src="assets/js/fts-firebase.js"></script>
-<script src="assets/js/fts-gamification.js?v=147"></script>
+<script src="assets/js/fts-gamification.js?v=149"></script>
 
-<script>
-/* ================================================================
-   PROFS.JS
-   ✅ Firebase Auth — accès admin ou prof uniquement
-   ✅ Publication dans Firebase RTDB (fts_ressources)
-   ✅ Gestion complète : voir, modifier, supprimer
-   ✅ Profs voient leurs disciplines, admins voient tout
-   ================================================================ */
-
-let categoryStructure = [];
-let SUBCATS = {};
-let ALL_CATS = [];
-
-const TYPE_ICONS = { pdf:"▩", mp3:"♪", audio:"♪", video:"▶", image:"▪", texte:"✉", doc:"□" };
-
-/*
-  Liens OneDrive pour les vidéos de danse.
-  - read  = lien lecture seule visible par les élèves, automatiquement mis dans le champ Lien
-  - write = lien dépôt/modification visible uniquement par le prof dans le formulaire
-
-  Important : les clés correspondent aux noms des sous-catégories Danse dans Firebase.
-*/
-const DANCE_VIDEO_FOLDERS = {
-  "Les Baby Show": {
-    read: "https://1drv.ms/f/c/523a8512bc652dc1/IgBuRNwPMrgqSY12s26Nv8iKAY2vgBnAo9TG4mY172-g-y8",
-    write: "https://1drv.ms/f/c/523a8512bc652dc1/IgBuRNwPMrgqSY12s26Nv8iKAWSrfYxCOeni6vVgyB6Uakw"
-  },
-  "Show Danse Junior": {
-    read: "https://1drv.ms/f/c/523a8512bc652dc1/IgABEDHu9sKOR4yxli-R6VoIAZIHxhkdbl7m-NdhGfisbD4",
-    write: "https://1drv.ms/f/c/523a8512bc652dc1/IgABEDHu9sKOR4yxli-R6VoIAc0jNvvHrY9EqRn6NIc5cZ4"
-  },
-  "Ados/Adultes": {
-    read: "https://1drv.ms/f/c/523a8512bc652dc1/IgA7vQbTu8VLTZd9y-HZlP-cAVQC4_ebP3UHsoOhKsp9jhI",
-    write: "https://1drv.ms/f/c/523a8512bc652dc1/IgA7vQbTu8VLTZd9y-HZlP-cAebVob0jmvI8pBg7mm6v8gc"
-  }
-};
-
-let db, auth;
-let userProfile, currentUserUid;
-let allDocs = [];      // tous les docs chargés depuis Firebase
-let filteredDocs = []; // après filtres
-
-/* ── INIT ─────────────────────────────────────────────────────── */
-window.addEventListener("DOMContentLoaded", function() {
-  db   = FTS.initFirebase();
-  auth = firebase.auth();
-
-  auth.onAuthStateChanged(async function(user) {
-    if (!user) { window.location.href = "auth.html"; return; }
-
-    currentUserUid = user.uid;
-
-    try {
-      const snap = await db.ref("fts_users/" + user.uid).once("value");
-      userProfile = snap.val();
-
-      if (!userProfile || userProfile.status !== "active") {
-        await auth.signOut();
-        window.location.href = "auth.html";
-        return;
-      }
-
-      if (userProfile.role !== "admin" && userProfile.role !== "prof") {
-        // Membre normal → espace membres
-        window.location.href = "membres.html";
-        return;
-      }
-
-      // ✅ Accès autorisé
-      document.getElementById("auth-loading").style.display = "none";
-      document.getElementById("page-content").style.display = "block";
-
-      // Nom + badge rôle
-      document.getElementById("user-display-name").textContent =
-        userProfile.firstName || userProfile.name || user.email;
-      const roleBadge = document.getElementById("user-role-badge");
-      roleBadge.textContent = userProfile.role === "admin" ? "🛡 Admin" : "🎓 Prof";
-      roleBadge.className   = "user-role role-" + userProfile.role;
-
-      // Lien Admin dans nav (admins seulement)
-      if (userProfile.role === "admin") {
-        document.getElementById("bnav-admin").style.display = "flex";
-      }
-
-      // Badge non lus messages
-      listenUnreadBadge(user.uid);
-
-      // Construire les sélecteurs de catégories depuis Firebase
-      await buildCatSelectors();
-
-      // Charger les documents
-      loadDocs();
-
-    } catch(e) {
-      console.warn("[FTS Profs]", e);
-      window.location.href = "auth.html";
-    }
-  });
-
-  // Drag & drop
-  const dropZone = document.getElementById("drop-zone");
-  dropZone.addEventListener("dragover",  e => { e.preventDefault(); dropZone.classList.add("dragover"); });
-  dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("dragover"));
-  dropZone.addEventListener("drop", e => {
-    e.preventDefault(); dropZone.classList.remove("dragover");
-    const file = e.dataTransfer.files[0];
-    if (file) uploadFile(file);
-  });
-  document.getElementById("f-file").addEventListener("change", function() {
-    if (this.files[0]) uploadFile(this.files[0]);
-  });
-});
-
-/* ── CATÉGORIES AUTORISÉES ────────────────────────────────────── */
-function allowedCats() {
-  if (userProfile.role === "admin") return ALL_CATS;
-  const discs = userProfile.disciplines || [];
-  return ALL_CATS.filter(c => discs.includes(c.value));
-}
-
-function categoryOptionsFromStructureLocal(structure) {
-  const rows = Array.isArray(structure) && structure.length
-    ? structure
-    : (FTS.getDefaultCategoryStructure ? FTS.getDefaultCategoryStructure() : []);
-
-  return rows
-    .filter(c => c && c.active !== false)
-    .sort((a, b) => (+a.order || 999) - (+b.order || 999))
-    .map(c => {
-      const value = c.name || c.category || c.value || "";
-      const icon  = c.icon || c.emoji || (FTS.catIcon ? FTS.catIcon(value) : "");
-      const rawSubs = c.subs || c.subcats || c.subcategories || [];
-      let subcats = [];
-
-      if (Array.isArray(rawSubs)) {
-        subcats = rawSubs
-          .filter(s => typeof s === "string" || (s && s.active !== false))
-          .map(s => typeof s === "string" ? s : (s.name || s.label || ""))
-          .filter(Boolean);
-      } else {
-        subcats = Object.values(rawSubs)
-          .filter(s => typeof s === "string" || (s && s.active !== false))
-          .map(s => typeof s === "string" ? s : (s.name || s.label || ""))
-          .filter(Boolean);
-      }
-
-      return {
-        value,
-        label: (icon ? icon + " " : "") + value,
-        subcats
-      };
-    })
-    .filter(c => c.value);
-}
-
-async function buildCatSelectors() {
-  categoryStructure = FTS.getCategoryStructureAsync
-    ? await FTS.getCategoryStructureAsync(db)
-    : (FTS.getCategoryStructure ? FTS.getCategoryStructure() : []);
-
-  ALL_CATS = FTS.categoryOptionsFromStructure
-    ? FTS.categoryOptionsFromStructure(categoryStructure)
-    : categoryOptionsFromStructureLocal(categoryStructure);
-
-  if (!ALL_CATS.length && FTS.getDefaultCategoryStructure) {
-    ALL_CATS = categoryOptionsFromStructureLocal(FTS.getDefaultCategoryStructure());
-  }
-
-  SUBCATS = {};
-  ALL_CATS.forEach(c => { SUBCATS[c.value] = c.subcats || []; });
-
-  const cats = allowedCats();
-  const opts = '<option value="">-- Choisir --</option>' +
-    cats.map(c => `<option value="${FTS.esc(c.value)}">${FTS.esc(c.label)}</option>`).join("");
-
-  document.getElementById("f-cat").innerHTML = opts;
-  document.getElementById("e-cat").innerHTML = opts;
-
-  document.getElementById("filter-cat").innerHTML =
-    '<option value="">Toutes les catégories</option>' +
-    cats.map(c => `<option value="${FTS.esc(c.value)}">${FTS.esc(c.label)}</option>`).join("");
-}
-
-/* ── ONGLETS ──────────────────────────────────────────────────── */
-function switchTab(name) {
-  document.querySelectorAll(".tab-pane, .tab-lnk").forEach(el => el.classList.remove("active"));
-  document.getElementById("tab-" + name).classList.add("active");
-  document.getElementById("tab-btn-" + name).classList.add("active");
-  if (name === "students") loadStudents();
-  if (name === "rewards") loadRewardsPanel();
-}
-
-/* ── LISTE DES ÉLÈVES ─────────────────────────────────────────── */
-async function loadStudents() {
-  const el = document.getElementById("students-list");
-  if (!el) return;
-  el.innerHTML = '<div class="empty-manage">Chargement…</div>';
-
-  try {
-    const snap = await db.ref("fts_users")
-      .orderByChild("status").equalTo("active").once("value");
-
-    // Disciplines autorisées pour ce prof (null = admin voit tout)
-    const allowedDiscs = userProfile.role === "admin"
-      ? null
-      : (userProfile.disciplines || []).map(d => normAccess(d));
-
-    const students = [];
-    if (snap.exists()) {
-      snap.forEach(child => {
-        const u = child.val() || {};
-        // Exclure admins et profs
-        if (u.role === "admin" || u.role === "prof") return;
-
-        // Disciplines de ce compte (parent ou élève)
-        const accountDiscs = Array.isArray(u.disciplines)
-          ? u.disciplines
-          : String(u.group || "").split(",").map(x => x.trim()).filter(Boolean);
-
-        // Disciplines des enfants (si compte parent)
-        const childDiscs = (u.hasEnfant && Array.isArray(u.enfants))
-          ? u.enfants.flatMap(e => Array.isArray(e.disciplines) ? e.disciplines : [])
-          : [];
-
-        const allDiscs = [...new Set([...accountDiscs, ...childDiscs])];
-
-        if (allowedDiscs) {
-          const match = allDiscs.some(d => allowedDiscs.includes(normAccess(d)));
-          if (!match) return;
-        }
-
-        students.push({ uid: child.key, ...u, accountDiscs, childDiscs, allDiscs });
-      });
-    }
-
-    students.sort((a, b) => (a.name || "").localeCompare(b.name || "", "fr"));
-
-    const badge = document.getElementById("students-count");
-    if (badge) badge.textContent = students.length;
-
-    if (!students.length) {
-      el.innerHTML = "<div class='empty-manage'>Aucun élève dans tes disciplines pour le moment.</div>";
-      return;
-    }
-
-    el.innerHTML = students.map(u => {
-      const displayName = [u.firstName, u.lastName].filter(Boolean).join(" ") || u.name || u.email || "—";
-      const discLabel   = u.accountDiscs.join(", ") || "—";
-
-      // Blocs enfants si compte parent
-      let enfantsHtml = "";
-      if (u.hasEnfant && Array.isArray(u.enfants) && u.enfants.length) {
-        // Filtrer seulement les enfants qui ont au moins une discipline du prof
-        const enfantsVisibles = allowedDiscs
-          ? u.enfants.filter(e =>
-              Array.isArray(e.disciplines) &&
-              e.disciplines.some(d => allowedDiscs.includes(normAccess(d)))
-            )
-          : u.enfants;
-
-        enfantsHtml = enfantsVisibles.map(e => `
-          <div class="student-child">
-            🎩 <strong>${FTS.esc(e.prenom || "")} ${FTS.esc(e.nom || "")}</strong>
-            ${e.disciplines && e.disciplines.length
-              ? `<span style="color:var(--gold)"> · ${FTS.esc(e.disciplines.join(", "))}</span>`
-              : ""}
-            ${e.telephone ? `<span style="color:#555"> · 📞 ${FTS.esc(e.telephone)}</span>` : ""}
-          </div>`).join("");
-      }
-
-      return `
-        <div class="student-card">
-          <div class="student-avatar">${FTS.esc((u.firstName || u.name || "?").charAt(0).toUpperCase())}</div>
-          <div class="student-info">
-            <div class="student-name">
-              ${FTS.esc(displayName.trim())}
-              ${u.hasEnfant ? '<span class="student-parent-badge">parent</span>' : ""}
-            </div>
-            ${u.telephone ? `<div class="student-meta">📞 ${FTS.esc(u.telephone)}</div>` : ""}
-            <div class="student-meta">${FTS.esc(discLabel)}</div>
-            ${enfantsHtml}
-          </div>
-        </div>`;
-    }).join("");
-
-  } catch(e) {
-    console.warn("[FTS Profs] Chargement élèves :", e);
-    el.innerHTML = "<div class='empty-manage'>Impossible de charger les élèves. Réessaie.</div>";
-  }
-}
-
-
-
-/* ── RÉCOMPENSES / BADGES TEMPORAIRES ───────────────────────── */
-let rewardVisibleStudentsCache = [];
-
-function rewardDisplayName(u) {
-  return [u && u.firstName, u && u.lastName].filter(Boolean).join(' ') || (u && (u.name || u.email)) || 'Membre';
-}
-
-function rewardChildName(e) {
-  return [e && (e.prenom || e.firstName), e && (e.nom || e.lastName)].filter(Boolean).join(' ') || (e && e.name) || 'Enfant';
-}
-
-function rewardDiscsFrom() {
-  const out = [];
-  Array.from(arguments).forEach(value => splitAccessList(value).forEach(v => { if (v) out.push(v); }));
-  return [...new Set(out)];
-}
-
-function rewardAllowedStudentsFromProfile(uid, u, allowedDiscs) {
-  const rows = [];
-  if (!u || u.role === 'admin' || u.role === 'prof') return rows;
-
-  const parentName = rewardDisplayName(u);
-  const accountDiscs = rewardDiscsFrom(u.disciplines, u.group, u.groups, u.categories, u.category);
-  const accountMatches = !allowedDiscs || accountDiscs.some(d => allowedDiscs.includes(normAccess(d)));
-
-  if (accountMatches && accountDiscs.length) {
-    rows.push({
-      uid,
-      optionValue: uid,
-      label: parentName + (accountDiscs.length ? ' · ' + accountDiscs.join(', ') : ''),
-      specialBadge: u.specialBadge || null
-    });
-  }
-
-  if (u.hasEnfant && Array.isArray(u.enfants)) {
-    u.enfants.forEach((e, index) => {
-      const childDiscs = rewardDiscsFrom(e.disciplines, e.group, e.groups, e.categories, e.category, e.subgroups, e.subgroup, e.subcategories, e.subcategory);
-      const childMatches = !allowedDiscs || childDiscs.some(d => allowedDiscs.includes(normAccess(d)));
-      if (!childMatches) return;
-      const childName = rewardChildName(e);
-      rows.push({
-        uid,
-        optionValue: uid + '::child::' + (e.id || index),
-        label: childName + ' · enfant de ' + parentName + (childDiscs.length ? ' · ' + childDiscs.join(', ') : ''),
-        isChild: true,
-        childId: String(e.id || index),
-        childName,
-        specialBadge: u.specialBadge || null
-      });
-    });
-  }
-
-  return rows;
-}
-
-function rewardUntilText(until) {
-  if (!until) return 'durée inconnue';
-  const d = new Date(Number(until));
-  return 'jusqu’au ' + d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
-}
-
-function renderRewardsHistory(students) {
-  const box = document.getElementById('rewards-history');
-  if (!box) return;
-  const now = Date.now();
-  const active = (students || [])
-    .filter(u => u && u.specialBadge && u.specialBadge.label && (!u.specialBadge.until || Number(u.specialBadge.until) > now))
-    .sort((a, b) => Number((a.specialBadge || {}).until || 0) - Number((b.specialBadge || {}).until || 0));
-
-  if (!active.length) {
-    box.innerHTML = '<div class="rewards-history-empty">Aucune récompense temporaire active pour tes élèves.</div>';
-    return;
-  }
-
-  box.innerHTML = `
-    <div class="rewards-history-head">
-      <strong>Récompenses actives</strong>
-      <small>Ces badges remplacent temporairement le badge XP dans le forum.</small>
-    </div>
-    <div class="rewards-history-list">
-      ${active.map(u => {
-        const b = u.specialBadge || {};
-        const isArtist = b.kind === 'artist' || String(b.label || '').includes('Artiste de la semaine');
-        return `
-          <div class="reward-history-item ${isArtist ? 'is-artist' : ''}">
-            <div class="reward-history-main">
-              <span class="reward-history-badge">${FTS.esc(b.label || 'Badge')}</span>
-              <strong>${FTS.esc(u.label || rewardDisplayName(u))}</strong>
-              <small>${FTS.esc(rewardUntilText(b.until))}${b.reason ? ' · ' + FTS.esc(b.reason) : ''}</small>
-            </div>
-            <div class="reward-history-actions">
-              <button class="btn-save rewards-mini-btn" onclick="extendRewardFromProfs('${FTS.esc(u.uid)}')">+7j</button>
-              <button class="btn-danger rewards-mini-btn" onclick="clearRewardFromProfs('${FTS.esc(u.uid)}')">Retirer</button>
-            </div>
-          </div>`;
-      }).join('')}
-    </div>`;
-}
-
-async function loadRewardsPanel() {
-  const userSel = document.getElementById('reward-user');
-  const badgeSel = document.getElementById('reward-badge');
-  if (!userSel || !badgeSel || !window.FTSGamification) return;
-
-  userSel.innerHTML = '<option value="">Chargement…</option>';
-  const allowedDiscs = userProfile.role === 'admin' ? null : (userProfile.disciplines || []).map(d => normAccess(d));
-  const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
-  const forumUsersSnap = await db.ref('fts_forum/users').once('value').catch(() => null);
-  const forumUsers = forumUsersSnap && forumUsersSnap.exists && forumUsersSnap.exists() ? (forumUsersSnap.val() || {}) : {};
-
-  const students = [];
-  if (snap.exists()) {
-    snap.forEach(child => {
-      const uid = child.key;
-      const rows = rewardAllowedStudentsFromProfile(uid, child.val() || {}, allowedDiscs);
-      const forumBadge = forumUsers && forumUsers[uid] && forumUsers[uid].specialBadge ? forumUsers[uid].specialBadge : null;
-
-      // Le badge temporaire officiel est stocké dans fts_forum/users/{uid}/specialBadge.
-      // L'écriture miroir vers fts_users est volontairement non bloquante et peut être refusée aux profs par les rules.
-      // On alimente donc l'affichage "Récompenses actives" depuis fts_forum pour éviter une fausse liste vide.
-      if (forumBadge && forumBadge.label) {
-        rows.forEach(row => {
-          if (forumBadge.childId) {
-            if (row.isChild && String(row.childId) === String(forumBadge.childId)) row.specialBadge = forumBadge;
-          } else if (!row.isChild) {
-            row.specialBadge = forumBadge;
-          } else if (!rows.some(r => !r.isChild)) {
-            row.specialBadge = forumBadge;
-          }
-        });
-      }
-
-      students.push(...rows);
-    });
-  }
-
-  students.sort((a, b) => (a.label || '').localeCompare(b.label || '', 'fr'));
-  rewardVisibleStudentsCache = students;
-  userSel.innerHTML = students.length
-    ? students.map(u => `<option value="${FTS.esc(u.optionValue || u.uid)}">${FTS.esc(u.label || rewardDisplayName(u))}</option>`).join('')
-    : '<option value="">Aucun élève disponible</option>';
-
-  if (!badgeSel.dataset.ready) {
-    badgeSel.innerHTML = FTSGamification.RARE_BADGES.map(b => `<option value="${FTS.esc(b)}">${FTS.esc(b)}</option>`).join('');
-    badgeSel.dataset.ready = '1';
-  }
-  renderRewardsHistory(students);
-}
-
-async function assignSpecialBadgeFromProfs() {
-  const selectedRewardValue = document.getElementById('reward-user')?.value;
-  const selectedRewardStudent = (rewardVisibleStudentsCache || []).find(u => (u.optionValue || u.uid) === selectedRewardValue);
-  const targetUid = selectedRewardStudent && selectedRewardStudent.uid;
-  const badge = document.getElementById('reward-badge')?.value;
-  const days = document.getElementById('reward-days')?.value || 7;
-  let reason = document.getElementById('reward-reason')?.value || '';
-
-  if (!targetUid || !badge) { alert('Choisis un élève et un badge.'); return; }
-  try {
-    await FTSGamification.setSpecialBadge(db, targetUid, badge, days, currentUserUid, reason, selectedRewardStudent && selectedRewardStudent.isChild ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
-    alert('Badge temporaire attribué.');
-    loadRewardsPanel();
-  } catch(e) {
-    alert('Impossible d’attribuer le badge : ' + (e && e.message ? e.message : e));
-  }
-}
-
-async function assignArtistOfWeekFromProfs() {
-  const selectedRewardValue = document.getElementById('reward-user')?.value;
-  const selectedRewardStudent = (rewardVisibleStudentsCache || []).find(u => (u.optionValue || u.uid) === selectedRewardValue);
-  const targetUid = selectedRewardStudent && selectedRewardStudent.uid;
-  let reason = document.getElementById('reward-reason')?.value || '';
-  if (!targetUid) { alert('Choisis un élève.'); return; }
-  if (!reason) reason = 'Mise en avant par l’équipe pédagogique';
-  try {
-    await FTSGamification.setArtistOfWeek(db, targetUid, currentUserUid, reason, 7, selectedRewardStudent && selectedRewardStudent.isChild ? { childId: selectedRewardStudent.childId, childName: selectedRewardStudent.childName, publicName: selectedRewardStudent.childName } : {});
-    alert('Artiste de la semaine défini.');
-    loadRewardsPanel();
-  } catch(e) {
-    alert('Impossible de définir l’artiste : ' + (e && e.message ? e.message : e));
-  }
-}
-
-async function extendRewardFromProfs(uid) {
-  if (!uid) return;
-  try {
-    await FTSGamification.extendSpecialBadge(db, uid, 7, currentUserUid);
-    loadRewardsPanel();
-  } catch(e) {
-    alert('Impossible de prolonger : ' + (e && e.message ? e.message : e));
-  }
-}
-
-async function clearRewardFromProfs(uid) {
-  if (!uid) return;
-  const student = (rewardVisibleStudentsCache || []).find(u => u.uid === uid);
-  if (!confirm('Retirer le badge temporaire de ' + (student ? (student.label || rewardDisplayName(student)) : 'ce membre') + ' ?')) return;
-  try {
-    await FTSGamification.clearSpecialBadge(db, uid, currentUserUid);
-    loadRewardsPanel();
-  } catch(e) {
-    alert('Impossible de retirer : ' + (e && e.message ? e.message : e));
-  }
-}
-
-/* ── SOUS-CATÉGORIES ─────────────────────────────────────────── */
-function updateSubcats() {
-  const cat = document.getElementById("f-cat").value;
-  _fillSubcat("f-subcat", "subcat-row", cat);
-  updateDanceVideoFolder();
-}
-function updateEditSubcats() {
-  const cat = document.getElementById("e-cat").value;
-  _fillSubcat("e-subcat", "e-subcat-row", cat);
-}
-function _fillSubcat(selId, rowId, cat) {
-  const sel = document.getElementById(selId);
-  const row = document.getElementById(rowId);
-  sel.innerHTML = '<option value="">-- Aucune --</option>';
-  if (SUBCATS[cat] && SUBCATS[cat].length) {
-    SUBCATS[cat].forEach(s => {
-      const o = document.createElement("option");
-      o.value = s; o.textContent = s;
-      sel.appendChild(o);
-    });
-    row.style.display = "block";
-  } else {
-    row.style.display = "none";
-  }
-}
-
-/* ── DOSSIERS VIDÉO DANSE ─────────────────────────────────────── */
-function isDanceCat(cat) {
-  return normAccess(cat) === normAccess("Danse");
-}
-
-function getDanceFolderConfig(subcat) {
-  const wanted = normAccess(subcat || "");
-  const key = Object.keys(DANCE_VIDEO_FOLDERS).find(k => normAccess(k) === wanted);
-  return key ? { key, ...DANCE_VIDEO_FOLDERS[key] } : null;
-}
-
-function updateDanceVideoFolder() {
-  const cat = document.getElementById("f-cat").value;
-  const subcat = document.getElementById("f-subcat").value;
-  const type = document.getElementById("f-type").value;
-  const box = document.getElementById("dance-video-folder-box");
-  const title = document.getElementById("dance-video-folder-title");
-  const text = document.getElementById("dance-video-folder-text");
-  const note = document.getElementById("dance-video-folder-note");
-  const uploadLink = document.getElementById("dance-video-upload-link");
-  const urlInput = document.getElementById("f-url");
-
-  if (!box || !uploadLink || !urlInput) return;
-
-  const shouldShow = isDanceCat(cat) && type === "video" && !!subcat;
-  if (!shouldShow) {
-    box.style.display = "none";
-    uploadLink.href = "#";
-    uploadLink.classList.add("disabled");
-    return;
-  }
-
-  const cfg = getDanceFolderConfig(subcat);
-  box.style.display = "block";
-  title.textContent = "Dossier vidéo Danse — " + subcat;
-
-  if (cfg && cfg.read) {
-    urlInput.value = cfg.read;
-    text.textContent = "Le lien lecture élèves a été renseigné automatiquement dans le champ Lien.";
-  } else {
-    text.textContent = "Lien lecture élèves non configuré pour cette sous-catégorie.";
-  }
-
-  if (cfg && cfg.write) {
-    uploadLink.href = cfg.write;
-    uploadLink.classList.remove("disabled");
-    uploadLink.textContent = "📁 Déposer la vidéo dans OneDrive";
-    note.textContent = "Après dépôt dans OneDrive, reviens ici, ajoute un titre et publie.";
-  } else {
-    uploadLink.href = "#";
-    uploadLink.classList.add("disabled");
-    uploadLink.textContent = "📁 Lien dépôt OneDrive à configurer";
-    note.textContent = "Ajoute plus tard le lien write dans DANCE_VIDEO_FOLDERS pour activer ce bouton.";
-  }
-}
-
-/* ── TYPE ─────────────────────────────────────────────────────── */
-function updateType() {
-  const t = document.getElementById("f-type").value;
-  document.getElementById("url-row").style.display    = t === "texte" ? "none" : "block";
-  document.getElementById("upload-row").style.display = t === "texte" ? "none" : "block";
-  const labels = {
-    pdf:"Lien Google Drive (PDF)", mp3:"Lien audio",
-    video:"Lien OneDrive, YouTube ou Google Drive", image:"Lien image", doc:"Lien",
-  };
-  document.getElementById("video-upload-tip").style.display =
-  t === "video" ? "block" : "none";
-  document.getElementById("url-label").textContent = labels[t] || "Lien";
-  updateDanceVideoFolder();
-}
-
-/* ── UPLOAD CLOUDINARY ────────────────────────────────────────── */
-function uploadFile(file) {
-  if (file.size > 100 * 1024 * 1024) { showMsg("Fichier trop volumineux (max 100 Mo)", "error"); return; }
-  document.getElementById("upload-progress").style.display = "block";
-  document.getElementById("drop-text").style.display = "none";
-  document.getElementById("progress-bar").style.width = "0%";
-  document.getElementById("progress-bar").style.background = "var(--red)";
-  document.getElementById("progress-text").textContent = "Upload en cours…";
-
-  FTS.uploadCloudinary(file, pct => {
-    document.getElementById("progress-bar").style.width = pct + "%";
-    document.getElementById("progress-text").textContent = "Upload " + pct + "%…";
-  })
-  .then(url => {
-    document.getElementById("f-url").value = url;
-    document.getElementById("progress-text").textContent = "✓ " + file.name + " uploadé !";
-    document.getElementById("progress-bar").style.width = "100%";
-    document.getElementById("progress-bar").style.background = "#22c55e";
-    const ext = file.name.split(".").pop().toLowerCase();
-    const typeMap = { pdf:"pdf", mp3:"mp3", mp4:"video", jpg:"image", jpeg:"image", png:"image", gif:"image" };
-    if (typeMap[ext]) {
-      document.getElementById("f-type").value = typeMap[ext];
-      updateType();
-    }
-  })
-  .catch(() => {
-    document.getElementById("progress-text").textContent = "Erreur lors de l'upload";
-    document.getElementById("drop-text").style.display = "block";
-    document.getElementById("upload-progress").style.display = "none";
-  });
-}
-
-/* ── PUBLICATION ──────────────────────────────────────────────── */
-async function doSubmit() {
-  const cat    = document.getElementById("f-cat").value;
-  const subcat = document.getElementById("f-subcat").value;
-  const type   = document.getElementById("f-type").value;
-  const name   = document.getElementById("f-name").value.trim();
-  const url    = document.getElementById("f-url").value.trim();
-  const text   = document.getElementById("f-text").value.trim();
-
-  if (!cat)                        { showMsg("Choisis une catégorie.",              "error"); return; }
-  if (!name)                       { showMsg("Entre un titre.",                     "error"); return; }
-  if (type !== "texte" && !url)    { showMsg("Entre le lien ou glisse un fichier.", "error"); return; }
-  if (type === "texte" && !text)   { showMsg("Entre le texte.",                     "error"); return; }
-
-  const btn = document.getElementById("btn-submit");
-  btn.disabled = true;
-  btn.textContent = "Publication…";
-  clearMsg();
-
-  try {
-    const content = type === "texte" ? text : url;
-    const data = {
-      cat,
-      category:   cat,
-      subcat:     subcat || "",
-      subcategory: subcat || "",
-      name,
-      url:        content,
-      content,
-      type,
-      text:       type !== "texte" ? text : "",
-      active:     true,
-      status:     "active",
-      visibility: "members",
-      authorUid:  currentUserUid,
-      authorName: userProfile.name || userProfile.firstName || "",
-      createdAt:  Date.now(),
-      updatedAt:  Date.now(),
-    };
-
-    const ref = await db.ref("fts_ressources").push(data);
-    data.key = ref.key;
-
-    // Ne bloque jamais la publication pour une action secondaire.
-    // Les profs peuvent publier dans fts_ressources, mais seul l'admin peut synchroniser
-    // automatiquement fts_content/categories via les rules Firebase.
-    await FTS.ensureResourceCategory(db, data).catch(e => {
-      console.warn("[FTS Profs] Synchronisation catégorie ignorée", e);
-    });
-    await buildCatSelectors().catch(e => {
-      console.warn("[FTS Profs] Rechargement catégories ignoré", e);
-    });
-    await notifyNewResource(data);
-
-    showMsg("✓ Publié avec succès !", "success");
-    resetForm();
-
-  } catch(e) {
-    showMsg("Erreur lors de la publication. Réessaie.", "error");
-    console.error("[FTS Profs]", e);
-  }
-
-  btn.disabled = false;
-  btn.textContent = "Publier";
-}
-
-function resetForm() {
-  ["f-name","f-url","f-text"].forEach(id => document.getElementById(id).value = "");
-  document.getElementById("f-cat").value   = "";
-  document.getElementById("drop-text").style.display    = "block";
-  document.getElementById("upload-progress").style.display = "none";
-  document.getElementById("progress-bar").style.width   = "0%";
-  document.getElementById("subcat-row").style.display   = "none";
-  const box = document.getElementById("dance-video-folder-box");
-  if (box) box.style.display = "none";
-}
-
-
-/* ── NOTIFICATIONS NOUVEAU DOCUMENT ──────────────────────────── */
-function splitAccessList(v) {
-  if (Array.isArray(v)) return v.map(x => String(x || '').trim()).filter(Boolean);
-  return String(v || '').split(',').map(x => x.trim()).filter(Boolean);
-}
-
-function normAccess(v) {
-  return FTS.norm ? FTS.norm(v || '') : String(v || '').toLowerCase().trim();
-}
-
-function resourceTargetPayload(data) {
-  const cat = data.cat || data.category || "";
-  const subcat = data.subcat || data.subcategory || "";
-  return {
-    group: cat,
-    subgroup: subcat || "",
-    category: cat,
-    subcategory: subcat
-  };
-}
-
-function userCanReceiveResourceNotification(u, target) {
-  if (!u || u.status !== "active") return false;
-  if (u.role === "admin") return true;
-
-  const cats = splitAccessList(u.disciplines && u.disciplines.length ? u.disciplines : u.group);
-  const hasCat = cats.some(c => normAccess(c) === normAccess(target.category));
-  if (!hasCat) return false;
-
-  // Document publié directement dans la discipline : tous les membres de cette discipline sont concernés.
-  if (!target.subcategory) return true;
-
-  // Document publié dans une section : uniquement les membres qui possèdent cette section.
-  const byCat = u.subgroupsByCat || {};
-  const matchingCatKey = Object.keys(byCat).find(k => normAccess(k) === normAccess(target.category));
-  const exactCatSubs = splitAccessList(matchingCatKey ? byCat[matchingCatKey] : []);
-  const globalSubs = splitAccessList(u.subgroups && u.subgroups.length ? u.subgroups : u.subgroup);
-  const allowedSubs = exactCatSubs.length ? exactCatSubs : globalSubs;
-  return allowedSubs.some(s => normAccess(s) === normAccess(target.subcategory));
-}
-
-async function getResourceRecipientUids(target) {
-  const snap = await db.ref("fts_users").orderByChild("status").equalTo("active").once("value");
-  const uids = [];
-  if (snap.exists()) {
-    snap.forEach(child => {
-      if (child.key === currentUserUid) return; // évite la notification à soi-même
-      if (userCanReceiveResourceNotification(child.val(), target)) uids.push(child.key);
-    });
-  }
-  // Sécurité : les admins actifs reçoivent toujours les notifications documents,
-  // même s'ils ne sont pas dans la catégorie / sous-catégorie.
-  const adminSnap = await db.ref("fts_users").orderByChild("role").equalTo("admin").once("value");
-  if (adminSnap.exists()) {
-    adminSnap.forEach(child => {
-      const u = child.val() || {};
-      if (child.key !== currentUserUid && u.status === "active" && !uids.includes(child.key)) uids.push(child.key);
-    });
-  }
-  return uids;
-}
-
-async function notifyNewResource(data) {
-  try {
-    const target = resourceTargetPayload(data);
-    const recipientUids = await getResourceRecipientUids(target);
-    if (!recipientUids.length) return;
-
-    const catLabel = target.subcategory ? (target.category + " — " + target.subcategory) : target.category;
-    const url = "./membres.html?resource=" + encodeURIComponent(data.key || "")
-      + "&cat=" + encodeURIComponent(target.category || "")
-      + "&subcat=" + encodeURIComponent(target.subcategory || "");
-
-    // Trace interne utile pour audit / debug, sans bloquer la publication.
-    const notif = {
-      type: "resource",
-      resourceId: data.key || "",
-      cat: target.category,
-      category: target.category,
-      subcat: target.subcategory,
-      subcategory: target.subcategory,
-      title: "Nouveau document",
-      body: data.name || "Nouveau document",
-      url,
-      read: false,
-      createdAt: Date.now(),
-      authorUid: currentUserUid
-    };
-    const fanout = {};
-    recipientUids.forEach(uid => {
-      const nref = db.ref("fts_user_notifications/" + uid).push();
-      fanout["fts_user_notifications/" + uid + "/" + nref.key] = notif;
-    });
-    await db.ref().update(fanout).catch(() => {});
-
-    if (!FTS.PUSH || !FTS.PUSH.workerUrl) {
-      await db.ref("fts_debug_notifications/resource_" + (data.key || Date.now())).set({
-        ok: false,
-        reason: "FTS.PUSH.workerUrl manquant dans fts-firebase.js",
-        recipientCount: recipientUids.length,
-        recipients: recipientUids,
-        cat: target.category,
-        subcat: target.subcategory,
-        createdAt: Date.now()
-      }).catch(() => {});
-      return;
-    }
-
-    const pushPayloadBase = {
-      group: target.group,
-      subgroup: target.subgroup,
-      category: target.category,
-      subcategory: target.subcategory,
-      type: "resource",
-      resourceId: data.key || "",
-      title: "FTS — Nouveau document",
-      body: (data.name || "Nouveau document") + (catLabel ? " · " + catLabel : ""),
-      url,
-      senderUid: currentUserUid
-    };
-
-    await Promise.allSettled(recipientUids.map(uid =>
-      fetch(FTS.PUSH.workerUrl + "/notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...pushPayloadBase,
-          uid,
-          uids: [uid],
-          recipientUids: [uid],
-          recipients: [uid],
-          tag: "resource-" + (data.key || Date.now()) + "-" + uid
-        })
-      })
-    ));
-  } catch(e) {
-    console.warn("[FTS Profs] Notification document non envoyée", e);
-  }
-}
-
-/* ── CHARGEMENT DOCUMENTS ─────────────────────────────────────── */
-function loadDocs() {
-  db.ref("fts_ressources").orderByChild("createdAt").on("value", snap => {
-    allDocs = [];
-    if (snap.exists()) {
-      snap.forEach(child => {
-        const d = child.val();
-        // Profs voient seulement leurs disciplines
-        if (userProfile.role !== "admin") {
-          const discs = userProfile.disciplines || [];
-          const dcat = d.cat || d.category;
-          if (!discs.includes(dcat)) return;
-        }
-        allDocs.unshift({ ...d, cat: d.cat || d.category || "", subcat: d.subcat || d.subcategory || "", url: d.url || d.content || "", key: child.key }); // plus récent en premier
-      });
-    }
-    document.getElementById("manage-count").textContent = allDocs.length;
-    applyFilters();
-  });
-}
-
-/* ── FILTRES ──────────────────────────────────────────────────── */
-function applyFilters() {
-  const catFilter  = document.getElementById("filter-cat").value;
-  const typeFilter = document.getElementById("filter-type").value;
-
-  filteredDocs = allDocs.filter(d => {
-    if (catFilter  && d.cat  !== catFilter)  return false;
-    if (typeFilter && d.type !== typeFilter) return false;
-    return true;
-  });
-
-  renderDocs();
-}
-
-/* ── RENDU LISTE ──────────────────────────────────────────────── */
-function renderDocs() {
-  const el = document.getElementById("doc-list");
-
-  if (!filteredDocs.length) {
-    el.innerHTML = '<div class="empty-manage">Aucun document publié pour le moment.</div>';
-    return;
-  }
-
-  el.innerHTML = filteredDocs.map(d => {
-    const icon = TYPE_ICONS[d.type] || "□";
-    const date = d.createdAt ? new Date(d.createdAt).toLocaleDateString("fr-FR", { day:"2-digit", month:"2-digit", year:"numeric" }) : "—";
-    const isAdmin = userProfile.role === "admin";
-
-    return `<div class="doc-item">
-      <div class="doc-item-icon">${icon}</div>
-      <div class="doc-item-info">
-        <div class="doc-item-name">${FTS.esc(d.name)}</div>
-        <div class="doc-item-meta">
-          <span class="doc-item-cat">${FTS.esc(d.cat)}${d.subcat ? " — " + FTS.esc(d.subcat) : ""}</span>
-          <span>${FTS.esc(d.type)}</span>
-          <span>${date}</span>
-          ${isAdmin && d.authorName ? `<span>par ${FTS.esc(d.authorName)}</span>` : ""}
-        </div>
-      </div>
-      <div class="doc-item-actions">
-        <button class="btn-edit"   onclick="openEditModal('${FTS.esc(d.key)}')">✎ Éditer</button>
-        <button class="btn-delete" onclick="deleteDoc('${FTS.esc(d.key)}', '${FTS.esc(d.name)}')">🗑 Supprimer</button>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-/* ── SUPPRESSION ──────────────────────────────────────────────── */
-async function deleteDoc(key, name) {
-  if (!confirm("Supprimer « " + name + " » ?\n\nCette action est irréversible.")) return;
-  try {
-    await db.ref("fts_ressources/" + key).remove();
-    // allDocs se met à jour via le listener .on("value")
-  } catch(e) {
-    alert("Erreur lors de la suppression.");
-  }
-}
-
-/* ── MODALE ÉDITION ───────────────────────────────────────────── */
-function openEditModal(key) {
-  const d = allDocs.find(x => x.key === key);
-  if (!d) return;
-
-  document.getElementById("edit-key").value = key;
-  document.getElementById("e-cat").value    = d.cat || "";
-  document.getElementById("e-type").value   = d.type || "doc";
-  document.getElementById("e-name").value   = d.name || "";
-  document.getElementById("e-url").value    = d.url  || "";
-  document.getElementById("e-text").value   = d.text || "";
-
-  updateEditSubcats();
-  // Sélectionner la bonne sous-cat après rendu
-  setTimeout(() => {
-    document.getElementById("e-subcat").value = d.subcat || "";
-  }, 50);
-
-  document.getElementById("edit-modal").classList.remove("hidden");
-}
-
-function closeEditModal() {
-  document.getElementById("edit-modal").classList.add("hidden");
-}
-
-async function saveEdit() {
-  const key    = document.getElementById("edit-key").value;
-  const cat    = document.getElementById("e-cat").value;
-  const subcat = document.getElementById("e-subcat").value;
-  const type   = document.getElementById("e-type").value;
-  const name   = document.getElementById("e-name").value.trim();
-  const url    = document.getElementById("e-url").value.trim();
-  const text   = document.getElementById("e-text").value.trim();
-
-  if (!cat || !name) { alert("Catégorie et titre requis."); return; }
-
-  try {
-    const data = {
-      cat, category: cat,
-      subcat: subcat || "", subcategory: subcat || "",
-      type, name,
-      url, content: url,
-      text,
-      active: true,
-      status: "active",
-      visibility: "members",
-      updatedAt: Date.now(),
-    };
-    await db.ref("fts_ressources/" + key).update(data);
-    await FTS.ensureResourceCategory(db, data);
-    await buildCatSelectors();
-    closeEditModal();
-  } catch(e) {
-    alert("Erreur lors de la modification.");
-  }
-}
-
-/* ── BADGE NON LUS ────────────────────────────────────────────── */
-function listenUnreadBadge(uid) {
-  const db = FTS.initFirebase ? firebase.database() : null;
-  if (!db) return;
-  db.ref('fts_dm/userConvs/' + uid).on('value', async snap => {
-    const convIds = snap.val() ? Object.keys(snap.val()) : [];
-    if (!convIds.length) { updateMsgBadge(0); return; }
-    let total = 0;
-    await Promise.all(convIds.map(id =>
-      db.ref('fts_dm/conversations/' + id + '/unread/' + uid).once('value')
-        .then(s => { total += (s.val() || 0); })
-    ));
-    updateMsgBadge(total);
-  });
-}
-function updateMsgBadge(count) {
-  const el = document.getElementById('msg-badge');
-  if (!el) return;
-  if (count > 0) { el.textContent = count > 99 ? '99+' : count; el.style.display = 'inline-block'; }
-  else { el.style.display = 'none'; }
-}
-
-/* ── UTILITAIRES ──────────────────────────────────────────────── */
-function showMsg(msg, type) {
-  const el = document.getElementById("msg");
-  el.className = "msg " + type;
-  el.textContent = msg;
-  el.style.display = "block";
-  if (type === "success") setTimeout(() => el.style.display = "none", 4000);
-}
-function clearMsg() { document.getElementById("msg").style.display = "none"; }
-
-function doSignOut() {
-  auth.signOut().then(() => window.location.href = "auth.html");
-}
-</script>
+<script src="assets/js/fts-nav.js?v=134"></script>
+<script src="assets/js/pages/profs.js?v=149"></script>
 
 <script src="assets/js/fts-pwa.js?v=12"></script>
 
+<script src="assets/js/fts-admin-mode.js?v=79"></script>
 </body>
 </html>
