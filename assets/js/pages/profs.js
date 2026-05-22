@@ -702,8 +702,16 @@ async function doSubmit() {
 
     const ref = await db.ref("fts_ressources").push(data);
     data.key = ref.key;
-    await FTS.ensureResourceCategory(db, data);
-    await buildCatSelectors();
+
+    // Synchronisation secondaire : utile seulement pour l'admin.
+    // Un prof peut publier une ressource sans avoir le droit d'écrire dans fts_content/categories.
+    // Si cette synchro échoue, on ne doit pas afficher une fausse erreur de publication.
+    await FTS.ensureResourceCategory(db, data).catch(e => {
+      console.warn('[FTS Profs] Synchronisation catégorie ignorée après publication', e);
+    });
+    await buildCatSelectors().catch(e => {
+      console.warn('[FTS Profs] Rechargement catégories ignoré après publication', e);
+    });
     await notifyNewResource(data);
 
     showMsg("✓ Publié avec succès !", "success");
@@ -773,46 +781,23 @@ function resourceTargetPayload(data) {
   };
 }
 
-function collectResourceUserCategories(u) {
-  let out = splitAccessList(u && (u.disciplines && u.disciplines.length ? u.disciplines : (u.group || u.groups || u.categories)));
-  if (u && Array.isArray(u.enfants)) {
-    u.enfants.forEach(e => {
-      out = out.concat(splitAccessList(e && (e.disciplines || e.group || e.groups || e.categories)));
-    });
-  }
-  return out.filter((v, i, a) => a.findIndex(x => normAccess(x) === normAccess(v)) === i);
-}
-
-function collectResourceUserSubgroups(u, targetCategory) {
-  let out = [];
-  const byCat = (u && u.subgroupsByCat) || {};
-  const matchingCatKey = Object.keys(byCat).find(k => normAccess(k) === normAccess(targetCategory));
-  if (matchingCatKey) out = out.concat(splitAccessList(byCat[matchingCatKey]));
-  out = out.concat(splitAccessList(u && (u.subgroups && u.subgroups.length ? u.subgroups : (u.subgroup || u.subcategories || u.subcategory))));
-  if (u && Array.isArray(u.enfants)) {
-    u.enfants.forEach(e => {
-      const childByCat = (e && e.subgroupsByCat) || {};
-      const childCatKey = Object.keys(childByCat).find(k => normAccess(k) === normAccess(targetCategory));
-      if (childCatKey) out = out.concat(splitAccessList(childByCat[childCatKey]));
-      out = out.concat(splitAccessList(e && (e.subgroups || e.subgroup || e.subcategories || e.subcategory || e.groupes)));
-    });
-  }
-  return out.filter((v, i, a) => a.findIndex(x => normAccess(x) === normAccess(v)) === i);
-}
-
 function userCanReceiveResourceNotification(u, target) {
   if (!u || u.status !== "active") return false;
   if (u.role === "admin") return true;
 
-  const cats = collectResourceUserCategories(u);
+  const cats = splitAccessList(u.disciplines && u.disciplines.length ? u.disciplines : u.group);
   const hasCat = cats.some(c => normAccess(c) === normAccess(target.category));
   if (!hasCat) return false;
 
-  // Document publié directement dans la discipline : tous les membres/parents de cette discipline sont concernés.
+  // Document publié directement dans la discipline : tous les membres de cette discipline sont concernés.
   if (!target.subcategory) return true;
 
-  // Document publié dans une section : uniquement les membres/parents de cette section.
-  const allowedSubs = collectResourceUserSubgroups(u, target.category);
+  // Document publié dans une section : uniquement les membres qui possèdent cette section.
+  const byCat = u.subgroupsByCat || {};
+  const matchingCatKey = Object.keys(byCat).find(k => normAccess(k) === normAccess(target.category));
+  const exactCatSubs = splitAccessList(matchingCatKey ? byCat[matchingCatKey] : []);
+  const globalSubs = splitAccessList(u.subgroups && u.subgroups.length ? u.subgroups : u.subgroup);
+  const allowedSubs = exactCatSubs.length ? exactCatSubs : globalSubs;
   return allowedSubs.some(s => normAccess(s) === normAccess(target.subcategory));
 }
 
@@ -1048,8 +1033,12 @@ async function saveEdit() {
       updatedAt: Date.now(),
     };
     await db.ref("fts_ressources/" + key).update(data);
-    await FTS.ensureResourceCategory(db, data);
-    await buildCatSelectors();
+    await FTS.ensureResourceCategory(db, data).catch(e => {
+      console.warn('[FTS Profs] Synchronisation catégorie ignorée après modification', e);
+    });
+    await buildCatSelectors().catch(e => {
+      console.warn('[FTS Profs] Rechargement catégories ignoré après modification', e);
+    });
     closeEditModal();
   } catch(e) {
     alert("Erreur lors de la modification.");
@@ -1182,14 +1171,47 @@ async function getRewardVisibleStudents() {
       });
     });
   }
-  // Fusion douce avec le profil forum : les badges temporaires y sont la source la plus fiable.
+  // Fusion douce avec le profil forum : fts_forum/users/{uid}/specialBadge est la source officielle.
+  // On gère aussi le cas enfant via childId pour éviter d'afficher un badge au mauvais enfant.
   const forumSnap = await db.ref("fts_forum/users").once("value").catch(() => null);
   const forumUsers = forumSnap && forumSnap.val ? (forumSnap.val() || {}) : {};
+  const artistSnap = await db.ref("fts_community/artistOfWeek").once("value").catch(() => null);
+  const artist = artistSnap && artistSnap.val ? (artistSnap.val() || null) : null;
+
+  function badgeMatchesRow(badge, row){
+    if (!badge || !row) return false;
+    const badgeChildId = String(badge.childId || '').trim();
+    if (row.isChild) return !!badgeChildId && badgeChildId === String(row.childId || '').trim();
+    return !badgeChildId;
+  }
+
   students.forEach(u => {
     const fu = forumUsers[u.uid] || {};
-    if (fu.specialBadge) u.specialBadge = fu.specialBadge;
     if (fu.stats) u.stats = Object.assign({}, u.stats || {}, fu.stats);
+    if (fu.specialBadge && badgeMatchesRow(fu.specialBadge, u)) {
+      u.specialBadge = fu.specialBadge;
+    }
   });
+
+  // Sécurité d'affichage : si l'artiste de la semaine a été écrit dans fts_community
+  // mais que la ligne n'a pas encore récupéré son badge, on l'injecte dans la bonne ligne visible.
+  if (artist && artist.uid) {
+    const candidate = students.find(u => String(u.uid) === String(artist.uid) && badgeMatchesRow(artist, u));
+    if (candidate && (!candidate.specialBadge || String(candidate.specialBadge.ts || 0) < String(artist.ts || 0))) {
+      candidate.specialBadge = {
+        label: artist.label || '⭐ Artiste de la semaine',
+        kind: artist.kind || 'artist',
+        until: artist.until || 0,
+        assignedBy: artist.assignedBy || '',
+        reason: artist.reason || artist.text || '',
+        ts: artist.ts || Date.now(),
+        childId: artist.childId || '',
+        childName: artist.childName || '',
+        publicName: artist.publicName || artist.name || ''
+      };
+    }
+  }
+
   students.sort((a, b) => (a.label || rewardDisplayName(a)).localeCompare(b.label || rewardDisplayName(b), "fr"));
   return students;
 }
