@@ -217,16 +217,19 @@ async function loadAnnonce(){
 }
 async function saveAnnonce(){
   return safeAdminAction('saveAnnonce', 'msg-annonce', async function(){
-    await db.ref('fts_content/annonces/current').set({
+    const now = Date.now();
+    const data = {
       active:$('a-active').value==='true',
       title:$('a-title').value.trim(),
       body:$('a-body').value.trim(),
       buttonText:$('a-btn').value.trim(),
       buttonUrl:$('a-url').value.trim(),
       expiresAt:tsFromDtLocal('a-expires'),
-      updatedAt:Date.now()
-    });
-    msg('msg-annonce','Annonce enregistrée — aperçu et diffusion prêts.');
+      updatedAt:now
+    };
+    await db.ref('fts_content/annonces/current').set(data);
+    await notifyAnnouncementSaved('current', data, 'current');
+    msg('msg-annonce','Annonce enregistrée — notifications envoyées aux membres actifs.');
   });
 }
 
@@ -339,6 +342,145 @@ function normalizeTargetedAnnonce(v={}, key=''){
   Object.keys(groups).forEach(cat => { if(cat && !cats.some(x=>FTS.norm(x)===FTS.norm(cat))) cats.push(cat); });
   return {...v, key, targetCategories:cats, targetGroups:groups, active:v.active!==false && v.status!=='inactive'};
 }
+
+function taProfileCats(u){
+  let out = normList(u && (u.disciplines || u.groups || u.group || u.categories));
+  if(u && u.hasEnfant && Array.isArray(u.enfants)){
+    u.enfants.forEach(e => { out = out.concat(normList(e && (e.disciplines || e.groups || e.group || e.categories))); });
+  }
+  return out.filter((v,i,a) => a.findIndex(x => FTS.norm(x) === FTS.norm(v)) === i);
+}
+function taProfileSubs(u){
+  let out = normList(u && (u.subgroups || u.subcategories || u.subgroup || u.subcategory));
+  if(u && u.hasEnfant && Array.isArray(u.enfants)){
+    u.enfants.forEach(e => { out = out.concat(normList(e && (e.subgroups || e.subcategories || e.subgroup || e.subcategory || e.groupes))); });
+  }
+  return out.filter((v,i,a) => a.findIndex(x => FTS.norm(x) === FTS.norm(v)) === i);
+}
+function taUserMatchesAnnouncementTargets(u, data){
+  if(!u || u.status !== 'active') return false;
+  const role = String(u.role || '').toLowerCase();
+  if(role === 'admin') return true;
+
+  const groups = (data && data.targetGroups && typeof data.targetGroups === 'object' && !Array.isArray(data.targetGroups)) ? data.targetGroups : {};
+  const cats = normList(data && (data.targetCategories || data.categories || data.groups || Object.keys(groups)));
+  Object.keys(groups).forEach(cat => { if(cat && !cats.some(x => FTS.norm(x) === FTS.norm(cat))) cats.push(cat); });
+  const subs = normList(data && (data.targetSubgroups || data.targetSubcategories || data.subgroups || data.subcategories));
+
+  if(!cats.length && !subs.length && !Object.keys(groups).length) return true;
+
+  const userCats = taProfileCats(u).map(FTS.norm);
+  const userSubs = taProfileSubs(u).map(FTS.norm);
+
+  for(const [cat, list] of Object.entries(groups)){
+    const catOk = userCats.includes(FTS.norm(cat));
+    const wantedSubs = normList(list);
+    if(catOk && !wantedSubs.length) return true;
+    if(catOk && wantedSubs.some(s => userSubs.includes(FTS.norm(s)))) return true;
+  }
+
+  if(cats.some(c => userCats.includes(FTS.norm(c)))){
+    const hasExplicitGroupForCat = cats.some(c => Object.prototype.hasOwnProperty.call(groups, c));
+    if(!hasExplicitGroupForCat && !subs.length) return true;
+  }
+  if(subs.some(s => userSubs.includes(FTS.norm(s)))) return true;
+  return false;
+}
+async function taGetAnnouncementRecipientUids(data){
+  const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
+  const uids = [];
+  if(snap.exists()){
+    snap.forEach(child => {
+      if(!child.key) return;
+      if(taUserMatchesAnnouncementTargets(child.val() || {}, data || {})) uids.push(child.key);
+    });
+  }
+  return uids.filter((uid,i,a) => uid && a.indexOf(uid) === i);
+}
+async function notifyAnnouncementSaved(key, data, kind){
+  try{
+    if(!key || !data || data.active === false || data.status === 'inactive') return;
+    if(!String(data.title || data.body || data.text || '').trim()) return;
+
+    const recipientUids = await taGetAnnouncementRecipientUids(kind === 'current' ? {} : data);
+    if(!recipientUids.length) return;
+
+    const now = Date.now();
+    const currentUser = auth && auth.currentUser ? auth.currentUser.uid : '';
+    const notificationKey = 'announcement-' + key + '-' + Number(data.updatedAt || now);
+    const title = kind === 'current' ? 'Nouvelle annonce Fais Ton Show' : 'Nouvelle annonce ciblée';
+    const bodyText = String(data.title || data.body || data.text || 'Une nouvelle annonce est disponible.').trim();
+    const body = bodyText.length > 120 ? bodyText.slice(0, 117) + '…' : bodyText;
+    const url = './membres.html?announcement=' + encodeURIComponent(key);
+
+    const fanout = {};
+    recipientUids.forEach(uid => {
+      const nref = db.ref('fts_user_notifications/' + uid).push();
+      fanout['fts_user_notifications/' + uid + '/' + nref.key] = {
+        type:'announcement',
+        announcementId:key,
+        announcementKind:kind,
+        notificationKey,
+        title,
+        body,
+        url,
+        read:false,
+        createdAt:now,
+        authorUid:currentUser
+      };
+    });
+    await db.ref().update(fanout).catch(()=>{});
+
+    if(!FTS.PUSH || !FTS.PUSH.workerUrl){
+      await db.ref('fts_debug_notifications/' + notificationKey).set({
+        ok:false,
+        reason:'FTS.PUSH.workerUrl manquant dans fts-firebase.js',
+        type:'announcement',
+        announcementId:key,
+        announcementKind:kind,
+        recipientCount:recipientUids.length,
+        recipients:recipientUids,
+        createdAt:now
+      }).catch(()=>{});
+      return;
+    }
+
+    await Promise.allSettled(recipientUids.map(uid =>
+      fetch(FTS.PUSH.workerUrl + '/notify', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          type:'announcement',
+          announcementId:key,
+          announcementKind:kind,
+          title:'FTS — ' + title,
+          body,
+          url,
+          senderUid:currentUser,
+          uid,
+          uids:[uid],
+          recipientUids:[uid],
+          recipients:[uid],
+          forceUid:true,
+          tag:notificationKey + '-' + uid,
+          collapseKey:notificationKey + '-' + uid
+        })
+      }).catch(()=>{})
+    ));
+
+    await db.ref('fts_debug_notifications/' + notificationKey).set({
+      ok:true,
+      type:'announcement',
+      announcementId:key,
+      announcementKind:kind,
+      recipientCount:recipientUids.length,
+      recipients:recipientUids,
+      createdAt:now
+    }).catch(()=>{});
+  }catch(e){
+    console.warn('[FTS Contenus Admin] Notification annonce non envoyée', e);
+  }
+}
 function listenTargetedAnnonces(){
   db.ref('fts_content/annonces/targeted').on('value', snap => {
     const rows=[];
@@ -414,7 +556,8 @@ async function saveTargetedAnnonce(){
     await ref.update(data);
     $('ta-key').value=ref.key;
     selectedTargetedAnnonce=ref.key;
-    msg('msg-targeted-annonce','Annonce ciblée enregistrée — ciblage vérifié.');
+    await notifyAnnouncementSaved(ref.key, data, 'targeted');
+    msg('msg-targeted-annonce','Annonce ciblée enregistrée — notifications envoyées aux destinataires concernés.');
   });
 }
 async function deleteTargetedAnnonce(){
