@@ -3,3 +3,6 @@
 .saison-loading #saison-content{visibility:hidden}.saison-loading::before{content:'Chargement de la saison…';position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--black);color:var(--muted);font-size:.82rem;z-index:9999}
 
 .offer-muted { font-size: .8rem; color: var(--muted); }
+
+/* v152 — saison alimentée par Catégories officielles */
+.season-desc{font-size:.88rem;color:var(--muted);line-height:1.65;margin:-.2rem 0 1rem}.season-subcats{background:#101010;border:1px solid var(--border);border-radius:var(--r-sm);padding:1rem;margin-bottom:1.2rem}.season-subcats-title{font-family:var(--font-display);font-size:1.1rem;margin-bottom:.75rem;color:var(--white)}.season-subcats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem}.season-subcat{background:#171717;border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);padding:.85rem}.season-subcat strong{display:block;color:var(--white);font-size:.88rem;line-height:1.35}.season-subcat-meta{font-size:.72rem;color:var(--gold);line-height:1.45;margin-top:.35rem}.season-subcat-note{font-size:.72rem;color:var(--muted);line-height:1.45;margin-top:.35rem}.season-subcat-price{font-family:var(--font-display);font-size:1rem;color:var(--gold);margin-top:.45rem}
