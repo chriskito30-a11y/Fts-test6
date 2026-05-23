@@ -62,6 +62,24 @@ async function safeAdminAction(key, msgId, action){
 }
 
 function escText(v){ return FTS.esc(String(v||'').trim()); }
+
+// Libellés de priorité partagés par Questionnaire et Catégories.
+// Sans ces helpers, renderCList/renderQList plantent silencieusement et la liste
+// des catégories officielles reste vide alors que Firebase est bien lu.
+function normalizePriorityValue(value){
+  const n = Number(value || 100);
+  if(n <= 10) return '10';
+  if(n <= 50) return '50';
+  if(n <= 100) return '100';
+  return '200';
+}
+function priorityLabel(value){
+  const v = normalizePriorityValue(value);
+  if(v === '10') return '⭐ Prioritaire';
+  if(v === '50') return '🔥 Important';
+  if(v === '200') return '📂 Secondaire';
+  return '📌 Normal';
+}
 function dtLocalFromTs(ts){
   const n = Number(ts || 0);
   if (!n) return '';
@@ -178,7 +196,10 @@ function showTab(id,btn){
   $('tab-'+id)?.classList.add('active');
   if(id==='questionnaire') renderQList();
   if(id==='ressources') renderRList();
-  if(id==='categories') renderCList();
+  if(id==='categories'){
+    renderCList();
+    if(categoriesRaw.length && !$('c-key')?.value) editCategory(categoriesRaw[0].key);
+  }
 }
 function doLogout(){ firebase.auth().signOut().then(()=>location.href='auth.html'); }
 
@@ -801,11 +822,19 @@ function listenCategories(){
     }));
     fillCats();
     renderCList();
+    if($('tab-categories')?.classList.contains('active') && categoriesRaw.length && !$('c-key')?.value){
+      editCategory(categoriesRaw[0].key);
+    }
     // Important : le sélecteur des annonces ciblées dépend des catégories.
     // Sans ce rendu après chargement Firebase, l'admin reste bloqué sur "Chargement des catégories…".
     const currentTargeted = selectedTargetedAnnonce ? targetedAnnonces.find(x => x.key === selectedTargetedAnnonce) : null;
     renderTargetPickers(currentTargeted || { targetCategories: taSelectedCats(), targetGroups: taSelectedGroups() });
-  }, err=>console.warn('[FTS Contenus] categories', err));
+  }, err=>{
+    console.warn('[FTS Contenus] categories', err);
+    const el=$('c-list');
+    if(el) el.innerHTML='<div class="hint">Lecture des catégories impossible : '+FTS.esc(errText(err))+'</div>';
+    msg('msg-c','Lecture catégories impossible : '+errText(err),false);
+  });
 }
 function fillCats(){
   const sel=$('r-cat'); if(!sel) return;
@@ -825,7 +854,16 @@ function updateResourceSubcats(){
 function renderCList(){
   const el=$('c-list'); if(!el) return;
   const selected=$('c-key')?.value||'';
-  el.innerHTML=categoriesRaw.length?categoriesRaw.map(c=>`<div class="item${selected===c.key?' sel':''}" data-fts-click="editCategory('${FTS.esc(c.key)}')"><div class="item-title">${FTS.esc(c.icon||FTS.catIcon(c.name))} ${FTS.esc(c.name||c.category||'Sans nom')}</div><div class="item-meta">${(c.subcatsArray||[]).length} sous-catégorie${(c.subcatsArray||[]).length>1?'s':''} · ${priorityLabel(c.order)}${c.active===false?' · masquée':''}</div></div>`).join(''):'<div class="hint">Aucune catégorie.</div>';
+  if(!categoriesRaw.length){
+    el.innerHTML='<div class="hint">Aucune catégorie officielle trouvée. Tu peux en ajouter une avec le bouton ci-dessous.</div>';
+    return;
+  }
+  el.innerHTML=categoriesRaw.map(c=>{
+    const subCount=(c.subcatsArray||[]).length;
+    const title=`${FTS.esc(c.icon||c.emoji||FTS.catIcon(c.name||c.category))} ${FTS.esc(c.name||c.category||'Sans nom')}`;
+    const meta=`${subCount} sous-catégorie${subCount>1?'s':''} · ${priorityLabel(c.order)}${c.active===false?' · masquée':''}`;
+    return `<div class="item${selected===c.key?' sel':''}" data-fts-click="editCategory('${FTS.esc(c.key)}')"><div class="item-title">${title}</div><div class="item-meta">${FTS.esc(meta)}</div><div class="item-meta">Appuie ici pour modifier le nom, l’icône et les sous-catégories.</div></div>`;
+  }).join('');
 }
 function newCategory(){
   ['c-key','c-name','c-icon','c-subcats'].forEach(id=>$(id).value='');
@@ -853,8 +891,9 @@ async function saveCategory(){
     const subcats={};
     lines.forEach(x=>subcats[FTS.norm(x)]={name:x,active:true,updatedAt:Date.now()});
     const icon=$('c-icon').value.trim()||FTS.catIcon(name);
+    const existing = oldKey ? categoriesRaw.find(x=>x.key===oldKey) : null;
     const data={name,category:name,icon,emoji:icon,order:Number($('c-order').value||999),active:$('c-active').value==='true',subcats,updatedAt:Date.now()};
-    if(!oldKey) data.createdAt=Date.now();
+    data.createdAt = (existing && existing.createdAt) || Date.now();
     const updates={};
     updates['fts_content/categories/'+key]=data;
     if(oldKey&&oldKey!==key) updates['fts_content/categories/'+oldKey]=null;
