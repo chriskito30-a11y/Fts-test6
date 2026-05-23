@@ -1,4 +1,4 @@
-const CACHE = 'fts-v150-mobile-ux-final';
+const CACHE = 'fts-v151-contenus-categories-edit';
 const FILES = [
   './manifest.json',
   './index.html',
