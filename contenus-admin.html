@@ -131,7 +131,13 @@
 <div class="field"><label>Icône de la discipline</label><input id="c-icon" placeholder="🎵"/><small>Emoji affiché dans l’application.</small></div>
 <div class="field"><label>Importance dans les listes</label><select id="c-order"><option value="10">⭐ Prioritaire — en haut</option><option value="50">🔥 Important</option><option value="100">📌 Normal</option><option value="200">📂 Secondaire — plus bas</option></select><small>Choisis une priorité lisible. Le tri technique est conservé automatiquement.</small></div>
 <div class="field"><label>Catégorie active</label><select id="c-active"><option value="true">Oui, active</option><option value="false">Non, masquée</option></select><small>Masquer sans supprimer.</small></div>
+<div class="field"><label>Afficher sur la page Saison</label><select id="c-season-show"><option value="true">Oui</option><option value="false">Non</option></select><small>Ajoute ou retire automatiquement la carte sur saison.html.</small></div>
+<div class="field"><label>Sous-titre Saison</label><input id="c-season-subtitle" placeholder="Ex : Mercredi · Lundi"/><small>Texte court sous la carte.</small></div>
+<div class="field"><label>Tarif / note Saison</label><input id="c-season-price" placeholder="Ex : À partir de 290€"/><small>Optionnel, affiché si aucun ancien parcours n’existe.</small></div>
+<div class="field full"><label>Description Saison</label><textarea id="c-season-desc" placeholder="Texte public affiché sur la page Saison"></textarea></div>
+<div class="field full"><label>Lien inscription Saison</label><input id="c-season-link" placeholder="https://www.helloasso.com/..."/></div>
 <div class="field full"><label>Sous-catégories — une par ligne</label><textarea id="c-subcats" placeholder="7/9 ans\n10/12 ans\nAdultes"></textarea></div>
+<div class="field full"><label>Détails Saison des sous-catégories</label><textarea id="c-season-subcats" placeholder="7/9 ans - Débutants | Mercredi | 11h - 12h | Débutants | Note optionnelle\nAdultes - Tous niveaux | Mercredi | 20h30 - 21h30 | Tous niveaux"></textarea><small>Format : Sous-catégorie | Jour | Horaire | Niveau | Note. Le nom doit correspondre à une sous-catégorie ci-dessus.</small></div>
 </div>
 <div class="row-actions">
 <button class="btn btn-sm" data-fts-handler-15="">Enregistrer</button>
@@ -170,6 +176,6 @@
 <script src="assets/js/services/notifications.service.js?v=142"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=67"></script>
-<script src="assets/js/pages/contenus-admin.js?v=151"></script>
+<script src="assets/js/pages/contenus-admin.js?v=152"></script>
 </body>
 </html>

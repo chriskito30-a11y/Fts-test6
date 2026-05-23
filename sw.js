@@ -1,4 +1,4 @@
-const CACHE = 'fts-v151-contenus-categories-edit';
+const CACHE = 'fts-v152-season-categories-source';
 const FILES = [
   './manifest.json',
   './index.html',
