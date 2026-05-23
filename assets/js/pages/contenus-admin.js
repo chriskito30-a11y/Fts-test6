@@ -806,8 +806,8 @@ function listenCategories(){
       const v=c.val()||{};
       let subs=[];
       const raw=v.subcats||v.subcategories||{};
-      if(Array.isArray(raw)) raw.forEach(s=>{ if(typeof s==='string') subs.push({name:s,active:true}); else if(s && s.active!==false && (s.name||s.label)) subs.push({name:s.name||s.label,active:true}); });
-      else Object.values(raw).forEach(s=>{ if(typeof s==='string') subs.push({name:s,active:true}); else if(s && s.active!==false && (s.name||s.label)) subs.push({name:s.name||s.label,active:true}); });
+      if(Array.isArray(raw)) raw.forEach((s,i)=>{ if(typeof s==='string') subs.push({key:FTS.norm(s)||String(i),name:s,active:true}); else if(s && s.active!==false && (s.name||s.label)) subs.push({key:s.key||FTS.norm(s.name||s.label)||String(i),...s,name:s.name||s.label,active:true}); });
+      else Object.entries(raw).forEach(([sk,s])=>{ if(typeof s==='string') subs.push({key:sk,name:s,active:true}); else if(s && s.active!==false && (s.name||s.label)) subs.push({key:sk,...s,name:s.name||s.label,active:true}); });
       categoriesRaw.push({key:c.key,...v,subcatsArray:subs.filter(x=>x.name)});
     });
     categoriesRaw.sort((a,b)=>(a.order||999)-(b.order||999)||(a.name||'').localeCompare(b.name||'', 'fr'));
@@ -865,10 +865,32 @@ function renderCList(){
     return `<div class="item${selected===c.key?' sel':''}" data-fts-click="editCategory('${FTS.esc(c.key)}')"><div class="item-title">${title}</div><div class="item-meta">${FTS.esc(meta)}</div><div class="item-meta">Appuie ici pour modifier le nom, l’icône et les sous-catégories.</div></div>`;
   }).join('');
 }
+function categorySeasonLines(c){
+  return (c.subcatsArray||[]).map(s=>{
+    const ss=s.season||{};
+    const parts=[s.name||'', ss.day||'', ss.time||'', ss.level||'', ss.note||''];
+    while(parts.length && !parts[parts.length-1]) parts.pop();
+    return parts.join(' | ');
+  }).join('\n');
+}
+function parseSeasonSubcatLines(){
+  const out={};
+  const box=$('c-season-subcats');
+  if(!box) return out;
+  box.value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).forEach(line=>{
+    const parts=line.split('|').map(x=>x.trim());
+    const name=parts[0]||'';
+    if(!name) return;
+    out[FTS.norm(name)]={showOnSeason:true,day:parts[1]||'',time:parts[2]||'',level:parts[3]||'',note:parts[4]||''};
+  });
+  return out;
+}
+function setValueIfExists(id,value){ const el=$(id); if(el) el.value=value==null?'':String(value); }
 function newCategory(){
-  ['c-key','c-name','c-icon','c-subcats'].forEach(id=>$(id).value='');
+  ['c-key','c-name','c-icon','c-subcats','c-season-subtitle','c-season-price','c-season-desc','c-season-link','c-season-subcats'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
   $('c-order').value='100';
   $('c-active').value='true';
+  setValueIfExists('c-season-show','true');
   renderCList();
 }
 function editCategory(key){
@@ -900,7 +922,7 @@ async function saveCategory(){
     await db.ref().update(updates);
     await syncResourcesCategoryRename(oldKey,key,name);
     $('c-key').value=key;
-    msg('msg-c','Catégorie enregistrée');
+    msg('msg-c','Catégorie enregistrée. La page Saison se mettra à jour automatiquement.');
   });
 }
 async function syncResourcesCategoryRename(oldKey,newKey,newName){
