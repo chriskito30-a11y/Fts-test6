@@ -1,4 +1,4 @@
-const CACHE = 'fts-v165-rgpd-email-worker';
+const CACHE = 'fts-v166-admin-rgpd-delete';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -8,7 +8,6 @@ const FILES = [
   './forum.html',
   './messages.html',
   './faq.html',
-  './confidentialite.html',
   './hub-messages.html',
   './sondages.html',
   './rappels-admin.html',
