@@ -1,5 +1,5 @@
 /* ================================================================
-   PAGE MODULE — RGPD ADMIN V172
+   PAGE MODULE — RGPD ADMIN V174
    Registre interne, incidents, historique des demandes.
    ================================================================ */
 'use strict';
@@ -133,6 +133,7 @@ window.addEventListener('DOMContentLoaded', function(){
   document.getElementById('incident-save').addEventListener('click', rgpdSaveIncident);
   document.getElementById('rgpd-refresh-requests').addEventListener('click', rgpdLoadRequests);
   document.getElementById('incident-date').value = new Date().toISOString().slice(0,10);
+  rgpdInitCollapsibles();
 
   rgpdAuth.onAuthStateChanged(async function(user){
     if(!user){ location.href='auth.html'; return; }
@@ -155,6 +156,49 @@ window.addEventListener('DOMContentLoaded', function(){
     }
   });
 });
+
+function rgpdInitCollapsibles(){
+  const cards = Array.from(document.querySelectorAll('.rgpd-card'));
+  cards.forEach((card, index)=>{
+    if(card.classList.contains('rgpd-actions-card')) return;
+    const head = card.querySelector('.rgpd-card-head') || null;
+    const title = card.querySelector('h2');
+    if(!title) return;
+    const key = 'fts_rgpd_admin_section_' + index;
+    card.classList.add('rgpd-collapsible');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rgpd-collapse-toggle';
+    btn.setAttribute('aria-expanded','true');
+    btn.innerHTML = '<span>Replier</span><b aria-hidden="true">⌄</b>';
+    const target = head || title.parentElement;
+    if(head){
+      head.appendChild(btn);
+    }else{
+      const wrap = document.createElement('div');
+      wrap.className = 'rgpd-card-head rgpd-auto-head';
+      title.parentNode.insertBefore(wrap, title);
+      const div = document.createElement('div');
+      div.appendChild(title);
+      wrap.appendChild(div);
+      wrap.appendChild(btn);
+    }
+    const saved = localStorage.getItem(key);
+    const shouldCollapseByDefault = index >= 2 && index !== 4 && index !== 5;
+    const collapsed = saved ? saved === 'collapsed' : shouldCollapseByDefault;
+    rgpdSetCollapsed(card, btn, collapsed);
+    btn.addEventListener('click', ()=>{
+      const next = !card.classList.contains('is-collapsed');
+      rgpdSetCollapsed(card, btn, next);
+      localStorage.setItem(key, next ? 'collapsed' : 'open');
+    });
+  });
+}
+function rgpdSetCollapsed(card, btn, collapsed){
+  card.classList.toggle('is-collapsed', !!collapsed);
+  btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  btn.querySelector('span').textContent = collapsed ? 'Déplier' : 'Replier';
+}
 
 async function rgpdLoadRegistry(){
   const snap = await rgpdDb.ref('fts_privacy_registry/current').once('value');
@@ -327,18 +371,32 @@ async function rgpdSaveIncident(){
 async function rgpdLoadIncidents(){
   const box = document.getElementById('incident-list');
   try{
-    const snap = await rgpdDb.ref('fts_privacy_incidents').orderByChild('createdAt').limitToLast(30).once('value');
+    const snap = await rgpdDb.ref('fts_privacy_incidents').once('value');
     const rows = [];
-    snap.forEach(child=>rows.push(Object.assign({id:child.key}, child.val())));
-    rows.reverse();
+    snap.forEach(child=>rows.push(Object.assign({id:child.key}, child.val() || {})));
+    rows.sort((a,b)=>{
+      const da = Number(a.createdAt || Date.parse(a.date || '') || 0);
+      const db = Number(b.createdAt || Date.parse(b.date || '') || 0);
+      return db - da;
+    });
     if(!rows.length){ box.className='rgpd-list-empty'; box.textContent='Aucun incident documenté.'; return; }
-    box.className='rgpd-history-list';
-    box.innerHTML = rows.map(i=>`<article><strong>${rgpdEsc(i.date || rgpdDate(i.createdAt))} — ${rgpdEsc(i.risk || '')}</strong><p>${rgpdEsc(i.description || '')}</p><small>${rgpdEsc(i.actions || 'Aucune action renseignée')}</small></article>`).join('');
+    box.className='rgpd-history-list rgpd-incident-list';
+    box.innerHTML = rows.slice(0,80).map(i=>{
+      const risk = i.risk || '—';
+      const date = i.date || rgpdDate(i.createdAt);
+      const status = i.status || 'documented';
+      return `<article class="rgpd-history-item rgpd-incident-item">
+        <div class="rgpd-history-top"><strong>${rgpdEsc(date)} — ${rgpdEsc(risk)}</strong><span>${rgpdEsc(status)}</span></div>
+        <p>${rgpdEsc(i.description || '')}</p>
+        <small>${rgpdEsc(i.actions || 'Aucune action renseignée')}</small>
+      </article>`;
+    }).join('');
   }catch(e){
     box.className='rgpd-list-empty error';
     box.textContent='Impossible de charger les incidents : ' + (e && e.message ? e.message : String(e));
   }
 }
+
 function rgpdActionDate(row){
   return Number(row.at || row.createdAt || row.doneAt || row.completedAt || row.requestedAt || row.ts || 0);
 }
@@ -389,8 +447,12 @@ async function rgpdLoadRequests(){
     all.sort((a,b)=>rgpdActionDate(b)-rgpdActionDate(a));
     const rows = all.slice(0,40);
     if(!rows.length){ box.textContent='Aucune demande ou action RGPD enregistrée pour le moment.'; return; }
-    box.className='rgpd-history-list';
-    box.innerHTML = rows.map(r=>`<article><strong>${rgpdEsc(rgpdActionLabel(r))}</strong><p>${rgpdEsc(rgpdActionIdentity(r))}</p><small>${rgpdDate(rgpdActionDate(r))} · ${rgpdEsc(r.status || r.result || r.source || '')}</small></article>`).join('');
+    box.className='rgpd-history-list rgpd-actions-history-list';
+    box.innerHTML = rows.map(r=>`<article class="rgpd-history-item">
+      <div class="rgpd-history-top"><strong>${rgpdEsc(rgpdActionLabel(r))}</strong><span>${rgpdEsc(r.status || r.result || r.source || '')}</span></div>
+      <p>${rgpdEsc(rgpdActionIdentity(r))}</p>
+      <small>${rgpdDate(rgpdActionDate(r))}</small>
+    </article>`).join('');
   }catch(e){
     box.className='rgpd-list-empty error';
     box.textContent='Impossible de charger l’historique : ' + (e && e.message ? e.message : String(e));
