@@ -1090,7 +1090,9 @@ async function deleteUserCompletely(id) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.ok) {
-      throw new Error(data.error || ('HTTP ' + res.status));
+      const err = new Error(data.error || ('HTTP ' + res.status));
+      err.data = data;
+      throw err;
     }
 
     // Nettoyage non bloquant de l'abonnement push KV, si le Worker push le permet.
@@ -1119,11 +1121,20 @@ async function deleteUserCompletely(id) {
       auth_delete_permission_denied: "Le compte de service Firebase n'a pas la permission firebaseauth.users.delete.",
       auth_delete_bad_request: "Firebase Auth a refusé la demande de suppression.",
       auth_delete_user_not_found: "Le compte Auth n'existe déjà plus.",
-      db_delete_failed: "Le compte Auth a peut-être été supprimé, mais le nettoyage RTDB a échoué.",
+      db_delete_failed: "Le nettoyage RTDB a échoué.",
+      db_delete_not_complete: "Suppression incomplète : certaines traces de l’UID existent encore dans RTDB.",
       service_account_token_failed: "Le Worker n'arrive pas à générer le jeton du compte de service Firebase.",
       admin_not_connected: "Compte admin non connecté."
     };
-    alert("Suppression impossible : " + (labels[msg] || msg));
+    
+    let extra = "";
+    if (e && e.data) {
+      const remaining = Array.isArray(e.data.remaining) ? e.data.remaining : [];
+      const failed = Array.isArray(e.data.failed) ? e.data.failed : [];
+      if (remaining.length) extra += "\n\nTraces restantes :\n- " + remaining.slice(0, 8).join("\n- ");
+      if (failed.length) extra += "\n\nChemins en échec :\n- " + failed.slice(0, 8).map(x => (x.path || "?") + (x.error ? " (" + x.error + ")" : "")).join("\n- ");
+    }
+    alert("Suppression impossible : " + (labels[msg] || msg) + extra);
   } finally {
     adminBusyActions[busyKey] = false;
   }
