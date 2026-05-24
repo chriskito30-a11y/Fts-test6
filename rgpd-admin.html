@@ -11,7 +11,7 @@
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
 <link href="assets/css/fts-admin-mode.css?v=80" rel="stylesheet"/>
-<link href="assets/css/pages/rgpd-admin.css?v=174" rel="stylesheet"/>
+<link href="assets/css/pages/rgpd-admin.css?v=176" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -110,6 +110,7 @@
       <h2>4. Registre des incidents</h2>
       <p>Documente même les petits incidents. Une ligne claire vaut mieux qu’une information perdue.</p>
     </div>
+    <button type="button" class="rgpd-secondary" id="rgpd-refresh-incidents">Actualiser</button>
   </div>
   <div class="rgpd-incident-form">
     <label>Date<input id="incident-date" type="date"/></label>
@@ -127,7 +128,10 @@
       <h2>5. Historique des demandes RGPD</h2>
       <p>Affiche les demandes ou actions enregistrées par l’app quand elles existent.</p>
     </div>
-    <button type="button" class="rgpd-secondary" id="rgpd-refresh-requests">Actualiser</button>
+    <div class="rgpd-head-actions">
+      <button type="button" class="rgpd-secondary" id="rgpd-refresh-requests">Actualiser</button>
+      <button type="button" class="rgpd-danger" id="rgpd-anonymize-old-actions">Anonymiser anciens logs</button>
+    </div>
   </div>
   <div id="privacy-requests-list" class="rgpd-list-empty">Chargement de l’historique…</div>
 </section>
@@ -155,6 +159,6 @@
 <script src="assets/js/fts-utils.js"></script>
 <script src="assets/js/fts-admin-mode.js?v=80"></script>
 <script src="assets/js/fts-firebase.js"></script>
-<script src="assets/js/pages/rgpd-admin.js?v=174"></script>
+<script src="assets/js/pages/rgpd-admin.js?v=176"></script>
 </body>
 </html>
