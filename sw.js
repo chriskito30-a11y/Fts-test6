@@ -1,4 +1,4 @@
-const CACHE = 'fts-v162-admin-signup-push';
+const CACHE = 'fts-v163-rgpd';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -8,6 +8,7 @@ const FILES = [
   './forum.html',
   './messages.html',
   './faq.html',
+  './confidentialite.html',
   './hub-messages.html',
   './sondages.html',
   './rappels-admin.html',

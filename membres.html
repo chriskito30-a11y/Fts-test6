@@ -371,6 +371,38 @@
       </button>
     </div>
 
+
+
+    <details class="account-details account-rgpd-details">
+      <summary>Confidentialité / RGPD</summary>
+      <p>Gère directement tes données personnelles. Les actions ci-dessous sont conçues pour être automatiques et éviter les demandes manuelles.</p>
+      <div class="account-rgpd-grid">
+        <div class="account-rgpd-box">
+          <strong>Modifier mon email</strong>
+          <small>Une reconnexion peut être demandée par sécurité.</small>
+          <input class="account-field" id="account-new-email" type="email" autocomplete="email" placeholder="nouvelle-adresse@email.fr">
+          <button class="account-btn" id="btn-account-email">Modifier mon email</button>
+          <div class="account-msg" id="account-email-msg"></div>
+        </div>
+        <div class="account-rgpd-box">
+          <strong>Exporter mes données</strong>
+          <small>Télécharge une copie JSON des données lisibles liées à ton compte.</small>
+          <button class="account-btn" id="btn-account-export">Télécharger mes données</button>
+          <div class="account-msg" id="account-export-msg"></div>
+        </div>
+        <div class="account-rgpd-box">
+          <strong>Supprimer un enfant</strong>
+          <small>Dans “Informations”, supprime la fiche enfant puis clique sur Enregistrer. Les données enfant retirées disparaissent du profil.</small>
+        </div>
+        <div class="account-rgpd-box danger">
+          <strong>Supprimer mon compte</strong>
+          <small>Supprime ton profil, tes préférences, tes notifications, tes réponses et les traces rattachées à ton UID dans la base.</small>
+          <button class="account-btn account-btn-danger" id="btn-account-delete">Supprimer définitivement mon compte</button>
+          <div class="account-msg" id="account-delete-msg"></div>
+        </div>
+      </div>
+      <p class="account-rgpd-note"><a href="confidentialite.html" target="_blank" rel="noopener">Lire la politique de confidentialité</a></p>
+    </details>
     <details class="account-details">
       <summary>Changer mon mot de passe</summary>
       <p>Par sécurité Firebase, une reconnexion peut être demandée si ta session est trop ancienne.</p>
@@ -499,6 +531,6 @@
 <script src="assets/js/services/schedules.service.js?v=60"></script>
 <script src="assets/js/fts-nav.js?v=134"></script>
 <script src="assets/js/fts-gamification.js?v=149"></script>
-<script src="assets/js/pages/membres.js?v=134"></script>
+<script src="assets/js/pages/membres.js?v=163"></script>
 </body>
 </html>
