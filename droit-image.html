@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Droit à l’image — Fais Ton Show</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<link href="assets/css/fts.css?v=16" rel="stylesheet">
+<link href="assets/css/pages/droit-image.css?v=179" rel="stylesheet">
+</head>
+<body class="has-noise has-glow">
+  <main class="image-rights-page" id="image-rights-shell" hidden>
+    <header class="image-rights-hero">
+      <div>
+        <a class="image-rights-back" href="membres.html">← Retour</a>
+        <p class="image-rights-kicker">Sécurité / RGPD</p>
+        <h1>Droit à l’image</h1>
+        <p>Liste simple des personnes ayant refusé le droit à l’image, pour éviter les erreurs lors des photos, vidéos, spectacles et publications.</p>
+      </div>
+      <div class="image-rights-actions">
+        <button type="button" id="image-rights-refresh">Actualiser</button>
+        <button type="button" id="image-rights-export">Exporter CSV</button>
+        <button type="button" id="image-rights-logout">Déconnexion</button>
+      </div>
+    </header>
+
+    <section class="image-rights-stats" id="image-rights-stats">
+      <article><strong>—</strong><span>refus</span></article>
+      <article><strong>—</strong><span>autorisations</span></article>
+      <article><strong>—</strong><span>non renseignés</span></article>
+    </section>
+
+    <section class="image-rights-toolbar">
+      <label>
+        <span>Recherche</span>
+        <input id="image-rights-search" type="search" placeholder="Nom, enfant, discipline…">
+      </label>
+      <label>
+        <span>Filtre</span>
+        <select id="image-rights-filter">
+          <option value="refused">Refus uniquement</option>
+          <option value="unknown">Non renseignés</option>
+          <option value="accepted">Autorisations</option>
+          <option value="all">Tout afficher</option>
+        </select>
+      </label>
+    </section>
+
+
+    <section class="image-rights-policy">
+      <h2>Rappel de l’autorisation demandée</h2>
+      <p><strong>Utilisation autorisée :</strong> photos/vidéos prises dans le cadre de Fais Ton Show pour l’application, le site, les réseaux sociaux officiels, affiches, flyers, programmes, dossiers de présentation, presse locale et supports liés aux spectacles ou inscriptions.</p>
+      <p><strong>Non autorisé :</strong> vente des images, cession à des tiers pour un usage commercial externe, utilisation dévalorisante ou sans lien avec l’association.</p>
+      <p><strong>Priorité opérationnelle :</strong> les refus doivent être vérifiés avant toute publication, montage vidéo, affiche ou communication publique identifiable.</p>
+    </section>
+    <section class="image-rights-alert">
+      <strong>À respecter :</strong> si une personne est dans la liste “Refus”, éviter toute photo/vidéo identifiable ou demander une autorisation spécifique ponctuelle.
+    </section>
+
+    <section class="image-rights-list" id="image-rights-list">
+      <div class="image-rights-empty">Chargement…</div>
+    </section>
+  </main>
+
+  <div class="image-rights-error" id="image-rights-error" hidden></div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="assets/js/fts-utils.js?v=16"></script>
+  <script src="assets/js/fts-firebase.js?v=16"></script>
+  <script src="assets/js/pages/droit-image.js?v=179"></script>
+</body>
+</html>

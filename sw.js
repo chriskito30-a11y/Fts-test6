@@ -1,4 +1,4 @@
-const CACHE = 'fts-v177-rgpd-admin-logs-clean';
+const CACHE = 'fts-v179-droit-image-notice';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -12,6 +12,7 @@ const FILES = [
   './sondages.html',
   './rappels-admin.html',
   './rgpd-admin.html',
+  './droit-image.html',
   './profs.html',
   './admin.html',
   './contenus-admin.html',
@@ -39,6 +40,7 @@ const FILES = [
   './assets/css/pages/sondages.css',
   './assets/css/pages/rappels-admin.css',
   './assets/css/pages/rgpd-admin.css',
+  './assets/css/pages/droit-image.css',
   './assets/css/pages/faq.css',
   './assets/js/fts-chat.js',
   './assets/js/fts-firebase.js',
@@ -77,6 +79,7 @@ const FILES = [
   './assets/js/pages/sondages.js',
   './assets/js/pages/rappels-admin.js',
   './assets/js/pages/rgpd-admin.js',
+  './assets/js/pages/droit-image.js',
   './assets/js/pages/faq.js',
   './assets/img/fts-any-192.png',
   './assets/img/fts-maskable-192.png',
