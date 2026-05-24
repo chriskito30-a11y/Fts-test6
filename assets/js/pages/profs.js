@@ -587,7 +587,7 @@ function updateDanceVideoFolder() {
 
   if (cfg && cfg.read) {
     urlInput.value = cfg.read;
-    text.textContent = "Le lien lecture élèves a été renseigné automatiquement dans le champ Lien.";
+    text.textContent = "Le lien pour les élèves est déjà prêt. Ajoute un titre, puis publie.";
   } else {
     text.textContent = "Lien lecture élèves non configuré pour cette sous-catégorie.";
   }
