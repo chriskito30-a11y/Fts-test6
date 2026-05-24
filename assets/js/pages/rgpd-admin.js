@@ -1,5 +1,5 @@
 /* ================================================================
-   PAGE MODULE — RGPD ADMIN V176
+   PAGE MODULE — RGPD ADMIN V177
    Registre interne, incidents, historique des demandes.
    ================================================================ */
 'use strict';
@@ -372,16 +372,29 @@ async function rgpdSaveIncident(){
     rgpdToast('Incident non enregistré : ' + (e && e.message ? e.message : String(e)), 'error');
   }
 }
+function rgpdNormalizeIncident(raw, id){
+  const row = raw && typeof raw === 'object' ? Object.assign({}, raw) : {};
+  row.id = id || row.id || '';
+  row.date = row.date || row.incidentDate || row.createdDate || '';
+  row.risk = row.risk || row.severity || row.level || '—';
+  row.description = row.description || row.desc || row.title || row.summary || 'Incident sans description';
+  row.actions = row.actions || row.action || row.correctiveActions || row.measures || 'Aucune action renseignée';
+  row.status = row.status || 'documented';
+  row.createdAt = row.createdAt || row.at || row.ts || 0;
+  return row;
+}
 function rgpdCollectIncidentsFromTree(value, path, out){
   if(!value || typeof value !== 'object' || Array.isArray(value)) return;
-  const hasIncidentFields = Object.prototype.hasOwnProperty.call(value, 'description') || Object.prototype.hasOwnProperty.call(value, 'actions') || Object.prototype.hasOwnProperty.call(value, 'risk') || Object.prototype.hasOwnProperty.call(value, 'date');
-  const isIncident = hasIncidentFields && (value.description || value.actions || value.risk || value.date || value.createdAt);
-  if(isIncident){
-    out.push(Object.assign({id:path}, value));
-    return;
+  const keys = Object.keys(value);
+  const hasIncidentFields = ['description','desc','actions','action','risk','severity','date','createdAt','status'].some(k=>Object.prototype.hasOwnProperty.call(value, k));
+  const hasNestedObjects = keys.some(k=>value[k] && typeof value[k] === 'object' && !Array.isArray(value[k]));
+  if(hasIncidentFields && (!hasNestedObjects || value.description || value.desc || value.actions || value.action || value.risk || value.severity || value.date)){
+    out.push(rgpdNormalizeIncident(value, path));
   }
-  Object.keys(value).forEach(k=>{
-    rgpdCollectIncidentsFromTree(value[k], path ? path + '/' + k : k, out);
+  keys.forEach(k=>{
+    if(value[k] && typeof value[k] === 'object' && !Array.isArray(value[k])){
+      rgpdCollectIncidentsFromTree(value[k], path ? path + '/' + k : k, out);
+    }
   });
 }
 async function rgpdLoadIncidents(){
@@ -391,7 +404,17 @@ async function rgpdLoadIncidents(){
   try{
     const snap = await rgpdDb.ref('fts_privacy_incidents').once('value');
     const rows = [];
-    rgpdCollectIncidentsFromTree(snap.val(), '', rows);
+    const value = snap.val();
+    if(value && typeof value === 'object'){
+      Object.keys(value).forEach(k=>{
+        const child = value[k];
+        if(child && typeof child === 'object' && !Array.isArray(child)){
+          const direct = ['description','desc','actions','action','risk','severity','date','createdAt','status'].some(f=>Object.prototype.hasOwnProperty.call(child, f));
+          if(direct) rows.push(rgpdNormalizeIncident(child, k));
+          else rgpdCollectIncidentsFromTree(child, k, rows);
+        }
+      });
+    }
     const unique = [];
     const seen = new Set();
     rows.forEach(i=>{
@@ -424,11 +447,11 @@ async function rgpdLoadIncidents(){
 }
 
 function rgpdActionDate(row){
-  return Number(row.at || row.createdAt || row.doneAt || row.completedAt || row.requestedAt || row.ts || 0);
+  return Number(row.at || row.createdAt || row.doneAt || row.completedAt || row.requestedAt || row.ts || row.anonymizedAt || 0);
 }
 function rgpdLooksLikeAction(obj){
   if(!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
-  if(obj.type || obj.action) return true;
+  if(obj.type || obj.action || obj.proofReference || obj.proofText) return true;
   if(obj.source === 'fts_privacy_registry/history') return true;
   if(obj.targetUidHash || obj.actorUidHash || obj.targetEmailHash || obj.emailHash) return true;
   if((obj.status || obj.doneAt || obj.requestedAt || obj.createdAt) && (obj.targetUid || obj.targetEmail || obj.targetName || obj.adminUid)) return true;
@@ -452,7 +475,7 @@ function rgpdActionLabel(row){
     member_delete_account: 'Suppression compte membre',
     admin_delete_account: 'Suppression compte par admin',
     registry_saved: 'Registre enregistré',
-    legacy_admin_delete_account_anonymized: 'Ancienne suppression anonymisée'
+    legacy_admin_delete_account_anonymized: 'Suppression compte par admin'
   };
   if(row.type) return labels[row.type] || row.type;
   if(row.action) return labels[row.action] || row.action;
@@ -467,16 +490,60 @@ function rgpdActionStatus(row){
   if(status === 'anonymized') return 'anonymisé';
   return status || '—';
 }
-function rgpdActionIdentity(row){
-  if(row.targetUidHash) return 'Compte supprimé · hash UID : ' + String(row.targetUidHash).slice(0,16) + '…';
-  if(row.actorUidHash) return 'Demande membre · hash UID : ' + String(row.actorUidHash).slice(0,16) + '…';
-  if(row.targetEmailHash) return 'hash email : ' + String(row.targetEmailHash).slice(0,16) + '…';
-  if(row.emailHash) return 'hash email : ' + String(row.emailHash).slice(0,16) + '…';
-  if(row.type === 'registry_saved' || row.source === 'fts_privacy_registry/history') return 'Registre interne mis à jour';
-  if(row.targetEmail || row.targetUid || row.targetName || row.uid || row.email){
-    return 'Ancien log non anonymisé — clique sur “Anonymiser anciens logs”';
+function rgpdShortHash(value){
+  const v = String(value || '');
+  return v ? v.slice(0,16) + '…' : '—';
+}
+function rgpdProofReference(row){
+  if(row.proofReference) return row.proofReference;
+  const ts = rgpdActionDate(row) || Date.now();
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  const ymd = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  const hms = pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+  const suffix = String(row.targetUidHash || row.actorUidHash || row.targetEmailHash || row.emailHash || row.id || '000000').replace(/[^a-zA-Z0-9]/g,'').slice(0,6).toUpperCase() || '000000';
+  return 'SUP-' + ymd + '-' + hms + '-' + suffix;
+}
+function rgpdActionReadableSummary(row){
+  if(row.readableSummary) return row.readableSummary;
+  const label = rgpdActionLabel(row);
+  if(row.type === 'registry_saved' || row.source === 'fts_privacy_registry/history') return 'Le registre interne RGPD a été mis à jour.';
+  if(label.toLowerCase().includes('suppression')){
+    return 'Compte utilisateur supprimé. Les données personnelles applicatives ont été effacées ; seule une trace administrative anonymisée est conservée.';
   }
-  return 'Action enregistrée';
+  if(label.toLowerCase().includes('email')) return 'Adresse e-mail modifiée à la demande de l’utilisateur ou par action admin.';
+  return 'Action RGPD enregistrée dans le registre interne.';
+}
+function rgpdActionTechnical(row){
+  const parts = [];
+  if(row.targetUidHash) parts.push('hash UID ' + rgpdShortHash(row.targetUidHash));
+  if(row.actorUidHash) parts.push('hash UID demandeur ' + rgpdShortHash(row.actorUidHash));
+  if(row.targetEmailHash) parts.push('hash email ' + rgpdShortHash(row.targetEmailHash));
+  if(row.emailHash) parts.push('hash email ' + rgpdShortHash(row.emailHash));
+  if(row.legacyAnonymized || row.anonymizedAt) parts.push('ancien log anonymisé');
+  if(rgpdHasLegacyPersonalData(row)) parts.push('ancien log à anonymiser');
+  return parts.join(' · ') || 'aucune donnée personnelle en clair affichée';
+}
+function rgpdBuildProofText(row){
+  if(row.proofText) return row.proofText;
+  const label = rgpdActionLabel(row);
+  const ref = rgpdProofReference(row);
+  const date = rgpdDate(rgpdActionDate(row));
+  const status = rgpdActionStatus(row);
+  const summary = rgpdActionReadableSummary(row);
+  const tech = rgpdActionTechnical(row);
+  return [
+    'Fais Ton Show — Preuve RGPD',
+    '',
+    'Référence : ' + ref,
+    'Type : ' + label,
+    'Statut : ' + status,
+    'Date de traitement : ' + date,
+    'Traitement effectué par : Administrateur Fais Ton Show',
+    'Résultat : ' + summary,
+    'Données conservées : uniquement une trace administrative anonymisée dans le registre RGPD.',
+    'Détail technique : ' + tech
+  ].join('\n');
 }
 function rgpdActionKey(row){
   return [row.source||'', row.type||row.action||'', rgpdActionDate(row), row.targetUidHash||row.actorUidHash||row.targetEmailHash||row.emailHash||row.id||''].join('|');
@@ -496,8 +563,27 @@ async function rgpdSha256(value){
     return 'local-' + Math.abs(h).toString(16);
   }
 }
+async function rgpdPrepareProofFields(row){
+  const clean = Object.assign({}, row);
+  delete clean.id;
+  delete clean.source;
+  if(row.targetUid){ clean.targetUidHash = await rgpdSha256(row.targetUid); delete clean.targetUid; }
+  if(row.targetEmail){ clean.targetEmailHash = await rgpdSha256(String(row.targetEmail).toLowerCase().trim()); delete clean.targetEmail; }
+  if(row.targetName){ clean.targetNameHash = await rgpdSha256(String(row.targetName).trim()); delete clean.targetName; }
+  if(row.uid){ clean.uidHash = await rgpdSha256(row.uid); delete clean.uid; }
+  if(row.email){ clean.emailHash = await rgpdSha256(String(row.email).toLowerCase().trim()); delete clean.email; }
+  clean.type = clean.type || (clean.targetUidHash || clean.targetEmailHash || clean.targetNameHash ? 'legacy_admin_delete_account_anonymized' : 'admin_delete_account');
+  clean.status = clean.status || 'done';
+  clean.legacyAnonymized = rgpdHasLegacyPersonalData(row) ? true : !!clean.legacyAnonymized;
+  clean.anonymizedAt = clean.anonymizedAt || firebase.database.ServerValue.TIMESTAMP;
+  clean.anonymizedBy = clean.anonymizedBy || (rgpdCurrentUser ? rgpdCurrentUser.uid : null);
+  clean.proofReference = clean.proofReference || rgpdProofReference(clean);
+  clean.readableSummary = clean.readableSummary || rgpdActionReadableSummary(clean);
+  clean.proofText = clean.proofText || rgpdBuildProofText(clean);
+  return clean;
+}
 async function rgpdAnonymizeLegacyActions(){
-  if(!confirm('Anonymiser les anciens logs de suppression ? Les emails, noms et UID bruts seront remplacés par des hash irréversibles.')) return;
+  if(!confirm('Anonymiser les anciens logs ET générer des preuves RGPD lisibles ? Les emails, noms et UID bruts seront remplacés par des hash irréversibles.')) return;
   const btn = document.getElementById('rgpd-anonymize-old-actions');
   if(btn) btn.disabled = true;
   try{
@@ -506,32 +592,37 @@ async function rgpdAnonymizeLegacyActions(){
     rgpdCollectActionsFromTree(snap.val(), 'fts_privacy_admin_actions', '', actions);
     const updates = {};
     for(const row of actions){
-      if(!row.id || !rgpdHasLegacyPersonalData(row)) continue;
-      const clean = Object.assign({}, row);
-      delete clean.id;
-      delete clean.source;
-      clean.type = clean.type || 'legacy_admin_delete_account_anonymized';
-      clean.status = clean.status || 'anonymized';
-      clean.anonymizedAt = firebase.database.ServerValue.TIMESTAMP;
-      clean.anonymizedBy = rgpdCurrentUser ? rgpdCurrentUser.uid : null;
-      if(row.targetUid){ clean.targetUidHash = await rgpdSha256(row.targetUid); delete clean.targetUid; }
-      if(row.targetEmail){ clean.targetEmailHash = await rgpdSha256(String(row.targetEmail).toLowerCase().trim()); delete clean.targetEmail; }
-      if(row.targetName){ clean.targetNameHash = await rgpdSha256(String(row.targetName).trim()); delete clean.targetName; }
-      if(row.uid){ clean.uidHash = await rgpdSha256(row.uid); delete clean.uid; }
-      if(row.email){ clean.emailHash = await rgpdSha256(String(row.email).toLowerCase().trim()); delete clean.email; }
-      updates[row.id] = clean;
+      if(!row.id) continue;
+      const needsProof = !row.proofReference || !row.proofText || !row.readableSummary;
+      if(!rgpdHasLegacyPersonalData(row) && !needsProof) continue;
+      updates[row.id] = await rgpdPrepareProofFields(row);
     }
     const count = Object.keys(updates).length;
-    if(!count){ rgpdToast('Aucun ancien log brut à anonymiser.', 'ok'); return; }
+    if(!count){ rgpdToast('Aucun ancien log à corriger.', 'ok'); return; }
     await rgpdDb.ref('fts_privacy_admin_actions').update(updates);
-    rgpdToast(count + ' ancien(s) log(s) anonymisé(s).', 'ok');
+    rgpdToast(count + ' log(s) RGPD corrigé(s) avec preuve lisible.', 'ok');
     await rgpdLoadRequests();
   }catch(e){
-    rgpdToast('Anonymisation impossible : ' + (e && e.message ? e.message : String(e)), 'error');
+    rgpdToast('Correction impossible : ' + (e && e.message ? e.message : String(e)), 'error');
   }finally{
     if(btn) btn.disabled = false;
   }
 }
+async function rgpdCopyProof(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    rgpdToast('Preuve RGPD copiée.', 'ok');
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    rgpdToast('Preuve RGPD copiée.', 'ok');
+  }
+}
+
 async function rgpdLoadRequests(){
   const box = document.getElementById('privacy-requests-list');
   box.className='rgpd-list-empty';
@@ -554,12 +645,28 @@ async function rgpdLoadRequests(){
     dedup.sort((a,b)=>rgpdActionDate(b)-rgpdActionDate(a));
     const rows = dedup.slice(0,50);
     if(!rows.length){ box.textContent='Aucune demande ou action RGPD enregistrée pour le moment.'; return; }
+    window.__rgpdProofTexts = {};
     box.className='rgpd-history-list rgpd-actions-history-list';
-    box.innerHTML = rows.map(r=>`<article class="rgpd-history-item">
-      <div class="rgpd-history-top"><strong>${rgpdEsc(rgpdActionLabel(r))}</strong><span>${rgpdEsc(rgpdActionStatus(r))}</span></div>
-      <p>${rgpdEsc(rgpdActionIdentity(r))}</p>
-      <small>${rgpdEsc(rgpdDate(rgpdActionDate(r)))}</small>
-    </article>`).join('');
+    box.innerHTML = rows.map((r, idx)=>{
+      const proofText = rgpdBuildProofText(r);
+      const proofId = 'proof_' + idx;
+      window.__rgpdProofTexts[proofId] = proofText;
+      const needsAnon = rgpdHasLegacyPersonalData(r);
+      const ref = rgpdProofReference(r);
+      return `<article class="rgpd-history-item rgpd-proof-item ${needsAnon ? 'needs-anon' : ''}">
+        <div class="rgpd-history-top"><strong>${rgpdEsc(rgpdActionLabel(r))}</strong><span>${rgpdEsc(rgpdActionStatus(r))}</span></div>
+        <p><b>Référence :</b> ${rgpdEsc(ref)}</p>
+        <p>${rgpdEsc(rgpdActionReadableSummary(r))}</p>
+        <small><b>Date :</b> ${rgpdEsc(rgpdDate(rgpdActionDate(r)))}</small>
+        <small><b>Détail technique :</b> ${rgpdEsc(rgpdActionTechnical(r))}</small>
+        ${needsAnon ? '<small class="rgpd-warning-inline">Ancien log brut détecté : clique sur “Anonymiser + preuves lisibles”.</small>' : ''}
+        <button type="button" class="rgpd-copy-proof" data-proof-id="${rgpdEsc(proofId)}">Copier la preuve</button>
+      </article>`;
+    }).join('');
+    box.querySelectorAll('.rgpd-copy-proof').forEach(btn=>btn.addEventListener('click', function(){
+      const id = this.getAttribute('data-proof-id');
+      rgpdCopyProof((window.__rgpdProofTexts && window.__rgpdProofTexts[id]) || '');
+    }));
   }catch(e){
     box.className='rgpd-list-empty error';
     box.textContent='Impossible de charger l’historique : ' + (e && e.message ? e.message : String(e));
