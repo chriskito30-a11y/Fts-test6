@@ -14,25 +14,50 @@ const TYPE_ICONS = { pdf:"▩", mp3:"♪", audio:"♪", video:"▶", image:"▪"
 
 /*
   Liens OneDrive pour les vidéos de danse.
-  - read  = lien lecture seule visible par les élèves, automatiquement mis dans le champ Lien
-  - write = lien dépôt/modification visible uniquement par le prof dans le formulaire
-
-  Important : les clés correspondent aux noms des sous-catégories Danse dans Firebase.
+  Les vraies URLs ne sont plus dans le code public : elles sont récupérées
+  via le Worker privé fts-email (/onedrive-dance-folders).
 */
-const DANCE_VIDEO_FOLDERS = {
-  "Les Baby Show": {
-    read: "https://1drv.ms/f/c/523a8512bc652dc1/IgBuRNwPMrgqSY12s26Nv8iKAY2vgBnAo9TG4mY172-g-y8",
-    write: "https://1drv.ms/f/c/523a8512bc652dc1/IgBuRNwPMrgqSY12s26Nv8iKAWSrfYxCOeni6vVgyB6Uakw"
-  },
-  "Show Danse Junior": {
-    read: "https://1drv.ms/f/c/523a8512bc652dc1/IgABEDHu9sKOR4yxli-R6VoIAZIHxhkdbl7m-NdhGfisbD4",
-    write: "https://1drv.ms/f/c/523a8512bc652dc1/IgABEDHu9sKOR4yxli-R6VoIAc0jNvvHrY9EqRn6NIc5cZ4"
-  },
-  "Ados/Adultes": {
-    read: "https://1drv.ms/f/c/523a8512bc652dc1/IgA7vQbTu8VLTZd9y-HZlP-cAVQC4_ebP3UHsoOhKsp9jhI",
-    write: "https://1drv.ms/f/c/523a8512bc652dc1/IgA7vQbTu8VLTZd9y-HZlP-cAebVob0jmvI8pBg7mm6v8gc"
+let DANCE_VIDEO_FOLDERS = {};
+
+async function loadDanceVideoFolders() {
+  const fallback = {};
+  try {
+    const base = (window.FTS && FTS.SECRETS && FTS.SECRETS.workerUrl)
+      ? FTS.SECRETS.workerUrl
+      : 'https://fts-email.gros-christophe.workers.dev';
+
+    const currentUser = firebase.auth().currentUser;
+    const idToken = currentUser && currentUser.getIdToken
+      ? await currentUser.getIdToken()
+      : '';
+
+    const res = await fetch(base.replace(/\/+$/, '') + '/onedrive-dance-folders', {
+      method: 'GET',
+      cache: 'no-store',
+      headers: idToken ? { 'Authorization': 'Bearer ' + idToken } : {}
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const folders = data && data.folders ? data.folders : fallback;
+
+    // Sécurité logique : on conserve explicitement les 2 liens distincts.
+    // read/memberUrl = lien lecture pour les membres concernés.
+    // write/profUrl  = lien dépôt/modification réservé au prof/admin.
+    Object.keys(folders).forEach(function(key) {
+      const f = folders[key] || {};
+      f.read = f.read || f.memberUrl || '';
+      f.write = f.write || f.profUrl || '';
+      f.memberUrl = f.memberUrl || f.read || '';
+      f.profUrl = f.profUrl || f.write || '';
+      folders[key] = f;
+    });
+
+    DANCE_VIDEO_FOLDERS = folders;
+  } catch (e) {
+    console.warn('[FTS Profs] Liens OneDrive privés indisponibles', e);
+    DANCE_VIDEO_FOLDERS = fallback;
   }
-};
+}
 
 let db, auth;
 let userProfile, currentUserUid;
@@ -84,6 +109,9 @@ window.addEventListener("DOMContentLoaded", function() {
 
       // Badge non lus messages
       listenUnreadBadge(user.uid);
+
+      // Charger les liens privés OneDrive depuis le Worker séparé, sans exposer les URLs dans GitHub
+      await loadDanceVideoFolders();
 
       // Construire les sélecteurs de catégories depuis Firebase
       await buildCatSelectors();

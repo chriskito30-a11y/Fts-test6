@@ -28,9 +28,7 @@ const adminBusyActions = {};
    - new_signup : prévenir l'admin d'une nouvelle demande d'inscription
    - account_validated : prévenir le membre que son compte est validé
 ──────────────────────────────────────────────────────────────── */
-const FTS_EMAIL_WEBHOOK_URL = "https://hook.eu1.make.com/gvber3n4pomyxy6af5z8rzndxyja9arz";
-
-function sendFtsEmailAutomation(type, payload) {
+async function sendFtsEmailAutomation(type, payload) {
   const data = {
     route: type,
     type: type,
@@ -42,16 +40,31 @@ function sendFtsEmailAutomation(type, payload) {
     ...(payload || {})
   };
 
+  const workerUrl = (window.FTS && FTS.EMAIL && FTS.EMAIL.workerUrl)
+    ? FTS.EMAIL.workerUrl
+    : 'https://fts-email.gros-christophe.workers.dev/email';
+
+  let idToken = '';
+  try {
+    const currentUser = firebase && firebase.auth ? firebase.auth().currentUser : null;
+    if (currentUser && currentUser.getIdToken) idToken = await currentUser.getIdToken();
+  } catch(e) {
+    idToken = '';
+  }
+
   // Non bloquant : l'inscription / validation ne doit jamais échouer à cause d'un email.
-  return fetch(FTS_EMAIL_WEBHOOK_URL, {
+  return fetch(workerUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: Object.assign({ 'Content-Type': 'application/json' }, idToken ? { 'Authorization': 'Bearer ' + idToken } : {}),
     body: JSON.stringify(data),
     keepalive: true
   })
-    .then(() => ({ ok:true, type }))
+    .then(async res => {
+      if (!res.ok) throw new Error('Worker email HTTP ' + res.status);
+      return { ok:true, type };
+    })
     .catch(err => {
-      console.warn('[FTS Email] Envoi webhook impossible', type, err);
+      console.warn('[FTS Email] Envoi Worker impossible', type, err);
       return { ok:false, type, error: err && err.message ? err.message : String(err) };
     });
 }
