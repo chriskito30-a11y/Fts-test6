@@ -778,18 +778,25 @@ function forumUserCanReceive(profile, info){
   return false;
 }
 
-async function getForumRecipientUids(info, excludeUid){
-  const out = new Set();
+async function getForumRecipients(info, excludeUid){
+  const push = new Set();
+  const internal = new Set();
 
   function scanSnapshot(snap, source){
     if(!snap || !snap.exists || !snap.exists()) return;
     snap.forEach(child => {
       if(child.key === excludeUid) return;
       const profile = child.val() || {};
-      // Les deux sources sont volontairement publiques/allégées :
-      // - fts_public_profiles : profils actifs nettoyés, enfants inclus si resynchronisés
-      // - fts_forum/users : profil forum historique, utile pour les admins/profs et les accès enfant déjà présents
-      if(forumUserCanReceive(profile, info)) out.add(child.key);
+      if(!forumUserCanReceive(profile, info)) return;
+
+      // Tous les profils forum compatibles peuvent recevoir le push direct si un abonnement existe.
+      // Important pour les catégories/sous-catégories héritées des enfants.
+      push.add(child.key);
+
+      // Les notifications internes RTDB ne sont écrites que pour les vrais profils publics
+      // afin d'éviter les update('/') refusés si fts_forum/users contient des entrées historiques
+      // ou non reliées à un compte Auth actif.
+      if(source === 'public_profiles') internal.add(child.key);
     });
   }
 
@@ -798,15 +805,17 @@ async function getForumRecipientUids(info, excludeUid){
     scanSnapshot(snap, 'public_profiles');
   }catch(e){ console.warn('[FTS Forum] Recipients public profiles', e); }
 
-  // V186 : fallback important. Certains comptes admin/prof ou anciens profils peuvent ne pas être
-  // parfaitement resynchronisés dans fts_public_profiles. fts_forum/users reste lisible par les
-  // membres actifs et contient uniquement les données forum nécessaires aux notifications.
+  // Fallback important : conserve le ciblage enfant / anciens profils forum pour le push.
   try{
     const forumSnap = await db.ref('fts_forum/users').once('value');
     scanSnapshot(forumSnap, 'forum_users');
   }catch(e){ console.warn('[FTS Forum] Recipients forum users', e); }
 
-  return [...out];
+  return { pushUids:[...push], internalUids:[...internal] };
+}
+async function getForumRecipientUids(info, excludeUid){
+  const r = await getForumRecipients(info, excludeUid);
+  return r.pushUids || [];
 }
 async function primeForumUnreadForRecipients(recipients, channel, messageTs){
   // V185 : ne plus écrire forumReads chez les autres membres.
@@ -820,13 +829,16 @@ async function notifyChannel(channel, body, msgId){
 
   const info = (channel === currentChannel && currentChannelInfo) ? currentChannelInfo : channelInfoById(channel);
   const url = './forum.html?channel=' + encodeURIComponent(channel) + (msgId ? '&msg=' + encodeURIComponent(msgId) : '');
-  const recipients = await getForumRecipientUids(info, uid);
+  const target = await getForumRecipients(info, uid);
+  const recipients = target.pushUids || [];
+  const internalRecipients = target.internalUids || [];
   if(!recipients.length) return;
 
   const forumLabel = info.subgroup
     ? (info.group ? info.group + ' · ' + info.subgroup : info.subgroup)
     : (info.group ? 'Général ' + info.group : 'Forum général');
-  const notificationTitle = 'FTS Forum — ' + forumLabel;
+  const notificationTitle = 'FTS — Forum';
+  const notificationBody = forumLabel ? (forumLabel + ' — ' + body) : body;
 
   const notificationKey = 'forum-' + channel + '-' + (msgId || Date.now());
   const basePayload = {
@@ -836,25 +848,23 @@ async function notifyChannel(channel, body, msgId){
     subgroup:info.subgroup,
     forumLabel,
     title:notificationTitle,
-    body,
+    body:notificationBody,
     url,
     senderUid:uid,
     msgId,
     notificationKey
   };
 
-  // Trace interne + baseline unread : ne bloque jamais l'envoi push.
+  // Trace interne : uniquement pour les vrais profils publics afin d'éviter les update('/') refusés.
   try{
-    const fanout = {};
-    recipients.forEach(recipientUid => {
+    await Promise.allSettled(internalRecipients.map(recipientUid => {
       const nref = db.ref('fts_user_notifications/' + recipientUid).push();
-      fanout['fts_user_notifications/' + recipientUid + '/' + nref.key] = {
+      return nref.set({
         type:'forum', channel, group:info.group, subgroup:info.subgroup, forumLabel, title:notificationTitle,
-        body, url, msgId, senderUid:uid, notificationKey, read:false, createdAt:Date.now()
-      };
-    });
-    db.ref().update(fanout).catch(()=>{});
-    primeForumUnreadForRecipients(recipients, channel, Date.now()).catch(()=>{});
+        body:notificationBody, url, msgId, senderUid:uid, notificationKey, read:false, createdAt:Date.now()
+      });
+    }));
+    primeForumUnreadForRecipients(internalRecipients, channel, Date.now()).catch(()=>{});
     if(userProfile && (userProfile.role === 'admin' || userProfile.role === 'prof')){
       db.ref('fts_debug_notifications/' + notificationKey).set({
         type:'forum', channel, msgId, senderUid:uid, recipientCount:recipients.length, recipients, createdAt:Date.now()
