@@ -1,4 +1,4 @@
-const CACHE = 'fts-v158-profs-onedrive-no-cloudinary';
+const CACHE = 'fts-v159-security-audit';
 const FILES = [
   './manifest.json',
   './index.html',
