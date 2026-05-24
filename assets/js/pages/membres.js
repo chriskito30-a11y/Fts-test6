@@ -2620,7 +2620,7 @@ async function changeAccountEmail(){
   const user = firebase.auth().currentUser;
   const btn = document.getElementById('btn-account-email');
   const input = document.getElementById('account-new-email');
-  const nextEmail = input ? String(input.value || '').trim() : '';
+  const nextEmail = input ? String(input.value || '').trim().toLowerCase() : '';
   if (!user) { window.location.href = 'auth.html'; return; }
   if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
     setAccountMsg('account-email-msg', 'Indique une adresse e-mail valide.', 'err');
@@ -2635,48 +2635,28 @@ async function changeAccountEmail(){
     if (btn) btn.disabled = true;
     setAccountMsg('account-email-msg', 'Modification de l’adresse…', '');
 
-    // 1) Tentative directe : fonctionne si Firebase l’autorise pour le projet et la session.
-    try {
-      await user.updateEmail(nextEmail);
-      await db.ref('fts_users/' + currentUid).update({
-        email: nextEmail,
-        emailUpdatedAt: Date.now(),
-        pendingEmail: null,
-        pendingEmailRequestedAt: null,
-        emailChangeMode: null,
-        privacyLastActionAt: Date.now()
-      });
-      userProfile = Object.assign({}, userProfile || {}, { email: nextEmail, pendingEmail: null });
-      if (input) input.value = '';
-      fillAccountIdentity();
-      setAccountMsg('account-email-msg', '✓ Adresse e-mail modifiée.', 'ok');
-      return;
-    } catch (directError) {
-      // 2) Fallback Firebase recommandé quand le changement direct est refusé :
-      // envoi d’un mail de vérification à la nouvelle adresse.
-      const code = directError && directError.code ? String(directError.code) : '';
-      if (code === 'auth/email-already-in-use') throw directError;
-      if (typeof user.verifyBeforeUpdateEmail !== 'function') throw directError;
+    // V165 : modification via Worker RGPD admin.
+    // Pourquoi : Firebase bloque parfois updateEmail()/verifyBeforeUpdateEmail côté navigateur selon la configuration sécurité.
+    // Le Worker vérifie d'abord le token du membre, puis modifie Firebase Auth + fts_users côté serveur.
+    const result = await privacyRequest('/rgpd/update-email', {
+      body: JSON.stringify({ email: nextEmail })
+    });
 
-      const actionCodeSettings = {
-        url: window.location.origin + window.location.pathname.replace(/[^/]*$/, 'membres.html'),
-        handleCodeInApp: false
-      };
-      await user.verifyBeforeUpdateEmail(nextEmail, actionCodeSettings);
-      await db.ref('fts_users/' + currentUid).update({
-        pendingEmail: nextEmail,
-        pendingEmailRequestedAt: Date.now(),
-        emailChangeMode: 'verify_before_update',
-        privacyLastActionAt: Date.now()
-      });
-      userProfile = Object.assign({}, userProfile || {}, { pendingEmail: nextEmail });
-      if (input) input.value = '';
-      setAccountMsg('account-email-msg', '✓ Un e-mail de confirmation vient d’être envoyé à la nouvelle adresse. Le changement sera appliqué après validation du lien Firebase.', 'ok');
-      return;
-    }
+    userProfile = Object.assign({}, userProfile || {}, {
+      email: result.email || nextEmail,
+      pendingEmail: null,
+      pendingEmailRequestedAt: null,
+      emailChangeMode: null
+    });
+
+    if (input) input.value = '';
+    try { await firebase.auth().currentUser.reload(); } catch(e) {}
+    fillAccountIdentity();
+    setAccountMsg('account-email-msg', '✓ Adresse e-mail modifiée. Reconnecte-toi avec cette nouvelle adresse lors de ta prochaine connexion.', 'ok');
   } catch(e) {
     console.warn('[FTS RGPD] Email update', e);
-    setAccountMsg('account-email-msg', accountFriendlyError(e.code || e.message), 'err');
+    const code = (e && e.response && e.response.error) || e.code || e.message;
+    setAccountMsg('account-email-msg', accountFriendlyError(code), 'err');
   } finally { if (btn) btn.disabled = false; }
 }
 
@@ -2737,8 +2717,13 @@ function accountFriendlyError(code) {
   switch(code) {
     case 'auth/requires-recent-login': return 'Par sécurité, reconnecte-toi puis recommence cette action.';
     case 'auth/email-already-in-use': return 'Cette adresse e-mail est déjà utilisée par un autre compte.';
+    case 'email_already_in_use': return 'Cette adresse e-mail est déjà utilisée par un autre compte.';
     case 'auth/invalid-email': return 'Adresse e-mail invalide.';
+    case 'invalid_email': return 'Adresse e-mail invalide.';
     case 'auth/operation-not-allowed': return 'Firebase refuse le changement direct. Utilise le lien de confirmation envoyé si disponible.';
+    case 'auth_update_failed': return 'Le Worker RGPD n’a pas pu modifier l’e-mail Firebase Auth. Vérifie les droits du compte de service Firebase.';
+    case 'member_required': return 'Ton compte doit être actif pour modifier l’e-mail.';
+    case 'auth_required': return 'Reconnecte-toi puis recommence.';
     case 'auth/weak-password': return 'Le mot de passe est trop faible.';
     case 'auth/network-request-failed': return 'Problème réseau. Réessaie dans quelques instants.';
     case 'PERMISSION_DENIED': return 'Suppression partielle bloquée par les règles Firebase. Connecte-toi en admin ou ajuste les règles.';
