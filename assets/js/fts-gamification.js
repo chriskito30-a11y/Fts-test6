@@ -42,6 +42,12 @@
     return `${y}-${m}-${day}`;
   }
 
+  function canWriteDebug(){
+    var user = window.FTS_CURRENT_USER || window.currentUser || {};
+    var role = String(user.role || user.userRole || '').toLowerCase();
+    return role === 'admin' || role === 'prof';
+  }
+
   function esc(s){
     return (window.FTS && FTS.esc)
       ? FTS.esc(s)
@@ -187,15 +193,17 @@
       });
       db.ref().update(fanout).catch(() => {});
       primeForumUnreadForRecipients(db, recipients, 'general', Number(msg.ts || now())).catch(() => {});
-      db.ref('fts_debug_notifications/' + notificationKey).set({
-        type: 'forum',
-        channel: 'general',
-        msgId,
-        senderUid,
-        recipientCount: recipients.length,
-        recipients,
-        createdAt: now()
-      }).catch(() => {});
+      if(canWriteDebug()){
+        db.ref('fts_debug_notifications/' + notificationKey).set({
+          type: 'forum',
+          channel: 'general',
+          msgId,
+          senderUid,
+          recipientCount: recipients.length,
+          recipients,
+          createdAt: now()
+        }).catch(() => {});
+      }
     }catch(e){}
 
     // Push réelle : même logique que forum.js, forcée par UID.
@@ -249,13 +257,15 @@
     }catch(e){}
 
     try{
-      db.ref('fts_debug_notifications/' + keyBase).set({
-        type: meta.type || 'reward',
-        targetUid: uid,
-        title: title || 'FTS — Récompense',
-        body: body || '',
-        createdAt: ts
-      }).catch(() => {});
+      if(canWriteDebug()){
+        db.ref('fts_debug_notifications/' + keyBase).set({
+          type: meta.type || 'reward',
+          targetUid: uid,
+          title: title || 'FTS — Récompense',
+          body: body || '',
+          createdAt: ts
+        }).catch(() => {});
+      }
     }catch(e){}
 
     if(window.FTS && FTS.PUSH && FTS.PUSH.workerUrl && window.fetch){

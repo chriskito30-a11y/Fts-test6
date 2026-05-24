@@ -572,7 +572,10 @@
     }).join('');
   }
 
+  var lastDocumentsTrigger = null;
+
   function openDocumentsModal(){
+    lastDocumentsTrigger = document.activeElement && document.activeElement.closest ? document.activeElement.closest('[data-action="open-documents-modal"]') : document.activeElement;
     var modal = ensureDocumentsModal();
     modal.classList.remove('hidden');
     modal.setAttribute('aria-hidden', 'false');
@@ -629,6 +632,13 @@
   function closeDocumentsModal(){
     var modal = document.getElementById('fts-docs-modal');
     if (!modal) return;
+    var active = document.activeElement;
+    if (active && modal.contains(active)) {
+      try { active.blur(); } catch(e) {}
+      if (lastDocumentsTrigger && typeof lastDocumentsTrigger.focus === 'function') {
+        try { lastDocumentsTrigger.focus({ preventScroll:true }); } catch(e) { try { lastDocumentsTrigger.focus(); } catch(_) {} }
+      }
+    }
     modal.classList.add('hidden');
     modal.setAttribute('aria-hidden', 'true');
   }
