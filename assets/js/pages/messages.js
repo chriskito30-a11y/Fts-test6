@@ -511,10 +511,12 @@ function notifyDirectMessage(convId, convData, recipients, text, msgId){
       };
     });
     if(Object.keys(fanout).length) db.ref().update(fanout).catch(()=>{});
-    db.ref('fts_debug_notifications/' + baseKey).set({
-      type:isGroup ? 'dm_group' : 'dm_direct', conversationId:convId, msgId, senderUid:myUid,
-      recipientCount:validRecipients.length, recipients:validRecipients, createdAt:Date.now()
-    }).catch(()=>{});
+    if(me && (me.role === 'admin' || me.role === 'prof')){
+      db.ref('fts_debug_notifications/' + baseKey).set({
+        type:isGroup ? 'dm_group' : 'dm_direct', conversationId:convId, msgId, senderUid:myUid,
+        recipientCount:validRecipients.length, recipients:validRecipients, createdAt:Date.now()
+      }).catch(()=>{});
+    }
   }catch(e){}
 
   validRecipients.forEach(uid => {

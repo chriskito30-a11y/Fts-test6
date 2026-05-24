@@ -840,9 +840,11 @@ async function notifyChannel(channel, body, msgId){
     });
     db.ref().update(fanout).catch(()=>{});
     primeForumUnreadForRecipients(recipients, channel, Date.now()).catch(()=>{});
-    db.ref('fts_debug_notifications/' + notificationKey).set({
-      type:'forum', channel, msgId, senderUid:uid, recipientCount:recipients.length, recipients, createdAt:Date.now()
-    }).catch(()=>{});
+    if(userProfile && (userProfile.role === 'admin' || userProfile.role === 'prof')){
+      db.ref('fts_debug_notifications/' + notificationKey).set({
+        type:'forum', channel, msgId, senderUid:uid, recipientCount:recipients.length, recipients, createdAt:Date.now()
+      }).catch(()=>{});
+    }
   }catch(e){}
 
   // Envoi forcé par UID pour éviter les doublons catégorie + sous-catégorie + admin.
