@@ -338,7 +338,7 @@ body {
 .privacy-consent-box{margin:16px 0 10px;padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.05)}
 .privacy-consent-row{align-items:flex-start;margin:0}.privacy-consent-row a{color:#ffd36a;font-weight:800}.privacy-consent-help{margin:8px 0 0 34px;font-size:.84rem;line-height:1.45;color:rgba(255,255,255,.68)}
 
-/* Droit à l’image — v178 */
+/* Droit à l’image — v180 */
 .image-rights-box{margin:16px 0 10px;padding:14px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.045)}
 .image-rights-title{font-weight:900;margin-bottom:6px;color:#fff}
 .image-rights-info{display:grid;gap:8px;margin:10px 0 12px;padding:12px;border:1px solid rgba(255,211,106,.16);border-radius:14px;background:rgba(255,211,106,.055)}
@@ -349,3 +349,13 @@ body {
 .image-rights-choice input{margin-top:2px;accent-color:#ffd36a}
 .image-rights-choice span{font-size:.92rem;font-weight:800;color:#fff;line-height:1.25}
 .image-rights-choice-no{border-color:rgba(255,83,83,.28);background:rgba(255,83,83,.06)}
+
+
+/* Correctif v180 — droit à l’image repliable */
+.image-rights-details{display:block}
+.image-rights-details summary{list-style:none;cursor:pointer;font-weight:900;color:#ffd36a;display:flex;align-items:center;justify-content:space-between;gap:10px;line-height:1.25}
+.image-rights-details summary::-webkit-details-marker{display:none}
+.image-rights-details summary::after{content:"⌄";font-size:1.1rem;transition:transform .18s ease;color:#fff}
+.image-rights-details[open] summary::after{transform:rotate(180deg)}
+.image-rights-details-body{display:grid;gap:8px;margin-top:10px}
+.image-rights-details-body p{margin:0;color:rgba(255,255,255,.74);font-size:.84rem;line-height:1.45}
