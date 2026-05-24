@@ -1,4 +1,4 @@
-const CACHE = 'fts-v180-droit-image-notice';
+const CACHE = 'fts-v183-safe-url';
 const FILES = [
   './manifest.json',
   './index.html',
