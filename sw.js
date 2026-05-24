@@ -1,4 +1,4 @@
-const CACHE = 'fts-v189-forum-notif-format';
+const CACHE = 'fts-v190-revert-forum-notifs';
 const FILES = [
   './manifest.json',
   './index.html',
