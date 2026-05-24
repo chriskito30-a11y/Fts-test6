@@ -823,13 +823,19 @@ async function notifyChannel(channel, body, msgId){
   const recipients = await getForumRecipientUids(info, uid);
   if(!recipients.length) return;
 
+  const forumLabel = info.subgroup
+    ? (info.group ? info.group + ' · ' + info.subgroup : info.subgroup)
+    : (info.group ? 'Général ' + info.group : 'Forum général');
+  const notificationTitle = 'FTS Forum — ' + forumLabel;
+
   const notificationKey = 'forum-' + channel + '-' + (msgId || Date.now());
   const basePayload = {
     type:'forum',
     channel,
     group:info.group,
     subgroup:info.subgroup,
-    title:'FTS — Forum',
+    forumLabel,
+    title:notificationTitle,
     body,
     url,
     senderUid:uid,
@@ -843,7 +849,7 @@ async function notifyChannel(channel, body, msgId){
     recipients.forEach(recipientUid => {
       const nref = db.ref('fts_user_notifications/' + recipientUid).push();
       fanout['fts_user_notifications/' + recipientUid + '/' + nref.key] = {
-        type:'forum', channel, group:info.group, subgroup:info.subgroup, title:'FTS — Forum',
+        type:'forum', channel, group:info.group, subgroup:info.subgroup, forumLabel, title:notificationTitle,
         body, url, msgId, senderUid:uid, notificationKey, read:false, createdAt:Date.now()
       };
     });
