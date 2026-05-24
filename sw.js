@@ -1,4 +1,4 @@
-const CACHE = 'fts-v164-rgpd-email-fix';
+const CACHE = 'fts-v165-rgpd-email-worker';
 const FILES = [
   './manifest.json',
   './index.html',
