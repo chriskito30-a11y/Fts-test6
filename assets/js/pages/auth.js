@@ -10,6 +10,7 @@
          + téléphone + section enfant(s)
    ================================================================ */
 
+const FTS_PRIVACY_VERSION = '2026-05';
 const ADMIN_EMAIL = "contact@faistonshow.fr";
 
 
@@ -618,6 +619,8 @@ async function doRegister() {
   if (!first || !last) { errEl.textContent = 'Prénom et nom requis.';             return; }
   if (!email)          { errEl.textContent = 'Adresse e-mail requise.';           return; }
   if (pwd.length < 8)  { errEl.textContent = 'Mot de passe : 8 caractères min.'; return; }
+  const privacyOk = document.getElementById('r-privacy') && document.getElementById('r-privacy').checked;
+  if (!privacyOk) { errEl.textContent = 'Tu dois accepter la politique de confidentialité pour créer ton compte.'; return; }
 
   // Collecte sous-groupes du parent
   const parentSubgroups = [];
@@ -694,6 +697,11 @@ async function doRegister() {
       enfants:     savedEnfants,
       reminderPrefs: reminderPrefs,
       createdAt:   Date.now(),
+      privacyAccepted: true,
+      privacyAcceptedAt: Date.now(),
+      privacyVersion: FTS_PRIVACY_VERSION,
+      privacyParentConsent: !!hasEnfant,
+      privacySource: 'auth_register',
     };
 
     await db.ref('fts_users/' + uid).set(profile);

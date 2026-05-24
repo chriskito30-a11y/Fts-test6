@@ -2168,7 +2168,9 @@ function buildProfileChildCard(child, index, opts) {
   const isNew = !!options.isNew;
   const safeChild = child || {};
   const title = isNew ? 'Nouvel enfant' : `Enfant ${Number(index) + 1}`;
-  const removeBtn = isNew ? '<button type="button" class="profile-child-remove" data-action="remove-profile-child">Retirer</button>' : '';
+  const removeBtn = isNew
+    ? '<button type="button" class="profile-child-remove" data-action="remove-profile-child">Retirer</button>'
+    : '<button type="button" class="profile-child-remove is-existing" data-action="remove-profile-child">Supprimer cet enfant</button>';
   const disciplines = Array.isArray(safeChild.disciplines) && safeChild.disciplines.length
     ? `<div class="child-disciplines">Disciplines : ${FTS.esc(safeChild.disciplines.join(', '))}</div>`
     : '<div class="child-disciplines child-disciplines-muted">Groupes et disciplines à définir par l’administration.</div>';
@@ -2400,12 +2402,18 @@ function addProfileChildCard() {
 
 function removeProfileChildCard(btn) {
   const card = btn && btn.closest('[data-profile-child-card]');
-  if (!card || !card.hasAttribute('data-child-new')) return;
+  if (!card) return;
+  const isNew = card.hasAttribute('data-child-new');
+  if (!isNew) {
+    const ok = confirm('Supprimer les données de cet enfant de ton profil ? Cette suppression sera enregistrée quand tu cliqueras sur Enregistrer.');
+    if (!ok) return;
+  }
   card.remove();
   const list = document.getElementById('profile-enfants-list');
   if (list && !list.querySelector('[data-profile-child-card]')) {
     list.innerHTML = '<div class="profile-family-empty">Aucun enfant associé pour le moment.</div>';
   }
+  if (!isNew) setAccountMsg('profile-msg', 'Clique sur Enregistrer pour confirmer la suppression de cet enfant.', '');
 }
 
 function collectProfileChildren() {
@@ -2560,6 +2568,116 @@ function setAccountMsg(id, text, type) {
 }
 function clearAccountMsg(id) { setAccountMsg(id, '', ''); }
 
+
+function getFtsSecretsWorkerBase(){
+  return (window.FTS && FTS.SECRETS && FTS.SECRETS.workerUrl) ? String(FTS.SECRETS.workerUrl).replace(/\/$/, '') : 'https://fts-email.gros-christophe.workers.dev';
+}
+
+async function getCurrentIdToken(forceRefresh){
+  const user = firebase.auth().currentUser;
+  if (!user) throw new Error('not-authenticated');
+  return user.getIdToken(!!forceRefresh);
+}
+
+async function privacyRequest(path, options){
+  const token = await getCurrentIdToken(false);
+  const res = await fetch(getFtsSecretsWorkerBase() + path, Object.assign({
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'Authorization':'Bearer ' + token }
+  }, options || {}));
+  let data = null;
+  try { data = await res.json(); } catch(e) { data = null; }
+  if (!res.ok || !data || data.ok === false) {
+    const err = new Error((data && data.error) || ('HTTP ' + res.status));
+    err.response = data;
+    err.status = res.status;
+    throw err;
+  }
+  return data;
+}
+
+async function changeAccountEmail(){
+  const user = firebase.auth().currentUser;
+  const btn = document.getElementById('btn-account-email');
+  const input = document.getElementById('account-new-email');
+  const nextEmail = input ? String(input.value || '').trim() : '';
+  if (!user) { window.location.href = 'auth.html'; return; }
+  if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
+    setAccountMsg('account-email-msg', 'Indique une adresse e-mail valide.', 'err');
+    return;
+  }
+  if (nextEmail.toLowerCase() === String(user.email || '').toLowerCase()) {
+    setAccountMsg('account-email-msg', 'Cette adresse est déjà utilisée sur ton compte.', '');
+    return;
+  }
+  try {
+    if (btn) btn.disabled = true;
+    setAccountMsg('account-email-msg', 'Modification de l’adresse…', '');
+    await user.updateEmail(nextEmail);
+    await db.ref('fts_users/' + currentUid).update({ email: nextEmail, emailUpdatedAt: Date.now(), privacyLastActionAt: Date.now() });
+    userProfile = Object.assign({}, userProfile || {}, { email: nextEmail });
+    if (input) input.value = '';
+    fillAccountIdentity();
+    setAccountMsg('account-email-msg', '✓ Adresse e-mail modifiée.', 'ok');
+  } catch(e) {
+    console.warn('[FTS RGPD] Email update', e);
+    setAccountMsg('account-email-msg', accountFriendlyError(e.code || e.message), 'err');
+  } finally { if (btn) btn.disabled = false; }
+}
+
+async function collectPrivacyExportData(uid){
+  const data = { exportedAt:new Date().toISOString(), uid, source:'Fais Ton Show PWA', profile:null, forumUser:null, notifications:null, pollUnread:null, pollResponses:{}, dm:{ userConvs:null, conversations:{}, messages:{} }, reminders:{ schedules:{}, scheduledReminders:{} } };
+  try { data.profile = (await db.ref('fts_users/' + uid).once('value')).val() || null; } catch(e) {}
+  try { data.forumUser = (await db.ref('fts_forum/users/' + uid).once('value')).val() || null; } catch(e) {}
+  try { data.notifications = (await db.ref('fts_user_notifications/' + uid).once('value')).val() || null; } catch(e) {}
+  try { data.pollUnread = (await db.ref('fts_poll_unread/' + uid).once('value')).val() || null; } catch(e) {}
+  try {
+    const polls = await db.ref('fts_poll_responses').once('value');
+    polls.forEach(p => { const v = p.child(uid).val(); if (v) data.pollResponses[p.key] = v; });
+  } catch(e) {}
+  try {
+    data.dm.userConvs = (await db.ref('fts_dm/userConvs/' + uid).once('value')).val() || null;
+    const convIds = data.dm.userConvs ? Object.keys(data.dm.userConvs) : [];
+    await Promise.all(convIds.map(async id => {
+      data.dm.conversations[id] = (await db.ref('fts_dm/conversations/' + id).once('value')).val() || null;
+      data.dm.messages[id] = (await db.ref('fts_dm/messages/' + id).once('value')).val() || null;
+    }));
+  } catch(e) {}
+  try {
+    const schedules = await db.ref('fts_schedules').once('value');
+    schedules.forEach(ch => { const v = ch.val() || {}; if (String(v.uid || '') === String(uid)) data.reminders.schedules[ch.key] = v; });
+  } catch(e) {}
+  try {
+    const reminders = await db.ref('fts_scheduled_reminders').once('value');
+    reminders.forEach(ch => { const v = ch.val() || {}; if (String(v.uid || v.targetUid || '') === String(uid)) data.reminders.scheduledReminders[ch.key] = v; });
+  } catch(e) {}
+  return data;
+}
+
+async function exportMyData(){
+  const user = firebase.auth().currentUser;
+  const btn = document.getElementById('btn-account-export');
+  if (!user) { window.location.href = 'auth.html'; return; }
+  try {
+    if (btn) btn.disabled = true;
+    setAccountMsg('account-export-msg', 'Préparation de l’export…', '');
+    const data = await collectPrivacyExportData(user.uid);
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'fais-ton-show-donnees-' + user.uid + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setAccountMsg('account-export-msg', '✓ Export téléchargé.', 'ok');
+  } catch(e) {
+    console.warn('[FTS RGPD] Export', e);
+    setAccountMsg('account-export-msg', 'Export impossible. Réessaie ou contacte l’association.', 'err');
+  } finally { if (btn) btn.disabled = false; }
+}
+
 function accountFriendlyError(code) {
   switch(code) {
     case 'auth/requires-recent-login': return 'Par sécurité, reconnecte-toi puis recommence cette action.';
@@ -2595,10 +2713,26 @@ async function changeAccountPassword() {
 }
 
 async function removeUserDatabaseTraces(uid) {
+  // Voie serveur complète si le Worker RGPD est déployé : permet de supprimer les traces UID
+  // même dans les nœuds que l'utilisateur ne peut pas écrire lui-même.
+  try {
+    const res = await privacyRequest('/rgpd/delete-account', { body: JSON.stringify({ confirm:'DELETE_MY_ACCOUNT' }) });
+    return res;
+  } catch(workerErr) {
+    console.warn('[FTS RGPD] Worker indisponible, tentative de nettoyage client limité :', workerErr);
+  }
+
   const updates = {};
-  updates['fts_users/' + uid] = null;
+  updates['fts_user_notifications/' + uid] = null;
+  updates['fts_poll_unread/' + uid] = null;
   updates['fts_forum/users/' + uid] = null;
   updates['fts_dm/userConvs/' + uid] = null;
+  updates['fts_privacy_requests/' + uid] = null;
+
+  try {
+    const pollSnap = await db.ref('fts_poll_responses').once('value');
+    pollSnap.forEach(p => { updates['fts_poll_responses/' + p.key + '/' + uid] = null; });
+  } catch(e) { console.warn('[FTS] Nettoyage réponses sondages partiel :', e); }
 
   try {
     const convSnap = await db.ref('fts_dm/userConvs/' + uid).once('value');
@@ -2607,30 +2741,46 @@ async function removeUserDatabaseTraces(uid) {
       updates['fts_dm/conversations/' + id + '/participants/' + uid] = null;
       updates['fts_dm/conversations/' + id + '/unread/' + uid] = null;
     });
-  } catch(e) {
-    console.warn('[FTS] Nettoyage conversations partiel :', e);
-  }
+  } catch(e) { console.warn('[FTS] Nettoyage conversations partiel :', e); }
 
+  try {
+    const schedules = await db.ref('fts_schedules').once('value');
+    schedules.forEach(ch => { const v = ch.val() || {}; if (String(v.uid || '') === String(uid)) updates['fts_schedules/' + ch.key] = null; });
+  } catch(e) { console.warn('[FTS] Nettoyage plannings partiel :', e); }
+
+  try {
+    const reminders = await db.ref('fts_scheduled_reminders').once('value');
+    reminders.forEach(ch => { const v = ch.val() || {}; if (String(v.uid || v.targetUid || '') === String(uid)) updates['fts_scheduled_reminders/' + ch.key] = null; });
+  } catch(e) { console.warn('[FTS] Nettoyage rappels partiel :', e); }
+
+  updates['fts_users/' + uid] = null;
   await db.ref().update(updates);
+  return { ok:true, mode:'client_limited' };
 }
 
-async function anonymizeUserMessages(uid) {
+async function deleteOwnForumAndDmMessages(uid) {
+  const updates = {};
   try {
     const forumSnap = await db.ref('fts_forum/messages').once('value');
-    const updates = {};
     forumSnap.forEach(chSnap => {
       chSnap.forEach(msgSnap => {
         const m = msgSnap.val() || {};
-        if (m.uid === uid) {
-          updates['fts_forum/messages/' + chSnap.key + '/' + msgSnap.key + '/name'] = 'Compte supprimé';
-          updates['fts_forum/messages/' + chSnap.key + '/' + msgSnap.key + '/uid'] = null;
-        }
+        if (m.uid === uid) updates['fts_forum/messages/' + chSnap.key + '/' + msgSnap.key] = null;
       });
     });
-    if (Object.keys(updates).length) await db.ref().update(updates);
-  } catch(e) {
-    console.warn('[FTS] Anonymisation forum partielle :', e);
-  }
+  } catch(e) { console.warn('[FTS] Suppression messages forum partielle :', e); }
+  try {
+    const convSnap = await db.ref('fts_dm/userConvs/' + uid).once('value');
+    const convIds = convSnap.val() ? Object.keys(convSnap.val()) : [];
+    for (const id of convIds) {
+      const msgSnap = await db.ref('fts_dm/messages/' + id).once('value');
+      msgSnap.forEach(mSnap => {
+        const m = mSnap.val() || {};
+        if (m.senderId === uid) updates['fts_dm/messages/' + id + '/' + mSnap.key] = null;
+      });
+    }
+  } catch(e) { console.warn('[FTS] Suppression messages privés partielle :', e); }
+  if (Object.keys(updates).length) await db.ref().update(updates);
 }
 
 async function deleteMyAccount() {
@@ -2650,7 +2800,12 @@ async function deleteMyAccount() {
     if (btn) btn.disabled = true;
     setAccountMsg('account-delete-msg', 'Suppression des données en cours…', '');
     const uid = user.uid;
-    await anonymizeUserMessages(uid);
+    try {
+      const sub = await getSubscription();
+      if (sub) await sub.unsubscribe();
+      if (FTS.PUSH && FTS.PUSH.workerUrl) await fetch(FTS.PUSH.workerUrl + '/unsubscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ uid }) }).catch(()=>{});
+    } catch(e) {}
+    await deleteOwnForumAndDmMessages(uid);
     await removeUserDatabaseTraces(uid);
     await user.delete();
     window.location.href = 'auth.html';
@@ -3094,6 +3249,9 @@ function bindMembresUiEvents() {
   bindClick('btg', toggleEvts);
   bindClick('btn-save-profile', saveProfileInfo);
   bindClick('btn-add-profile-child', addProfileChildCard);
+  bindClick('btn-account-email', changeAccountEmail);
+  bindClick('btn-account-export', exportMyData);
+  bindClick('btn-account-delete', deleteMyAccount);
   bindClick('btn-account-pwd', changeAccountPassword);
   bindClick('btn-account-signout', doSignOut);
   bindClick('btn-account-notifs', toggleNotifications);
