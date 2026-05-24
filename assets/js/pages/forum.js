@@ -608,7 +608,7 @@ function renderMedia(payload){
 
   if(isImg) return `<div class="msg-media-wrap msg-media-wrap--image">
     <div class="msg-media-title"><span>🖼️</span><strong>${safeTitle}</strong></div>
-    <img class="msg-img" src="${safeUrl}" data-fts-click="window.open('${safeUrl}')" alt="${safeTitle}">
+    <img class="msg-img" src="${safeUrl}" data-fts-click="window.open(${FTS.jsArg(url)})" alt="${safeTitle}">
     <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
   </div>`;
 

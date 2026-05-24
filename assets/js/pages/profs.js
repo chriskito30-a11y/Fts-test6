@@ -1012,8 +1012,8 @@ function renderDocs() {
         </div>
       </div>
       <div class="doc-item-actions">
-        <button class="btn-edit"   onclick="openEditModal('${FTS.esc(d.key)}')">✎ Éditer</button>
-        <button class="btn-delete" onclick="deleteDoc('${FTS.esc(d.key)}', '${FTS.esc(d.name)}')">🗑 Supprimer</button>
+        <button class="btn-edit"   onclick="openEditModal(${FTS.jsArg(d.key)})">✎ Éditer</button>
+        <button class="btn-delete" onclick="deleteDoc(${FTS.jsArg(d.key)}, ${FTS.jsArg(d.name)})">🗑 Supprimer</button>
       </div>
     </div>`;
   }).join("");
@@ -1304,8 +1304,8 @@ function renderRewardsHistoryForProfs(students) {
               <small>${FTS.esc(rewardUntilText(b.until))}${b.reason ? ' · ' + FTS.esc(b.reason) : ''}</small>
             </div>
             <div class="reward-history-actions">
-              <button class="btn-save rewards-mini-btn" onclick="extendRewardFromProfs('${FTS.esc(u.uid)}')">+7j</button>
-              <button class="btn-danger rewards-mini-btn" onclick="clearRewardFromProfs('${FTS.esc(u.uid)}')">Retirer</button>
+              <button class="btn-save rewards-mini-btn" onclick="extendRewardFromProfs(${FTS.jsArg(u.uid)})">+7j</button>
+              <button class="btn-danger rewards-mini-btn" onclick="clearRewardFromProfs(${FTS.jsArg(u.uid)})">Retirer</button>
             </div>
           </div>`;
       }).join('')}
