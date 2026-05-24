@@ -596,12 +596,12 @@ function updateDanceVideoFolder() {
     uploadLink.href = cfg.write;
     uploadLink.classList.remove("disabled");
     uploadLink.textContent = "📁 Déposer la vidéo dans OneDrive";
-    note.textContent = "Cloudinary est masqué ici pour éviter une erreur : les vidéos Danse de cette sous-catégorie passent par OneDrive.";
+    note.textContent = "Dépose d’abord la vidéo dans le dossier OneDrive, puis ajoute simplement un titre et publie la ressource.";
   } else {
     uploadLink.href = "#";
     uploadLink.classList.add("disabled");
-    uploadLink.textContent = "📁 Lien dépôt OneDrive à configurer";
-    note.textContent = "Lien dépôt OneDrive non disponible pour cette sous-catégorie.";
+    uploadLink.textContent = "📁 Dossier OneDrive indisponible";
+    note.textContent = "Le dossier OneDrive n’est pas encore disponible pour ce groupe. Contacte un administrateur.";
   }
 }
 
