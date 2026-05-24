@@ -780,14 +780,32 @@ function forumUserCanReceive(profile, info){
 
 async function getForumRecipientUids(info, excludeUid){
   const out = new Set();
-  try{
-    const snap = await FTS.activePublicProfilesRef(db).once('value');
-    if(snap.exists()) snap.forEach(child => {
+
+  function scanSnapshot(snap, source){
+    if(!snap || !snap.exists || !snap.exists()) return;
+    snap.forEach(child => {
       if(child.key === excludeUid) return;
       const profile = child.val() || {};
+      // Les deux sources sont volontairement publiques/allégées :
+      // - fts_public_profiles : profils actifs nettoyés, enfants inclus si resynchronisés
+      // - fts_forum/users : profil forum historique, utile pour les admins/profs et les accès enfant déjà présents
       if(forumUserCanReceive(profile, info)) out.add(child.key);
     });
-  }catch(e){ console.warn('[FTS Forum] Forum recipients', e); }
+  }
+
+  try{
+    const snap = await FTS.activePublicProfilesRef(db).once('value');
+    scanSnapshot(snap, 'public_profiles');
+  }catch(e){ console.warn('[FTS Forum] Recipients public profiles', e); }
+
+  // V186 : fallback important. Certains comptes admin/prof ou anciens profils peuvent ne pas être
+  // parfaitement resynchronisés dans fts_public_profiles. fts_forum/users reste lisible par les
+  // membres actifs et contient uniquement les données forum nécessaires aux notifications.
+  try{
+    const forumSnap = await db.ref('fts_forum/users').once('value');
+    scanSnapshot(forumSnap, 'forum_users');
+  }catch(e){ console.warn('[FTS Forum] Recipients forum users', e); }
+
   return [...out];
 }
 async function primeForumUnreadForRecipients(recipients, channel, messageTs){
