@@ -122,7 +122,7 @@
     if(!db) return out;
     const excluded = String(excludeUid || '').trim();
     try{
-      const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
+      const snap = await FTS.activePublicProfilesRef(db).once('value');
       snap.forEach(child => {
         if(!child.key) return;
         if(excluded && child.key === excluded) return;

@@ -98,6 +98,142 @@ FTS.jsArg = function(value) {
   return json.replace(/"/g, '&quot;');
 };
 
+/* ── PROFILS PUBLICS SÉCURISÉS ─────────────────────────────────
+   Objectif : éviter que les membres lisent tout fts_users.
+   fts_public_profiles contient uniquement les champs utiles aux listes,
+   messages, forum, notifications ciblées et gamification. Aucun email,
+   téléphone, date de naissance, consentement RGPD/droit image.
+*/
+FTS.toPublicProfile = function(profile, uid) {
+  profile = profile || {};
+  uid = uid || profile.uid || '';
+
+  function arr(v){
+    if(Array.isArray(v)) return v.filter(Boolean).map(String);
+    if(typeof v === 'string') return v.split(',').map(x => x.trim()).filter(Boolean);
+    return [];
+  }
+  function byCat(v){
+    const out = {};
+    if(!v || typeof v !== 'object' || Array.isArray(v)) return out;
+    Object.keys(v).forEach(k => { out[k] = arr(v[k]); });
+    return out;
+  }
+
+  const childDisciplines = [];
+  const childSubgroups = [];
+  const childSubgroupsByCat = {};
+  if(profile.hasEnfant && Array.isArray(profile.enfants)) {
+    profile.enfants.forEach(child => {
+      arr(child && child.disciplines).forEach(x => childDisciplines.push(x));
+      arr(child && (child.subgroups || child.subgroup || child.subcategories)).forEach(x => childSubgroups.push(x));
+      const childByCat = byCat(child && (child.subgroupsByCat || child.subcategoriesByCat || child.groupsByCat));
+      Object.keys(childByCat).forEach(cat => {
+        childSubgroupsByCat[cat] = Array.from(new Set([...(childSubgroupsByCat[cat] || []), ...childByCat[cat]]));
+      });
+    });
+  }
+
+  const firstName = String(profile.firstName || '').trim();
+  const lastName = String(profile.lastName || '').trim();
+  const name = String(profile.displayName || profile.name || [firstName, lastName].filter(Boolean).join(' ') || 'Membre').trim();
+  const directSubgroupsByCat = byCat(profile.subgroupsByCat || profile.subcategoriesByCat || profile.groupsByCat);
+  Object.keys(childSubgroupsByCat).forEach(cat => {
+    directSubgroupsByCat[cat] = Array.from(new Set([...(directSubgroupsByCat[cat] || []), ...childSubgroupsByCat[cat]]));
+  });
+
+  return {
+    uid: uid,
+    name: name,
+    firstName: firstName,
+    lastName: lastName ? lastName.charAt(0).toUpperCase() + '.' : '',
+    role: String(profile.role || 'member'),
+    status: String(profile.status || 'pending'),
+    disciplines: Array.from(new Set([...arr(profile.disciplines || profile.group || profile.groups), ...childDisciplines])),
+    subgroups: Array.from(new Set([...arr(profile.subgroups || profile.subgroup || profile.subcategories), ...childSubgroups])),
+    subgroup: Array.from(new Set([...arr(profile.subgroups || profile.subgroup || profile.subcategories), ...childSubgroups])).join(', '),
+    subgroupsByCat: directSubgroupsByCat,
+    xp: Number(profile.xp || 0),
+    specialBadge: profile.specialBadge || null,
+    updatedAt: Date.now()
+  };
+};
+
+FTS.syncPublicProfile = async function(db, uid, profile) {
+  if(!db || !uid || !profile) return;
+  const publicProfile = FTS.toPublicProfile(profile, uid);
+  if(publicProfile.status === 'active') {
+    await db.ref('fts_public_profiles/' + uid).set(publicProfile);
+  } else {
+    await db.ref('fts_public_profiles/' + uid).remove().catch(function(){});
+  }
+};
+
+FTS.syncAllPublicProfiles = async function(db) {
+  if(!db) return { ok:false, count:0 };
+  const snap = await db.ref('fts_users').once('value');
+  const updates = {};
+  let count = 0;
+  if(snap.exists()) snap.forEach(function(child){
+    const profile = child.val() || {};
+    if(String(profile.status || '') === 'active') {
+      updates['fts_public_profiles/' + child.key] = FTS.toPublicProfile(profile, child.key);
+      count++;
+    } else {
+      updates['fts_public_profiles/' + child.key] = null;
+    }
+  });
+  if(Object.keys(updates).length) await db.ref().update(updates);
+  return { ok:true, count:count };
+};
+
+FTS.activePublicProfilesRef = function(db) {
+  return db.ref('fts_public_profiles').orderByChild('status').equalTo('active');
+};
+
+FTS.publicProfilesRef = function(db) {
+  return db.ref('fts_public_profiles');
+};
+
+FTS.safeUrl = function(url, fallback) {
+  fallback = fallback || '#';
+  const raw = String(url || '').trim();
+  if(!raw) return fallback;
+  if(raw === '#' || raw.startsWith('./') || raw.startsWith('../') || raw.startsWith('/')) return raw;
+  try {
+    const u = new URL(raw, location.origin);
+    const protocol = String(u.protocol || '').toLowerCase();
+    if(['https:', 'http:', 'mailto:', 'tel:'].includes(protocol)) return u.href;
+  } catch(e) {}
+  return fallback;
+};
+
+/* Ajoute automatiquement le token Firebase sur les appels au Worker push. */
+(function(){
+  if(window.__FTS_SECURE_PUSH_FETCH__) return;
+  window.__FTS_SECURE_PUSH_FETCH__ = true;
+  const nativeFetch = window.fetch ? window.fetch.bind(window) : null;
+  if(!nativeFetch) return;
+  window.fetch = async function(input, init) {
+    let url = '';
+    try { url = typeof input === 'string' ? input : (input && input.url) || ''; } catch(e) { url = ''; }
+    try {
+      const worker = window.FTS && FTS.PUSH && FTS.PUSH.workerUrl ? String(FTS.PUSH.workerUrl).replace(/\/+$/, '') : '';
+      if(worker && typeof url === 'string' && url.indexOf(worker) === 0 && window.firebase && firebase.auth && firebase.auth().currentUser) {
+        init = init || {};
+        const headers = new Headers(init.headers || (input && input.headers) || {});
+        if(!headers.has('Authorization')) {
+          const token = await firebase.auth().currentUser.getIdToken();
+          headers.set('Authorization', 'Bearer ' + token);
+        }
+        init.headers = headers;
+      }
+    } catch(e) {}
+    return nativeFetch(input, init);
+  };
+})();
+
+
 
 /* ── NORMALISATION (Firebase keys, comparaisons) ─────────────── */
 /*
