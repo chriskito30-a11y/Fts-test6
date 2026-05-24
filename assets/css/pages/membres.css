@@ -3541,3 +3541,8 @@ button.profile-pill:focus-visible {
     text-align: center;
   }
 }
+
+
+/* RGPD v163 */
+.account-rgpd-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.account-rgpd-box{border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:13px;background:rgba(255,255,255,.045);display:flex;flex-direction:column;gap:8px}.account-rgpd-box strong{font-size:.98rem}.account-rgpd-box small{color:rgba(255,255,255,.68);line-height:1.35}.account-rgpd-box.danger{border-color:rgba(255,83,83,.35);background:rgba(255,83,83,.08)}.account-btn-danger{background:#ff5353!important;color:#fff!important;border-color:#ff5353!important}.account-rgpd-note{font-size:.88rem}.account-rgpd-note a{color:#ffd36a;font-weight:800}.profile-child-remove.is-existing{display:inline-flex;background:rgba(255,83,83,.12);border:1px solid rgba(255,83,83,.35);color:#ffb8b8}
+@media(max-width:720px){.account-rgpd-grid{grid-template-columns:1fr}}
