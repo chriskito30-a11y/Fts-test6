@@ -712,7 +712,7 @@ async function subscribePush(){
 }
 async function getAdminRecipientUids(excludeUid){
   try{
-    const snap = await db.ref('fts_users').orderByChild('role').equalTo('admin').once('value');
+    const snap = await db.ref('fts_public_profiles').orderByChild('role').equalTo('admin').once('value');
     const ids = [];
     if(snap.exists()) snap.forEach(child => {
       const u = child.val() || {};
@@ -780,7 +780,7 @@ function forumUserCanReceive(profile, info){
 async function getForumRecipientUids(info, excludeUid){
   const out = new Set();
   try{
-    const snap = await db.ref('fts_users').orderByChild('status').equalTo('active').once('value');
+    const snap = await FTS.activePublicProfilesRef(db).once('value');
     if(snap.exists()) snap.forEach(child => {
       if(child.key === excludeUid) return;
       const profile = child.val() || {};

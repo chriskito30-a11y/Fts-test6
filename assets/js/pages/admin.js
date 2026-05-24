@@ -80,6 +80,7 @@ window.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('auth-loading').style.display='none';
       document.getElementById('admin-shell').style.display='block';
       ftsEnsureAdminPushChannel(user, profile);
+      try { FTS.syncAllPublicProfiles(db).catch(function(e){ console.warn('[FTS Admin] Sync profils publics non bloquant :', e); }); } catch(e) {}
       loadAdminOverview();
       adminStartLivePendingRefresh();
     }catch(e){ console.warn('[FTS Admin Hub]',e); showError(e && e.message ? e.message : String(e)); }

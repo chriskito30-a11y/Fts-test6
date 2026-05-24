@@ -200,6 +200,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     try {
       const snap    = await db.ref('fts_users/' + user.uid).once('value');
       const profile = snap.val();
+      try { if(profile && profile.status === 'active') await FTS.syncPublicProfile(db, user.uid, profile); } catch(e) { console.warn('[FTS Auth] Sync profil public non bloquant :', e); }
 
       if (!profile) {
         // Profil introuvable → déconnexion propre
@@ -727,6 +728,7 @@ async function doRegister() {
     };
 
     await db.ref('fts_users/' + uid).set(profile);
+    try { await FTS.syncPublicProfile(db, uid, profile); } catch(e) { console.warn('[FTS Auth] Profil public non bloquant :', e); }
 
     // Historique séparé du droit à l'image : horodatage serveur, non bloquant.
     try {

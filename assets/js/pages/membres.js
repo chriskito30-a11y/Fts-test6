@@ -2548,6 +2548,7 @@ async function saveProfileInfo() {
     }
     saved = true;
     userProfile = { ...userProfile, ...updates, imageRightsUpdatedAt: Date.now() };
+    try { await FTS.syncPublicProfile(db, currentUid, userProfile); } catch(e) { console.warn('[FTS] Sync profil public non bloquant :', e); }
   } catch(e) {
     console.warn('[FTS] Sauvegarde profil impossible :', e);
     setAccountMsg('profile-msg', 'Erreur lors de la sauvegarde. Réessaie.', 'err');

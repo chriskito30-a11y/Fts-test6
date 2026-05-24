@@ -76,7 +76,7 @@ async function openDirectMessageDeepLink(){
   if (!other || other === myUid) return;
   try {
     if (!allUsers[other]) {
-      const s = await db.ref('fts_users/' + other).once('value');
+      const s = await db.ref('fts_public_profiles/' + other).once('value');
       const u = s.val();
       if (!u || u.status !== 'active') return;
       allUsers[other] = u;
@@ -111,7 +111,7 @@ function showBootError(e){
 
 /* ── MEMBRES ─────────────────────────────────────────────────── */
 async function loadUsers(){
-  const s = await db.ref("fts_users").orderByChild("status").equalTo("active").once("value");
+  const s = await FTS.activePublicProfilesRef(db).once("value");
   allUsers = {};
   if(s.exists()) s.forEach(c => { if(c.key !== myUid) allUsers[c.key] = c.val(); });
 }
@@ -479,7 +479,7 @@ async function subscribePush(){
 function uniqueUids(list){ return Array.from(new Set((list || []).filter(Boolean))); }
 async function getAdminRecipientUids(excludeUid){
   try{
-    const snap = await db.ref('fts_users').orderByChild('role').equalTo('admin').once('value');
+    const snap = await db.ref('fts_public_profiles').orderByChild('role').equalTo('admin').once('value');
     const ids = [];
     if(snap.exists()) snap.forEach(child => {
       const u = child.val() || {};
