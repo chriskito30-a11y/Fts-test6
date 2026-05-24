@@ -1,4 +1,4 @@
-const CACHE = 'fts-v157-season-categories-source';
+const CACHE = 'fts-v158-profs-onedrive-no-cloudinary';
 const FILES = [
   './manifest.json',
   './index.html',
