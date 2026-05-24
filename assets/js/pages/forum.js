@@ -837,10 +837,8 @@ async function notifyChannel(channel, body, msgId){
   const forumLabel = info.subgroup
     ? (info.group ? info.group + ' · ' + info.subgroup : info.subgroup)
     : (info.group ? 'Général ' + info.group : 'Forum général');
-  // V191 : format UX sans répéter le nom de l'app.
-  // La première ligne système affiche déjà Fais Ton Show / domaine / heure.
-  const notificationTitle = forumLabel ? ('FORUM - ' + forumLabel) : 'FORUM';
-  const notificationBody = body;
+  const notificationTitle = 'FTS — Forum';
+  const notificationBody = forumLabel ? (forumLabel + ' — ' + body) : body;
 
   const notificationKey = 'forum-' + channel + '-' + (msgId || Date.now());
   const basePayload = {
