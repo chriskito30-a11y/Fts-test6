@@ -157,8 +157,7 @@ async function loadUserData(){
     role: userData.role,
     ts: Date.now(),
     uid: uid,
-    xp: Number(userData.xp || 0),
-    specialBadge: userData.specialBadge || null
+    xp: Number(userData.xp || 0)
   }).catch(e => console.warn('[FTS Forum] Synchro profil forum impossible', e));
 
   db.ref('fts_forum/users/'+uid+'/status').on('value', snap => {
@@ -792,17 +791,9 @@ async function getForumRecipientUids(info, excludeUid){
   return [...out];
 }
 async function primeForumUnreadForRecipients(recipients, channel, messageTs){
-  if(!Array.isArray(recipients) || !recipients.length || !channel || !messageTs) return;
-  const baseline = Math.max(0, Number(messageTs || Date.now()) - 1);
-  await Promise.allSettled(recipients.map(recipientUid => {
-    const ref = db.ref('fts_users/' + recipientUid + '/forumReads/' + channel);
-    return ref.transaction(current => {
-      const existing = Number((current && current.ts) || current || 0);
-      if(existing && existing >= baseline) return current;
-      if(!existing) return { ts: baseline };
-      return current;
-    }).catch(() => null);
-  }));
+  // V185 : ne plus écrire forumReads chez les autres membres.
+  // Le non-lu se calcule depuis leurs propres lectures + les notifications internes.
+  return;
 }
 
 
