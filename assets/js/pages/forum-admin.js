@@ -19,6 +19,63 @@ let currentAdminProfile = null;
 const adminBusyActions = {};
 
 
+/* ── PUSH ADMIN : canal interne nouvelles inscriptions ───────────
+   Marque l'abonnement push de l'admin avec le groupe technique __admin__.
+   Ainsi les nouvelles demandes peuvent notifier uniquement les admins.
+──────────────────────────────────────────────────────────────── */
+async function ftsEnsureAdminPushChannel(user, profile){
+  try{
+    if(!user || !user.uid || !profile || profile.role !== 'admin') return;
+    if(!window.FTS || !FTS.PUSH || !FTS.PUSH.workerUrl || !FTS.PUSH.vapidPublicKey) return;
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if(typeof Notification !== 'undefined' && Notification.permission !== 'granted') return;
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey: ftsUrlBase64ToUint8Array(FTS.PUSH.vapidPublicKey)
+      });
+    }
+
+    const groups = ftsUniqueAdminPushList(['__admin__']
+      .concat(profile.disciplines || [])
+      .concat(String(profile.group || profile.groups || '').split(',')));
+    const subgroups = ftsUniqueAdminPushList([]
+      .concat(profile.subgroups || [])
+      .concat(String(profile.subgroup || profile.subcategories || '').split(',')));
+
+    await fetch(FTS.PUSH.workerUrl + '/subscribe', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        uid:user.uid,
+        subscription:sub.toJSON(),
+        group:groups.join(', '),
+        subgroup:subgroups.join(', '),
+        role:'admin',
+        admin:true,
+        adminChannel:true
+      })
+    }).catch(function(){});
+  }catch(e){
+    console.warn('[FTS Admin Push] Canal admin non initialisé', e);
+  }
+}
+function ftsUniqueAdminPushList(list){
+  return [...new Set((list||[]).map(v=>String(v||'').trim()).filter(Boolean))];
+}
+function ftsUrlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for(let i=0;i<rawData.length;i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+
 /* ── EMAILS AUTOMATIQUES ───────────────────────────────────────
    À conserver : Make/Brevo sert uniquement aux emails transactionnels.
    Ne pas utiliser ce connecteur pour les rappels automatiques, qui restent
@@ -97,6 +154,7 @@ document.addEventListener("DOMContentLoaded", function() {
       // ✅ Admin confirmé — afficher le dashboard
       currentAdminUser = user;
       currentAdminProfile = profile || {};
+      ftsEnsureAdminPushChannel(user, currentAdminProfile);
       document.getElementById("auth-loading").style.display = "none";
       document.getElementById("dashboard").style.display    = "block";
       await loadGroups();

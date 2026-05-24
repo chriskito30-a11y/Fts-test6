@@ -63,6 +63,43 @@ async function sendFtsEmailAutomation(type, payload) {
     });
 }
 
+
+
+/* ── PUSH ADMIN : nouvelle demande d'inscription ────────────────
+   Non bloquant. Envoie une notification au groupe technique __admin__.
+   Les compteurs admin restent basés sur fts_users/status=pending : dès qu'un
+   admin valide une demande, les autres admins voient le compteur se mettre à jour.
+──────────────────────────────────────────────────────────────── */
+async function notifyAdminsNewSignup(profile){
+  try{
+    if(!window.FTS || !FTS.PUSH || !FTS.PUSH.workerUrl || !window.fetch) return;
+    const pendingSnap = await db.ref('fts_users').orderByChild('status').equalTo('pending').once('value').catch(function(){ return null; });
+    const pendingCount = pendingSnap && pendingSnap.exists && pendingSnap.exists() ? pendingSnap.numChildren() : 1;
+    const name = profile && profile.name ? profile.name : 'Nouvelle personne';
+    const cats = Array.isArray(profile && profile.disciplines) ? profile.disciplines.join(', ') : (profile && profile.group ? profile.group : '');
+    fetch(FTS.PUSH.workerUrl + '/notify', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        group:'__admin__',
+        type:'admin_pending_signup',
+        title:'FTS — Nouvelle inscription',
+        body:name + ' attend une validation' + (pendingCount > 1 ? ' · ' + pendingCount + ' demandes en attente' : ''),
+        url:'./forum-admin.html#tab-pending',
+        tag:'fts-admin-pending-signups',
+        collapseKey:'fts-admin-pending-signups',
+        notificationKey:'fts-admin-pending-signups-' + Date.now(),
+        pendingCount:pendingCount,
+        signupUid:profile && profile.uid ? profile.uid : '',
+        categories:cats || ''
+      }),
+      keepalive:true
+    }).catch(function(){});
+  }catch(e){
+    console.warn('[FTS Auth] Notification admin inscription non envoyée', e);
+  }
+}
+
 let db, auth;
 let selectedDisc    = new Set();
 let selectedSubcats  = {};          // { catName: Set<subName> }
@@ -642,6 +679,7 @@ async function doRegister() {
          hasEnfant, enfants[{id, prenom, nom, dateNaissance, telephone, disciplines[]}]
     */
     const profile = {
+      uid,
       email,
       name:        first + ' ' + last,
       firstName:   first,
@@ -673,6 +711,13 @@ async function doRegister() {
         categories: [...new Set([...selectedDisc, ...childDiscsForMail])].join(', '),
         subcategories: [...new Set([...parentSubgroups, ...childSubsForMail])].join(', '),
       });
+      notifyAdminsNewSignup(Object.assign({}, profile, {
+        uid,
+        disciplines: [...new Set([...selectedDisc, ...childDiscsForMail])],
+        group: [...new Set([...selectedDisc, ...childDiscsForMail])].join(', '),
+        subgroups: [...new Set([...parentSubgroups, ...childSubsForMail])],
+        subgroup: [...new Set([...parentSubgroups, ...childSubsForMail])].join(', ')
+      }));
     }
 
     // Sync forum — groupe = union parent + enfants

@@ -9,6 +9,63 @@ function showError(msg){
   const err=document.getElementById('auth-error');
   if(err){ err.style.display='block'; err.innerHTML=FTS.esc(msg)+'<br><br><a href="auth.html">Retour connexion</a>'; }
 }
+
+
+/* ── PUSH ADMIN : canal interne nouvelles inscriptions ───────────
+   Marque l'abonnement push de l'admin avec le groupe technique __admin__.
+   Ainsi les nouvelles demandes peuvent notifier uniquement les admins.
+──────────────────────────────────────────────────────────────── */
+async function ftsEnsureAdminPushChannel(user, profile){
+  try{
+    if(!user || !user.uid || !profile || profile.role !== 'admin') return;
+    if(!window.FTS || !FTS.PUSH || !FTS.PUSH.workerUrl || !FTS.PUSH.vapidPublicKey) return;
+    if(!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+    if(typeof Notification !== 'undefined' && Notification.permission !== 'granted') return;
+
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if(!sub){
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey: ftsUrlBase64ToUint8Array(FTS.PUSH.vapidPublicKey)
+      });
+    }
+
+    const groups = ftsUniqueAdminPushList(['__admin__']
+      .concat(profile.disciplines || [])
+      .concat(String(profile.group || profile.groups || '').split(',')));
+    const subgroups = ftsUniqueAdminPushList([]
+      .concat(profile.subgroups || [])
+      .concat(String(profile.subgroup || profile.subcategories || '').split(',')));
+
+    await fetch(FTS.PUSH.workerUrl + '/subscribe', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        uid:user.uid,
+        subscription:sub.toJSON(),
+        group:groups.join(', '),
+        subgroup:subgroups.join(', '),
+        role:'admin',
+        admin:true,
+        adminChannel:true
+      })
+    }).catch(function(){});
+  }catch(e){
+    console.warn('[FTS Admin Push] Canal admin non initialisé', e);
+  }
+}
+function ftsUniqueAdminPushList(list){
+  return [...new Set((list||[]).map(v=>String(v||'').trim()).filter(Boolean))];
+}
+function ftsUrlBase64ToUint8Array(base64String){
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for(let i=0;i<rawData.length;i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
 window.addEventListener('DOMContentLoaded',()=>{
   db=FTS.initFirebase(); auth=firebase.auth();
   auth.onAuthStateChanged(async user=>{
@@ -22,10 +79,24 @@ window.addEventListener('DOMContentLoaded',()=>{
       document.getElementById('admin-name').textContent=profile.firstName || profile.name || user.email || 'admin';
       document.getElementById('auth-loading').style.display='none';
       document.getElementById('admin-shell').style.display='block';
+      ftsEnsureAdminPushChannel(user, profile);
       loadAdminOverview();
+      adminStartLivePendingRefresh();
     }catch(e){ console.warn('[FTS Admin Hub]',e); showError(e && e.message ? e.message : String(e)); }
   });
 });
+
+
+
+function adminStartLivePendingRefresh(){
+  if(window.__FTS_ADMIN_PENDING_LIVE_BOUND__ || !db) return;
+  window.__FTS_ADMIN_PENDING_LIVE_BOUND__ = true;
+  let t = null;
+  db.ref('fts_users').on('value', function(){
+    clearTimeout(t);
+    t = setTimeout(function(){ loadAdminOverview(); }, 250);
+  });
+}
 
 /* FTS_AUTO_EXTRACTED_HANDLERS:admin.html */
 (function(){
