@@ -347,7 +347,7 @@ function renderPending() {
       </div>
       <div class="user-actions">
         <button class="btn-action btn-approve" data-fts-click="approveUser('${id}')">✓ Valider</button>
-        <button class="btn-action btn-modify"  data-fts-click="openModModal('${id}')">✎ Modifier</button>
+        <button class="btn-action btn-modify"  data-fts-click="openModModal(${FTS.jsArg(id)})">✎ Modifier</button>
         <button class="btn-action btn-refuse"  data-fts-click="refuseUser('${id}')">✕ Refuser</button>
       </div>
     </div>`).join("");
@@ -380,8 +380,9 @@ function renderMembers() {
         ).join('') : ''}
       </div>
       <div class="user-actions">
-        <button class="btn-action btn-modify" data-fts-click="openModModal('${id}')">✎ Éditer</button>
-        <button class="btn-action btn-revoke" data-fts-click="revokeUser('${id}')">✕ Révoquer</button>
+        <button class="btn-action btn-modify" data-fts-click="openModModal(${FTS.jsArg(id)})">✎ Éditer</button>
+        <button class="btn-action btn-revoke" data-fts-click="revokeUser(${FTS.jsArg(id)})">✕ Révoquer</button>
+        <button class="btn-action btn-delete" data-fts-click="deleteUserCompletely(${FTS.jsArg(id)})">🗑 Supprimer</button>
       </div>
     </div>`).join("");
 }
@@ -1039,6 +1040,86 @@ async function revokeUser(id) {
   }catch(e){
     alert('Impossible de révoquer cet utilisateur : ' + (e && e.message ? e.message : e));
   }finally{
+    adminBusyActions[busyKey] = false;
+  }
+}
+
+async function deleteUserCompletely(id) {
+  const u = allUsers[id];
+  if (!u) {
+    alert("Utilisateur introuvable dans la liste actuelle.");
+    return;
+  }
+
+  const label = u.name || u.email || id;
+  const role = String(u.role || "member");
+  if (role === "admin") {
+    alert("Sécurité : la suppression complète d'un compte admin est bloquée depuis cette interface.");
+    return;
+  }
+
+  if (!confirm("Supprimer définitivement ce compte ?\n\n" + label + "\n\nCette action efface le compte Firebase Auth et les données liées dans la Realtime Database. Elle est irréversible.")) return;
+  const typed = prompt("Pour confirmer la suppression définitive, tape : SUPPRIMER");
+  if (typed !== "SUPPRIMER") {
+    alert("Suppression annulée.");
+    return;
+  }
+
+  const busyKey = 'deleteUserCompletely:' + id;
+  if (adminBusyActions[busyKey]) return;
+  adminBusyActions[busyKey] = true;
+  try {
+    const current = firebase && firebase.auth ? firebase.auth().currentUser : null;
+    if (!current || !current.getIdToken) throw new Error("admin_not_connected");
+    const idToken = await current.getIdToken(true);
+    const baseUrl = (window.FTS && FTS.SECRETS && FTS.SECRETS.workerUrl)
+      ? FTS.SECRETS.workerUrl
+      : 'https://fts-email.gros-christophe.workers.dev';
+
+    const res = await fetch(baseUrl + '/rgpd/admin-delete-account', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + idToken
+      },
+      body: JSON.stringify({
+        targetUid: id,
+        confirm: 'DELETE_MEMBER_ACCOUNT',
+        source: 'forum_admin_access'
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || ('HTTP ' + res.status));
+    }
+
+    // Nettoyage non bloquant de l'abonnement push KV, si le Worker push le permet.
+    try {
+      if (window.FTS && FTS.PUSH && FTS.PUSH.workerUrl) {
+        await fetch(FTS.PUSH.workerUrl + '/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: id, adminDelete: true })
+        });
+      }
+    } catch(pushErr) {
+      console.warn('[FTS RGPD] Nettoyage push admin non bloquant', pushErr);
+    }
+
+    alert("Compte supprimé définitivement. Les listes vont se mettre à jour automatiquement.");
+  } catch(e) {
+    const msg = e && e.message ? e.message : String(e || 'Erreur inconnue');
+    const labels = {
+      admin_required: "Action réservée à un administrateur connecté.",
+      target_uid_required: "Utilisateur cible manquant.",
+      bad_confirmation: "Confirmation incorrecte.",
+      target_not_found: "Ce compte n'existe déjà plus dans la base.",
+      admin_target_delete_blocked: "Suppression d'un compte admin bloquée par sécurité.",
+      auth_delete_failed: "Les données ont peut-être été supprimées, mais la suppression Auth a échoué.",
+      admin_not_connected: "Compte admin non connecté."
+    };
+    alert("Suppression impossible : " + (labels[msg] || msg));
+  } finally {
     adminBusyActions[busyKey] = false;
   }
 }
