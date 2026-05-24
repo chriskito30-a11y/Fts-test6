@@ -1,4 +1,4 @@
-const CACHE = 'fts-v176-rgpd-admin-logs-clean';
+const CACHE = 'fts-v177-rgpd-admin-logs-clean';
 const FILES = [
   './manifest.json',
   './index.html',
