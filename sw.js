@@ -1,4 +1,4 @@
-const CACHE = 'fts-v185-safe-url';
+const CACHE = 'fts-v186-forum-child-notifs';
 const FILES = [
   './manifest.json',
   './index.html',
