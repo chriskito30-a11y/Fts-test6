@@ -162,6 +162,7 @@
 .btn-refuse  { background: rgba(120,30,30,.15);  border-color: #5a2020; color: #aa6060; }
 .btn-modify  { background: transparent;          border-color: #333;    color: var(--muted); }
 .btn-revoke  { background: transparent;          border-color: #5a2020; color: #aa5050; }
+.btn-delete  { background: rgba(160,20,20,.22); border-color: #8a2020; color: #ff8a8a; }
 
 /* ── MODALE MODIFICATION ─────────────────────────────────────── */
 .modal {
