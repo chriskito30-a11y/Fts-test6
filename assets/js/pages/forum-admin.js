@@ -1115,7 +1115,12 @@ async function deleteUserCompletely(id) {
       bad_confirmation: "Confirmation incorrecte.",
       target_not_found: "Ce compte n'existe déjà plus dans la base.",
       admin_target_delete_blocked: "Suppression d'un compte admin bloquée par sécurité.",
-      auth_delete_failed: "Les données ont peut-être été supprimées, mais la suppression Auth a échoué.",
+      auth_delete_failed: "La suppression Firebase Auth a échoué.",
+      auth_delete_permission_denied: "Le compte de service Firebase n'a pas la permission firebaseauth.users.delete.",
+      auth_delete_bad_request: "Firebase Auth a refusé la demande de suppression.",
+      auth_delete_user_not_found: "Le compte Auth n'existe déjà plus.",
+      db_delete_failed: "Le compte Auth a peut-être été supprimé, mais le nettoyage RTDB a échoué.",
+      service_account_token_failed: "Le Worker n'arrive pas à générer le jeton du compte de service Firebase.",
       admin_not_connected: "Compte admin non connecté."
     };
     alert("Suppression impossible : " + (labels[msg] || msg));
