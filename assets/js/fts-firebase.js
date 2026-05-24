@@ -48,10 +48,17 @@ FTS.PUSH = {
    ──────────────────────────────────────────────────────────────── */
 
 
-/* ── APPS SCRIPT ───────────────────────────────────────────────── */
+/* ── WORKER PRIVÉ EMAIL / LIENS INTERNES ──────────────────────────
+   Le webhook Make/Brevo et les liens OneDrive ne sont plus exposés
+   dans le code public : ils sont servis par le Worker séparé fts-email. La route OneDrive est protégée par token Firebase admin/prof.
+   ──────────────────────────────────────────────────────────────── */
 
-FTS.SCRIPT = {
-  publication: "https://script.google.com/macros/s/AKfycby0VF50V2UGWLZ-65GeeeHlibSrZhqqcx1IHQ8-bkrGmsxCBO3hkYZrMiCnE1GqTgEBNg/exec",
+FTS.SECRETS = {
+  workerUrl: "https://fts-email.gros-christophe.workers.dev",
+};
+
+FTS.EMAIL = {
+  workerUrl: "https://fts-email.gros-christophe.workers.dev/email",
 };
 
 
