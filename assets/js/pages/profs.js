@@ -538,6 +538,22 @@ function getDanceFolderConfig(subcat) {
   return key ? { key, ...DANCE_VIDEO_FOLDERS[key] } : null;
 }
 
+function setCloudinaryUploadVisible(visible) {
+  const uploadRow = document.getElementById("upload-row");
+  const dropZone = document.getElementById("drop-zone");
+  const dropLabel = uploadRow ? uploadRow.querySelector("label") : null;
+  const videoTip = document.getElementById("video-upload-tip");
+  const fileInput = document.getElementById("f-file");
+
+  [dropLabel, dropZone, videoTip].forEach(el => {
+    if (!el) return;
+    el.style.display = visible ? "" : "none";
+    el.setAttribute("aria-hidden", visible ? "false" : "true");
+  });
+
+  if (fileInput && !visible) fileInput.value = "";
+}
+
 function updateDanceVideoFolder() {
   const cat = document.getElementById("f-cat").value;
   const subcat = document.getElementById("f-subcat").value;
@@ -552,6 +568,13 @@ function updateDanceVideoFolder() {
   if (!box || !uploadLink || !urlInput) return;
 
   const shouldShow = isDanceCat(cat) && type === "video" && !!subcat;
+  const cfg = shouldShow ? getDanceFolderConfig(subcat) : null;
+  const hasOneDriveConfig = !!(cfg && (cfg.read || cfg.write));
+
+  // UX sécurité : quand un dossier OneDrive Danse existe, on masque Cloudinary
+  // pour éviter qu'un prof glisse une vidéo au mauvais endroit. Le bloc OneDrive reste visible.
+  setCloudinaryUploadVisible(!(shouldShow && hasOneDriveConfig));
+
   if (!shouldShow) {
     box.style.display = "none";
     uploadLink.href = "#";
@@ -559,7 +582,6 @@ function updateDanceVideoFolder() {
     return;
   }
 
-  const cfg = getDanceFolderConfig(subcat);
   box.style.display = "block";
   title.textContent = "Dossier vidéo Danse — " + subcat;
 
@@ -574,12 +596,12 @@ function updateDanceVideoFolder() {
     uploadLink.href = cfg.write;
     uploadLink.classList.remove("disabled");
     uploadLink.textContent = "📁 Déposer la vidéo dans OneDrive";
-    note.textContent = "Après dépôt dans OneDrive, reviens ici, ajoute un titre et publie.";
+    note.textContent = "Cloudinary est masqué ici pour éviter une erreur : les vidéos Danse de cette sous-catégorie passent par OneDrive.";
   } else {
     uploadLink.href = "#";
     uploadLink.classList.add("disabled");
     uploadLink.textContent = "📁 Lien dépôt OneDrive à configurer";
-    note.textContent = "Ajoute plus tard le lien write dans DANCE_VIDEO_FOLDERS pour activer ce bouton.";
+    note.textContent = "Lien dépôt OneDrive non disponible pour cette sous-catégorie.";
   }
 }
 
@@ -592,8 +614,7 @@ function updateType() {
     pdf:"Lien Google Drive (PDF)", mp3:"Lien audio",
     video:"Lien OneDrive, YouTube ou Google Drive", image:"Lien image", doc:"Lien",
   };
-  document.getElementById("video-upload-tip").style.display =
-  t === "video" ? "block" : "none";
+  setCloudinaryUploadVisible(t !== "texte");
   document.getElementById("url-label").textContent = labels[t] || "Lien";
   updateDanceVideoFolder();
   updateScriptRehearsalVisibility();
@@ -763,6 +784,7 @@ function resetForm() {
   document.getElementById("subcat-row").style.display   = "none";
   const box = document.getElementById("dance-video-folder-box");
   if (box) box.style.display = "none";
+  setCloudinaryUploadVisible(true);
   const rehearsalCb = document.getElementById("f-script-rehearsal");
   if (rehearsalCb) rehearsalCb.checked = false;
   updateScriptRehearsalVisibility();
