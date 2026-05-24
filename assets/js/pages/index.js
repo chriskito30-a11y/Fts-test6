@@ -336,7 +336,7 @@ function showDest() {
       <div class="dest-title">${FTS.esc(opt.destTitle || opt.title)}</div>
       <div class="dest-desc">${FTS.esc(opt.destDesc  || opt.desc)}</div>
       ${details ? '<div class="dest-details">' + details + '</div>' : ''}
-      <a href="${opt.link}" class="btn-helloasso" target="_blank" rel="noopener">
+      <a href="${FTS.esc(FTS.safeUrl(opt.link, '#'))}" class="btn-helloasso" target="_blank" rel="noopener">
         Ouvrir le lien sécurisé →
       </a>
       <button class="btn-ghost" data-fts-click="restart()">Recommencer depuis le début</button>

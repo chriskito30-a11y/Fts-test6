@@ -1347,7 +1347,7 @@ function showEvts(es) {
       </div>
       ${e.important?`<span class="evt-type important">Important</span>`:''}
       ${e.t?`<span class="evt-type">${FTS.esc(e.t)}</span>`:''}
-      ${e.u?`<a href="${e.u}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:''}
+      ${e.u?`<a href="${FTS.esc(FTS.safeUrl(e.u, '#'))}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:''}
     </div>`).join('');
 }
 
@@ -1708,8 +1708,9 @@ function showDocs(docs, idx) {
     }
 
     const kind = resourceKindFromDoc(d);
-    const safeUrl = FTS.esc(d.url);
-    const dlUrl = FTS.esc(resourceDownloadUrl(d.url));
+    const normalizedUrl = FTS.safeUrl(d.url, '#');
+    const safeUrl = FTS.esc(normalizedUrl);
+    const dlUrl = FTS.esc(resourceDownloadUrl(normalizedUrl));
     const title = FTS.esc(d.name || 'Document');
     const sub = d.sub ? ` · ${FTS.esc(d.sub)}` : '';
     const rehearseAction = isRehearsalPdfDoc(d)
@@ -1914,7 +1915,7 @@ function renderAnnouncementCards(rows) {
         ${title ? `<strong>${FTS.esc(title)}</strong><br>` : ''}
         ${body ? FTS.esc(body).replace(/\n/g, '<br>') : ''}
         ${dateLabel ? `<div class="annonce-date">${FTS.esc(dateLabel)}</div>` : ''}
-        ${btn && url ? `<br><a href="${FTS.esc(url)}" class="evt-link evt-action-link">${FTS.esc(btn)}</a>` : ''}
+        ${btn && url ? `<br><a href="${FTS.esc(FTS.safeUrl(url, '#'))}" class="evt-link evt-action-link" target="_blank" rel="noopener">${FTS.esc(btn)}</a>` : ''}
       </div>
       ${isRead ? '' : `<div class="annonce-actions"><button type="button" class="annonce-read-btn" data-annonce-read="${FTS.esc(id)}">J’ai lu</button></div>`}
     </div>`;

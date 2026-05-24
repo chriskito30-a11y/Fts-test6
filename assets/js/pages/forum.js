@@ -572,8 +572,9 @@ function fileKindFromExt(ext){
 }
 
 function renderFileCard(icon, title, url, label, kind){
-  const safeUrl = esc(url);
-  const dlUrl = esc(mediaDownloadUrl(url));
+  const normalizedUrl = FTS.safeUrl(url, '#');
+  const safeUrl = esc(normalizedUrl);
+  const dlUrl = esc(mediaDownloadUrl(normalizedUrl));
   const safeTitle = esc(title || 'Fichier joint');
   const safeLabel = esc(label || 'Fichier joint');
   const safeKind = esc(kind || 'file');
@@ -598,8 +599,9 @@ function renderMedia(payload){
   const title = media.name;
   const ext = url.split('?')[0].split('.').pop().toLowerCase();
   const kind = fileKindFromExt(ext);
-  const dl = esc(mediaDownloadUrl(url));
-  const safeUrl = esc(url);
+  const normalizedUrl = FTS.safeUrl(url, '#');
+  const dl = esc(mediaDownloadUrl(normalizedUrl));
+  const safeUrl = esc(normalizedUrl);
   const safeTitle = esc(title || 'Fichier joint');
   const isImg = url.includes('/image/upload/') && !['pdf'].includes(ext) || ['jpg','jpeg','png','gif','webp'].includes(ext);
   const isVideo = (url.includes('/video/upload/') && !['mp3','wav','ogg','aac','m4a'].includes(ext)) || ['mp4','mov','webm'].includes(ext);
@@ -608,7 +610,7 @@ function renderMedia(payload){
 
   if(isImg) return `<div class="msg-media-wrap msg-media-wrap--image">
     <div class="msg-media-title"><span>🖼️</span><strong>${safeTitle}</strong></div>
-    <img class="msg-img" src="${safeUrl}" data-fts-click="window.open(${FTS.jsArg(url)})" alt="${safeTitle}">
+    <img class="msg-img" src="${safeUrl}" data-fts-click="window.open(${FTS.jsArg(normalizedUrl)})" alt="${safeTitle}">
     <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
   </div>`;
 
