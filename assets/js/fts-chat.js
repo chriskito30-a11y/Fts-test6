@@ -157,8 +157,9 @@ window.FTSChat = window.FTSChat || {};
   };
 
   Chat.renderFileCard = function(icon, title, url, label, kind) {
-    const safeUrl = Chat.escape(url);
-    const dlUrl = Chat.escape(Chat.mediaDownloadUrl(url));
+    const normalizedUrl = FTS.safeUrl(url, '#');
+    const safeUrl = Chat.escape(normalizedUrl);
+    const dlUrl = Chat.escape(Chat.mediaDownloadUrl(normalizedUrl));
     const safeTitle = Chat.escape(title || 'Fichier joint');
     const safeLabel = Chat.escape(label || 'Fichier joint');
     const safeKind = Chat.escape(kind || 'file');
@@ -182,8 +183,9 @@ window.FTSChat = window.FTSChat || {};
     const url = media.url;
     const title = media.name || 'Fichier joint';
     const kind = Chat.fileKindFromUrl(url);
-    const dl = Chat.escape(Chat.mediaDownloadUrl(url));
-    const safeUrl = Chat.escape(url);
+    const normalizedUrl = FTS.safeUrl(url, '#');
+    const dl = Chat.escape(Chat.mediaDownloadUrl(normalizedUrl));
+    const safeUrl = Chat.escape(normalizedUrl);
     const safeTitle = Chat.escape(title);
     const ext = kind.ext;
     const isImg = (url.includes('/image/upload/') && ext !== 'pdf') || ['jpg','jpeg','png','gif','webp'].includes(ext);
@@ -193,7 +195,7 @@ window.FTSChat = window.FTSChat || {};
 
     if (isImg) return `<div class="msg-media-wrap msg-media-wrap--image">
       <div class="msg-media-title"><span>🖼️</span><strong>${safeTitle}</strong></div>
-      <img class="msg-img" src="${safeUrl}" data-fts-click="window.open(${FTS.jsArg(url)})" alt="${safeTitle}">
+      <img class="msg-img" src="${safeUrl}" data-fts-click="window.open(${FTS.jsArg(normalizedUrl)})" alt="${safeTitle}">
       <div class="msg-file-actions compact"><a class="msg-file-open" href="${safeUrl}" target="_blank" rel="noopener">Ouvrir</a><a class="msg-file-download compact" href="${dl}" target="_blank" rel="noopener" download>⬇ Télécharger</a></div>
     </div>`;
 

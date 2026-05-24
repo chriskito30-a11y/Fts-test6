@@ -560,8 +560,9 @@
         if (isText) {
           return '<div class="fts-doc-row fts-doc-row--text"><button type="button" class="fts-doc-open" data-action="open-text-document" data-doc-index="' + esc(String(r._docIndex || 0)) + '"><span class="fts-doc-ico">' + icon + '</span><span><strong>' + esc(r.name || 'Document texte') + '</strong>' + sub + '</span></button><button type="button" class="fts-doc-dl fts-doc-dl--text" data-action="open-text-document" data-doc-index="' + esc(String(r._docIndex || 0)) + '">Lire</button></div>';
         }
-        var safeUrl = esc(r.url || '#');
-        var dl = esc(resourceDownloadUrl(r.url || ''));
+        var normalizedUrl = FTS.safeUrl(r.url || '#', '#');
+        var safeUrl = esc(normalizedUrl);
+        var dl = esc(resourceDownloadUrl(normalizedUrl));
         var rehearse = isRepetitionCompatible(r)
           ? '<a class="fts-doc-dl fts-doc-rehearse" href="' + esc(repetitionUrlForResource(r)) + '" aria-label="Répéter ' + esc(r.name || 'Document') + '">🎭 <span>Répéter</span></a>'
           : '';

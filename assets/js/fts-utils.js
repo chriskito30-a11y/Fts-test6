@@ -199,7 +199,16 @@ FTS.safeUrl = function(url, fallback) {
   fallback = fallback || '#';
   const raw = String(url || '').trim();
   if(!raw) return fallback;
-  if(raw === '#' || raw.startsWith('./') || raw.startsWith('../') || raw.startsWith('/')) return raw;
+  if(raw === '#') return raw;
+  if(raw.startsWith('//')) {
+    try {
+      const u = new URL(raw, location.protocol);
+      const protocol = String(u.protocol || '').toLowerCase();
+      if(['https:', 'http:'].includes(protocol)) return u.href;
+    } catch(e) {}
+    return fallback;
+  }
+  if(raw.startsWith('./') || raw.startsWith('../') || raw.startsWith('/')) return raw;
   try {
     const u = new URL(raw, location.origin);
     const protocol = String(u.protocol || '').toLowerCase();
