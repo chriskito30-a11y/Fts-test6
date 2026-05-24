@@ -85,7 +85,17 @@ FTS.esc = function(s) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
+/* Chaîne JavaScript sûre à injecter dans un attribut HTML data-fts-click/onclick. */
+FTS.jsArg = function(value) {
+  const json = JSON.stringify(String(value == null ? '' : value))
+    .replace(/</g, '\\u003C')
+    .replace(/>/g, '\\u003E')
+    .replace(/&/g, '\\u0026');
+  return json.replace(/"/g, '&quot;');
 };
 
 
