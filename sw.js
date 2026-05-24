@@ -1,4 +1,4 @@
-const CACHE = 'fts-v173-rgpd-admin-logs';
+const CACHE = 'fts-v174-rgpd-admin-ux';
 const FILES = [
   './manifest.json',
   './index.html',
