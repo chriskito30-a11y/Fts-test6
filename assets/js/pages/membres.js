@@ -33,6 +33,8 @@ let showAll   = false;
 let userProfile = null;
 let accountSchedules = {};
 let accountReminderSaving = false;
+const FTS_IMAGE_RIGHTS_VERSION = '2026-05-droit-image-v2';
+const FTS_IMAGE_RIGHTS_NOTICE = 'Autorisation photos/videos FTS : cours, repetitions, stages, spectacles, evenements, communication association interne/externe. Images non vendues, non cedees a des tiers pour usage commercial externe.';
 let currentUid = null;
 let pendingResourceOpen = null;
 let latestUnreadMessages = 0;
@@ -182,7 +184,6 @@ function awardMemberDailyLoginXp(memberUid) {
       const snap = await db.ref('fts_users/' + user.uid).once('value');
       userProfile = snap.val();
       currentUid = user.uid;
-      userProfile = await syncAuthEmailToProfile(user, userProfile).catch(() => userProfile);
 
       const role = String(userProfile && userProfile.role || '').toLowerCase();
       const status = String(userProfile && userProfile.status || '').toLowerCase();
@@ -2154,6 +2155,31 @@ function getProfileInputValue(id) {
   return el ? String(el.value || '').trim() : '';
 }
 
+function accountFormatDate(ts) {
+  const n = Number(ts || 0);
+  if (!n) return 'non daté';
+  try { return new Date(n).toLocaleString('fr-FR'); } catch(e) { return 'non daté'; }
+}
+
+function getImageRightsStatus(profile) {
+  if (!profile || typeof profile.imageRightsConsent === 'undefined') return 'unknown';
+  return profile.imageRightsConsent === true || profile.imageRightsStatus === 'accepted' ? 'accepted' : 'refused';
+}
+
+function fillImageRightsForm() {
+  const yes = document.getElementById('profile-image-yes');
+  const no = document.getElementById('profile-image-no');
+  const meta = document.getElementById('profile-image-rights-meta');
+  const status = getImageRightsStatus(userProfile);
+  if (yes) yes.checked = status === 'accepted';
+  if (no) no.checked = status === 'refused';
+  if (meta) {
+    if (status === 'accepted') meta.textContent = 'Actuellement : autorisé · ' + accountFormatDate(userProfile && (userProfile.imageRightsUpdatedAt || userProfile.imageRightsAt));
+    else if (status === 'refused') meta.textContent = 'Actuellement : refusé · ' + accountFormatDate(userProfile && (userProfile.imageRightsUpdatedAt || userProfile.imageRightsAt));
+    else meta.textContent = 'Choix à compléter';
+  }
+}
+
 function fillProfileForm() {
   const first = document.getElementById('profile-firstname');
   const last = document.getElementById('profile-lastname');
@@ -2161,6 +2187,7 @@ function fillProfileForm() {
   if (first) first.value = (userProfile && userProfile.firstName) || '';
   if (last) last.value = (userProfile && userProfile.lastName) || '';
   if (tel) tel.value = (userProfile && userProfile.telephone) || '';
+  fillImageRightsForm();
 }
 
 function buildProfileChildCard(child, index, opts) {
@@ -2474,22 +2501,53 @@ async function saveProfileInfo() {
     throw e;
   }
 
+  const imageChoice = document.querySelector('input[name="profile-image-rights"]:checked');
+  if (!imageChoice) {
+    setAccountMsg('profile-msg', 'Choisis oui ou non pour le droit à l’image.', 'err');
+    return;
+  }
+  const imageRightsConsent = imageChoice.value === 'yes';
+  const oldImageStatus = getImageRightsStatus(userProfile);
+  const newImageStatus = imageRightsConsent ? 'accepted' : 'refused';
+  const imageRightsChanged = oldImageStatus === 'unknown' || oldImageStatus !== newImageStatus;
+
   const updates = {
     firstName,
     lastName,
     name: `${firstName} ${lastName}`.trim(),
     telephone: tel,
     hasEnfant: enfants.length > 0,
-    enfants
+    enfants,
+    imageRightsConsent: imageRightsConsent,
+    imageRightsStatus: newImageStatus,
+    imageRightsVersion: FTS_IMAGE_RIGHTS_VERSION,
+    imageRightsNotice: FTS_IMAGE_RIGHTS_NOTICE,
+    imageRightsSource: imageRightsChanged ? 'account_settings' : ((userProfile && userProfile.imageRightsSource) || 'account_settings')
   };
+  if (imageRightsChanged) {
+    updates.imageRightsUpdatedAt = firebase.database.ServerValue.TIMESTAMP;
+  }
 
   let saved = false;
   try {
     if (btn) btn.disabled = true;
     setAccountMsg('profile-msg', 'Enregistrement…', '');
     await db.ref('fts_users/' + currentUid).update(updates);
+    if (imageRightsChanged) {
+      const imageHistoryEntry = {
+        value: imageRightsConsent,
+        status: newImageStatus,
+        previousStatus: oldImageStatus,
+        source: 'account_settings',
+        version: FTS_IMAGE_RIGHTS_VERSION,
+        notice: FTS_IMAGE_RIGHTS_NOTICE,
+        at: firebase.database.ServerValue.TIMESTAMP
+      };
+      await db.ref('fts_users/' + currentUid + '/imageRightsHistory').push(imageHistoryEntry).catch(function(e){ console.warn('[FTS] Historique droit image profil non bloquant :', e); });
+      await db.ref('fts_image_rights_history/' + currentUid).push(imageHistoryEntry).catch(function(e){ console.warn('[FTS] Historique droit image sécurisé non bloquant :', e); });
+    }
     saved = true;
-    userProfile = { ...userProfile, ...updates };
+    userProfile = { ...userProfile, ...updates, imageRightsUpdatedAt: Date.now() };
   } catch(e) {
     console.warn('[FTS] Sauvegarde profil impossible :', e);
     setAccountMsg('profile-msg', 'Erreur lors de la sauvegarde. Réessaie.', 'err');
@@ -2580,25 +2638,6 @@ async function getCurrentIdToken(forceRefresh){
   return user.getIdToken(!!forceRefresh);
 }
 
-async function syncAuthEmailToProfile(user, profile){
-  if (!user || !currentUid) return profile;
-  try { await user.reload(); } catch(e) {}
-  const authEmail = String((firebase.auth().currentUser && firebase.auth().currentUser.email) || user.email || '').trim();
-  const profileEmail = String((profile && profile.email) || '').trim();
-  if (!authEmail || authEmail.toLowerCase() === profileEmail.toLowerCase()) return profile;
-  const patch = {
-    email: authEmail,
-    emailSyncedAt: Date.now(),
-    emailUpdatedAt: Date.now(),
-    pendingEmail: null,
-    pendingEmailRequestedAt: null,
-    emailChangeMode: null,
-    privacyLastActionAt: Date.now()
-  };
-  await db.ref('fts_users/' + currentUid).update(patch);
-  return Object.assign({}, profile || {}, patch);
-}
-
 async function privacyRequest(path, options){
   const token = await getCurrentIdToken(false);
   const res = await fetch(getFtsSecretsWorkerBase() + path, Object.assign({
@@ -2620,7 +2659,7 @@ async function changeAccountEmail(){
   const user = firebase.auth().currentUser;
   const btn = document.getElementById('btn-account-email');
   const input = document.getElementById('account-new-email');
-  const nextEmail = input ? String(input.value || '').trim().toLowerCase() : '';
+  const nextEmail = input ? String(input.value || '').trim() : '';
   if (!user) { window.location.href = 'auth.html'; return; }
   if (!nextEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
     setAccountMsg('account-email-msg', 'Indique une adresse e-mail valide.', 'err');
@@ -2630,33 +2669,18 @@ async function changeAccountEmail(){
     setAccountMsg('account-email-msg', 'Cette adresse est déjà utilisée sur ton compte.', '');
     return;
   }
-
   try {
     if (btn) btn.disabled = true;
     setAccountMsg('account-email-msg', 'Modification de l’adresse…', '');
-
-    // V165 : modification via Worker RGPD admin.
-    // Pourquoi : Firebase bloque parfois updateEmail()/verifyBeforeUpdateEmail côté navigateur selon la configuration sécurité.
-    // Le Worker vérifie d'abord le token du membre, puis modifie Firebase Auth + fts_users côté serveur.
-    const result = await privacyRequest('/rgpd/update-email', {
-      body: JSON.stringify({ email: nextEmail })
-    });
-
-    userProfile = Object.assign({}, userProfile || {}, {
-      email: result.email || nextEmail,
-      pendingEmail: null,
-      pendingEmailRequestedAt: null,
-      emailChangeMode: null
-    });
-
+    await user.updateEmail(nextEmail);
+    await db.ref('fts_users/' + currentUid).update({ email: nextEmail, emailUpdatedAt: Date.now(), privacyLastActionAt: Date.now() });
+    userProfile = Object.assign({}, userProfile || {}, { email: nextEmail });
     if (input) input.value = '';
-    try { await firebase.auth().currentUser.reload(); } catch(e) {}
     fillAccountIdentity();
-    setAccountMsg('account-email-msg', '✓ Adresse e-mail modifiée. Reconnecte-toi avec cette nouvelle adresse lors de ta prochaine connexion.', 'ok');
+    setAccountMsg('account-email-msg', '✓ Adresse e-mail modifiée.', 'ok');
   } catch(e) {
     console.warn('[FTS RGPD] Email update', e);
-    const code = (e && e.response && e.response.error) || e.code || e.message;
-    setAccountMsg('account-email-msg', accountFriendlyError(code), 'err');
+    setAccountMsg('account-email-msg', accountFriendlyError(e.code || e.message), 'err');
   } finally { if (btn) btn.disabled = false; }
 }
 
@@ -2716,14 +2740,6 @@ async function exportMyData(){
 function accountFriendlyError(code) {
   switch(code) {
     case 'auth/requires-recent-login': return 'Par sécurité, reconnecte-toi puis recommence cette action.';
-    case 'auth/email-already-in-use': return 'Cette adresse e-mail est déjà utilisée par un autre compte.';
-    case 'email_already_in_use': return 'Cette adresse e-mail est déjà utilisée par un autre compte.';
-    case 'auth/invalid-email': return 'Adresse e-mail invalide.';
-    case 'invalid_email': return 'Adresse e-mail invalide.';
-    case 'auth/operation-not-allowed': return 'Firebase refuse le changement direct. Utilise le lien de confirmation envoyé si disponible.';
-    case 'auth_update_failed': return 'Le Worker RGPD n’a pas pu modifier l’e-mail Firebase Auth. Vérifie les droits du compte de service Firebase.';
-    case 'member_required': return 'Ton compte doit être actif pour modifier l’e-mail.';
-    case 'auth_required': return 'Reconnecte-toi puis recommence.';
     case 'auth/weak-password': return 'Le mot de passe est trop faible.';
     case 'auth/network-request-failed': return 'Problème réseau. Réessaie dans quelques instants.';
     case 'PERMISSION_DENIED': return 'Suppression partielle bloquée par les règles Firebase. Connecte-toi en admin ou ajuste les règles.';

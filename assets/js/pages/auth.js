@@ -11,6 +11,8 @@
    ================================================================ */
 
 const FTS_PRIVACY_VERSION = '2026-05';
+const FTS_IMAGE_RIGHTS_VERSION = '2026-05-droit-image-v2';
+const FTS_IMAGE_RIGHTS_NOTICE = 'Autorisation photos/videos FTS : cours, repetitions, stages, spectacles, evenements, communication association interne/externe. Images non vendues, non cedees a des tiers pour usage commercial externe.';
 const ADMIN_EMAIL = "contact@faistonshow.fr";
 
 
@@ -622,6 +624,11 @@ async function doRegister() {
   const privacyOk = document.getElementById('r-privacy') && document.getElementById('r-privacy').checked;
   if (!privacyOk) { errEl.textContent = 'Tu dois accepter la politique de confidentialité pour créer ton compte.'; return; }
 
+  const imageRightsEl = document.querySelector('input[name="r-image-rights"]:checked');
+  if (!imageRightsEl) { errEl.textContent = 'Choisis oui ou non pour le droit à l’image.'; return; }
+  const imageRightsConsent = imageRightsEl.value === 'yes';
+  const imageRightsAt = Date.now();
+
   // Collecte sous-groupes du parent
   const parentSubgroups = [];
   Object.values(selectedSubcats).forEach(set => set.forEach(s => parentSubgroups.push(s)));
@@ -702,9 +709,38 @@ async function doRegister() {
       privacyVersion: FTS_PRIVACY_VERSION,
       privacyParentConsent: !!hasEnfant,
       privacySource: 'auth_register',
+      imageRightsConsent: imageRightsConsent,
+      imageRightsStatus: imageRightsConsent ? 'accepted' : 'refused',
+      imageRightsAt: imageRightsAt,
+      imageRightsUpdatedAt: imageRightsAt,
+      imageRightsVersion: FTS_IMAGE_RIGHTS_VERSION,
+      imageRightsNotice: FTS_IMAGE_RIGHTS_NOTICE,
+      imageRightsSource: 'auth_register',
+      imageRightsHistory: {
+        [imageRightsAt]: {
+          value: imageRightsConsent,
+          status: imageRightsConsent ? 'accepted' : 'refused',
+          source: 'auth_register',
+          at: imageRightsAt
+        }
+      },
     };
 
     await db.ref('fts_users/' + uid).set(profile);
+
+    // Historique séparé du droit à l'image : horodatage serveur, non bloquant.
+    try {
+      await db.ref('fts_image_rights_history/' + uid).push({
+        status: imageRightsConsent ? 'accepted' : 'refused',
+        value: imageRightsConsent,
+        source: 'auth_register',
+        version: FTS_IMAGE_RIGHTS_VERSION,
+        notice: FTS_IMAGE_RIGHTS_NOTICE,
+        at: firebase.database.ServerValue.TIMESTAMP
+      });
+    } catch(imageHistErr) {
+      console.warn('[FTS Auth] Historique droit image non bloquant :', imageHistErr);
+    }
 
 
     // Mail admin : nouvelle demande d'inscription (sauf compte admin interne)

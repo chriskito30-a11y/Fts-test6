@@ -20,7 +20,7 @@ const RGPD_DEFAULTS = {
     {
       title: 'Gestion des adhérents et comptes application',
       purpose: 'Créer les comptes, gérer les accès membres/profs/admins, valider les inscriptions et organiser les groupes.',
-      data: 'Nom, prénom, email, rôle, statut, catégories, sous-catégories, enfants rattachés, date de création, consentement RGPD.',
+      data: 'Nom, prénom, email, rôle, statut, catégories, sous-catégories, enfants rattachés, date de création, consentement RGPD, choix droit à l’image et historique de modification.',
       people: 'Adhérents, parents, élèves mineurs, professeurs, administrateurs.',
       legalBasis: 'Exécution de l’adhésion / intérêt légitime de gestion associative / consentement pour certains usages.',
       access: 'Administrateurs. Professeurs uniquement selon leurs besoins pédagogiques. Membre sur son propre espace.',
@@ -94,7 +94,7 @@ const RGPD_DEFAULTS = {
     'Registre interne des traitements rempli et revu.',
     'Sous-traitants listés.',
     'Procédure violation de données documentée.',
-    'Autorisation photo/vidéo gérée hors app ou à intégrer si nécessaire.'
+    'Droit à l’image obligatoire à l’inscription, modifiable depuis le compte et consultable par admin/profs.'
   ]
 };
 
@@ -509,7 +509,7 @@ function rgpdActionReadableSummary(row){
   const label = rgpdActionLabel(row);
   if(row.type === 'registry_saved' || row.source === 'fts_privacy_registry/history') return 'Le registre interne RGPD a été mis à jour.';
   if(label.toLowerCase().includes('suppression')){
-    return 'Compte utilisateur supprimé. Les données personnelles applicatives ont été effacées ; seule une trace administrative anonymisée est conservée.';
+    return 'Le compte utilisateur a été supprimé. Les données personnelles applicatives identifiées dans la base de données de l’application ont été supprimées ; seule une trace administrative anonymisée est conservée.';
   }
   if(label.toLowerCase().includes('email')) return 'Adresse e-mail modifiée à la demande de l’utilisateur ou par action admin.';
   return 'Action RGPD enregistrée dans le registre interne.';
