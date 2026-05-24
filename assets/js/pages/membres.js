@@ -182,6 +182,7 @@ function awardMemberDailyLoginXp(memberUid) {
       const snap = await db.ref('fts_users/' + user.uid).once('value');
       userProfile = snap.val();
       currentUid = user.uid;
+      userProfile = await syncAuthEmailToProfile(user, userProfile).catch(() => userProfile);
 
       const role = String(userProfile && userProfile.role || '').toLowerCase();
       const status = String(userProfile && userProfile.status || '').toLowerCase();
@@ -2579,6 +2580,25 @@ async function getCurrentIdToken(forceRefresh){
   return user.getIdToken(!!forceRefresh);
 }
 
+async function syncAuthEmailToProfile(user, profile){
+  if (!user || !currentUid) return profile;
+  try { await user.reload(); } catch(e) {}
+  const authEmail = String((firebase.auth().currentUser && firebase.auth().currentUser.email) || user.email || '').trim();
+  const profileEmail = String((profile && profile.email) || '').trim();
+  if (!authEmail || authEmail.toLowerCase() === profileEmail.toLowerCase()) return profile;
+  const patch = {
+    email: authEmail,
+    emailSyncedAt: Date.now(),
+    emailUpdatedAt: Date.now(),
+    pendingEmail: null,
+    pendingEmailRequestedAt: null,
+    emailChangeMode: null,
+    privacyLastActionAt: Date.now()
+  };
+  await db.ref('fts_users/' + currentUid).update(patch);
+  return Object.assign({}, profile || {}, patch);
+}
+
 async function privacyRequest(path, options){
   const token = await getCurrentIdToken(false);
   const res = await fetch(getFtsSecretsWorkerBase() + path, Object.assign({
@@ -2610,15 +2630,50 @@ async function changeAccountEmail(){
     setAccountMsg('account-email-msg', 'Cette adresse est déjà utilisée sur ton compte.', '');
     return;
   }
+
   try {
     if (btn) btn.disabled = true;
     setAccountMsg('account-email-msg', 'Modification de l’adresse…', '');
-    await user.updateEmail(nextEmail);
-    await db.ref('fts_users/' + currentUid).update({ email: nextEmail, emailUpdatedAt: Date.now(), privacyLastActionAt: Date.now() });
-    userProfile = Object.assign({}, userProfile || {}, { email: nextEmail });
-    if (input) input.value = '';
-    fillAccountIdentity();
-    setAccountMsg('account-email-msg', '✓ Adresse e-mail modifiée.', 'ok');
+
+    // 1) Tentative directe : fonctionne si Firebase l’autorise pour le projet et la session.
+    try {
+      await user.updateEmail(nextEmail);
+      await db.ref('fts_users/' + currentUid).update({
+        email: nextEmail,
+        emailUpdatedAt: Date.now(),
+        pendingEmail: null,
+        pendingEmailRequestedAt: null,
+        emailChangeMode: null,
+        privacyLastActionAt: Date.now()
+      });
+      userProfile = Object.assign({}, userProfile || {}, { email: nextEmail, pendingEmail: null });
+      if (input) input.value = '';
+      fillAccountIdentity();
+      setAccountMsg('account-email-msg', '✓ Adresse e-mail modifiée.', 'ok');
+      return;
+    } catch (directError) {
+      // 2) Fallback Firebase recommandé quand le changement direct est refusé :
+      // envoi d’un mail de vérification à la nouvelle adresse.
+      const code = directError && directError.code ? String(directError.code) : '';
+      if (code === 'auth/email-already-in-use') throw directError;
+      if (typeof user.verifyBeforeUpdateEmail !== 'function') throw directError;
+
+      const actionCodeSettings = {
+        url: window.location.origin + window.location.pathname.replace(/[^/]*$/, 'membres.html'),
+        handleCodeInApp: false
+      };
+      await user.verifyBeforeUpdateEmail(nextEmail, actionCodeSettings);
+      await db.ref('fts_users/' + currentUid).update({
+        pendingEmail: nextEmail,
+        pendingEmailRequestedAt: Date.now(),
+        emailChangeMode: 'verify_before_update',
+        privacyLastActionAt: Date.now()
+      });
+      userProfile = Object.assign({}, userProfile || {}, { pendingEmail: nextEmail });
+      if (input) input.value = '';
+      setAccountMsg('account-email-msg', '✓ Un e-mail de confirmation vient d’être envoyé à la nouvelle adresse. Le changement sera appliqué après validation du lien Firebase.', 'ok');
+      return;
+    }
   } catch(e) {
     console.warn('[FTS RGPD] Email update', e);
     setAccountMsg('account-email-msg', accountFriendlyError(e.code || e.message), 'err');
@@ -2681,6 +2736,9 @@ async function exportMyData(){
 function accountFriendlyError(code) {
   switch(code) {
     case 'auth/requires-recent-login': return 'Par sécurité, reconnecte-toi puis recommence cette action.';
+    case 'auth/email-already-in-use': return 'Cette adresse e-mail est déjà utilisée par un autre compte.';
+    case 'auth/invalid-email': return 'Adresse e-mail invalide.';
+    case 'auth/operation-not-allowed': return 'Firebase refuse le changement direct. Utilise le lien de confirmation envoyé si disponible.';
     case 'auth/weak-password': return 'Le mot de passe est trop faible.';
     case 'auth/network-request-failed': return 'Problème réseau. Réessaie dans quelques instants.';
     case 'PERMISSION_DENIED': return 'Suppression partielle bloquée par les règles Firebase. Connecte-toi en admin ou ajuste les règles.';
