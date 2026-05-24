@@ -1,4 +1,4 @@
-const CACHE = 'fts-v186-forum-child-notifs';
+const CACHE = 'fts-v187-forum-notif-labels';
 const FILES = [
   './manifest.json',
   './index.html',
