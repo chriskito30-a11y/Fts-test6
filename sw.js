@@ -1,4 +1,4 @@
-const CACHE = 'fts-v159-security-audit';
+const CACHE = 'fts-v162-admin-signup-push';
 const FILES = [
   './manifest.json',
   './index.html',
