@@ -837,8 +837,8 @@ async function notifyChannel(channel, body, msgId){
   const forumLabel = info.subgroup
     ? (info.group ? info.group + ' · ' + info.subgroup : info.subgroup)
     : (info.group ? 'Général ' + info.group : 'Forum général');
-  const notificationTitle = forumLabel ? ('FORUM - ' + forumLabel) : 'FORUM';
-  const notificationBody = body;
+  const notificationTitle = 'FTS — Forum';
+  const notificationBody = forumLabel ? (forumLabel + ' — ' + body) : body;
 
   const notificationKey = 'forum-' + channel + '-' + (msgId || Date.now());
   const basePayload = {
