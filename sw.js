@@ -1,4 +1,4 @@
-const CACHE = 'fts-v183-safe-url';
+const CACHE = 'fts-v184-safe-url';
 const FILES = [
   './manifest.json',
   './index.html',
