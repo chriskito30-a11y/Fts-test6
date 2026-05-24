@@ -1,4 +1,4 @@
-const CACHE = 'fts-v170-admin-delete-strict';
+const CACHE = 'fts-v173-rgpd-admin-logs';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -11,6 +11,7 @@ const FILES = [
   './hub-messages.html',
   './sondages.html',
   './rappels-admin.html',
+  './rgpd-admin.html',
   './profs.html',
   './admin.html',
   './contenus-admin.html',
@@ -37,6 +38,7 @@ const FILES = [
   './assets/css/pages/hub-messages.css',
   './assets/css/pages/sondages.css',
   './assets/css/pages/rappels-admin.css',
+  './assets/css/pages/rgpd-admin.css',
   './assets/css/pages/faq.css',
   './assets/js/fts-chat.js',
   './assets/js/fts-firebase.js',
@@ -74,6 +76,7 @@ const FILES = [
   './assets/js/pages/hub-messages.js',
   './assets/js/pages/sondages.js',
   './assets/js/pages/rappels-admin.js',
+  './assets/js/pages/rgpd-admin.js',
   './assets/js/pages/faq.js',
   './assets/img/fts-any-192.png',
   './assets/img/fts-maskable-192.png',

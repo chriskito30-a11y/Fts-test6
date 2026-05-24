@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RGPD Admin — Fais Ton Show</title>
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=80" rel="stylesheet"/>
+<link href="assets/css/pages/rgpd-admin.css?v=172" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-glow rgpd-admin-page">
+<div class="auth-loading" id="auth-loading"><div class="logo">RGPD <span>FTS</span></div><div class="spinner"></div><div class="sub">Vérification accès admin…</div><div class="empty-error" id="auth-error"></div></div>
+<div class="rgpd-shell" id="rgpd-shell" hidden>
+<header class="fts-admin-pagehead" aria-label="En-tête administrateur RGPD">
+  <div class="fts-admin-brand">
+    <div class="fts-admin-logo">ADMIN <span>RGPD</span></div>
+    <div class="fts-admin-sub">Registre · droits · incidents · preuves</div>
+  </div>
+  <div class="fts-admin-actions">
+    <a class="fts-admin-ghost" href="confidentialite.html">Politique publique</a>
+    <a class="fts-admin-ghost" href="admin.html">Retour admin</a>
+    <button class="fts-admin-logout" id="rgpd-logout">Déconnexion</button>
+  </div>
+</header>
+<main class="rgpd-wrap">
+<section class="rgpd-hero">
+  <div>
+    <div class="rgpd-kicker">Conformité simple</div>
+    <h1>Centre RGPD Fais Ton Show</h1>
+    <p>Un seul endroit pour garder le registre interne, les sous-traitants, les procédures, les incidents et les demandes liées aux données personnelles.</p>
+  </div>
+  <div class="rgpd-score-card" id="rgpd-score-card">
+    <span class="rgpd-score-icon">🛡️</span>
+    <strong>V1 prête</strong>
+    <small>Chargement du contrôle…</small>
+  </div>
+</section>
+
+<section class="rgpd-grid rgpd-status-grid" id="rgpd-status-grid" aria-label="Contrôles essentiels RGPD"></section>
+
+<section class="rgpd-card rgpd-actions-card">
+  <div class="rgpd-card-head">
+    <div>
+      <h2>Actions rapides</h2>
+      <p>Les boutons utiles pour gérer une demande sans chercher dans Firebase.</p>
+    </div>
+  </div>
+  <div class="rgpd-quick-actions">
+    <a href="forum-admin.html#tab-members">🗑 Supprimer un compte membre</a>
+    <a href="membres.html">👤 Tester l’espace membre</a>
+    <a href="confidentialite.html">📄 Voir la politique publique</a>
+    <button type="button" id="rgpd-export-registry">⬇️ Exporter le registre JSON</button>
+  </div>
+</section>
+
+<section class="rgpd-card">
+  <div class="rgpd-card-head">
+    <div>
+      <h2>1. Registre interne des traitements</h2>
+      <p>Document de travail admin. Prérempli pour Fais Ton Show, modifiable et enregistrable dans Firebase.</p>
+    </div>
+    <div class="rgpd-head-actions">
+      <button type="button" class="rgpd-secondary" id="rgpd-load-defaults">Recharger le modèle FTS</button>
+      <button type="button" class="rgpd-primary" id="rgpd-save-registry">Enregistrer</button>
+    </div>
+  </div>
+  <div class="rgpd-form-grid">
+    <label>Responsable du traitement<input id="rgpd-controller" autocomplete="organization"/></label>
+    <label>Contact RGPD<input id="rgpd-contact" autocomplete="email"/></label>
+    <label>Version politique publique<input id="rgpd-policy-version"/></label>
+    <label>Dernière revue<input id="rgpd-last-review" type="date"/></label>
+  </div>
+  <div class="rgpd-note">Conseil : fais une revue rapide avant chaque rentrée, ou dès qu’un outil change.</div>
+  <div id="rgpd-treatments" class="rgpd-treatment-list"></div>
+</section>
+
+<section class="rgpd-card">
+  <div class="rgpd-card-head">
+    <div>
+      <h2>2. Sous-traitants / outils</h2>
+      <p>Liste des services utilisés pour l’application et l’organisation.</p>
+    </div>
+    <button type="button" class="rgpd-secondary" id="rgpd-add-processor">+ Ajouter</button>
+  </div>
+  <div id="rgpd-processors" class="rgpd-processors-list"></div>
+</section>
+
+<section class="rgpd-card">
+  <div class="rgpd-card-head">
+    <div>
+      <h2>3. Procédure incident / fuite de données</h2>
+      <p>À suivre si un accès non autorisé, une fuite, une erreur d’envoi ou une exposition de secret est détectée.</p>
+    </div>
+  </div>
+  <ol class="rgpd-procedure" id="rgpd-procedure"></ol>
+  <div class="rgpd-warning">Rappel : si l’incident présente un risque pour les personnes, notification CNIL au plus tard sous 72h. Si risque élevé, informer aussi les personnes concernées.</div>
+</section>
+
+<section class="rgpd-card">
+  <div class="rgpd-card-head">
+    <div>
+      <h2>4. Registre des incidents</h2>
+      <p>Documente même les petits incidents. Une ligne claire vaut mieux qu’une information perdue.</p>
+    </div>
+  </div>
+  <div class="rgpd-incident-form">
+    <label>Date<input id="incident-date" type="date"/></label>
+    <label>Risque<select id="incident-risk"><option value="aucun">Aucun risque</option><option value="risque">Risque</option><option value="risque élevé">Risque élevé</option></select></label>
+    <label class="rgpd-wide">Description<textarea id="incident-description" rows="3" placeholder="Ex : mauvais destinataire, compte compromis, secret exposé…"></textarea></label>
+    <label class="rgpd-wide">Actions prises<textarea id="incident-actions" rows="3" placeholder="Ex : secret révoqué, utilisateur supprimé, CNIL prévenue…"></textarea></label>
+    <button type="button" class="rgpd-primary rgpd-wide" id="incident-save">Enregistrer l’incident</button>
+  </div>
+  <div id="incident-list" class="rgpd-list-empty">Chargement des incidents…</div>
+</section>
+
+<section class="rgpd-card">
+  <div class="rgpd-card-head">
+    <div>
+      <h2>5. Historique des demandes RGPD</h2>
+      <p>Affiche les demandes ou actions enregistrées par l’app quand elles existent.</p>
+    </div>
+    <button type="button" class="rgpd-secondary" id="rgpd-refresh-requests">Actualiser</button>
+  </div>
+  <div id="privacy-requests-list" class="rgpd-list-empty">Chargement de l’historique…</div>
+</section>
+
+<section class="rgpd-card rgpd-final-card">
+  <h2>Checklist avant lancement</h2>
+  <div class="rgpd-checklist" id="rgpd-checklist"></div>
+</section>
+
+<footer class="page-footer">Fais Ton Show — Registre RGPD interne admin</footer>
+</main>
+</div>
+<nav class="fts-admin-bottom-nav" aria-label="Navigation administrateur">
+  <div class="fts-admin-bottom-track">
+    <a class="fts-admin-bottom-item" href="membres.html"><span class="fts-admin-bottom-icon">👤</span><span>Membres</span></a>
+    <a class="fts-admin-bottom-item" href="admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>Admin</span></a>
+    <a class="fts-admin-bottom-item" href="contenus-admin.html"><span class="fts-admin-bottom-icon">📁</span><span>Contenus</span></a>
+    <a class="fts-admin-bottom-item" href="calendrier-admin.html"><span class="fts-admin-bottom-icon">📅</span><span>Calendrier</span></a>
+    <a class="fts-admin-bottom-item" href="forum-admin.html"><span class="fts-admin-bottom-icon">👥</span><span>Accès</span></a>
+    <a class="fts-admin-bottom-item" href="saison-admin.html"><span class="fts-admin-bottom-icon">🎭</span><span>Saison</span></a>
+    <a class="fts-admin-bottom-item active" href="rgpd-admin.html"><span class="fts-admin-bottom-icon">🛡️</span><span>RGPD</span></a>
+  </div>
+</nav>
+<div class="fts-admin-bottom-spacer" aria-hidden="true"></div>
+<script src="assets/js/fts-utils.js"></script>
+<script src="assets/js/fts-admin-mode.js?v=80"></script>
+<script src="assets/js/fts-firebase.js"></script>
+<script src="assets/js/pages/rgpd-admin.js?v=172"></script>
+</body>
+</html>
