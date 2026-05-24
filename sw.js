@@ -1,4 +1,4 @@
-const CACHE = 'fts-v166-admin-rgpd-delete';
+const CACHE = 'fts-v170-admin-delete-strict';
 const FILES = [
   './manifest.json',
   './index.html',
