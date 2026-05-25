@@ -1,4 +1,4 @@
-const CACHE = 'fts-v190-revert-forum-notifs';
+const CACHE = 'fts-v192-enjoy-v5';
 const FILES = [
   './manifest.json',
   './index.html',
