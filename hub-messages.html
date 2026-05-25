@@ -17,6 +17,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<link rel="stylesheet" href="assets/css/fts-enjoy.css?v=2">
 </head>
 <body class="has-glow">
 <div class="auth-loading" id="auth-loading">
@@ -95,5 +96,17 @@
 <script src="assets/js/fts-pwa.js"></script>
 <script src="assets/js/fts-nav.js?v=185"></script>
 <script src="assets/js/pages/hub-messages.js?v=51"></script>
+
+<script src="assets/js/fts-enjoy.js?v=2"></script>
+<script>
+  window.addEventListener('load', function(){
+    if (window.FTSEnjoy) {
+      window.FTSEnjoy.init({
+        page: (document.body && document.body.dataset && document.body.dataset.page) || (location.pathname.split('/').pop().replace('.html','') || 'index'),
+        avatar: 'assets/img/enjoy.png'
+      });
+    }
+  });
+</script>
 </body>
 </html>

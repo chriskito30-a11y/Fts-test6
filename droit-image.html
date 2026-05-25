@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 <link href="assets/css/fts.css?v=16" rel="stylesheet">
 <link href="assets/css/pages/droit-image.css?v=180" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/fts-enjoy.css?v=2">
 </head>
 <body class="has-noise has-glow">
   <main class="image-rights-page" id="image-rights-shell" hidden>
@@ -74,5 +75,17 @@
   <script src="assets/js/fts-utils.js?v=16"></script>
   <script src="assets/js/fts-firebase.js?v=16"></script>
   <script src="assets/js/pages/droit-image.js?v=180"></script>
+
+<script src="assets/js/fts-enjoy.js?v=2"></script>
+<script>
+  window.addEventListener('load', function(){
+    if (window.FTSEnjoy) {
+      window.FTSEnjoy.init({
+        page: (document.body && document.body.dataset && document.body.dataset.page) || (location.pathname.split('/').pop().replace('.html','') || 'index'),
+        avatar: 'assets/img/enjoy.png'
+      });
+    }
+  });
+</script>
 </body>
 </html>

@@ -14,6 +14,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,300&amp;display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/pages/index.css?v=23" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/css/fts-enjoy.css?v=2">
 </head>
 
 <body class="has-noise has-glow index-page">
@@ -91,5 +92,17 @@
 <script src="assets/js/services/notifications.service.js?v=1"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/pages/index.js?v=23"></script>
+
+<script src="assets/js/fts-enjoy.js?v=2"></script>
+<script>
+  window.addEventListener('load', function(){
+    if (window.FTSEnjoy) {
+      window.FTSEnjoy.init({
+        page: (document.body && document.body.dataset && document.body.dataset.page) || (location.pathname.split('/').pop().replace('.html','') || 'index'),
+        avatar: 'assets/img/enjoy.png'
+      });
+    }
+  });
+</script>
 </body>
 </html>

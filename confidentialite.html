@@ -20,6 +20,7 @@
   .privacy-card h2{font-size:1.35rem;margin:.1rem 0 .7rem}.privacy-card h3{font-size:1.05rem;margin:1rem 0 .35rem;color:#ffd36a}.privacy-card p,.privacy-card li{line-height:1.65;color:rgba(255,255,255,.82)}
   .privacy-card ul{padding-left:1.2rem}.privacy-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}.privacy-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:999px;padding:12px 16px;text-decoration:none;font-weight:800}.privacy-btn.primary{background:#ffd36a;color:#111}.privacy-btn.ghost{border:1px solid rgba(255,255,255,.18);color:#fff}.privacy-note{font-size:.92rem;color:rgba(255,255,255,.68)}
 </style>
+<link rel="stylesheet" href="assets/css/fts-enjoy.css?v=2">
 </head>
 <body class="has-noise has-glow">
 <main class="privacy-wrap">
@@ -128,5 +129,17 @@
     <p class="privacy-note">Version de la politique : <strong>2026-05</strong>.</p>
   </section>
 </main>
+
+<script src="assets/js/fts-enjoy.js?v=2"></script>
+<script>
+  window.addEventListener('load', function(){
+    if (window.FTSEnjoy) {
+      window.FTSEnjoy.init({
+        page: (document.body && document.body.dataset && document.body.dataset.page) || (location.pathname.split('/').pop().replace('.html','') || 'index'),
+        avatar: 'assets/img/enjoy.png'
+      });
+    }
+  });
+</script>
 </body>
 </html>

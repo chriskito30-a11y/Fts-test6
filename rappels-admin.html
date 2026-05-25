@@ -15,6 +15,7 @@
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<link rel="stylesheet" href="assets/css/fts-enjoy.css?v=2">
 </head>
 <body class="has-glow">
 <div class="auth-loading" id="auth-loading">
@@ -286,5 +287,17 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/services/schedules.service.js?v=69"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=69"></script>
 <script src="assets/js/pages/rappels-admin.js?v=78-74"></script>
+
+<script src="assets/js/fts-enjoy.js?v=2"></script>
+<script>
+  window.addEventListener('load', function(){
+    if (window.FTSEnjoy) {
+      window.FTSEnjoy.init({
+        page: (document.body && document.body.dataset && document.body.dataset.page) || (location.pathname.split('/').pop().replace('.html','') || 'index'),
+        avatar: 'assets/img/enjoy.png'
+      });
+    }
+  });
+</script>
 </body>
 </html>
