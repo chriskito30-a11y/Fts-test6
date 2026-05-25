@@ -3560,3 +3560,8 @@ button.profile-pill:focus-visible {
 .account-image-rights-details[open] summary::after{transform:rotate(180deg)}
 .account-image-rights-details-body{display:grid;gap:8px;margin-top:10px}
 .account-image-rights-details-body p{margin:0;color:rgba(255,255,255,.74);font-size:.86rem;line-height:1.45}
+
+
+/* Paiement événements/stages */
+.evt-link.evt-pay{border:0;cursor:pointer;font-family:inherit;}
+.evt-link.evt-pay:disabled{opacity:.65;cursor:wait;}

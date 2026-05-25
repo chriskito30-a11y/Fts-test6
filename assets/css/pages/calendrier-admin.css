@@ -280,3 +280,8 @@ html,body{max-width:100%;overflow-x:hidden}
   .form-section{margin:.6rem;padding:.7rem;border-radius:18px}
   .card-admin{padding:.75rem}
 }
+
+
+/* Paiement HelloAsso événements/stages */
+.payment-section{border:1px solid rgba(255,214,102,.22);background:linear-gradient(135deg,rgba(255,214,102,.08),rgba(255,255,255,.03));}
+.status-pill.status-pay{background:rgba(255,214,102,.14);color:#ffd666;border-color:rgba(255,214,102,.35);}
