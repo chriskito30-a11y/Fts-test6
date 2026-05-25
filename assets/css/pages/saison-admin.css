@@ -56,3 +56,9 @@
 /* V2 — aperçu de toutes les formules */
 .preview-offers-list{display:grid;gap:.7rem;margin-top:.75rem;}
 .preview-price-note{margin-top:.25rem;font-size:.72rem;color:var(--muted);line-height:1.35;}
+
+/* PATCH V8 — synchronisation Catégories officielles → Saison */
+.act-row.needs-price .act-meta{color:rgba(248,231,2,.82)}
+.act-row.needs-price .status-dot{color:#f8e702;text-shadow:0 0 12px rgba(248,231,2,.28)}
+.season-sync-badge{display:inline-flex;align-items:center;gap:.35rem;margin:.55rem 0 .2rem;padding:.38rem .65rem;border-radius:999px;background:rgba(248,231,2,.12);border:1px solid rgba(248,231,2,.28);color:#f8e702;font-size:.72rem;font-weight:900}
+.category-helper strong{color:#fff}
