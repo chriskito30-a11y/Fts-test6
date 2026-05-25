@@ -43,19 +43,19 @@ const DEFAULT_SAISON={
   ]
 };
 let saison=DEFAULT_SAISON,current=null;
+let selectedSeasonSubcats={};
 let legacySaison=DEFAULT_SAISON;
 let officialCategories=null;
 let ftsPaymentUser=null;
 let ftsPaymentProfile=null;
 let ftsPaymentEnabled=false;
 let ftsPaymentContext=null;
-const seasonSelectedSubcats={};
 function esc(s){return FTS.esc(s||"")}
 function norm(s){return (FTS.norm?FTS.norm(s||''):String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));}
 function itemList(){return (saison.items||[]).filter(i=>i.active!==false).sort((a,b)=>(+a.order||0)-(+b.order||0));}
 function legacyByCategory(cat){
   const key=norm(cat.key||cat.name||cat.category);
-  const aliases={comedie_musicale:['comedie','comedie_musicale'],comedie:['comedie','comedie_musicale'],singer_academy:['singer','singer_academy'],singer_show:['singershow','singer_show'],musique:['musique','musique_chant'],theatre:['theatre'],danse:['danse'],atelier:['atelier','atelier_creatif'],chant:['chant','musique_chant'],magie:['magie'],formation_musicale:['formation','formation_musicale']};
+  const aliases={comedie_musicale:['comedie','comedie_musicale'],singer_academy:['singer','singer_academy'],singer_show:['singershow','singer_show'],musique:['musique'],theatre:['theatre'],danse:['danse'],atelier:['atelier'],chant:['chant'],magie:['magie']};
   const candidates=[key].concat(aliases[key]||[]);
   const cname=norm(cat.name||cat.category||'');
   return (legacySaison.items||[]).find(i=>candidates.includes(norm(i.id))||norm(i.name)===cname)||null;
@@ -81,7 +81,7 @@ function buildSeasonFromCategories(categories){
     const hasCustomOffer=Array.isArray(cs.offers)&&cs.offers.length;
     const offers=hasCustomOffer?cs.offers:(legacy.offers&&legacy.offers.length?legacy.offers:[{key:'infos',label:'Infos',style:'option',main:cs.description?esc(cs.description):`Informations à venir pour <strong>${esc(title)}</strong>.`,bullets:[],price:cs.price||'',priceNote:cs.priceNote||'',link:cs.link||''}]);
     return {
-      id:legacy.id||c.key||norm(title),
+      id:c.key||norm(title),
       active:c.active!==false,
       order:+(cs.order||c.order||legacy.order||999),
       icon:c.icon||c.emoji||legacy.icon||FTS.catIcon(label),
@@ -98,26 +98,35 @@ function buildSeasonFromCategories(categories){
 }
 function render(){const m=saison.meta||DEFAULT_SAISON.meta;document.getElementById('page-eyebrow').textContent=m.eyebrow||'';document.getElementById('page-title').innerHTML=esc(m.title||'SAISON')+'<br><span>'+esc(m.year||'')+'</span>';document.getElementById('page-slogan').textContent=m.slogan||'';document.getElementById('parcours-cards').innerHTML=(saison.parcoursIntro||[]).map(p=>`<div class="p-card ${esc(p.key)}"><span class="p-icon">${esc(p.icon)}</span><div class="p-tag">${esc(p.tag)}</div><div class="p-title">${esc(p.title)}</div><p class="p-desc">${esc(p.desc)}</p></div>`).join('');const items=itemList();document.getElementById('tiles').innerHTML=items.map(i=>`<button class="tile" data-id="${esc(i.id)}" data-fts-click="toggle('${esc(i.id)}')"><span class="tile-icon">${esc(i.icon)}</span><div class="tile-name">${esc(i.name)}</div><div class="tile-sub">${esc(i.subtitle)}</div>${i.badge?`<span class="tile-badge">${esc(i.badge)}</span>`:''}<span class="tile-arrow">▼</span></button>`).join('')||'<div class="loading-card">Aucune activité publiée pour le moment.</div>';document.getElementById('panels').innerHTML=items.map(renderPanel).join('');}
 function renderPanel(i){return `<div class="panel" id="panel-${esc(i.id)}"><div class="panel-hdr"><span class="panel-icon">${esc(i.icon)}</span><div><div class="panel-title">${esc(i.name)}</div><div class="panel-sub">${esc(i.subtitle)}</div></div></div><div class="panel-body">${i.description?`<p class="season-desc">${esc(i.description)}</p>`:''}${renderSubcats(i)}${renderOffers(i)}</div></div>`;}
-function subcatData(s){
-  if(typeof s==='string') return {key:norm(s)||s,name:s,season:{}};
-  const ss=(s&&s.season)||{};
-  return {key:(s&&s.key)||norm((s&&(s.name||s.label))||'')||'principal',name:(s&&(s.name||s.label))||'Groupe principal',season:ss};
+function subcatKey(s){return typeof s==='string'?(norm(s)||s):(s.key||norm(s.name||s.label)||'principal');}
+function subcatName(s){return typeof s==='string'?s:(s.name||s.label||'Groupe principal');}
+function subcatSeason(s){return (typeof s==='object'&&s&&s.season)?s.season:{};}
+function renderSubcatDetails(activityId,s){
+  const ss=subcatSeason(s);
+  const lines=[];
+  if(ss.day) lines.push(['Jour',ss.day]);
+  if(ss.time) lines.push(['Horaire',ss.time]);
+  if(ss.level) lines.push(['Niveau',ss.level]);
+  if(ss.age) lines.push(['Âge',ss.age]);
+  if(ss.price) lines.push(['Tarif spécifique',ss.price]);
+  const lineHtml=lines.length?`<div class="season-subcat-detail-grid">${lines.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')}</div>`:'';
+  const note=ss.note?`<p class="season-subcat-detail-note">${esc(ss.note)}</p>`:'';
+  if(!lineHtml&&!note) return '';
+  return `<div class="season-subcat-detail" id="season-subcat-detail-${esc(activityId)}-${esc(subcatKey(s))}">${lineHtml}${note}</div>`;
 }
 function renderSubcats(i){
   const subs=(i.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false));
   if(!subs.length) return '';
-  return `<div class="season-subcats" data-activity-subcats="${esc(i.id)}"><div class="season-subcats-title">Groupes / horaires <small>Choisis ton groupe avant de payer</small></div><div class="season-subcats-grid">${subs.map(s=>{const sub=subcatData(s);const ss=sub.season||{};const bits=[ss.age,ss.day,ss.time,ss.level].filter(Boolean);const active=String(seasonSelectedSubcats[i.id]||'')===String(sub.key);return `<button type="button" class="season-subcat ${active?'selected':''}" data-subcat-key="${esc(sub.key)}" data-fts-click="selectSeasonSubcat('${esc(i.id)}','${esc(sub.key)}')"><strong>${esc(ss.title||sub.name)}</strong>${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}<span class="season-subcat-choose">${active?'Groupe sélectionné':'Choisir ce groupe'}</span></button>`}).join('')}</div></div>`;
+  const selected=selectedSeasonSubcats[i.id]||'';
+  return `<div class="season-subcats"><div class="season-subcats-title">Groupes / horaires</div><div class="season-subcats-help">Choisis d’abord le groupe concerné : le paiement sera pré-rempli avec ce choix.</div><div class="season-subcats-grid">${subs.map(s=>{const ss=subcatSeason(s);const key=subcatKey(s);const bits=[ss.day,ss.time,ss.level].filter(Boolean);const active=selected&&selected===key;return `<button type="button" class="season-subcat${active?' selected':''}" data-activity="${esc(i.id)}" data-subcat="${esc(key)}" data-fts-click="selectSeasonSubcat('${esc(i.id)}','${esc(key)}')"><strong>${esc(ss.title||subcatName(s))}</strong>${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}<span class="season-subcat-check">✓</span></button>`}).join('')}</div>${subs.map(s=>renderSubcatDetails(i.id,s)).join('')}</div>`;
 }
-function selectSeasonSubcat(activityId,subcatKey){
-  seasonSelectedSubcats[activityId]=subcatKey;
-  const box=document.querySelector(`[data-activity-subcats="${activityId}"]`);
-  if(!box) { render(); return; }
-  box.querySelectorAll('.season-subcat').forEach(btn=>{
-    const active=String(btn.getAttribute('data-subcat-key'))===String(subcatKey);
-    btn.classList.toggle('selected',active);
-    const label=btn.querySelector('.season-subcat-choose');
-    if(label) label.textContent=active?'Groupe sélectionné':'Choisir ce groupe';
-  });
+function selectSeasonSubcat(activityId,subcatId){
+  selectedSeasonSubcats[activityId]=subcatId;
+  const safeActivity=window.CSS&&CSS.escape?CSS.escape(activityId):activityId.replace(/[^a-zA-Z0-9_-]/g,'\\$&');
+  document.querySelectorAll(`.season-subcat[data-activity="${safeActivity}"]`).forEach(btn=>btn.classList.toggle('selected',btn.getAttribute('data-subcat')===subcatId));
+  document.querySelectorAll(`[id^="season-subcat-detail-${safeActivity}-"]`).forEach(el=>el.classList.remove('open'));
+  const detail=document.getElementById(`season-subcat-detail-${activityId}-${subcatId}`);
+  if(detail) detail.classList.add('open');
 }
 function renderOffers(i){const offers=i.offers||[];const tabs=offers.length>1?`<div class="tabs">${offers.map((o,idx)=>`<button class="tab ${idx===0?'act':''} ${esc(o.style||o.key)}" data-fts-click="switchTab('${esc(i.id)}','${esc(o.key)}',this)">${esc(o.label||o.key)}</button>`).join('')}</div>`:'';return tabs+offers.map((o,idx)=>`<div class="tab-content ${idx===0?'act':''}" id="${esc(i.id)}-${esc(o.key)}"><div class="c-main ${o.style==='perf'?'perf':''}">${o.main||''}</div>${renderBullets(o.bullets)}${renderOfferBox(o,i)}</div>`).join('');}
 function renderBullets(bullets){if(!bullets||!bullets.length)return'';return `<ul class="c-list">${bullets.map(b=>{const gift=String(b).includes('🎁');const warn=String(b).includes('💰');return `<li class="${gift?'gift':warn?'warn':'incl'}"><span class="icon">${gift?'🎁':warn?'💰':'✔'}</span><span>${esc(String(b).replace(/^([✔⚡🎁💰])\s*/,'')).replace(/Offert :/,'<strong>Offert :</strong>')}</span></li>`}).join('')}</ul>`}
@@ -143,8 +152,11 @@ function renderPaymentButton(item,offer){
 function selectedSeasonSubcat(item){
   const subs=item&&Array.isArray(item.subcats)?item.subcats:[];
   if(!subs.length) return {key:'principal',name:'Groupe principal'};
-  const first=subs[0];
-  return typeof first==='string'?{key:norm(first)||first,name:first}:{key:first.key||norm(first.name||first.label)||'principal',name:first.name||first.label||'Groupe principal'};
+  const wanted=selectedSeasonSubcats[item.id]||'';
+  if(!wanted) return null;
+  const found=subs.find(s=>subcatKey(s)===wanted);
+  if(!found) return null;
+  return {key:subcatKey(found),name:subcatName(found)};
 }
 function ensureSeasonPaymentModal(){
   if(document.getElementById('fts-season-payment-modal'))return;
@@ -161,6 +173,13 @@ function openSeasonPayment(activityId,offerKey){
   if(!item||!offer){alert('Formule introuvable.');return;}
   const prices=priceChoices(offer.price);
   if(!prices.length){alert('Tarif non reconnu pour cette formule.');return;}
+  const chosenSubcat=selectedSeasonSubcat(item);
+  if((item.subcats||[]).length && !chosenSubcat){
+    alert('Choisis d’abord le groupe / horaire concerné avant de lancer le paiement.');
+    const zone=document.querySelector(`#panel-${CSS.escape(item.id)} .season-subcats`);
+    if(zone) zone.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
   ensureSeasonPaymentModal();
   ftsPaymentContext={item,offer};
   const profile=ftsPaymentProfile||{};
@@ -174,18 +193,7 @@ function openSeasonPayment(activityId,offerKey){
   form.amountCents.innerHTML=prices.map(p=>`<option value="${p.cents}">${esc(p.label)}</option>`).join('');
   const subs=item.subcats||[];
   const wrap=document.getElementById('fts-pay-sub-wrap');
-  if(subs.length){
-    const selectedKey=seasonSelectedSubcats[item.id]||'';
-    if(!selectedKey){
-      closeSeasonPayment();
-      const groupBox=document.querySelector(`[data-activity-subcats="${item.id}"]`);
-      if(groupBox) groupBox.scrollIntoView({behavior:'smooth',block:'center'});
-      alert('Choisis d’abord le groupe / l’horaire concerné avant de payer.');
-      return;
-    }
-    wrap.style.display='grid';
-    form.subcategoryId.innerHTML=subs.map(s=>{const sub=subcatData(s);return `<option value="${esc(sub.key)}" ${String(sub.key)===String(selectedKey)?'selected':''}>${esc(sub.name)}</option>`}).join('');
-  }
+  if(subs.length){wrap.style.display='grid';form.subcategoryId.innerHTML=subs.map(s=>{const sub={key:subcatKey(s),name:subcatName(s)};return `<option value="${esc(sub.key)}">${esc(sub.name)}</option>`}).join(''); if(chosenSubcat) form.subcategoryId.value=chosenSubcat.key;}
   else{wrap.style.display='none';form.subcategoryId.innerHTML='<option value="principal">Groupe principal</option>';}
   document.getElementById('fts-pay-msg').textContent='';
   document.getElementById('fts-season-payment-modal').classList.add('open');

@@ -895,13 +895,33 @@ function newCategory(){
 }
 function editCategory(key){
   const c=categoriesRaw.find(x=>x.key===key); if(!c)return;
+  const season=c.season||{};
   $('c-key').value=key;
   $('c-name').value=c.name||c.category||'';
   $('c-icon').value=c.icon||c.emoji||FTS.catIcon(c.name||c.category||'');
   $('c-order').value=normalizePriorityValue(c.order);
   $('c-active').value=String(c.active!==false);
   $('c-subcats').value=(c.subcatsArray||[]).map(s=>s.name).join('\n');
+  setValueIfExists('c-season-show', String(season.showOnSeason!==false));
+  setValueIfExists('c-season-subtitle', season.subtitle||'');
+  setValueIfExists('c-season-price', season.price||season.priceNote||'');
+  setValueIfExists('c-season-desc', season.description||'');
+  setValueIfExists('c-season-link', season.link||'');
+  setValueIfExists('c-season-subcats', categorySeasonLines(c));
   renderCList();
+}
+function cleanObjectDeep(obj){
+  if(!obj || typeof obj!=='object') return obj;
+  const out=Array.isArray(obj)?[]:{};
+  Object.keys(obj).forEach(k=>{
+    const v=obj[k];
+    if(v===undefined || v===null || v==='') return;
+    if(typeof v==='object'){
+      const child=cleanObjectDeep(v);
+      if(Array.isArray(child) ? child.length : Object.keys(child||{}).length) out[k]=child;
+    }else out[k]=v;
+  });
+  return out;
 }
 async function saveCategory(){
   return safeAdminAction('saveCategory', 'msg-c', async function(){
@@ -910,11 +930,32 @@ async function saveCategory(){
     if(!name){ msg('msg-c','Nom requis',false); return; }
     const key=FTS.norm(name);
     const lines=$('c-subcats').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
-    const subcats={};
-    lines.forEach(x=>subcats[FTS.norm(x)]={name:x,active:true,updatedAt:Date.now()});
+    const seasonBySubcat=parseSeasonSubcatLines();
     const icon=$('c-icon').value.trim()||FTS.catIcon(name);
     const existing = oldKey ? categoriesRaw.find(x=>x.key===oldKey) : null;
-    const data={name,category:name,icon,emoji:icon,order:Number($('c-order').value||999),active:$('c-active').value==='true',subcats,updatedAt:Date.now()};
+    const existingSubs={};
+    (existing&&existing.subcatsArray||[]).forEach(s=>{
+      const sk=FTS.norm(s.key||s.name||s.label||'');
+      if(sk) existingSubs[sk]=s;
+    });
+    const subcats={};
+    lines.forEach(x=>{
+      const sk=FTS.norm(x);
+      const previous=existingSubs[sk]||{};
+      const previousSeason=previous.season||{};
+      const lineSeason=seasonBySubcat[sk]||{};
+      const season=cleanObjectDeep(Object.assign({}, previousSeason, lineSeason));
+      subcats[sk]=cleanObjectDeep(Object.assign({}, previous, {key:sk,name:x,label:x,active:true,season,updatedAt:Date.now()}));
+    });
+    const previousSeason=(existing&&existing.season)||{};
+    const season=cleanObjectDeep(Object.assign({}, previousSeason, {
+      showOnSeason:$('c-season-show') ? $('c-season-show').value==='true' : previousSeason.showOnSeason!==false,
+      subtitle:$('c-season-subtitle') ? $('c-season-subtitle').value.trim() : previousSeason.subtitle,
+      price:$('c-season-price') ? $('c-season-price').value.trim() : previousSeason.price,
+      description:$('c-season-desc') ? $('c-season-desc').value.trim() : previousSeason.description,
+      link:$('c-season-link') ? $('c-season-link').value.trim() : previousSeason.link
+    }));
+    const data=cleanObjectDeep({name,category:name,icon,emoji:icon,order:Number($('c-order').value||999),active:$('c-active').value==='true',season,subcats,updatedAt:Date.now()});
     data.createdAt = (existing && existing.createdAt) || Date.now();
     const updates={};
     updates['fts_content/categories/'+key]=data;
@@ -922,7 +963,7 @@ async function saveCategory(){
     await db.ref().update(updates);
     await syncResourcesCategoryRename(oldKey,key,name);
     $('c-key').value=key;
-    msg('msg-c','Catégorie enregistrée. La page Saison se mettra à jour automatiquement.');
+    msg('msg-c','Catégorie enregistrée. Les détails Saison des sous-catégories seront visibles sur saison.html.');
   });
 }
 async function syncResourcesCategoryRename(oldKey,newKey,newName){
