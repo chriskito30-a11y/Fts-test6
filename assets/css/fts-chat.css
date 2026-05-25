@@ -1346,54 +1346,42 @@ body.fts-chat-modern .chat-empty-title.fts-brand-title::before {
 }
 
 /* ================================================================
-   Correctif v35 — PC Messages/Forum : garder la navigation accessible sans gêner la saisie
-   Contexte : v34 masquait la bottom-nav en conversation ouverte pour libérer le champ texte.
-   Problème : une fois masquée sur PC, la navigation globale devenait inaccessible.
-   Solution : sur PC uniquement, quand un chat/forum est ouvert, la navigation devient une mini-nav flottante verticale à droite.
+   Correctif v36 — PC Messages/Forum : nav accessible SANS superposition
+   Contexte :
+   - v34 masquait la nav en conversation ouverte : navigation impossible.
+   - v35 la rendait flottante à droite : elle pouvait masquer les messages.
+
+   Solution fiable : sur PC, on garde la nav globale en bas, mais on réduit
+   la hauteur de l’app pour réserver son espace. Elle ne recouvre donc ni
+   les messages, ni le champ de texte.
+
    Mobile inchangé.
-   Réversibilité : supprimer ce bloc v35 ou repasser au comportement v34 si besoin.
+   Réversibilité : supprimer ce bloc v36 pour revenir au comportement précédent.
    ================================================================ */
 @media (min-width: 701px) {
+  body.fts-chat-modern .app {
+    height: calc(var(--vh, 100vh) - 92px) !important;
+    min-height: 0 !important;
+  }
+
   body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav {
     display: grid !important;
-    position: fixed !important;
-    left: auto !important;
-    right: 18px !important;
-    top: 50% !important;
-    bottom: auto !important;
-    transform: translateY(-50%) !important;
-    width: 74px !important;
-    max-width: 74px !important;
-    grid-template-columns: 1fr !important;
-    gap: .2rem !important;
-    min-height: 0 !important;
-    padding: .55rem .35rem !important;
-    border-radius: 24px !important;
-    border: 1px solid rgba(255,255,255,.10) !important;
-    background: rgba(10,10,10,.90) !important;
-    box-shadow: 0 18px 44px rgba(0,0,0,.34) !important;
-    backdrop-filter: blur(18px) !important;
-    z-index: 80 !important;
   }
 
   body.fts-chat-modern .app.chat-open ~ .fts-bottom-spacer {
-    display: none !important;
+    display: block !important;
   }
 
-  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav .fts-nav-item {
-    min-height: 54px !important;
-    padding: .4rem .15rem !important;
-    border-radius: 18px !important;
+  body.fts-chat-modern .app.chat-open .main {
+    height: 100% !important;
+    max-height: 100% !important;
   }
 
-  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav .fts-nav-icon {
-    font-size: 1.15rem !important;
+  body.fts-chat-modern .app.chat-open .messages {
+    padding-bottom: 1rem !important;
   }
 
-  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav .fts-nav-label {
-    font-size: .50rem !important;
-    max-width: 58px !important;
-    line-height: 1.05 !important;
-    letter-spacing: .04em !important;
+  body.fts-chat-modern .app.chat-open .input-area {
+    padding-bottom: calc(.75rem + env(safe-area-inset-bottom)) !important;
   }
 }
