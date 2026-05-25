@@ -794,3 +794,16 @@ html, body { min-height: 100%; }
 .index-payment-card .btn-helloasso{width:100%;border:0;cursor:pointer;margin-top:1rem;color:#fff;background:var(--red);}
 .index-payment-msg{min-height:1.2rem;margin-top:.6rem;color:rgba(245,242,238,.72);font-size:.8rem;text-align:center;}
 @media(max-width:560px){.index-payment-grid{grid-template-columns:1fr}.index-payment-card{border-radius:20px;padding:1rem}.index-payment-card h2{font-size:1.8rem}}
+
+/* PATCH V7 — Paiement public lisible */
+.index-payment-card .btn-helloasso,
+.destination .btn-helloasso[type="button"]{
+  border-radius:999px!important;
+  background:var(--gold)!important;
+  color:#111!important;
+  font-weight:950!important;
+  min-height:48px;
+  box-shadow:0 12px 28px rgba(248,231,2,.18);
+}
+.index-payment-card .btn-helloasso:hover,
+.destination .btn-helloasso[type="button"]:hover{filter:brightness(1.03);transform:translateY(-1px)}

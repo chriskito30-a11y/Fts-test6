@@ -23,3 +23,13 @@
 .fts-pay-submit{width:100%;margin-top:1rem;border:0;cursor:pointer;text-align:center}
 .fts-pay-msg{min-height:1.2rem;margin-top:.75rem;color:#ffd37a;font-size:.92rem}
 @media (min-width:720px){.fts-payment-modal{align-items:center}.fts-payment-card{padding:1.4rem}.fts-pay-grid{grid-template-columns:1fr 1fr}.fts-pay-submit{width:auto}}
+
+/* PATCH V7 — Sélection claire des groupes + boutons paiement lisibles */
+.season-subcats-title small{display:block;margin-top:.22rem;font-family:var(--font-body);font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:0;text-transform:none}
+.season-subcat{width:100%;text-align:left;cursor:pointer;appearance:none;-webkit-appearance:none;transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;color:inherit;font:inherit}
+.season-subcat:hover{transform:translateY(-1px);border-color:rgba(248,231,2,.38);background:rgba(248,231,2,.055)}
+.season-subcat.selected{border-color:rgba(248,231,2,.78);background:linear-gradient(145deg,rgba(248,231,2,.14),rgba(255,255,255,.045));box-shadow:0 0 0 1px rgba(248,231,2,.15) inset,0 12px 26px rgba(0,0,0,.22)}
+.season-subcat-choose{display:inline-flex;align-items:center;justify-content:center;margin-top:.7rem;padding:.38rem .64rem;border-radius:999px;background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.1);color:rgba(245,242,238,.72);font-size:.68rem;font-weight:900}
+.season-subcat.selected .season-subcat-choose{background:var(--gold);border-color:rgba(248,231,2,.75);color:#111}
+.fts-pay-submit,.fts-pay-btn{border-radius:999px!important;background:var(--gold)!important;color:#111!important;font-weight:950!important;min-height:44px;box-shadow:0 12px 26px rgba(248,231,2,.16)}
+.fts-pay-submit:hover,.fts-pay-btn:hover{filter:brightness(1.03);transform:translateY(-1px)}
