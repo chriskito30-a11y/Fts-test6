@@ -13,6 +13,57 @@
   window.FTS = window.FTS || {};
   const S = window.FTS.Services = window.FTS.Services || {};
 
+  /* ================================================================
+     V70 — DISPATCHER NATIF ADMIN DÉSACTIVÉ
+
+     Pourquoi ?
+     - Les rappels sont maintenant envoyés par le Worker Cloudflare
+       fts-reminder-dispatcher, via cron serveur.
+     - L'ancien mécanisme navigateur/admin pouvait envoyer un rappel
+       si une page admin restait ouverte, ce qui pouvait créer des doublons.
+
+     Pour réactiver l'ancien secours admin plus tard :
+     - passer DISABLE_NATIVE_ADMIN_DISPATCHER à false,
+     - incrémenter le ?v= des pages qui chargent ce fichier.
+
+     Important : le code historique est conservé juste en dessous.
+     Il n'est simplement plus démarré tant que ce flag vaut true.
+     ================================================================ */
+  const DISABLE_NATIVE_ADMIN_DISPATCHER = true;
+
+  if(DISABLE_NATIVE_ADMIN_DISPATCHER){
+    function disabledStart(){
+      try{
+        const detail = {
+          state: 'disabled',
+          text: 'Dispatcher admin désactivé : envoi assuré par Cloudflare'
+        };
+        window.dispatchEvent(new CustomEvent('fts:reminder-dispatcher-state', { detail }));
+        const el = document.getElementById('dispatch-status');
+        if(el){
+          el.textContent = detail.text;
+          el.setAttribute('data-state', detail.state);
+        }
+      }catch(e){}
+    }
+
+    S.ReminderDispatcher = {
+      start: disabledStart,
+      runOnce: async function(){
+        disabledStart();
+        return { disabled:true, reason:'cloudflare-cron-active' };
+      },
+      disabled: true,
+      reason: 'cloudflare-cron-active'
+    };
+
+    if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', disabledStart);
+    else setTimeout(disabledStart, 0);
+    return;
+  }
+
+  /* Ancien mécanisme admin conservé ci-dessous pour rollback éventuel. */
+
   const POLL_MS = 60 * 1000;
   const INITIAL_DELAY_MS = 2500;
   const BATCH_LIMIT = 8;
