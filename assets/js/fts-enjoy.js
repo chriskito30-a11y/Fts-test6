@@ -21,7 +21,7 @@
   ];
 
   const INTENTS = [
-    { key:'resources', label:'📚 Ressources', words:['ressource','document','doc','texte','partition','tablature','musique','audio','video','vidéo','pdf','parole','réplique','replique','fichier','cours'] },
+    { key:'resources', label:'📚 Ressources', words:['ressource','document','doc','texte','partition','tablature','musique','audio','video','vidéo','pdf','parole','réplique','replique','fichier'] },
     { key:'calendar', label:'📅 Planning', words:['planning','calendrier','date','horaire','heure','cours','répétition','repetition','spectacle','stage','événement','evenement','venir','quand'] },
     { key:'messages', label:'💬 Messages', words:['message','messagerie','privé','prive','prof','professeur','contacter','répondre','repondre','discussion','dm'] },
     { key:'forum', label:'👥 Forum', words:['forum','groupe','discussion','catégorie','categorie','publier','post','commentaire','communauté','communaute'] },
@@ -34,7 +34,7 @@
 
   const state = {
     options: {}, db: null, auth: null, user: null, profile: null,
-    categories: [], allowedCategories: [], unread: 0, events: [],
+    categories: [], allowedCategories: [], unread: 0, events: [], courses: [],
     mounted: false, root: null, body: null, badge: null, input: null,
     listeners: []
   };
@@ -46,6 +46,7 @@
     nudgeOnce: true,
     showWhenLoggedOut: true,
     maxEvents: 3,
+    maxCourses: 4,
     debug: false
   }, state.options || {});
 
@@ -112,12 +113,53 @@
 
   function go(url) { window.location.href = url; }
 
+  function isMobileEnjoy() {
+    return window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
+  }
+
+  function updateViewportHeight() {
+    if (!state.root) return;
+    const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    if (h) state.root.style.setProperty('--enjoy-vvh', Math.max(320, Math.round(h)) + 'px');
+  }
+
+  function bindKeyboardFix(root) {
+    if (!root || root.dataset.keyboardFix === '1') return;
+    root.dataset.keyboardFix = '1';
+    const input = root.querySelector('.fts-enjoy-input');
+    const sync = () => {
+      updateViewportHeight();
+      if (state.body) setTimeout(scrollDown, 40);
+    };
+    window.addEventListener('resize', sync, { passive:true });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', sync, { passive:true });
+      window.visualViewport.addEventListener('scroll', sync, { passive:true });
+    }
+    if (input) {
+      input.addEventListener('focus', () => {
+        root.classList.add('is-typing');
+        sync();
+        setTimeout(() => {
+          try { input.scrollIntoView({ block:'nearest', behavior:'smooth' }); } catch(e) {}
+          scrollDown();
+        }, 180);
+      });
+      input.addEventListener('blur', () => {
+        root.classList.remove('is-typing');
+        setTimeout(updateViewportHeight, 80);
+      });
+    }
+  }
+
   function buildRoot() {
     if (document.getElementById('fts-enjoy-root')) {
       state.root = document.getElementById('fts-enjoy-root');
       state.body = state.root.querySelector('.fts-enjoy-body');
       state.badge = state.root.querySelector('.fts-enjoy-badge');
       state.input = state.root.querySelector('.fts-enjoy-input');
+      bindKeyboardFix(state.root);
+      updateViewportHeight();
       return;
     }
 
@@ -167,6 +209,8 @@
     root.addEventListener('click', e => {
       if (e.target === root && root.classList.contains('is-open')) close();
     });
+    bindKeyboardFix(root);
+    updateViewportHeight();
 
     if (cfg().nudgeOnce && !localStorage.getItem('fts_enjoy_nudge_seen')) {
       setTimeout(() => root.classList.add('show-nudge'), 900);
@@ -177,14 +221,15 @@
 
   function open() {
     if (!state.root) return;
+    updateViewportHeight();
     state.root.classList.add('is-open');
-    if (window.matchMedia('(max-width: 560px)').matches) document.body.classList.add('fts-enjoy-open-mobile');
-    setTimeout(() => state.input && state.input.focus({ preventScroll:true }), 120);
+    if (isMobileEnjoy()) document.body.classList.add('fts-enjoy-open-mobile');
+    setTimeout(() => { updateViewportHeight(); if (state.input) state.input.focus({ preventScroll:true }); }, 120);
   }
 
   function close() {
     if (!state.root) return;
-    state.root.classList.remove('is-open');
+    state.root.classList.remove('is-open', 'is-typing');
     document.body.classList.remove('fts-enjoy-open-mobile');
   }
 
@@ -319,6 +364,139 @@
     state.listeners.push(() => ref.off('value', handler));
   }
 
+
+  function scheduleTargetValues(s) {
+    const cat = String(s && (s.targetCategory || s.category || '') || '').trim();
+    const sub = String(s && (s.targetSubcategory || s.subcategory || '') || '').trim();
+    const groups = {};
+    if (cat) groups[cat] = sub ? [sub] : [];
+    return { cats: cat ? [cat] : [], subs: sub ? [sub] : [], groups };
+  }
+
+  function canSeeSchedule(s) {
+    if (!s || s.active === false) return false;
+    const kind = String(s.kind || '').trim();
+    if (kind === 'music_individual' || s.uid) {
+      return isAdmin() || String(s.uid || '') === String(state.user && state.user.uid || '');
+    }
+    if (isAdmin()) return true;
+    const t = scheduleTargetValues(s);
+    if (!t.cats.length && !t.subs.length && !Object.keys(t.groups).length) return true;
+    const myCats = getDisciplines().map(norm);
+    const mySubs = getSubgroups().map(norm);
+    for (const [cat, subs] of Object.entries(t.groups)) {
+      const catOk = myCats.includes(norm(cat));
+      const cleanSubs = (subs || []).map(norm).filter(Boolean);
+      if (catOk && !cleanSubs.length) return true;
+      if (catOk && cleanSubs.some(sub => mySubs.includes(sub))) return true;
+    }
+    return false;
+  }
+
+  function scheduleDateKey(ts) {
+    const d = new Date(ts);
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function defaultScheduleUntil(startAt) {
+    const now = new Date();
+    let year = now.getFullYear();
+    let until = new Date(year, 5, 30, 23, 59, 59, 999).getTime();
+    if (until < Date.now()) until = new Date(year + 1, 5, 30, 23, 59, 59, 999).getTime();
+    return Math.min(until, Date.now() + 18 * 31 * 24 * 60 * 60 * 1000);
+  }
+
+  function addScheduleDays(ts, days) {
+    const d = new Date(ts);
+    d.setDate(d.getDate() + days);
+    return d.getTime();
+  }
+
+  function nextOccurrenceForSchedule(s, nowTs) {
+    if (!s || s.active === false) return null;
+    const duration = Math.max(5, Number(s.durationMinutes || 30) || 30);
+    const mode = String(s.recurrenceMode || 'single');
+    const excluded = new Set(Array.isArray(s.excludedDates) ? s.excludedDates : []);
+    let candidates = [];
+
+    if (mode === 'manual') {
+      candidates = (Array.isArray(s.manualDates) ? s.manualDates : []).map(Number).filter(Boolean);
+    } else if (mode === 'weekly' || mode === 'biweekly' || mode === 'triweekly') {
+      const startAt = Number(s.startAt || 0);
+      if (!startAt) return null;
+      const step = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
+      const until = Number(s.repeatUntil || 0) || defaultScheduleUntil(startAt);
+      let cur = startAt;
+      let guard = 0;
+      while (cur + duration * 60000 < nowTs && guard < 260) { cur = addScheduleDays(cur, step); guard++; }
+      while (cur <= until && guard < 300) {
+        candidates.push(cur);
+        cur = addScheduleDays(cur, step);
+        guard++;
+        if (candidates.length >= 8) break;
+      }
+    } else {
+      const startAt = Number(s.startAt || 0);
+      if (startAt) candidates = [startAt];
+    }
+
+    const future = candidates
+      .filter(ts => ts && !excluded.has(scheduleDateKey(ts)))
+      .map(ts => ({ startAt:ts, endAt:ts + duration * 60000, durationMinutes:duration, schedule:s }))
+      .filter(o => o.endAt >= nowTs)
+      .sort((a,b) => a.startAt - b.startAt);
+    return future[0] || null;
+  }
+
+  function relativeCourseDate(ts, endAt) {
+    const d = new Date(ts);
+    const now = new Date();
+    const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startTarget = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const diffDays = Math.round((startTarget - startToday) / 86400000);
+    const time = d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    if (endAt && Date.now() >= ts && Date.now() <= endAt) return 'En cours · jusqu’à ' + new Date(endAt).toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+    if (diffDays === 0) return 'Aujourd’hui · ' + time;
+    if (diffDays === 1) return 'Demain · ' + time;
+    return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' }) + ' · ' + time;
+  }
+
+  function courseIcon(s) {
+    const text = [s && s.lessonType, s && s.title, s && s.targetCategory, s && s.category].join(' ').toLowerCase();
+    if (text.includes('guitare') || text.includes('basse') || text.includes('musique')) return '🎸';
+    if (text.includes('chant')) return '🎤';
+    if (text.includes('danse')) return '💃';
+    if (text.includes('theatre') || text.includes('théâtre')) return '🎭';
+    if (text.includes('singer')) return '🌟';
+    return '📅';
+  }
+
+  async function loadCourses() {
+    state.courses = [];
+    if (!state.db || !state.user) return;
+    try {
+      const snap = await state.db.ref('fts_schedules').once('value');
+      const nowTs = Date.now();
+      const rows = [];
+      snap.forEach(child => {
+        const s = Object.assign({ id: child.key }, child.val() || {});
+        if (!canSeeSchedule(s)) return;
+        const occ = nextOccurrenceForSchedule(s, nowTs);
+        if (!occ) return;
+        const so = occ.schedule || s;
+        rows.push(Object.assign(occ, {
+          scheduleId: s.id || child.key,
+          title: so.title || so.lessonType || so.targetSubcategory || so.subcategory || so.targetCategory || so.category || 'Cours Fais Ton Show',
+          teacher: so.teacher || '',
+          place: so.place || so.location || '',
+          icon: courseIcon(so)
+        }));
+      });
+      state.courses = rows.sort((a,b) => a.startAt - b.startAt).slice(0, cfg().maxCourses || 4);
+    } catch(e) { log('courses unavailable', e); }
+  }
+
   async function loadEvents() {
     state.events = [];
     if (!state.db) return;
@@ -356,6 +534,7 @@
     try {
       await loadProfile(state.user);
       await loadCategories();
+      await loadCourses();
       await loadEvents();
       renderHome();
     } catch(e) {
@@ -387,7 +566,7 @@
 
     const quick = [
       { label:'📚 Mes ressources', small: groups.length ? groups.slice(0,2).join(' · ') + (groups.length > 2 ? '…' : '') : 'Selon ton profil', intent:'resources' },
-      { label:'📅 Mon planning', small: state.events.length ? state.events[0].date || 'Prochain événement' : 'Cours et événements', intent:'calendar' },
+      { label:'📅 Mon planning', small: state.courses.length ? relativeCourseDate(state.courses[0].startAt, state.courses[0].endAt) : (state.events.length ? state.events[0].date || 'Prochain événement' : 'Cours et événements'), intent:'calendar' },
       { label:'💬 Messages', small: state.unread ? `${state.unread} non lu${state.unread > 1 ? 's' : ''}` : 'Discussions privées', intent:'messages' },
       { label:'👥 Forum', small:'Groupes et annonces', intent:'forum' },
       { label:'🔔 Notifications', small: notificationSummary(), intent:'notifications' },
@@ -422,6 +601,7 @@
 
   function detectIntent(text) {
     const n = norm(text);
+    if (n.includes('prochain_cours') || n.includes('mon_cours') || (n.includes('cours') && (n.includes('quand') || n.includes('horaire') || n.includes('heure')))) return 'calendar';
     let best = { key:'help', score:0 };
     INTENTS.forEach(intent => {
       let score = 0;
@@ -439,10 +619,10 @@
     respond(detectIntent(text), text);
   }
 
-  function respond(intent) {
+  function respond(intent, rawText) {
     switch(intent) {
       case 'resources': return answerResources();
-      case 'calendar': return answerCalendar();
+      case 'calendar': return answerCalendar(rawText);
       case 'messages': return answerMessages();
       case 'forum': return answerForum();
       case 'notifications': return answerNotifications();
@@ -469,13 +649,34 @@
     })).concat([{ label:'Voir toutes mes ressources', url:'membres.html', primary:true }]));
   }
 
-  function answerCalendar() {
-    const actions = [{ label:'Ouvrir le planning', url:'membres.html#planning', primary:true }, { label:'Voir la saison', url:'saison.html' }];
-    if (state.events.length) {
+  function answerCalendar(rawText) {
+    const actions = [{ label:'Ouvrir mon planning', url:'membres.html#planning', primary:true }, { label:'Voir la saison', url:'saison.html' }];
+    const n = norm(rawText || '');
+    const wantsEvent = n.includes('spectacle') || n.includes('evenement') || n.includes('stage') || n.includes('date');
+    const wantsCourse = !rawText || n.includes('cours') || n.includes('repetition') || n.includes('horaire') || n.includes('heure') || n.includes('planning') || n.includes('quand');
+
+    if (wantsCourse) {
+      if (state.courses.length) {
+        const lines = state.courses.map(c => {
+          const s = c.schedule || {};
+          const meta = [relativeCourseDate(c.startAt, c.endAt), c.teacher ? 'Prof : ' + c.teacher : '', c.place || ''].filter(Boolean).join(' · ');
+          return `• ${c.icon || '📅'} ${c.title}${meta ? ' — ' + meta : ''}`;
+        }).join('\n');
+        bot(`Voici les prochains cours/répétitions que je peux voir pour ton compte :\n${lines}`, actions);
+        return;
+      }
+      bot('Je ne vois pas encore de prochain cours rattaché à ton compte. Ça peut arriver si les créneaux ne sont pas encore saisis dans le planning ou si ton accès doit être corrigé.', actions.concat([{ label:'Vérifier mon compte', intent:'account' }]));
+      return;
+    }
+
+    if (wantsEvent && state.events.length) {
       const lines = state.events.map(e => `• ${e.title}${e.date ? ' — ' + e.date : ''}${e.hour ? ' · ' + e.hour : ''}${e.place ? ' · ' + e.place : ''}`).join('\n');
-      bot(`Voici les prochains rendez-vous que je peux voir pour ton compte :\n${lines}`, actions);
+      bot(`Voici les prochains événements que je peux voir pour ton compte :\n${lines}`, actions);
+    } else if (state.events.length) {
+      const lines = state.events.map(e => `• ${e.title}${e.date ? ' — ' + e.date : ''}${e.hour ? ' · ' + e.hour : ''}${e.place ? ' · ' + e.place : ''}`).join('\n');
+      bot(`Je ne vois pas de cours à afficher ici, mais voici les prochains événements visibles :\n${lines}`, actions);
     } else {
-      bot('Je ne vois pas encore de prochain événement ciblé pour ton compte, ou le planning n’est pas disponible ici. Tu peux ouvrir ton espace membre pour vérifier.', actions);
+      bot('Je ne vois pas encore de prochain rendez-vous ciblé pour ton compte, ou le planning n’est pas disponible ici. Tu peux ouvrir ton espace membre pour vérifier.', actions);
     }
   }
 
@@ -566,6 +767,7 @@
         state.profile = null;
         state.allowedCategories = [];
         state.events = [];
+        state.courses = [];
         state.unread = 0;
         setBadge(0);
         state.listeners.splice(0).forEach(fn => { try { fn(); } catch(e){} });
@@ -588,7 +790,7 @@
     state.listeners.splice(0).forEach(fn => { try { fn(); } catch(e){} });
     if (state.root) state.root.remove();
     document.body.classList.remove('fts-enjoy-open-mobile');
-    Object.assign(state, { mounted:false, root:null, body:null, badge:null, input:null, user:null, profile:null, categories:[], allowedCategories:[], unread:0, events:[] });
+    Object.assign(state, { mounted:false, root:null, body:null, badge:null, input:null, user:null, profile:null, categories:[], allowedCategories:[], unread:0, events:[], courses:[] });
   }
 
   window.FTSEnjoy = { init, open, close, toggle, refresh: refreshContext, destroy, ask };
