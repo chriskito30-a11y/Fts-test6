@@ -42,6 +42,7 @@
   const cfg = () => Object.assign({
     page: document.body && document.body.dataset ? (document.body.dataset.page || '') : '',
     avatar: 'assets/img/enjoy.png',
+    openAvatar: 'assets/img/enjoy-open.png',
     autoOpenOnce: false,
     nudgeOnce: true,
     showWhenLoggedOut: true,
@@ -113,6 +114,21 @@
 
   function go(url) { window.location.href = url; }
 
+  function setBubbleAvatar(isOpen) {
+    if (!state.root) return;
+    const avatar = state.root.querySelector('.fts-enjoy-avatar');
+    if (!avatar) return;
+    const nextSrc = isOpen ? (cfg().openAvatar || cfg().avatar) : cfg().avatar;
+    if (nextSrc && avatar.getAttribute('src') !== nextSrc) avatar.setAttribute('src', nextSrc);
+  }
+
+  function preloadOpenAvatar() {
+    const src = cfg().openAvatar;
+    if (!src) return;
+    const img = new Image();
+    img.src = src;
+  }
+
   function isMobileEnjoy() {
     return window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
   }
@@ -160,6 +176,8 @@
       state.input = state.root.querySelector('.fts-enjoy-input');
       bindKeyboardFix(state.root);
       updateViewportHeight();
+      preloadOpenAvatar();
+      setBubbleAvatar(state.root.classList.contains('is-open'));
       return;
     }
 
@@ -211,6 +229,7 @@
     });
     bindKeyboardFix(root);
     updateViewportHeight();
+    preloadOpenAvatar();
 
     if (cfg().nudgeOnce && !localStorage.getItem('fts_enjoy_nudge_seen')) {
       setTimeout(() => root.classList.add('show-nudge'), 900);
@@ -223,6 +242,7 @@
     if (!state.root) return;
     updateViewportHeight();
     state.root.classList.add('is-open');
+    setBubbleAvatar(true);
     if (isMobileEnjoy()) document.body.classList.add('fts-enjoy-open-mobile');
     setTimeout(() => { updateViewportHeight(); }, 120);
   }
@@ -230,6 +250,7 @@
   function close() {
     if (!state.root) return;
     state.root.classList.remove('is-open', 'is-typing');
+    setBubbleAvatar(false);
     document.body.classList.remove('fts-enjoy-open-mobile');
   }
 
