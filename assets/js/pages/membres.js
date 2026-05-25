@@ -604,6 +604,61 @@ function googleCalendarUrlForOccurrence(occ){
   return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + title + '&dates=' + gdate(occ.startAt) + '/' + gdate(occ.endAt) + '&details=' + details + '&location=' + location;
 }
 
+function isAppleCalendarDevice(){
+  const ua = String(navigator.userAgent || navigator.vendor || '').toLowerCase();
+  const platform = String(navigator.platform || '').toLowerCase();
+  const iPadOS = platform === 'macintel' && navigator.maxTouchPoints > 1;
+  return /iphone|ipad|ipod|macintosh/.test(ua) || iPadOS;
+}
+
+function icsCalendarUrlForOccurrence(occ){
+  const s = occ.schedule || {};
+  const pad = n => String(n).padStart(2, '0');
+  function icsDate(ts){
+    const d = new Date(ts);
+    return d.getUTCFullYear()+pad(d.getUTCMonth()+1)+pad(d.getUTCDate())+'T'+pad(d.getUTCHours())+pad(d.getUTCMinutes())+pad(d.getUTCSeconds())+'Z';
+  }
+  function fold(v){
+    return String(v || '')
+      .replace(/\r?\n/g, '\n')
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\n/g, '\\n');
+  }
+  const uidPart = String((s.id || occ.scheduleId || occ.startAt || Date.now()) + '@faistonshow.fr').replace(/[^a-zA-Z0-9@._-]/g, '');
+  const summary = (s.title || s.lessonType || 'Créneau Fais Ton Show') + ' — Fais Ton Show';
+  const description = 'Créneau Fais Ton Show' + (s.teacher ? '\nProf : ' + s.teacher : '') + (s.lessonType ? '\nType : ' + s.lessonType : '');
+  const ics = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Fais Ton Show//FTS PWA//FR',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'BEGIN:VEVENT',
+    'UID:' + uidPart,
+    'DTSTAMP:' + icsDate(Date.now()),
+    'DTSTART:' + icsDate(occ.startAt),
+    'DTEND:' + icsDate(occ.endAt || (occ.startAt + Number(s.durationMinutes || 30) * 60000)),
+    'SUMMARY:' + fold(summary),
+    'DESCRIPTION:' + fold(description),
+    'LOCATION:' + fold(s.place || 'Fais Ton Show'),
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ].join('\r\n');
+  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+}
+
+function calendarActionsHtmlForOccurrence(occ){
+  const google = googleCalendarUrlForOccurrence(occ);
+  if(isAppleCalendarDevice()){
+    return `
+      <a class="btn-outline btn-sm" href="${icsCalendarUrlForOccurrence(occ)}" download="fais-ton-show.ics">Ajouter à iCal</a>
+      <a class="btn-outline btn-sm" href="${google}" target="_blank" rel="noopener">Google Calendar</a>`;
+  }
+  return `<a class="btn-outline btn-sm" href="${google}" target="_blank" rel="noopener">Ajouter à Google Calendar</a>`;
+}
+
 function renderNextCoursePanel(){
   const panel = document.getElementById('next-course-panel');
   const card = document.getElementById('next-course-card');
@@ -637,7 +692,7 @@ function renderNextCoursePanel(){
       </div>
     </div>
     <div class="next-course-actions">
-      <a class="btn-outline btn-sm" href="${googleCalendarUrlForOccurrence(first)}" target="_blank" rel="noopener">Ajouter à Google Calendar</a>
+      ${calendarActionsHtmlForOccurrence(first)}
     </div>
     ${more.length ? `<div class="next-course-more">
       <div class="next-course-more-title">Ensuite</div>
