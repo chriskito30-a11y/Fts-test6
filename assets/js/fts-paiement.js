@@ -50,10 +50,16 @@
   }
 
   async function api(path, options){
-    const token = await getToken(false);
+    const headers = { 'Content-Type':'application/json' };
+    try {
+      const token = await getToken(false);
+      if (token) headers.Authorization = 'Bearer ' + token;
+    } catch(e) {
+      if (!String(path || '').startsWith('/payment-status')) throw e;
+    }
     const res = await fetch(WORKER_URL + path, Object.assign({
       method:'GET',
-      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + token }
+      headers
     }, options || {}));
     const data = await res.json().catch(() => null);
     if(!res.ok || !data || data.ok === false){
@@ -138,6 +144,8 @@
 
   async function initPaymentPage(){
     await handleReturn();
+    const params = new URLSearchParams(location.search);
+    if(!state.user && (params.get('orderId') || params.get('order') || params.get('localOrderId'))){ setGuard('Paiement reçu', 'Merci ! Le statut définitif sera confirmé par HelloAsso puis visible par l’administration.'); return; }
     if(!state.user){ setGuard('Connexion nécessaire', 'Connectez-vous à votre compte Fais Ton Show pour accéder au paiement.'); return; }
     if(!canSeePayments()){
       setGuard('Paiement indisponible', 'Le paiement en ligne sera affiché ici lorsqu’il sera ouvert aux membres concernés.');
