@@ -23,9 +23,3 @@
 .fts-pay-submit{width:100%;margin-top:1rem;border:0;cursor:pointer;text-align:center}
 .fts-pay-msg{min-height:1.2rem;margin-top:.75rem;color:#ffd37a;font-size:.92rem}
 @media (min-width:720px){.fts-payment-modal{align-items:center}.fts-payment-card{padding:1.4rem}.fts-pay-grid{grid-template-columns:1fr 1fr}.fts-pay-submit{width:auto}}
-
-/* Groupes cliquables — V5 */
-.season-subcat{width:100%;text-align:left;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:inherit;border-radius:18px;padding:14px;cursor:pointer;transition:.18s ease;display:block;font:inherit}
-.season-subcat:hover{border-color:rgba(201,168,76,.45);background:rgba(201,168,76,.08);transform:translateY(-1px)}
-.season-subcat.selected{border-color:#c9a84c;background:rgba(201,168,76,.16);box-shadow:0 0 0 3px rgba(201,168,76,.12)}
-.season-subcat.suggested:not(.selected){position:relative}.season-subcat-cta{display:inline-flex;margin-top:8px;font-size:.72rem;font-weight:800;color:#c9a84c}.season-subcats-help{margin-top:10px;font-size:.78rem;color:rgba(255,255,255,.62)}
