@@ -13,6 +13,67 @@ let eventReloadTimer = null;
 let hasBootSyncedEventsMirror = false;
 let isSyncingEventsMirror = false;
 function $(id){ return document.getElementById(id); }
+
+/* ── PATCH PAIEMENT ÉVÉNEMENTS/STAGES V6 ───────────────────────
+   Injection non destructive : on ajoute les champs dans la page existante
+   sans remplacer calendrier-admin.html.
+──────────────────────────────────────────────────────────────── */
+function ensureEventPaymentFields(){
+  if($('e-payment-enabled')) return;
+  const dateSection = $('e-date') && $('e-date').closest ? $('e-date').closest('.form-section') : null;
+  if(!dateSection) return;
+  const grid = dateSection.querySelector('.form-grid');
+  if(!grid) return;
+  const dateField = $('e-date') && $('e-date').closest ? $('e-date').closest('.field') : null;
+  if(dateField && !$('e-end-date')){
+    dateField.insertAdjacentHTML('afterend', '<div class="field"><label>Date de fin <small>(optionnel pour les stages)</small></label><input id="e-end-date" type="date"/></div>');
+  }
+  dateSection.insertAdjacentHTML('afterend', `
+    <div class="form-section fts-payment-admin-section" id="event-payment-section">
+      <div class="section-title"><span>4</span>Paiement / réservation</div>
+      <div class="target-help">Pour un spectacle ou un stage payant, active le paiement. Les places max restent privées et ne sont pas affichées au public.</div>
+      <div class="form-grid">
+        <div class="field"><label>Paiement activé</label><select id="e-payment-enabled"><option value="false">Non</option><option value="true">Oui</option></select></div>
+        <div class="field"><label>Nature</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option></select></div>
+        <div class="field"><label>Prix en €</label><input id="e-price" type="number" min="0" step="0.01" placeholder="Ex : 12"/></div>
+        <div class="field"><label>Places max privées</label><input id="e-max-seats" type="number" min="0" step="1" placeholder="0 = illimité"/></div>
+      </div>
+    </div>`);
+}
+function centsFromEuroInput(id){
+  const el=$(id); const raw=el?String(el.value||'').replace(',','.').trim():'';
+  const n=Number(raw); return Number.isFinite(n) && n>0 ? Math.round(n*100) : 0;
+}
+function euroInputFromCents(v){
+  const n=Number(v||0); return n>0 ? String((n/100).toFixed(2)).replace('.',',') : '';
+}
+function isoFromTs(ts){
+  const n=Number(ts||0); if(!n) return '';
+  try{return new Date(n).toISOString().slice(0,10);}catch(e){return '';}
+}
+function applyPaymentFieldsToForm(e){
+  ensureEventPaymentFields();
+  if($('e-end-date')) $('e-end-date').value = e ? (e.endDateIso || e.dateEndIso || isoFromTs(e.endDateTs) || '') : '';
+  if($('e-payment-enabled')) $('e-payment-enabled').value = String(!!(e && (e.paymentEnabled===true || e.payEnabled===true)));
+  if($('e-payment-type')) $('e-payment-type').value = (e && (e.paymentType || e.saleType)) || (String(e && e.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
+  if($('e-price')) $('e-price').value = euroInputFromCents(e && (e.priceCents || e.amountCents || e.price || e.tarif));
+  if($('e-max-seats')) $('e-max-seats').value = e && (e.maxSeats || e.capacity) ? String(e.maxSeats || e.capacity) : '';
+}
+function collectPaymentFieldsForSave(){
+  ensureEventPaymentFields();
+  const paymentEnabled = $('e-payment-enabled') && $('e-payment-enabled').value === 'true';
+  const paymentType = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
+  const priceCents = centsFromEuroInput('e-price');
+  const maxSeats = Math.max(0, Number(($('e-max-seats') && $('e-max-seats').value) || 0) || 0);
+  if(paymentEnabled && !priceCents) throw new Error('Prix requis si le paiement est activé');
+  return { paymentEnabled, payEnabled: paymentEnabled, paymentType, saleType: paymentType, priceCents, maxSeats, capacity:maxSeats };
+}
+function collectEndDateForSave(){
+  ensureEventPaymentFields();
+  const iso = $('e-end-date') ? $('e-end-date').value : '';
+  return iso ? { endDateIso:iso, dateEndIso:iso, endDateLabel:frDateLabel(iso), dateEndLabel:frDateLabel(iso), endDateTs:dateTs(iso, $('e-hour') ? $('e-hour').value : '') } : { endDateIso:'', dateEndIso:'', endDateLabel:'', dateEndLabel:'', endDateTs:0 };
+}
+
 function msg(txt, ok=true){ const el=$('msg'); el.textContent=txt; el.className='msg '+(ok?'ok':'err'); setTimeout(()=>{ el.className='msg'; }, 3200); }
 function doLogout(){ firebase.auth().signOut().then(()=>location.href='auth.html'); }
 
@@ -326,6 +387,14 @@ async function loadEventsFromAllSources(){
         location: v.location || v.l || '',
         url: v.link || v.lien || v.url || v.u || '',
         description: v.destDesc || v.dest_desc || v.description || v.desc || '',
+        endDateIso: v.endDateIso || v.dateEndIso || '',
+        endDateLabel: v.endDateLabel || v.dateEndLabel || '',
+        paymentEnabled: v.paymentEnabled === true || v.payEnabled === true,
+        payEnabled: v.paymentEnabled === true || v.payEnabled === true,
+        paymentType: v.paymentType || v.saleType || '',
+        saleType: v.saleType || v.paymentType || '',
+        priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
+        maxSeats: Number(v.maxSeats || v.capacity || 0) || 0,
         dateTs: v.dateTs || v.startTs || v.ts || v.order || 0,
         updatedAt: v.updatedAt || 0
       });
@@ -366,6 +435,15 @@ function normalizeEvent(key, v){
     location:v.location||v.lieu||v.l||'',
     url:v.url||v.link||v.lien||v.u||'',
     desc:v.description||v.desc||'',
+    endDateIso:v.endDateIso||v.dateEndIso||'',
+    endDateLabel:v.endDateLabel||v.dateEndLabel||'',
+    endDateTs:Number(v.endDateTs||0),
+    paymentEnabled:v.paymentEnabled===true || v.payEnabled===true,
+    payEnabled:v.paymentEnabled===true || v.payEnabled===true,
+    paymentType:v.paymentType||v.saleType||'',
+    saleType:v.saleType||v.paymentType||'',
+    priceCents:Number(v.priceCents||v.amountCents||0)||0,
+    maxSeats:Number(v.maxSeats||v.capacity||0)||0,
     dateTs:Number(v.dateTs||v.startTs||v.ts||0),
     updatedAt:v.updatedAt||0,
     important:v.important === true || v.priority === 'important',
@@ -385,16 +463,19 @@ function renderList(){
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
     return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
-      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
+      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-payment">Paiement</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.endDateLabel?' → '+FTS.esc(e.endDateLabel):''}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}${e.paymentEnabled&&e.priceCents?' · '+FTS.esc(String((Number(e.priceCents)/100).toFixed(2)).replace('.',','))+' €':''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
     </div>`;
   }).join('');
 }
 
 function newEvent(){
   selectedKey='';
-  ['e-key','e-name','e-type','e-date','e-hour','e-location','e-url','e-desc'].forEach(id=>$(id).value='');
+  ensureEventPaymentFields();
+  ['e-key','e-name','e-type','e-date','e-end-date','e-hour','e-location','e-url','e-desc','e-price','e-max-seats'].forEach(id=>{ if($(id)) $(id).value=''; });
   $('e-active').value='true';
   if($('e-important')) $('e-important').value='false';
+  if($('e-payment-enabled')) $('e-payment-enabled').value='false';
+  if($('e-payment-type')) $('e-payment-type').value='event_ticket';
   resetTargetSelection();
   renderList();
 }
@@ -411,6 +492,7 @@ function editEvent(key){
   $('e-url').value=e.url||'';
   $('e-desc').value=e.desc||'';
   if($('e-important')) $('e-important').value=String(!!e.important);
+  applyPaymentFieldsToForm(e);
   setTargetSelectionFromEvent(e);
   renderList();
 }
@@ -445,9 +527,15 @@ function eventToQuestionnaireOption(key, data){
   const date = data.dateLabel || data.date || data.d || '';
   const hour = data.hour || data.h || '';
   const location = data.location || data.l || '';
+  const endDate = data.endDateLabel || data.dateEndLabel || '';
+  const paymentEnabled = data.paymentEnabled === true || data.payEnabled === true;
+  const priceCents = Number(data.priceCents || data.amountCents || 0) || 0;
+  const paymentType = data.paymentType || data.saleType || (String(data.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
   const details = [];
   if(date) details.push({ key:'Date', value: hour ? date + ' · ' + hour : date });
+  if(endDate) details.push({ key:'Fin', value: endDate });
   if(location) details.push({ key:'Lieu', value: location });
+  if(paymentEnabled && priceCents) details.push({ key:'Prix', value: String((priceCents/100).toFixed(2)).replace('.', ',') + ' €' });
   return {
     source:'fts_events',
     eventKey:key,
@@ -460,8 +548,8 @@ function eventToQuestionnaireOption(key, data){
     titre:data.name || data.title || data.n || 'Événement',
     description:data.description || data.desc || data.type || '',
     desc:data.description || data.desc || data.type || '',
-    link:data.url || data.u || data.link || data.lien || '#',
-    lien:data.url || data.u || data.link || data.lien || '#',
+    link:paymentEnabled ? '#payment-' + key : (data.url || data.u || data.link || data.lien || '#'),
+    lien:paymentEnabled ? '#payment-' + key : (data.url || data.u || data.link || data.lien || '#'),
     destTitle:data.name || data.title || data.n || 'Événement',
     dest_titre:data.name || data.title || data.n || 'Événement',
     destDesc:data.description || data.desc || (date ? (hour ? date + ' · ' + hour : date) : ''),
@@ -475,6 +563,17 @@ function eventToQuestionnaireOption(key, data){
     dateLabel:date,
     hour,
     location,
+    eventId:key,
+    paymentEnabled,
+    payEnabled:paymentEnabled,
+    paymentType,
+    saleType:paymentType,
+    priceCents,
+    maxSeats:Number(data.maxSeats || data.capacity || 0) || 0,
+    endDateLabel:endDate,
+    dateEndLabel:endDate,
+    endDateIso:data.endDateIso || data.dateEndIso || '',
+    dateEndIso:data.dateEndIso || data.endDateIso || '',
     important:data.important === true || data.priority === 'important',
     priority:data.priority || (data.important ? 'important' : 'normal'),
     targetCategories:normArray(data.targetCategories || []),
@@ -598,6 +697,8 @@ async function saveEvent(){
     const active=$('e-active').value==='true';
     const targets = getTargetSelection();
     const important = $('e-important') ? $('e-important').value === 'true' : false;
+    const paymentFields = collectPaymentFieldsForSave();
+    const endDateFields = collectEndDateForSave();
     const data={
       name,
       title:name,
@@ -623,7 +724,9 @@ async function saveEvent(){
       targetSubgroups:targets.targetSubgroups,
       targetGroups:targets.targetGroups,
       dateTs:dateTs(iso,hour),
-      updatedAt:Date.now()
+      updatedAt:Date.now(),
+      ...endDateFields,
+      ...paymentFields
     };
     const isNewEvent = !$('e-key').value && !(selected && selected.eventKey);
     if(isNewEvent) data.createdAt=Date.now();

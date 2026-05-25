@@ -41,6 +41,91 @@ const CFG = {
 const state = { step1: null, step2: null, step3: null };
 let step3Options = {};
 
+
+
+/* ── PAIEMENT PUBLIC ÉVÉNEMENTS/STAGES V6 ───────────────────── */
+function moneyCents(value){
+  const n = Number(value || 0);
+  if(!Number.isFinite(n)) return 0;
+  return Math.round(n);
+}
+function euro(cents){
+  const n = Number(cents || 0);
+  return n ? (n / 100).toLocaleString('fr-FR', { style:'currency', currency:'EUR' }) : '';
+}
+function paymentWorkerUrl(){
+  return (window.FTS && FTS.PAYMENT && FTS.PAYMENT.workerUrl) || 'https://fts-helloasso-api.gros-christophe.workers.dev';
+}
+function ensurePublicPaymentModal(){
+  if(document.getElementById('index-payment-modal')) return;
+  const div=document.createElement('div');
+  div.id='index-payment-modal';
+  div.className='index-payment-modal';
+  div.innerHTML=`<div class="index-payment-card" role="dialog" aria-modal="true" aria-labelledby="index-payment-title">
+    <button type="button" class="index-payment-close" data-fts-click="closeIndexPayment()">×</button>
+    <div class="dest-badge">Paiement sécurisé HelloAsso</div>
+    <h2 id="index-payment-title">Réservation Fais Ton Show</h2>
+    <p id="index-payment-summary" class="index-payment-summary"></p>
+    <form id="index-payment-form">
+      <div class="index-payment-grid">
+        <label>Prénom payeur<input name="firstName" required autocomplete="given-name"></label>
+        <label>Nom payeur<input name="lastName" required autocomplete="family-name"></label>
+        <label>Email<input name="email" type="email" required autocomplete="email"></label>
+        <label>Téléphone<input name="phone" type="tel" autocomplete="tel"></label>
+        <label class="full">Nom du participant<input name="participantName" required></label>
+        <label>Nombre de places<input name="quantity" type="number" min="1" max="20" value="1" required></label>
+      </div>
+      <button class="btn-helloasso" type="submit">Continuer vers HelloAsso →</button>
+      <div id="index-payment-msg" class="index-payment-msg"></div>
+    </form>
+  </div>`;
+  document.body.appendChild(div);
+  document.getElementById('index-payment-form').addEventListener('submit', submitIndexPayment);
+}
+let currentIndexPaymentOption=null;
+function closeIndexPayment(){ const m=document.getElementById('index-payment-modal'); if(m) m.classList.remove('open'); }
+function openIndexPayment(opt){
+  currentIndexPaymentOption=opt;
+  ensurePublicPaymentModal();
+  const isStage = (opt.paymentType === 'stage_registration') || /stage/i.test(String(opt.desc || opt.title || ''));
+  document.getElementById('index-payment-title').textContent = isStage ? 'Réserver le stage' : 'Acheter une place';
+  const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : '';
+  document.getElementById('index-payment-summary').textContent = (opt.title || 'Événement Fais Ton Show') + price;
+  const form=document.getElementById('index-payment-form'); form.reset(); form.quantity.value='1';
+  document.getElementById('index-payment-msg').textContent='';
+  document.getElementById('index-payment-modal').classList.add('open');
+}
+async function submitIndexPayment(e){
+  e.preventDefault();
+  const opt=currentIndexPaymentOption;
+  if(!opt) return;
+  const form=e.currentTarget;
+  const msg=document.getElementById('index-payment-msg');
+  const btn=form.querySelector('button[type="submit"]');
+  const old=btn.textContent;
+  btn.disabled=true; btn.textContent='Préparation…'; msg.textContent='Création du paiement sécurisé…';
+  try{
+    const res=await fetch(paymentWorkerUrl().replace(/\/+$/,'') + '/checkout', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        type: opt.paymentType || 'event_ticket',
+        source:'index.html', eventId: opt.eventId || opt.id,
+        quantity: Math.max(1, Math.min(20, Number(form.quantity.value || 1) || 1)),
+        payer:{ firstName:form.firstName.value, lastName:form.lastName.value, email:form.email.value, phone:form.phone.value },
+        participant:{ name:form.participantName.value }
+      })
+    });
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok || !data.redirectUrl) throw new Error(data.error || 'Erreur paiement');
+    location.href=data.redirectUrl;
+  }catch(err){
+    console.warn('[FTS index payment]', err);
+    msg.textContent = err && err.message === 'event_full' ? 'Il n’y a plus assez de places disponibles.' : 'Impossible de lancer le paiement.';
+    btn.disabled=false; btn.textContent=old;
+  }
+}
+function isPayableOption(opt){ return !!(opt && (opt.paymentEnabled || opt.payEnabled) && moneyCents(opt.priceCents || opt.amountCents)); }
+
 /* ── CHARGEMENT QUESTIONNAIRE FIREBASE ────────────────────────── */
 async function loadQuestionnaire() {
   const db = FTS.initFirebase();
@@ -115,7 +200,10 @@ async function loadUpcomingEventOptions(db) {
       const date  = v.dateLabel || v.date || v.d || '';
       const hour  = v.hour || v.heure || v.time || v.h || '';
       const place = v.location || v.lieu || v.l || '';
-      const link  = v.url || v.link || v.lien || v.u || '#';
+      const paymentEnabled = v.paymentEnabled === true || v.payEnabled === true;
+      const priceCents = moneyCents(v.priceCents || v.amountCents || 0);
+      const paymentType = v.paymentType || v.saleType || (String(v.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
+      const link  = paymentEnabled ? '#payment-' + child.key : (v.url || v.link || v.lien || v.u || '#');
 
       if (!title || (!date && !ts)) return;
       if (ts && ts < startOfToday.getTime()) return;
@@ -126,9 +214,11 @@ async function loadUpcomingEventOptions(db) {
 
       events.push({
         id: child.key,
-        icon: v.icon || '🎪',
+        eventId: child.key,
+        icon: v.icon || (paymentType === 'stage_registration' ? '🎓' : '🎪'),
         title,
         desc: v.description || v.desc || v.type || '',
+        paymentEnabled, payEnabled:paymentEnabled, paymentType, priceCents, maxSeats:Number(v.maxSeats || v.capacity || 0) || 0,
         detail,
         link,
         destTitle: title,
@@ -172,6 +262,7 @@ function buildStep3Options(rows) {
 
       const option = {
         id:        row.id || (type + '_' + index),
+        eventId:   row.eventId || row.eventKey || row.id || '',
         icon:      row.icon || '🎭',
         title:     title,
         desc:      row.description || row.desc || '',
@@ -179,6 +270,11 @@ function buildStep3Options(rows) {
         link:      row.link || row.lien || '#',
         destTitle: row.destTitle || row.dest_titre || row.destTitleText || title,
         destDesc:  row.destDesc || row.dest_desc || row.description || row.desc || '',
+        paymentEnabled: row.paymentEnabled === true || row.payEnabled === true,
+        payEnabled: row.paymentEnabled === true || row.payEnabled === true,
+        paymentType: row.paymentType || row.saleType || 'event_ticket',
+        priceCents: moneyCents(row.priceCents || row.amountCents || 0),
+        maxSeats: Number(row.maxSeats || row.capacity || 0) || 0,
         ts:        Number(row.dateTs || row.startTs || row.ts || 0),
         date:      row.dateLabel || row.date || row.d || ''
       };
@@ -280,6 +376,7 @@ function selectStep2(el) {
 
 /* ── ÉTAPE 3 ─────────────────────────────────────────────────── */
 function goStep3() {
+  if (state.step2 === 'adhesion' || state.step2 === 'renew') { location.href = 'saison.html'; return; }
   const q3 = step3Options[state.step2];
   if (!q3 || !q3.options.length) {
     document.getElementById('card').innerHTML = `
@@ -336,11 +433,17 @@ function showDest() {
       <div class="dest-title">${FTS.esc(opt.destTitle || opt.title)}</div>
       <div class="dest-desc">${FTS.esc(opt.destDesc  || opt.desc)}</div>
       ${details ? '<div class="dest-details">' + details + '</div>' : ''}
-      <a href="${FTS.esc(FTS.safeUrl(opt.link, '#'))}" class="btn-helloasso" target="_blank" rel="noopener">
-        Ouvrir le lien sécurisé →
-      </a>
+      ${isPayableOption(opt)
+        ? `<button type="button" class="btn-helloasso" data-fts-click="openIndexPaymentByState()">${opt.paymentType === 'stage_registration' ? 'Réserver le stage' : 'Acheter ma place'}${opt.priceCents ? ' · ' + euro(opt.priceCents) : ''} →</button>`
+        : `<a href="${FTS.esc(FTS.safeUrl(opt.link, '#'))}" class="btn-helloasso" target="_blank" rel="noopener">Ouvrir le lien sécurisé →</a>`}
       <button class="btn-ghost" data-fts-click="restart()">Recommencer depuis le début</button>
     </div>`;
+}
+
+function openIndexPaymentByState(){
+  const q3 = step3Options[state.step2];
+  const opt = q3 && q3.options.find(o => o.id === state.step3);
+  if(opt) openIndexPayment(opt);
 }
 
 function restart() {
