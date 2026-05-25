@@ -39,3 +39,7 @@
 .season-subcat-detail-grid span{display:block;font-size:.65rem;color:var(--muted);margin-bottom:.2rem}
 .season-subcat-detail-grid strong{display:block;font-size:.82rem;color:var(--white);line-height:1.35}
 .season-subcat-detail-note{margin:.7rem 0 0;color:rgba(245,242,238,.78);font-size:.8rem;line-height:1.55}
+
+
+/* v157 — places max par sous-groupe */
+.season-subcat-capacity{display:inline-flex;align-items:center;gap:.25rem;margin-top:.5rem;padding:.22rem .52rem;border-radius:999px;background:rgba(248,231,2,.12);border:1px solid rgba(248,231,2,.25);color:var(--gold);font-size:.68rem;font-weight:800}
