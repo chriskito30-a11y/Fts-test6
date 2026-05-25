@@ -104,7 +104,7 @@ function renderSubcats(i){
 }
 function renderOffers(i){const offers=i.offers||[];const tabs=offers.length>1?`<div class="tabs">${offers.map((o,idx)=>`<button class="tab ${idx===0?'act':''} ${esc(o.style||o.key)}" data-fts-click="switchTab('${esc(i.id)}','${esc(o.key)}',this)">${esc(o.label||o.key)}</button>`).join('')}</div>`:'';return tabs+offers.map((o,idx)=>`<div class="tab-content ${idx===0?'act':''}" id="${esc(i.id)}-${esc(o.key)}"><div class="c-main ${o.style==='perf'?'perf':''}">${o.main||''}</div>${renderBullets(o.bullets)}${renderOfferBox(o,i)}</div>`).join('');}
 function renderBullets(bullets){if(!bullets||!bullets.length)return'';return `<ul class="c-list">${bullets.map(b=>{const gift=String(b).includes('🎁');const warn=String(b).includes('💰');return `<li class="${gift?'gift':warn?'warn':'incl'}"><span class="icon">${gift?'🎁':warn?'💰':'✔'}</span><span>${esc(String(b).replace(/^([✔⚡🎁💰])\s*/,'')).replace(/Offert :/,'<strong>Offert :</strong>')}</span></li>`}).join('')}</ul>`}
-function renderOfferBox(o,i){const link=FTS.safeUrl(o.link||saison.inscriptionDefault||'', '');const paymentBtn=renderPaymentButton(i,o);return `<div class="offer-box"><div><div class="offer-price">${esc(o.price||'Tarif à venir')} ${o.price?'<small>/ saison</small>':''}</div>${o.priceNote?`<div class="offer-note">${esc(o.priceNote)}</div>`:''}</div><div class="offer-actions">${link?`<a class="btn-register" href="${esc(link)}" target="_blank" rel="noopener">S'inscrire</a>`:`<span class="btn-register muted">Lien bientôt disponible</span>`}${paymentBtn}</div></div>`;}
+function renderOfferBox(o,i){const rawLink=String(o.link||saison.inscriptionDefault||'').trim();const link=(rawLink&&rawLink!=='#')?FTS.safeUrl(rawLink,''):'';const paymentBtn=renderPaymentButton(i,o);return `<div class="offer-box"><div><div class="offer-price">${esc(o.price||'Tarif à venir')} ${o.price?'<small>/ saison</small>':''}</div>${o.priceNote?`<div class="offer-note">${esc(o.priceNote)}</div>`:''}</div><div class="offer-actions">${link?`<a class="btn-register" href="${esc(link)}" target="_blank" rel="noopener">S'inscrire</a>`:`<span class="btn-register muted">Lien bientôt disponible</span>`}${paymentBtn}</div></div>`;}
 
 
 /* ── Paiement HelloAsso admin/bêta ────────────────────────────── */
@@ -185,7 +185,13 @@ function initSeasonPaymentGate(){
   firebase.auth().onAuthStateChanged(async function(user){
     ftsPaymentUser=user||null; ftsPaymentProfile=null; ftsPaymentEnabled=false;
     if(user){
-      try{const snap=await db.ref('fts_users/'+user.uid).once('value');ftsPaymentProfile=snap.val()||{};ftsPaymentEnabled=String(ftsPaymentProfile.role||'').toLowerCase()==='admin'||!!(ftsPaymentProfile.features&&ftsPaymentProfile.features.paymentsBeta===true);}catch(e){console.warn('[FTS paiement] profil inaccessible',e);}
+      try{
+        const paymentDb=FTS.initFirebase();
+        if(!paymentDb) throw new Error('Firebase indisponible');
+        const snap=await paymentDb.ref('fts_users/'+user.uid).once('value');
+        ftsPaymentProfile=snap.val()||{};
+        ftsPaymentEnabled=String(ftsPaymentProfile.role||'').toLowerCase()==='admin'||!!(ftsPaymentProfile.features&&ftsPaymentProfile.features.paymentsBeta===true);
+      }catch(e){console.warn('[FTS paiement] profil inaccessible',e);}
     }
     render();
   });
