@@ -192,13 +192,33 @@
     select.innerHTML = '<option value="all">Toutes</option>' + seasons.map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
     if(seasons.includes(current)) select.value = current;
   }
+  function paymentWorkerUrl(){
+    const cfg = FTS.PAYMENT || {};
+    return String(cfg.workerUrl || cfg.apiBase || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,'');
+  }
+
   async function loadOrders(){
-    const snap = await db.ref('fts_orders').once('value');
-    const rows = [];
-    if(snap.exists()) snap.forEach(child=>rows.push(Object.assign({id:child.key}, child.val() || {})));
-    orders = rows;
-    fillSeasons();
-    renderAll();
+    if($('sales-refresh')) $('sales-refresh').disabled = true;
+    fail('');
+    try{
+      const token = await firebase.auth().currentUser.getIdToken(true);
+      const res = await fetch(paymentWorkerUrl() + '/admin/orders?limit=500', {
+        method:'GET',
+        headers:{ Authorization:'Bearer ' + token, Accept:'application/json' }
+      });
+      const data = await res.json().catch(()=>null);
+      if(!res.ok || !data || data.ok === false) throw new Error((data && data.error) || ('admin_orders_' + res.status));
+      orders = Array.isArray(data.orders) ? data.orders : [];
+      fillSeasons();
+      renderAll();
+    }catch(e){
+      console.warn('[FTS ventes admin] chargement Worker impossible', e);
+      fail('Impossible de charger les ventes depuis le Worker. Vérifie que le Worker déployé contient /admin/orders et que ton compte est admin.');
+      orders = [];
+      renderAll();
+    }finally{
+      if($('sales-refresh')) $('sales-refresh').disabled = false;
+    }
   }
   function bindUi(){
     ['sales-search','sales-type','sales-status','sales-season'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('input', renderAll); if(el) el.addEventListener('change', renderAll); });
