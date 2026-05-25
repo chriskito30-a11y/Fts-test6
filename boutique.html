@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Boutique — Fais Ton Show</title>
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/pages/boutique.css?v=1" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-glow">
+<main class="shop-wrap">
+  <header class="shop-hero"><a href="membres.html" class="shop-back">← Espace membres</a><div class="shop-kicker">Fais Ton Show</div><h1>Boutique</h1><p>Goodies, textiles, costumes et articles ponctuels de l’association. Paiement sécurisé via HelloAsso.</p></header>
+  <section id="shop-guard" class="shop-panel"><div class="shop-empty">Connexion en cours…</div></section>
+  <section id="shop-list" class="shop-grid" hidden></section>
+</main>
+<script src="assets/js/fts-firebase.js?v=33"></script>
+<script src="assets/js/fts-utils.js?v=33"></script>
+<script src="assets/js/pages/boutique.js?v=1"></script>
+</body>
+</html>

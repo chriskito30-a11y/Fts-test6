@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Admin Boutique — Fais Ton Show</title>
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
+<link href="assets/css/pages/boutique-admin.css?v=1" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-glow">
+<div class="shop-admin-loading" id="shop-admin-loading"><div class="shop-logo">BOUTIQUE <span>ADMIN</span></div><div class="shop-sub">Vérification accès admin…</div><div id="shop-admin-error" class="shop-error"></div></div>
+<div class="shop-admin-shell" id="shop-admin-shell" hidden>
+  <header class="shop-admin-head">
+    <div><a href="admin.html" class="shop-back">← Retour admin</a><div class="shop-kicker">Catalogue</div><h1>Boutique Fais Ton Show</h1><p>Crée rapidement des articles vendables via HelloAsso : goodies, textiles, costumes ou paiements ponctuels boutique.</p></div>
+    <div class="shop-actions"><a class="shop-btn ghost" href="boutique.html">Voir boutique</a><button class="shop-btn" id="shop-new">Nouvel article</button></div>
+  </header>
+  <main class="shop-admin-grid">
+    <section class="shop-card">
+      <div class="shop-card-title">Articles</div>
+      <div id="shop-products" class="shop-products"><div class="shop-empty">Chargement…</div></div>
+    </section>
+    <section class="shop-card shop-form-card">
+      <div class="shop-card-title">Créer / modifier</div>
+      <form id="shop-form">
+        <input type="hidden" id="p-id"/>
+        <label>Nom de l’article<input id="p-name" required placeholder="Ex : T-shirt Fais Ton Show"/></label>
+        <label>Description<textarea id="p-description" placeholder="Description courte affichée dans la boutique"></textarea></label>
+        <div class="shop-form-row"><label>Prix en €<input id="p-price" required type="number" min="1" step="0.01" placeholder="15"/></label><label>Stock privé<input id="p-stock" type="number" min="0" step="1" placeholder="0 = non limité"/></label></div>
+        <div class="shop-form-row"><label>Catégorie<input id="p-category" placeholder="Textile, Goodies, Costumes…"/></label><label>Ordre<input id="p-order" type="number" step="1" placeholder="999"/></label></div>
+        <label>Image URL<input id="p-image" placeholder="https://…"/></label>
+        <label>Variantes visibles<textarea id="p-variants" placeholder="Ex : Tailles : 6 ans, 8 ans, S, M, L&#10;Couleurs : noir, blanc"></textarea></label>
+        <label class="shop-check"><input id="p-active" type="checkbox" checked/> Article visible</label>
+        <div class="shop-form-actions"><button class="shop-btn" type="submit">Enregistrer</button><button class="shop-btn ghost" type="button" id="shop-reset">Nouveau</button><button class="shop-btn danger" type="button" id="shop-delete">Masquer</button></div>
+        <div id="shop-msg" class="shop-msg"></div>
+      </form>
+    </section>
+  </main>
+</div>
+<script src="assets/js/fts-firebase.js?v=33"></script>
+<script src="assets/js/fts-utils.js?v=33"></script>
+<script src="assets/js/pages/boutique-admin.js?v=1"></script>
+</body>
+</html>
