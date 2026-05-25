@@ -1344,3 +1344,56 @@ body.fts-chat-modern .chat-empty-title.fts-brand-title::before {
     display: none !important;
   }
 }
+
+/* ================================================================
+   Correctif v35 — PC Messages/Forum : garder la navigation accessible sans gêner la saisie
+   Contexte : v34 masquait la bottom-nav en conversation ouverte pour libérer le champ texte.
+   Problème : une fois masquée sur PC, la navigation globale devenait inaccessible.
+   Solution : sur PC uniquement, quand un chat/forum est ouvert, la navigation devient une mini-nav flottante verticale à droite.
+   Mobile inchangé.
+   Réversibilité : supprimer ce bloc v35 ou repasser au comportement v34 si besoin.
+   ================================================================ */
+@media (min-width: 701px) {
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav {
+    display: grid !important;
+    position: fixed !important;
+    left: auto !important;
+    right: 18px !important;
+    top: 50% !important;
+    bottom: auto !important;
+    transform: translateY(-50%) !important;
+    width: 74px !important;
+    max-width: 74px !important;
+    grid-template-columns: 1fr !important;
+    gap: .2rem !important;
+    min-height: 0 !important;
+    padding: .55rem .35rem !important;
+    border-radius: 24px !important;
+    border: 1px solid rgba(255,255,255,.10) !important;
+    background: rgba(10,10,10,.90) !important;
+    box-shadow: 0 18px 44px rgba(0,0,0,.34) !important;
+    backdrop-filter: blur(18px) !important;
+    z-index: 80 !important;
+  }
+
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-spacer {
+    display: none !important;
+  }
+
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav .fts-nav-item {
+    min-height: 54px !important;
+    padding: .4rem .15rem !important;
+    border-radius: 18px !important;
+  }
+
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav .fts-nav-icon {
+    font-size: 1.15rem !important;
+  }
+
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav .fts-nav-label {
+    font-size: .50rem !important;
+    max-width: 58px !important;
+    line-height: 1.05 !important;
+    letter-spacing: .04em !important;
+  }
+}
