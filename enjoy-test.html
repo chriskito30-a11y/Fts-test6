@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#000000">
+<title>Test Enjoy — Fais Ton Show</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/fts.css">
+<link rel="stylesheet" href="assets/css/fts-enjoy.css?v=1">
+<style>
+  body { min-height: 100vh; background:#050505; color:#fff; padding:24px; }
+  .test-wrap { max-width: 780px; margin: 0 auto; padding: 28px; border-radius: 28px; background: #111; border:1px solid rgba(255,255,255,.10); }
+  .test-kicker { color: var(--gold, #c9a84c); text-transform: uppercase; letter-spacing: .12em; font-size:.78rem; font-weight:900; }
+  h1 { font-family: var(--font-title, 'Bebas Neue', sans-serif); font-size: clamp(2.4rem, 8vw, 4.5rem); line-height:.9; margin:10px 0 12px; }
+  p { color: rgba(255,255,255,.72); line-height:1.55; }
+  .test-card { margin-top:18px; padding:16px; border-radius:20px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.09); }
+  .test-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:18px; }
+  .test-actions a, .test-actions button { border:0; border-radius:999px; padding:12px 15px; background:#e11d2e; color:#fff; text-decoration:none; font-weight:900; cursor:pointer; }
+  .test-actions button.secondary, .test-actions a.secondary { background:rgba(255,255,255,.10); }
+</style>
+</head>
+<body data-page="enjoy-test">
+  <main class="test-wrap">
+    <div class="test-kicker">Module isolé</div>
+    <h1>Test Enjoy</h1>
+    <p>Cette page sert uniquement à tester l’assistant Enjoy sans toucher aux pages principales. Connecte-toi normalement à l’app, puis reviens ici pour vérifier ses réponses personnalisées.</p>
+    <div class="test-card">
+      <strong>À vérifier :</strong>
+      <p>La bulle ne doit pas cacher la navigation, Enjoy doit lire uniquement le profil connecté, afficher les accès utiles, répondre aux questions fréquentes et rediriger vers les bonnes pages.</p>
+    </div>
+    <div class="test-actions">
+      <button type="button" onclick="window.FTSEnjoy && window.FTSEnjoy.open()">Ouvrir Enjoy</button>
+      <a class="secondary" href="auth.html">Connexion</a>
+      <a class="secondary" href="membres.html">Espace membre</a>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="assets/js/fts-utils.js"></script>
+  <script src="assets/js/fts-firebase.js"></script>
+  <script src="assets/js/fts-enjoy.js?v=1"></script>
+  <script>
+    window.FTSEnjoy.init({
+      page: 'enjoy-test',
+      avatar: 'assets/img/enjoy.png',
+      debug: false
+    });
+  </script>
+</body>
+</html>
