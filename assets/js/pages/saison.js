@@ -101,6 +101,30 @@ function renderPanel(i){return `<div class="panel" id="panel-${esc(i.id)}"><div 
 function subcatKey(s){return typeof s==='string'?(norm(s)||s):(s.key||norm(s.name||s.label)||'principal');}
 function subcatName(s){return typeof s==='string'?s:(s.name||s.label||'Groupe principal');}
 function subcatSeason(s){return (typeof s==='object'&&s&&s.season)?s.season:{};}
+function compactSeasonDetail(ss){
+  const parts=[ss.day, ss.time, ss.level, ss.age, ss.note].map(x=>String(x||'').trim()).filter(Boolean);
+  return parts.join(' · ');
+}
+function subcatPaymentInfo(s){
+  const ss=subcatSeason(s);
+  return {
+    key:subcatKey(s),
+    name:subcatName(s),
+    title:ss.title||subcatName(s),
+    day:ss.day||'',
+    time:ss.time||'',
+    level:ss.level||'',
+    age:ss.age||'',
+    note:ss.note||'',
+    price:ss.price||'',
+    seasonDetail:compactSeasonDetail(ss)
+  };
+}
+function findSeasonSubcat(item,key){
+  const subs=item&&Array.isArray(item.subcats)?item.subcats:[];
+  const found=subs.find(s=>String(subcatKey(s))===String(key));
+  return found?subcatPaymentInfo(found):null;
+}
 function renderSubcatDetails(activityId,s){
   const ss=subcatSeason(s);
   const lines=[];
@@ -151,12 +175,10 @@ function renderPaymentButton(item,offer){
 }
 function selectedSeasonSubcat(item){
   const subs=item&&Array.isArray(item.subcats)?item.subcats:[];
-  if(!subs.length) return {key:'principal',name:'Groupe principal'};
+  if(!subs.length) return {key:'principal',name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',seasonDetail:''};
   const wanted=selectedSeasonSubcats[item.id]||'';
   if(!wanted) return null;
-  const found=subs.find(s=>subcatKey(s)===wanted);
-  if(!found) return null;
-  return {key:subcatKey(found),name:subcatName(found)};
+  return findSeasonSubcat(item,wanted);
 }
 function ensureSeasonPaymentModal(){
   if(document.getElementById('fts-season-payment-modal'))return;
@@ -187,13 +209,13 @@ function openSeasonPayment(activityId,offerKey){
   const first=profile.firstName||profile.prenom||'';
   const last=profile.lastName||profile.nom||'';
   document.getElementById('fts-pay-title').textContent=(item.name||'Activité')+' · '+(offer.label||offer.key||'Formule');
-  document.getElementById('fts-pay-summary').innerHTML=`<strong>${esc(item.name)}</strong><br>Formule : <strong>${esc(offer.label||offer.key)}</strong><br>Saison : <strong>${esc((saison.meta&&saison.meta.year)||'')}</strong>`;
+  document.getElementById('fts-pay-summary').innerHTML=`<strong>${esc(item.name)}</strong><br>Formule : <strong>${esc(offer.label||offer.key)}</strong><br>${chosenSubcat?`Groupe : <strong>${esc(chosenSubcat.name)}</strong>${chosenSubcat.seasonDetail?`<br><span class="fts-pay-subdetail">${esc(chosenSubcat.seasonDetail)}</span>`:''}<br>`:''}Saison : <strong>${esc((saison.meta&&saison.meta.year)||'')}</strong>`;
   const form=document.getElementById('fts-pay-form');
   form.firstName.value=first; form.lastName.value=last; form.email.value=email; form.studentName.value=[first,last].filter(Boolean).join(' ');
   form.amountCents.innerHTML=prices.map(p=>`<option value="${p.cents}">${esc(p.label)}</option>`).join('');
   const subs=item.subcats||[];
   const wrap=document.getElementById('fts-pay-sub-wrap');
-  if(subs.length){wrap.style.display='grid';form.subcategoryId.innerHTML=subs.map(s=>{const sub={key:subcatKey(s),name:subcatName(s)};return `<option value="${esc(sub.key)}">${esc(sub.name)}</option>`}).join(''); if(chosenSubcat) form.subcategoryId.value=chosenSubcat.key;}
+  if(subs.length){wrap.style.display='grid';form.subcategoryId.innerHTML=subs.map(s=>{const sub=subcatPaymentInfo(s);const label=sub.seasonDetail?`${sub.name} — ${sub.seasonDetail}`:sub.name;return `<option value="${esc(sub.key)}">${esc(label)}</option>`}).join(''); if(chosenSubcat) form.subcategoryId.value=chosenSubcat.key;}
   else{wrap.style.display='none';form.subcategoryId.innerHTML='<option value="principal">Groupe principal</option>';}
   document.getElementById('fts-pay-msg').textContent='';
   document.getElementById('fts-season-payment-modal').classList.add('open');
@@ -207,8 +229,8 @@ async function submitSeasonPayment(event){
     const token=await ftsPaymentUser.getIdToken(true);
     const form=event.target;
     const item=ftsPaymentContext.item, offer=ftsPaymentContext.offer;
-    const subOpt=form.subcategoryId.options[form.subcategoryId.selectedIndex];
-    const payload={source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:form.subcategoryId.value,subcategoryName:subOpt?subOpt.textContent:'Groupe principal',payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value},student:{name:form.studentName.value}};
+    const selectedSubcat=findSeasonSubcat(item,form.subcategoryId.value)||{key:form.subcategoryId.value,name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',seasonDetail:''};
+    const payload={source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:selectedSubcat.key,subcategoryName:selectedSubcat.name,subcategoryTitle:selectedSubcat.title,subcategoryDay:selectedSubcat.day,subcategoryTime:selectedSubcat.time,subcategoryLevel:selectedSubcat.level,subcategoryAge:selectedSubcat.age,subcategoryNote:selectedSubcat.note,subcategoryPrice:selectedSubcat.price,subcategorySeasonDetail:selectedSubcat.seasonDetail,subcategory:selectedSubcat,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value},student:{name:form.studentName.value}};
     msg.textContent='Création du paiement sécurisé…';
     const res=await fetch(ftsPaymentApiBase()+'/checkout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
     const data=await res.json().catch(()=>({}));
