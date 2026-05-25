@@ -111,9 +111,10 @@ function subcatPaymentInfo(s){
   const age=ss.age||ss.ages||'';
   const note=ss.note||ss.description||'';
   const price=ss.price||ss.tarif||'';
+  const maxSeats=Number(ss.maxSeats||ss.placesMax||ss.capacity||0)||0;
   const direct=ss.seasonDetail||ss.detail||ss.details||ss.saisonDetail||'';
   const seasonDetail=String(direct||[day,time,level,age,note].filter(Boolean).join(' · ')).trim();
-  return {key:subcatKey(s),name,title,day,time,level,age,note,price,seasonDetail};
+  return {key:subcatKey(s),name,title,day,time,level,age,note,price,maxSeats,seasonDetail};
 }
 function renderSubcatDetails(activityId,s){
   const ss=subcatSeason(s);
@@ -123,6 +124,8 @@ function renderSubcatDetails(activityId,s){
   if(ss.level) lines.push(['Niveau',ss.level]);
   if(ss.age) lines.push(['Âge',ss.age]);
   if(ss.price) lines.push(['Tarif spécifique',ss.price]);
+  const maxSeats=Number(ss.maxSeats||ss.placesMax||ss.capacity||0)||0;
+  if(maxSeats>0) lines.push(['Places disponibles',maxSeats+' maximum']);
   const lineHtml=lines.length?`<div class="season-subcat-detail-grid">${lines.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')}</div>`:'';
   const note=ss.note?`<p class="season-subcat-detail-note">${esc(ss.note)}</p>`:'';
   if(!lineHtml&&!note) return '';
@@ -132,7 +135,7 @@ function renderSubcats(i){
   const subs=(i.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false));
   if(!subs.length) return '';
   const selected=selectedSeasonSubcats[i.id]||'';
-  return `<div class="season-subcats"><div class="season-subcats-title">Groupes / horaires</div><div class="season-subcats-help">Choisis d’abord le groupe concerné : le paiement sera pré-rempli avec ce choix.</div><div class="season-subcats-grid">${subs.map(s=>{const ss=subcatSeason(s);const key=subcatKey(s);const bits=[ss.day,ss.time,ss.level].filter(Boolean);const active=selected&&selected===key;return `<button type="button" class="season-subcat${active?' selected':''}" data-activity="${esc(i.id)}" data-subcat="${esc(key)}" data-fts-click="selectSeasonSubcat('${esc(i.id)}','${esc(key)}')"><strong>${esc(ss.title||subcatName(s))}</strong>${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}<span class="season-subcat-check">✓</span></button>`}).join('')}</div>${subs.map(s=>renderSubcatDetails(i.id,s)).join('')}</div>`;
+  return `<div class="season-subcats"><div class="season-subcats-title">Groupes / horaires</div><div class="season-subcats-help">Choisis d’abord le groupe concerné : le paiement sera pré-rempli avec ce choix.</div><div class="season-subcats-grid">${subs.map(s=>{const ss=subcatSeason(s);const key=subcatKey(s);const bits=[ss.day,ss.time,ss.level].filter(Boolean);const active=selected&&selected===key;return `<button type="button" class="season-subcat${active?' selected':''}" data-activity="${esc(i.id)}" data-subcat="${esc(key)}" data-fts-click="selectSeasonSubcat('${esc(i.id)}','${esc(key)}')"><strong>${esc(ss.title||subcatName(s))}</strong>${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}${Number(ss.maxSeats||ss.placesMax||ss.capacity||0)>0?`<div class="season-subcat-capacity">${esc(String(Number(ss.maxSeats||ss.placesMax||ss.capacity||0)))} places max</div>`:''}<span class="season-subcat-check">✓</span></button>`}).join('')}</div>${subs.map(s=>renderSubcatDetails(i.id,s)).join('')}</div>`;
 }
 function selectSeasonSubcat(activityId,subcatId){
   selectedSeasonSubcats[activityId]=subcatId;
@@ -226,12 +229,12 @@ async function submitSeasonPayment(event){
     const token=await ftsPaymentUser.getIdToken(true);
     const form=event.target;
     const item=ftsPaymentContext.item, offer=ftsPaymentContext.offer;
-    const selectedSubcat=findSeasonSubcat(item,form.subcategoryId.value)||{key:form.subcategoryId.value,name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',seasonDetail:''};
-    const payload={source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:selectedSubcat.key,subcategoryName:selectedSubcat.name,subcategoryTitle:selectedSubcat.title,subcategoryDay:selectedSubcat.day,subcategoryTime:selectedSubcat.time,subcategoryLevel:selectedSubcat.level,subcategoryAge:selectedSubcat.age,subcategoryNote:selectedSubcat.note,subcategoryPrice:selectedSubcat.price,subcategorySeasonDetail:selectedSubcat.seasonDetail,subcategory:selectedSubcat,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value},student:{name:form.studentName.value}};
+    const selectedSubcat=findSeasonSubcat(item,form.subcategoryId.value)||{key:form.subcategoryId.value,name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',maxSeats:0,seasonDetail:''};
+    const payload={source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:selectedSubcat.key,subcategoryName:selectedSubcat.name,subcategoryTitle:selectedSubcat.title,subcategoryDay:selectedSubcat.day,subcategoryTime:selectedSubcat.time,subcategoryLevel:selectedSubcat.level,subcategoryAge:selectedSubcat.age,subcategoryNote:selectedSubcat.note,subcategoryPrice:selectedSubcat.price,subcategoryMaxSeats:Number(selectedSubcat.maxSeats||0)||0,subcategorySeasonDetail:selectedSubcat.seasonDetail,subcategory:selectedSubcat,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value},student:{name:form.studentName.value}};
     msg.textContent='Création du paiement sécurisé…';
     const res=await fetch(ftsPaymentApiBase()+'/checkout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
     const data=await res.json().catch(()=>({}));
-    if(!res.ok||!data.ok)throw new Error(data.error||'Erreur création paiement');
+    if(!res.ok||!data.ok){const labels={subcategory_full:'Ce groupe est complet : le nombre de places maximum est atteint.',payment_access_denied:'Paiement non autorisé pour ce compte.'};throw new Error(labels[data.error]||data.error||'Erreur création paiement');}
     location.href=data.redirectUrl;
   }catch(e){msg.textContent='Impossible de lancer le paiement : '+(e&&e.message?e.message:e);}
 }

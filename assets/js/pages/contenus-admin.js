@@ -868,7 +868,8 @@ function renderCList(){
 function categorySeasonLines(c){
   return (c.subcatsArray||[]).map(s=>{
     const ss=s.season||{};
-    const parts=[s.name||'', ss.day||'', ss.time||'', ss.level||'', ss.note||''];
+    const maxSeats = ss.maxSeats || ss.placesMax || ss.capacity || '';
+    const parts=[s.name||'', ss.day||'', ss.time||'', ss.level||'', ss.note||'', maxSeats];
     while(parts.length && !parts[parts.length-1]) parts.pop();
     return parts.join(' | ');
   }).join('\n');
@@ -881,7 +882,9 @@ function parseSeasonSubcatLines(){
     const parts=line.split('|').map(x=>x.trim());
     const name=parts[0]||'';
     if(!name) return;
+    const maxSeats = Number(String(parts[5] || '').replace(/[^0-9]/g, '')) || 0;
     out[FTS.norm(name)]={showOnSeason:true,day:parts[1]||'',time:parts[2]||'',level:parts[3]||'',note:parts[4]||''};
+    if(maxSeats > 0) out[FTS.norm(name)].maxSeats = maxSeats;
   });
   return out;
 }
@@ -963,7 +966,7 @@ async function saveCategory(){
     await db.ref().update(updates);
     await syncResourcesCategoryRename(oldKey,key,name);
     $('c-key').value=key;
-    msg('msg-c','Catégorie enregistrée. Les détails Saison des sous-catégories seront visibles sur saison.html.');
+    msg('msg-c','Catégorie enregistrée. Les détails Saison, y compris les places max, seront visibles sur saison.html.');
   });
 }
 async function syncResourcesCategoryRename(oldKey,newKey,newName){

@@ -73,6 +73,15 @@
     const detail = subcategoryDetail(o);
     return detail ? `${name} — ${detail}` : name;
   }
+  function subcategoryMaxSeats(o){
+    return Math.max(0, Number(o.subcategoryMaxSeats || o.subcategoryCapacity || o.subcategoryPlacesMax || 0) || 0);
+  }
+  function reservedSeasonSeats(list){
+    return list.filter(o=>statusKind(o.status)!=='refused').reduce((sum,o)=>sum + Math.max(1, Number(o.quantity || 1) || 1), 0);
+  }
+  function maxSeatsForRows(list){
+    return list.reduce((max,o)=>Math.max(max, subcategoryMaxSeats(o)), 0);
+  }
   function itemLabel(o){ return o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
   function paidAmount(o){ return cents(o.paidAmount || (statusKind(o.status)==='paid' ? amount(o) : 0)); }
@@ -172,6 +181,7 @@
       </summary>
       <div class="sales-person-body">
         ${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
+        ${subcategoryMaxSeats(o)>0?`<div><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} places max</strong><small>Limite enregistrée au moment de la commande</small></div>`:''}
         <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
         <div><span>Échéances</span><strong>${esc(payText)}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
         <div><span>Référence</span><strong>${esc(o.id || '—')}</strong><small>${esc(shortDate(o.createdAt))} · ${esc(o.helloAssoPaymentId || o.checkoutIntentId || '')}</small></div>
@@ -206,10 +216,14 @@
     const paidRows = rows.filter(o=>statusKind(o.status)==='paid');
     const pendingRows = rows.filter(o=>statusKind(o.status)==='pending');
     const refusedRows = rows.filter(o=>statusKind(o.status)==='refused');
-    return `<details class="sales-subgroup" ${open ? 'open' : ''}>
+    const maxSeats=maxSeatsForRows(rows);
+    const reserved=reservedSeasonSeats(rows);
+    const capacityText=maxSeats>0 ? ` · ${reserved}/${maxSeats} place(s) réservée(s)` : '';
+    const capacityClass=maxSeats>0 && reserved>=maxSeats ? ' full' : '';
+    return `<details class="sales-subgroup${capacityClass}" ${open ? 'open' : ''}>
       <summary>
-        <div><strong>${esc(group)}</strong><small>${s.paid} confirmé(s) · ${s.pending} attente · ${s.refused} refusé(s)</small></div>
-        <div class="sales-subgroup-count"><b>${s.paid}</b><span>payés</span></div>
+        <div><strong>${esc(group)}</strong><small>${s.paid} confirmé(s) · ${s.pending} attente · ${s.refused} refusé(s)${esc(capacityText)}</small></div>
+        <div class="sales-subgroup-count"><b>${maxSeats>0?esc(String(Math.max(0,maxSeats-reserved))):esc(String(s.paid))}</b><span>${maxSeats>0?'places libres':'payés'}</span></div>
       </summary>
       <div class="sales-people-list">
         ${paidRows.length ? `<h4>✅ Confirmés</h4>${paidRows.map(orderPersonLine).join('')}` : ''}
@@ -267,6 +281,7 @@
       <div class="sales-order-grid">
         <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
         <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel].filter(Boolean).join(' · '))}</small></div>
+        ${subcategoryMaxSeats(o)>0?`<div class="sales-mini"><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} max</strong><small>Limite du sous-groupe au moment du paiement</small></div>`:''}
         <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
         <div class="sales-mini"><span>Échéances</span><strong>${sum.paid}/${sum.total} payée(s)</strong><small>${sum.remaining} restante(s) · ${sum.refused} refusée(s)</small></div>
         <div class="sales-mini"><span>Type</span><strong>${esc(typeLabel(typeKey(o)))}</strong><small>${esc(o.source || '')}</small></div>
@@ -343,11 +358,11 @@
   }
   function exportCsv(){
     const rows = filteredOrders();
-    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','formule','eleve','payeur','email','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
+    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formule','eleve','payeur','email','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
     const lines = [head.join(';')];
     rows.forEach(o=>{
       const sum = installmentSummary(o);
-      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,o.offerLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
+      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',o.offerLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
       lines.push(row.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';'));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
