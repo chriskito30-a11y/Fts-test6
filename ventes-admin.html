@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ventes & inscriptions — Fais Ton Show</title>
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
+<link href="assets/css/pages/ventes-admin.css?v=1" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-glow">
+<div class="sales-loading" id="sales-loading">
+  <div class="sales-logo">VENTES <span>FTS</span></div>
+  <div class="sales-spinner"></div>
+  <div class="sales-sub">Vérification accès admin…</div>
+  <div class="sales-error" id="sales-error"></div>
+</div>
+
+<div class="sales-shell" id="sales-shell" hidden>
+  <header class="sales-head">
+    <div>
+      <a class="sales-back" href="admin.html">← Retour admin</a>
+      <div class="sales-kicker">Paiements & inscriptions</div>
+      <h1>Ventes & inscriptions</h1>
+      <p>Vue organisée des commandes HelloAsso enregistrées dans l’application : qui a payé, pour quoi, pour qui, dans quel groupe, et l’état des échéances.</p>
+    </div>
+    <div class="sales-actions">
+      <button type="button" class="sales-btn ghost" id="sales-refresh">Actualiser</button>
+      <button type="button" class="sales-btn" id="sales-export">Exporter CSV</button>
+    </div>
+  </header>
+
+  <section class="sales-filters" aria-label="Filtres ventes">
+    <div class="sales-field"><label>Recherche</label><input id="sales-search" type="search" placeholder="Nom, élève, email, référence…" autocomplete="off"/></div>
+    <div class="sales-field"><label>Type</label><select id="sales-type"><option value="all">Tous</option><option value="season_registration">Inscriptions saison</option><option value="event_ticket">Places spectacle / événement</option><option value="stage_registration">Stages</option><option value="shop_order">Boutique</option><option value="membership">Adhésions</option><option value="one_off">Ponctuel</option></select></div>
+    <div class="sales-field"><label>Statut</label><select id="sales-status"><option value="all">Tous</option><option value="paid">Validés</option><option value="pending">En attente</option><option value="refused">Refusés / annulés</option></select></div>
+    <div class="sales-field"><label>Saison</label><select id="sales-season"><option value="all">Toutes</option></select></div>
+  </section>
+
+  <section class="sales-stats" id="sales-stats" aria-label="Résumé ventes"></section>
+
+  <section class="sales-tabs" aria-label="Vues rapides">
+    <button type="button" class="active" data-sales-tab="groups">Groupes</button>
+    <button type="button" data-sales-tab="orders">Commandes</button>
+    <button type="button" data-sales-tab="installments">Échéances</button>
+  </section>
+
+  <main class="sales-content">
+    <section id="sales-groups" class="sales-view"></section>
+    <section id="sales-orders" class="sales-view" hidden></section>
+    <section id="sales-installments" class="sales-view" hidden></section>
+  </main>
+</div>
+
+<script src="assets/js/fts-firebase.js?v=33"></script>
+<script src="assets/js/fts-utils.js?v=33"></script>
+<script src="assets/js/pages/ventes-admin.js?v=1"></script>
+</body>
+</html>
