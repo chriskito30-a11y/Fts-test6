@@ -62,7 +62,7 @@
     return o.userName || [p.firstName, p.lastName].filter(Boolean).join(' ') || o.payerName || o.userEmail || o.uid || 'Payeur inconnu';
   }
   function payerEmail(o){ return o.userEmail || (o.payer && o.payer.email) || o.email || ''; }
-  function studentName(o){ return o.studentName || o.beneficiaryName || o.memberName || o.childName || payerName(o); }
+  function studentName(o){ return o.studentName || o.participantName || o.beneficiaryName || o.memberName || o.childName || payerName(o); }
   function itemLabel(o){ return o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
   function paidAmount(o){ return cents(o.paidAmount || (statusKind(o.status)==='paid' ? amount(o) : 0)); }
@@ -123,7 +123,7 @@
       if(status !== 'all' && statusKind(o.status) !== status) return false;
       if(season !== 'all' && String(o.season || '') !== season) return false;
       if(q){
-        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,studentName(o),payerName(o),payerEmail(o),o.paymentPlan].join(' '));
+        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,o.variantLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan].join(' '));
         if(!hay.includes(q)) return false;
       }
       return true;

@@ -49,6 +49,7 @@ let ftsPaymentUser=null;
 let ftsPaymentProfile=null;
 let ftsPaymentEnabled=false;
 let ftsPaymentContext=null;
+const selectedSeasonSubcatsByActivity={};
 function esc(s){return FTS.esc(s||"")}
 function norm(s){return (FTS.norm?FTS.norm(s||''):String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));}
 function itemList(){return (saison.items||[]).filter(i=>i.active!==false).sort((a,b)=>(+a.order||0)-(+b.order||0));}
@@ -97,10 +98,19 @@ function buildSeasonFromCategories(categories){
 }
 function render(){const m=saison.meta||DEFAULT_SAISON.meta;document.getElementById('page-eyebrow').textContent=m.eyebrow||'';document.getElementById('page-title').innerHTML=esc(m.title||'SAISON')+'<br><span>'+esc(m.year||'')+'</span>';document.getElementById('page-slogan').textContent=m.slogan||'';document.getElementById('parcours-cards').innerHTML=(saison.parcoursIntro||[]).map(p=>`<div class="p-card ${esc(p.key)}"><span class="p-icon">${esc(p.icon)}</span><div class="p-tag">${esc(p.tag)}</div><div class="p-title">${esc(p.title)}</div><p class="p-desc">${esc(p.desc)}</p></div>`).join('');const items=itemList();document.getElementById('tiles').innerHTML=items.map(i=>`<button class="tile" data-id="${esc(i.id)}" data-fts-click="toggle('${esc(i.id)}')"><span class="tile-icon">${esc(i.icon)}</span><div class="tile-name">${esc(i.name)}</div><div class="tile-sub">${esc(i.subtitle)}</div>${i.badge?`<span class="tile-badge">${esc(i.badge)}</span>`:''}<span class="tile-arrow">▼</span></button>`).join('')||'<div class="loading-card">Aucune activité publiée pour le moment.</div>';document.getElementById('panels').innerHTML=items.map(renderPanel).join('');}
 function renderPanel(i){return `<div class="panel" id="panel-${esc(i.id)}"><div class="panel-hdr"><span class="panel-icon">${esc(i.icon)}</span><div><div class="panel-title">${esc(i.name)}</div><div class="panel-sub">${esc(i.subtitle)}</div></div></div><div class="panel-body">${i.description?`<p class="season-desc">${esc(i.description)}</p>`:''}${renderSubcats(i)}${renderOffers(i)}</div></div>`;}
+function seasonSubcatObject(s){
+  if(typeof s==='string') return {key:norm(s)||s,name:s,season:{}};
+  return {key:s.key||s.id||norm(s.name||s.label)||'principal',name:s.name||s.label||'Groupe principal',season:s.season||{},raw:s};
+}
 function renderSubcats(i){
-  const subs=(i.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false));
+  const subs=(i.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false)).map(seasonSubcatObject);
   if(!subs.length) return '';
-  return `<div class="season-subcats"><div class="season-subcats-title">Groupes / horaires</div><div class="season-subcats-grid">${subs.map(s=>{const ss=s.season||{};const bits=[ss.age,ss.day,ss.time,ss.level].filter(Boolean);return `<div class="season-subcat"><strong>${esc(ss.title||s.name)}</strong>${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}</div>`}).join('')}</div></div>`;
+  return `<div class="season-subcats"><div class="season-subcats-title">Groupes / horaires</div><div class="season-subcats-grid">${subs.map((sub,idx)=>{const ss=sub.season||{};const bits=[ss.age,ss.day,ss.time,ss.level].filter(Boolean);return `<button type="button" class="season-subcat ${idx===0?'suggested':''}" data-season-subcat="${esc(sub.key)}" data-fts-click="selectSeasonSubcat('${esc(i.id)}','${esc(sub.key)}',this)"><strong>${esc(ss.title||sub.name)}</strong>${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}<span class="season-subcat-cta">Choisir ce groupe</span></button>`}).join('')}</div><div class="season-subcats-help">Clique sur un groupe pour le pré-sélectionner avant le paiement.</div></div>`;
+}
+function selectSeasonSubcat(activityId, subcatKey, el){
+  selectedSeasonSubcatsByActivity[activityId]=subcatKey;
+  document.querySelectorAll(`#panel-${activityId} .season-subcat`).forEach(x=>x.classList.remove('selected'));
+  if(el) el.classList.add('selected');
 }
 function renderOffers(i){const offers=i.offers||[];const tabs=offers.length>1?`<div class="tabs">${offers.map((o,idx)=>`<button class="tab ${idx===0?'act':''} ${esc(o.style||o.key)}" data-fts-click="switchTab('${esc(i.id)}','${esc(o.key)}',this)">${esc(o.label||o.key)}</button>`).join('')}</div>`:'';return tabs+offers.map((o,idx)=>`<div class="tab-content ${idx===0?'act':''}" id="${esc(i.id)}-${esc(o.key)}"><div class="c-main ${o.style==='perf'?'perf':''}">${o.main||''}</div>${renderBullets(o.bullets)}${renderOfferBox(o,i)}</div>`).join('');}
 function renderBullets(bullets){if(!bullets||!bullets.length)return'';return `<ul class="c-list">${bullets.map(b=>{const gift=String(b).includes('🎁');const warn=String(b).includes('💰');return `<li class="${gift?'gift':warn?'warn':'incl'}"><span class="icon">${gift?'🎁':warn?'💰':'✔'}</span><span>${esc(String(b).replace(/^([✔⚡🎁💰])\s*/,'')).replace(/Offert :/,'<strong>Offert :</strong>')}</span></li>`}).join('')}</ul>`}
@@ -132,10 +142,10 @@ function renderPaymentButton(item,offer){
   return `<button type="button" class="btn-register fts-pay-btn" data-fts-click="openSeasonPayment('${esc(item.id)}','${esc(offer.key)}')">Payer</button>`;
 }
 function selectedSeasonSubcat(item){
-  const subs=item&&Array.isArray(item.subcats)?item.subcats:[];
+  const subs=item&&Array.isArray(item.subcats)?item.subcats.map(seasonSubcatObject):[];
   if(!subs.length) return {key:'principal',name:'Groupe principal'};
-  const first=subs[0];
-  return typeof first==='string'?{key:norm(first)||first,name:first}:{key:first.key||norm(first.name||first.label)||'principal',name:first.name||first.label||'Groupe principal'};
+  const wanted=selectedSeasonSubcatsByActivity[item.id];
+  return subs.find(s=>String(s.key)===String(wanted)) || null;
 }
 function ensureSeasonPaymentModal(){
   if(document.getElementById('fts-season-payment-modal'))return;
@@ -152,6 +162,8 @@ function openSeasonPayment(activityId,offerKey){
   if(!item||!offer){alert('Formule introuvable.');return;}
   const prices=priceChoices(offer.price);
   if(!prices.length){alert('Tarif non reconnu pour cette formule.');return;}
+  const chosenSub=selectedSeasonSubcat(item);
+  if((item.subcats||[]).length && !chosenSub){alert('Choisis d’abord le groupe / horaire concerné, puis clique sur Payer.');return;}
   ensureSeasonPaymentModal();
   ftsPaymentContext={item,offer};
   const profile=ftsPaymentProfile||{};
@@ -159,13 +171,13 @@ function openSeasonPayment(activityId,offerKey){
   const first=profile.firstName||profile.prenom||'';
   const last=profile.lastName||profile.nom||'';
   document.getElementById('fts-pay-title').textContent=(item.name||'Activité')+' · '+(offer.label||offer.key||'Formule');
-  document.getElementById('fts-pay-summary').innerHTML=`<strong>${esc(item.name)}</strong><br>Formule : <strong>${esc(offer.label||offer.key)}</strong><br>Saison : <strong>${esc((saison.meta&&saison.meta.year)||'')}</strong>`;
+  document.getElementById('fts-pay-summary').innerHTML=`<strong>${esc(item.name)}</strong><br>Formule : <strong>${esc(offer.label||offer.key)}</strong>${chosenSub?`<br>Groupe : <strong>${esc(chosenSub.name)}</strong>`:''}<br>Saison : <strong>${esc((saison.meta&&saison.meta.year)||'')}</strong>`;
   const form=document.getElementById('fts-pay-form');
   form.firstName.value=first; form.lastName.value=last; form.email.value=email; form.studentName.value=[first,last].filter(Boolean).join(' ');
   form.amountCents.innerHTML=prices.map(p=>`<option value="${p.cents}">${esc(p.label)}</option>`).join('');
   const subs=item.subcats||[];
   const wrap=document.getElementById('fts-pay-sub-wrap');
-  if(subs.length){wrap.style.display='grid';form.subcategoryId.innerHTML=subs.map(s=>{const sub=typeof s==='string'?{key:norm(s)||s,name:s}:{key:s.key||norm(s.name||s.label)||'principal',name:s.name||s.label||'Groupe principal'};return `<option value="${esc(sub.key)}">${esc(sub.name)}</option>`}).join('');}
+  if(subs.length){wrap.style.display='grid';form.subcategoryId.innerHTML=subs.map(s=>{const sub=seasonSubcatObject(s);return `<option value="${esc(sub.key)}">${esc(sub.name)}</option>`}).join(''); if(chosenSub) form.subcategoryId.value=chosenSub.key;}
   else{wrap.style.display='none';form.subcategoryId.innerHTML='<option value="principal">Groupe principal</option>';}
   document.getElementById('fts-pay-msg').textContent='';
   document.getElementById('fts-season-payment-modal').classList.add('open');

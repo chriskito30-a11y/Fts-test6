@@ -361,6 +361,8 @@ function normalizeEvent(key, v){
     type:v.type||v.t||'',
     active:v.active!==false && v.status!=='inactive',
     date:v.dateIso||v.isoDate||v.dateInput||v.date||'',
+    endDate:v.endDateIso||v.dateEndIso||v.endDate||v.dateFin||'',
+    endDateLabel:v.endDateLabel||v.dateEndLabel||v.dateFinLabel||'',
     dateLabel:v.dateLabel||v.d||v.date||'',
     hour:v.hour||v.heure||v.time||v.h||'',
     location:v.location||v.lieu||v.l||'',
@@ -396,7 +398,7 @@ function renderList(){
 
 function newEvent(){
   selectedKey='';
-  ['e-key','e-name','e-type','e-date','e-hour','e-location','e-url','e-desc','e-price','e-max-seats'].forEach(id=>{ if($(id)) $(id).value=''; });
+  ['e-key','e-name','e-type','e-date','e-end-date','e-hour','e-location','e-url','e-desc','e-price','e-max-seats'].forEach(id=>{ if($(id)) $(id).value=''; });
   $('e-active').value='true';
   if($('e-important')) $('e-important').value='false';
   if($('e-payment-enabled')) $('e-payment-enabled').value='false';
@@ -412,6 +414,7 @@ function editEvent(key){
   $('e-type').value=e.type||'';
   $('e-active').value=String(e.active!==false);
   $('e-date').value=isoInputFromEvent(e);
+  if($('e-end-date')) $('e-end-date').value=e.endDate || '';
   $('e-hour').value=toInputTime(e.hour||'');
   $('e-location').value=e.location||'';
   $('e-url').value=e.url||'';
@@ -453,10 +456,12 @@ function questionEventKey(eventKey){
 }
 function eventToQuestionnaireOption(key, data){
   const date = data.dateLabel || data.date || data.d || '';
+  const endDate = data.endDateLabel || data.dateEndLabel || '';
   const hour = data.hour || data.h || '';
   const location = data.location || data.l || '';
   const details = [];
-  if(date) details.push({ key:'Date', value: hour ? date + ' · ' + hour : date });
+  if(date) details.push({ key:endDate ? 'Début' : 'Date', value: hour ? date + ' · ' + hour : date });
+  if(endDate) details.push({ key:'Fin', value:endDate });
   if(location) details.push({ key:'Lieu', value: location });
   return {
     source:'fts_events',
@@ -483,6 +488,7 @@ function eventToQuestionnaireOption(key, data){
     detail2_valeur:details[1]?.value || '',
     dateTs:Number(data.dateTs || data.startTs || data.ts || 0),
     dateLabel:date,
+    endDateLabel:endDate,
     hour,
     location,
     important:data.important === true || data.priority === 'important',
@@ -604,8 +610,10 @@ async function saveEvent(){
     const name=$('e-name').value.trim();
     const iso=$('e-date').value;
     const hour=$('e-hour').value;
+    const endIso=$('e-end-date') ? $('e-end-date').value : '';
     if(!name){ msg('Nom requis', false); return; }
-    if(!iso){ msg('Date requise', false); return; }
+    if(!iso){ msg('Date de début requise', false); return; }
+    if(endIso && endIso < iso){ msg('La date de fin doit être après la date de début', false); return; }
     const selected = events.find(x => x.key === $('e-key').value || x.eventKey === $('e-key').value);
     const key = (selected && selected.eventKey) || $('e-key').value || db.ref('fts_events').push().key;
     const active=$('e-active').value==='true';
@@ -620,8 +628,12 @@ async function saveEvent(){
       active,
       status:active?'active':'inactive',
       dateIso:iso,
+      endDateIso:endIso,
+      dateEndIso:endIso,
       date:frDateLabel(iso),
       dateLabel:frDateLabel(iso),
+      endDateLabel:endIso ? frDateLabel(endIso) : '',
+      dateEndLabel:endIso ? frDateLabel(endIso) : '',
       d:frDateLabel(iso),
       hour,
       h:hour,
