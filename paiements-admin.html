@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Paiements admin — Fais Ton Show</title>
+  <link href="./manifest.json" rel="manifest"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <link href="assets/css/fts.css" rel="stylesheet"/>
+  <link href="assets/css/pages/paiement.css?v=1" rel="stylesheet"/>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="fts-payment-page admin-payment-page">
+  <main class="payment-wrap">
+    <section class="payment-hero">
+      <div class="payment-kicker">Administration</div>
+      <h1>Suivi des paiements</h1>
+      <p>Vue de contrôle des commandes créées depuis l’application Fais Ton Show.</p>
+      <div class="payment-security-line">
+        <a href="paiement.html">Ouvrir la page paiement</a>
+        <span>·</span>
+        <a href="admin.html">Retour admin</a>
+      </div>
+    </section>
+
+    <section class="payment-panel" id="payment-guard-panel">
+      <div class="panel-title">Chargement</div>
+      <div class="payment-empty">Vérification de l’accès administrateur…</div>
+    </section>
+
+    <section class="payment-panel" id="payment-admin-panel" hidden>
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">Dernières commandes</div>
+          <p>Les statuts fiables sont ceux validés par webhook ou par interrogation serveur.</p>
+        </div>
+        <button class="payment-secondary" id="payment-admin-refresh" type="button">Actualiser</button>
+      </div>
+      <div class="payment-admin-list" id="payment-admin-list"></div>
+    </section>
+  </main>
+
+  <script src="assets/js/fts-utils.js"></script>
+  <script src="assets/js/fts-firebase.js"></script>
+  <script src="assets/js/services/auth.service.js?v=1"></script>
+  <script src="assets/js/services/users.service.js?v=1"></script>
+  <script src="assets/js/fts-paiement.js?v=1"></script>
+</body>
+</html>
