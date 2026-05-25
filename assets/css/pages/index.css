@@ -778,3 +778,19 @@ html, body { min-height: 100%; }
 
   .option::after { display: none; }
 }
+
+
+/* PATCH V6 — Modal paiement public index */
+.index-payment-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);} 
+.index-payment-modal.open{display:flex;}
+.index-payment-card{width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:24px;padding:1.1rem;background:linear-gradient(145deg,rgba(22,22,22,.98),rgba(8,8,8,.98));border:1px solid rgba(248,231,2,.18);box-shadow:0 24px 70px rgba(0,0,0,.55);position:relative;color:var(--white);} 
+.index-payment-close{position:absolute;right:.8rem;top:.8rem;width:38px;height:38px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:var(--white);font-weight:900;cursor:pointer;}
+.index-payment-card h2{font-family:var(--font-display);font-size:2.1rem;line-height:.95;margin:.5rem 2.3rem .4rem 0;}
+.index-payment-summary{color:rgba(245,242,238,.72);font-size:.9rem;line-height:1.45;margin-bottom:1rem;}
+.index-payment-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+.index-payment-grid label{display:grid;gap:.32rem;font-size:.78rem;font-weight:800;color:rgba(245,242,238,.78);}
+.index-payment-grid label.full{grid-column:1/-1;}
+.index-payment-grid input{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:var(--white);padding:.7rem .8rem;font:inherit;}
+.index-payment-card .btn-helloasso{width:100%;border:0;cursor:pointer;margin-top:1rem;color:#fff;background:var(--red);}
+.index-payment-msg{min-height:1.2rem;margin-top:.6rem;color:rgba(245,242,238,.72);font-size:.8rem;text-align:center;}
+@media(max-width:560px){.index-payment-grid{grid-template-columns:1fr}.index-payment-card{border-radius:20px;padding:1rem}.index-payment-card h2{font-size:1.8rem}}

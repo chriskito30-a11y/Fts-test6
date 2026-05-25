@@ -280,3 +280,9 @@ html,body{max-width:100%;overflow-x:hidden}
   .form-section{margin:.6rem;padding:.7rem;border-radius:18px}
   .card-admin{padding:.75rem}
 }
+
+
+/* PATCH V6 — Paiement événements/stages */
+.fts-payment-admin-section{border-color:rgba(248,231,2,.18)!important;background:linear-gradient(145deg,rgba(248,231,2,.06),rgba(255,255,255,.025));}
+.status-pill.status-payment{background:rgba(248,231,2,.15);color:#f8e702;border-color:rgba(248,231,2,.35);}
+.field small{opacity:.68;font-weight:600;}

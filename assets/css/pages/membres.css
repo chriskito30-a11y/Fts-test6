@@ -3560,3 +3560,21 @@ button.profile-pill:focus-visible {
 .account-image-rights-details[open] summary::after{transform:rotate(180deg)}
 .account-image-rights-details-body{display:grid;gap:8px;margin-top:10px}
 .account-image-rights-details-body p{margin:0;color:rgba(255,255,255,.74);font-size:.86rem;line-height:1.45}
+
+
+/* PATCH V6 — Paiement événements/stages membres */
+.evt-pay-link{border:0;cursor:pointer;background:var(--red,#bf1622)!important;color:#fff!important;font-weight:900;box-shadow:0 12px 26px rgba(191,22,34,.22);} 
+.member-pay-modal{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;padding:1rem;background:rgba(0,0,0,.72);backdrop-filter:blur(10px);} 
+.member-pay-modal.open{display:flex;}
+.member-pay-card{width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:24px;padding:1.1rem;background:linear-gradient(145deg,rgba(22,22,22,.98),rgba(8,8,8,.98));border:1px solid rgba(248,231,2,.18);box-shadow:0 24px 70px rgba(0,0,0,.55);position:relative;color:#fff;}
+.member-pay-close{position:absolute;right:.8rem;top:.8rem;width:38px;height:38px;border-radius:999px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#fff;font-weight:900;cursor:pointer;}
+.member-pay-kicker{display:inline-flex;border-radius:999px;padding:.35rem .7rem;background:rgba(248,231,2,.13);border:1px solid rgba(248,231,2,.26);color:#f8e702;font-size:.68rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;}
+.member-pay-card h2{font-family:var(--font-display);font-size:2.1rem;line-height:.95;margin:.65rem 2.3rem .4rem 0;}
+#member-pay-summary{color:rgba(245,242,238,.72);font-size:.9rem;line-height:1.45;margin-bottom:1rem;}
+.member-pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
+.member-pay-grid label{display:grid;gap:.32rem;font-size:.78rem;font-weight:800;color:rgba(245,242,238,.78);}
+.member-pay-grid label.full{grid-column:1/-1;}
+.member-pay-grid input{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:#fff;padding:.7rem .8rem;font:inherit;}
+.member-pay-submit{width:100%;margin-top:1rem;border:0;cursor:pointer;justify-content:center;}
+.member-pay-msg{min-height:1.2rem;margin-top:.6rem;color:rgba(245,242,238,.72);font-size:.8rem;text-align:center;}
+@media(max-width:560px){.member-pay-grid{grid-template-columns:1fr}.member-pay-card{border-radius:20px;padding:1rem}.member-pay-card h2{font-size:1.8rem}}
