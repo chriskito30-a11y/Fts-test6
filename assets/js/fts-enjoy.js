@@ -114,21 +114,6 @@
 
   function go(url) { window.location.href = url; }
 
-  function setBubbleAvatar(isOpen) {
-    if (!state.root) return;
-    const avatar = state.root.querySelector('.fts-enjoy-avatar');
-    if (!avatar) return;
-    const nextSrc = isOpen ? (cfg().openAvatar || cfg().avatar) : cfg().avatar;
-    if (nextSrc && avatar.getAttribute('src') !== nextSrc) avatar.setAttribute('src', nextSrc);
-  }
-
-  function preloadOpenAvatar() {
-    const src = cfg().openAvatar;
-    if (!src) return;
-    const img = new Image();
-    img.src = src;
-  }
-
   function isMobileEnjoy() {
     return window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
   }
@@ -168,16 +153,25 @@
     }
   }
 
+  function setAvatarMode(isOpen) {
+    if (!state.root) return;
+    const normalSrc = cfg().avatar || 'assets/img/enjoy.png';
+    const openSrc = cfg().openAvatar || 'assets/img/enjoy-open.png';
+    const src = isOpen ? openSrc : normalSrc;
+    state.root.querySelectorAll('.fts-enjoy-avatar, .fts-enjoy-header-avatar').forEach(img => {
+      if (img && img.getAttribute('src') !== src) img.setAttribute('src', src);
+    });
+  }
+
   function buildRoot() {
     if (document.getElementById('fts-enjoy-root')) {
       state.root = document.getElementById('fts-enjoy-root');
       state.body = state.root.querySelector('.fts-enjoy-body');
       state.badge = state.root.querySelector('.fts-enjoy-badge');
       state.input = state.root.querySelector('.fts-enjoy-input');
+      setAvatarMode(state.root.classList.contains('is-open'));
       bindKeyboardFix(state.root);
       updateViewportHeight();
-      preloadOpenAvatar();
-      setBubbleAvatar(state.root.classList.contains('is-open'));
       return;
     }
 
@@ -229,7 +223,6 @@
     });
     bindKeyboardFix(root);
     updateViewportHeight();
-    preloadOpenAvatar();
 
     if (cfg().nudgeOnce && !localStorage.getItem('fts_enjoy_nudge_seen')) {
       setTimeout(() => root.classList.add('show-nudge'), 900);
@@ -242,7 +235,7 @@
     if (!state.root) return;
     updateViewportHeight();
     state.root.classList.add('is-open');
-    setBubbleAvatar(true);
+    setAvatarMode(true);
     if (isMobileEnjoy()) document.body.classList.add('fts-enjoy-open-mobile');
     setTimeout(() => { updateViewportHeight(); }, 120);
   }
@@ -250,7 +243,7 @@
   function close() {
     if (!state.root) return;
     state.root.classList.remove('is-open', 'is-typing');
-    setBubbleAvatar(false);
+    setAvatarMode(false);
     document.body.classList.remove('fts-enjoy-open-mobile');
   }
 
