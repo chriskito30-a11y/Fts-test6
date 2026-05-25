@@ -24,12 +24,18 @@
 .fts-pay-msg{min-height:1.2rem;margin-top:.75rem;color:#ffd37a;font-size:.92rem}
 @media (min-width:720px){.fts-payment-modal{align-items:center}.fts-payment-card{padding:1.4rem}.fts-pay-grid{grid-template-columns:1fr 1fr}.fts-pay-submit{width:auto}}
 
-/* PATCH V7 — Sélection claire des groupes + boutons paiement lisibles */
-.season-subcats-title small{display:block;margin-top:.22rem;font-family:var(--font-body);font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:0;text-transform:none}
-.season-subcat{width:100%;text-align:left;cursor:pointer;appearance:none;-webkit-appearance:none;transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;color:inherit;font:inherit}
-.season-subcat:hover{transform:translateY(-1px);border-color:rgba(248,231,2,.38);background:rgba(248,231,2,.055)}
-.season-subcat.selected{border-color:rgba(248,231,2,.78);background:linear-gradient(145deg,rgba(248,231,2,.14),rgba(255,255,255,.045));box-shadow:0 0 0 1px rgba(248,231,2,.15) inset,0 12px 26px rgba(0,0,0,.22)}
-.season-subcat-choose{display:inline-flex;align-items:center;justify-content:center;margin-top:.7rem;padding:.38rem .64rem;border-radius:999px;background:rgba(255,255,255,.065);border:1px solid rgba(255,255,255,.1);color:rgba(245,242,238,.72);font-size:.68rem;font-weight:900}
-.season-subcat.selected .season-subcat-choose{background:var(--gold);border-color:rgba(248,231,2,.75);color:#111}
-.fts-pay-submit,.fts-pay-btn{border-radius:999px!important;background:var(--gold)!important;color:#111!important;font-weight:950!important;min-height:44px;box-shadow:0 12px 26px rgba(248,231,2,.16)}
-.fts-pay-submit:hover,.fts-pay-btn:hover{filter:brightness(1.03);transform:translateY(-1px)}
+
+/* v156 — détails Saison des sous-catégories + sélection avant paiement */
+.season-subcats-help{font-size:.74rem;color:var(--muted);line-height:1.45;margin:-.35rem 0 .85rem}
+.season-subcat{position:relative;width:100%;text-align:left;font-family:var(--font-body);color:var(--white);cursor:pointer;transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease}
+.season-subcat:hover{transform:translateY(-1px);border-color:rgba(248,231,2,.32);background:#1d1d1d}
+.season-subcat.selected{border-color:rgba(248,231,2,.78);background:linear-gradient(145deg,rgba(248,231,2,.14),rgba(255,255,255,.045));box-shadow:0 0 0 1px rgba(248,231,2,.16) inset}
+.season-subcat-check{position:absolute;right:.65rem;top:.65rem;width:24px;height:24px;display:none;align-items:center;justify-content:center;border-radius:999px;background:var(--gold);color:#111;font-weight:900;font-size:.78rem}
+.season-subcat.selected .season-subcat-check{display:inline-flex}
+.season-subcat-detail{display:none;margin-top:.8rem;border:1px solid rgba(248,231,2,.22);border-radius:18px;background:rgba(248,231,2,.07);padding:.9rem}
+.season-subcat-detail.open{display:block;animation:fadeIn .18s ease}
+.season-subcat-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:.55rem}
+.season-subcat-detail-grid div{border:1px solid rgba(255,255,255,.08);border-radius:14px;background:rgba(0,0,0,.18);padding:.65rem .7rem}
+.season-subcat-detail-grid span{display:block;font-size:.65rem;color:var(--muted);margin-bottom:.2rem}
+.season-subcat-detail-grid strong{display:block;font-size:.82rem;color:var(--white);line-height:1.35}
+.season-subcat-detail-note{margin:.7rem 0 0;color:rgba(245,242,238,.78);font-size:.8rem;line-height:1.55}
