@@ -1362,9 +1362,6 @@ async function loadEvts() {
           h: v.hour || v.heure || v.time || v.h || '',
           l: v.location || v.lieu || v.l || '',
           u: v.url || v.link || v.lien || v.u || '',
-          paymentEnabled: v.paymentEnabled === true || v.payEnabled === true,
-          paymentType: v.paymentType || v.saleType || (String(v.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket'),
-          priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
           important: v.important === true || v.priority === 'important',
           targetCategories: normList(v.targetCategories || v.categories || v.groups),
           targetSubgroups: normList(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories),
@@ -1405,108 +1402,8 @@ function showEvts(es) {
       </div>
       ${e.important?`<span class="evt-type important">Important</span>`:''}
       ${e.t?`<span class="evt-type">${FTS.esc(e.t)}</span>`:''}
-      ${e.paymentEnabled && e.priceCents ? `<button type="button" class="evt-link evt-pay" data-event-pay="${FTS.esc(e.id)}">${e.paymentType==='stage_registration'?'Réserver le stage':'Acheter ma place'} · ${(Number(e.priceCents)/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</button>` : (e.u?`<a href="${FTS.esc(FTS.safeUrl(e.u, '#'))}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:'')}
+      ${e.u?`<a href="${FTS.esc(FTS.safeUrl(e.u, '#'))}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:''}
     </div>`).join('');
-  el.querySelectorAll('[data-event-pay]').forEach(btn => btn.addEventListener('click', () => startEventCheckout(btn.getAttribute('data-event-pay'), btn)));
-}
-
-function paymentWorkerUrl(){
-  const cfg = FTS.PAYMENT || {};
-  return String(cfg.workerUrl || cfg.apiBase || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,'');
-}
-function ensureEventPaymentModal(){
-  if(document.getElementById('fts-event-payment-modal')) return;
-  const div=document.createElement('div');
-  div.id='fts-event-payment-modal';
-  div.className='fts-event-payment-modal';
-  div.innerHTML=`
-    <div class="fts-event-payment-card" role="dialog" aria-modal="true" aria-labelledby="fts-event-pay-title">
-      <button type="button" class="fts-event-payment-close" data-event-pay-close>×</button>
-      <div class="event-pay-kicker">Paiement sécurisé HelloAsso</div>
-      <h2 id="fts-event-pay-title">Réservation Fais Ton Show</h2>
-      <p id="fts-event-pay-summary" class="event-pay-summary"></p>
-      <form id="fts-event-pay-form">
-        <div class="event-pay-grid">
-          <label>Prénom payeur<input name="firstName" required autocomplete="given-name"></label>
-          <label>Nom payeur<input name="lastName" required autocomplete="family-name"></label>
-          <label>Email payeur<input name="email" type="email" required autocomplete="email"></label>
-          <label>Téléphone<input name="phone" type="tel" required autocomplete="tel"></label>
-          <label class="event-pay-full">Nom du participant<input name="participantName" required autocomplete="name" placeholder="Élève, enfant ou personne concernée"></label>
-          <label>Nombre de place(s)<input name="quantity" type="number" min="1" max="20" step="1" value="1" required></label>
-        </div>
-        <button class="evt-pay-submit" type="submit">Continuer vers HelloAsso</button>
-        <div id="fts-event-pay-msg" class="event-pay-msg"></div>
-      </form>
-    </div>`;
-  document.body.appendChild(div);
-  div.addEventListener('click', e=>{ if(e.target===div || e.target.closest('[data-event-pay-close]')) closeEventPaymentModal(); });
-  document.getElementById('fts-event-pay-form').addEventListener('submit', submitEventCheckout);
-}
-let ftsEventPaymentContext=null;
-function closeEventPaymentModal(){ const m=document.getElementById('fts-event-payment-modal'); if(m) m.classList.remove('open'); }
-function prefillEventPaymentForm(){
-  const form=document.getElementById('fts-event-pay-form');
-  if(!form) return;
-  try{
-    const p=window.userProfile || {};
-    const u=firebase && firebase.auth && firebase.auth().currentUser;
-    form.firstName.value=p.firstName || p.prenom || '';
-    form.lastName.value=p.lastName || p.nom || '';
-    form.email.value=(u && u.email) || p.email || '';
-    form.phone.value=p.phone || p.tel || p.telephone || '';
-    form.participantName.value=p.studentName || p.childName || [form.firstName.value,form.lastName.value].filter(Boolean).join(' ');
-  }catch(e){}
-}
-function startEventCheckout(eventId, btn){
-  const event = allEvts.find(e => String(e.id) === String(eventId));
-  if(!event || !event.paymentEnabled) return;
-  ensureEventPaymentModal();
-  ftsEventPaymentContext={event,btn};
-  const title=document.getElementById('fts-event-pay-title');
-  const summary=document.getElementById('fts-event-pay-summary');
-  if(title) title.textContent = event.paymentType==='stage_registration' ? 'Réserver un stage' : 'Acheter une place';
-  if(summary) summary.innerHTML = `<strong>${FTS.esc(event.n||'Événement')}</strong><br>${FTS.esc(event.d||'')}${event.h?' · '+FTS.esc(event.h):''}${event.l?' · '+FTS.esc(event.l):''}<br><strong>${(Number(event.priceCents)/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</strong> / personne`;
-  const msg=document.getElementById('fts-event-pay-msg'); if(msg) msg.textContent='';
-  prefillEventPaymentForm();
-  document.getElementById('fts-event-payment-modal').classList.add('open');
-}
-async function submitEventCheckout(e){
-  e.preventDefault();
-  const ctx=ftsEventPaymentContext || {};
-  const event=ctx.event;
-  const btn=ctx.btn;
-  if(!event) return;
-  const form=e.currentTarget;
-  const quantity = Math.max(1, Math.min(20, Math.round(Number(form.quantity.value || 1)) || 1));
-  const oldText = btn ? btn.textContent : '';
-  const submit=form.querySelector('button[type="submit"]');
-  const msg=document.getElementById('fts-event-pay-msg');
-  if(btn){ btn.disabled = true; btn.textContent = 'Préparation…'; }
-  if(submit){ submit.disabled=true; submit.textContent='Préparation…'; }
-  if(msg) msg.textContent='';
-  try{
-    const headers={ 'Content-Type':'application/json' };
-    const user=firebase.auth().currentUser;
-    if(user) headers.Authorization='Bearer ' + await user.getIdToken(true);
-    const res = await fetch(paymentWorkerUrl() + '/checkout', {
-      method:'POST',
-      headers,
-      body:JSON.stringify({
-        type:event.paymentType || 'event_ticket', source:'membres.html', eventId:event.id, quantity,
-        payer:{ firstName:form.firstName.value, lastName:form.lastName.value, email:form.email.value, phone:form.phone.value },
-        participant:{ name:form.participantName.value }
-      })
-    });
-    const data = await res.json().catch(()=>null);
-    if(!res.ok || !data || data.ok === false || !data.redirectUrl) throw new Error((data && data.error) || 'checkout_failed');
-    location.href = data.redirectUrl;
-  }catch(err){
-    console.warn('[FTS événement paiement]', err);
-    if(msg) msg.textContent = err && err.message === 'event_full' ? 'Il n’y a plus assez de places disponibles.' : 'Impossible de lancer le paiement. Vérifie les informations puis réessaie.';
-    else alert(err && err.message === 'event_full' ? 'Il n’y a plus assez de places disponibles.' : 'Impossible de lancer le paiement pour cet événement.');
-    if(btn){ btn.disabled = false; btn.textContent = oldText; }
-    if(submit){ submit.disabled=false; submit.textContent='Continuer vers HelloAsso'; }
-  }
 }
 
 function toggleEvts() {

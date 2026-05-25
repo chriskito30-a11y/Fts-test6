@@ -361,8 +361,6 @@ function normalizeEvent(key, v){
     type:v.type||v.t||'',
     active:v.active!==false && v.status!=='inactive',
     date:v.dateIso||v.isoDate||v.dateInput||v.date||'',
-    endDate:v.endDateIso||v.dateEndIso||v.endDate||v.dateFin||'',
-    endDateLabel:v.endDateLabel||v.dateEndLabel||v.dateFinLabel||'',
     dateLabel:v.dateLabel||v.d||v.date||'',
     hour:v.hour||v.heure||v.time||v.h||'',
     location:v.location||v.lieu||v.l||'',
@@ -374,11 +372,7 @@ function normalizeEvent(key, v){
     priority:v.priority || (v.important ? 'important' : 'normal'),
     targetCategories:normArray(v.targetCategories || v.categories || v.groups),
     targetSubgroups:normArray(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories),
-    targetGroups:(v.targetGroups && typeof v.targetGroups === 'object') ? v.targetGroups : null,
-    paymentEnabled:v.paymentEnabled === true || v.payEnabled === true,
-    paymentType:v.paymentType || v.saleType || (String(v.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket'),
-    priceCents:Number(v.priceCents || v.amountCents || 0) || 0,
-    maxSeats:Number(v.maxSeats || v.capacity || 0) || 0
+    targetGroups:(v.targetGroups && typeof v.targetGroups === 'object') ? v.targetGroups : null
   };
 }
 
@@ -391,18 +385,16 @@ function renderList(){
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
     return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
-      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-pay">Paiement</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
+      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
     </div>`;
   }).join('');
 }
 
 function newEvent(){
   selectedKey='';
-  ['e-key','e-name','e-type','e-date','e-end-date','e-hour','e-location','e-url','e-desc','e-price','e-max-seats'].forEach(id=>{ if($(id)) $(id).value=''; });
+  ['e-key','e-name','e-type','e-date','e-hour','e-location','e-url','e-desc'].forEach(id=>$(id).value='');
   $('e-active').value='true';
   if($('e-important')) $('e-important').value='false';
-  if($('e-payment-enabled')) $('e-payment-enabled').value='false';
-  if($('e-payment-type')) $('e-payment-type').value='event_ticket';
   resetTargetSelection();
   renderList();
 }
@@ -414,16 +406,11 @@ function editEvent(key){
   $('e-type').value=e.type||'';
   $('e-active').value=String(e.active!==false);
   $('e-date').value=isoInputFromEvent(e);
-  if($('e-end-date')) $('e-end-date').value=e.endDate || '';
   $('e-hour').value=toInputTime(e.hour||'');
   $('e-location').value=e.location||'';
   $('e-url').value=e.url||'';
   $('e-desc').value=e.desc||'';
   if($('e-important')) $('e-important').value=String(!!e.important);
-  if($('e-payment-enabled')) $('e-payment-enabled').value=String(!!e.paymentEnabled);
-  if($('e-payment-type')) $('e-payment-type').value=e.paymentType || 'event_ticket';
-  if($('e-price')) $('e-price').value=e.priceCents ? String(Number(e.priceCents)/100) : '';
-  if($('e-max-seats')) $('e-max-seats').value=e.maxSeats ? String(e.maxSeats) : '';
   setTargetSelectionFromEvent(e);
   renderList();
 }
@@ -456,12 +443,10 @@ function questionEventKey(eventKey){
 }
 function eventToQuestionnaireOption(key, data){
   const date = data.dateLabel || data.date || data.d || '';
-  const endDate = data.endDateLabel || data.dateEndLabel || '';
   const hour = data.hour || data.h || '';
   const location = data.location || data.l || '';
   const details = [];
-  if(date) details.push({ key:endDate ? 'Début' : 'Date', value: hour ? date + ' · ' + hour : date });
-  if(endDate) details.push({ key:'Fin', value:endDate });
+  if(date) details.push({ key:'Date', value: hour ? date + ' · ' + hour : date });
   if(location) details.push({ key:'Lieu', value: location });
   return {
     source:'fts_events',
@@ -488,16 +473,12 @@ function eventToQuestionnaireOption(key, data){
     detail2_valeur:details[1]?.value || '',
     dateTs:Number(data.dateTs || data.startTs || data.ts || 0),
     dateLabel:date,
-    endDateLabel:endDate,
     hour,
     location,
     important:data.important === true || data.priority === 'important',
     priority:data.priority || (data.important ? 'important' : 'normal'),
     targetCategories:normArray(data.targetCategories || []),
     targetSubgroups:normArray(data.targetSubgroups || []),
-    paymentEnabled:data.paymentEnabled === true,
-    paymentType:data.paymentType || 'event_ticket',
-    priceCents:Number(data.priceCents || 0) || 0,
     updatedAt:Date.now()
   };
 }
@@ -610,10 +591,8 @@ async function saveEvent(){
     const name=$('e-name').value.trim();
     const iso=$('e-date').value;
     const hour=$('e-hour').value;
-    const endIso=$('e-end-date') ? $('e-end-date').value : '';
     if(!name){ msg('Nom requis', false); return; }
-    if(!iso){ msg('Date de début requise', false); return; }
-    if(endIso && endIso < iso){ msg('La date de fin doit être après la date de début', false); return; }
+    if(!iso){ msg('Date requise', false); return; }
     const selected = events.find(x => x.key === $('e-key').value || x.eventKey === $('e-key').value);
     const key = (selected && selected.eventKey) || $('e-key').value || db.ref('fts_events').push().key;
     const active=$('e-active').value==='true';
@@ -628,12 +607,8 @@ async function saveEvent(){
       active,
       status:active?'active':'inactive',
       dateIso:iso,
-      endDateIso:endIso,
-      dateEndIso:endIso,
       date:frDateLabel(iso),
       dateLabel:frDateLabel(iso),
-      endDateLabel:endIso ? frDateLabel(endIso) : '',
-      dateEndLabel:endIso ? frDateLabel(endIso) : '',
       d:frDateLabel(iso),
       hour,
       h:hour,
@@ -644,10 +619,6 @@ async function saveEvent(){
       description:$('e-desc').value.trim(),
       important,
       priority:important ? 'important' : 'normal',
-      paymentEnabled:$('e-payment-enabled') ? $('e-payment-enabled').value === 'true' : false,
-      paymentType:$('e-payment-type') ? $('e-payment-type').value : 'event_ticket',
-      priceCents:$('e-price') && $('e-price').value ? Math.round(Number($('e-price').value.replace(',','.')) * 100) : 0,
-      maxSeats:$('e-max-seats') && $('e-max-seats').value ? Math.max(0, Math.round(Number($('e-max-seats').value))) : 0,
       targetCategories:targets.targetCategories,
       targetSubgroups:targets.targetSubgroups,
       targetGroups:targets.targetGroups,
