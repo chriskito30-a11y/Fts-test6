@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
-<link href="assets/css/pages/ventes-admin.css?v=1" rel="stylesheet"/>
+<link href="assets/css/pages/ventes-admin.css?v=3" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -29,7 +29,7 @@
       <a class="sales-back" href="admin.html">← Retour admin</a>
       <div class="sales-kicker">Paiements & inscriptions</div>
       <h1>Ventes & inscriptions</h1>
-      <p>Vue organisée des commandes HelloAsso enregistrées dans l’application : qui a payé, pour quoi, pour qui, dans quel groupe, et l’état des échéances.</p>
+      <p>Vue organisée des commandes HelloAsso : type de vente, activité, sous-groupe, personnes, montants et échéances. Les détails se déplient au clic pour éviter le bazar visuel.</p>
     </div>
     <div class="sales-actions">
       <button type="button" class="sales-btn ghost" id="sales-refresh">Actualiser</button>
@@ -47,7 +47,7 @@
   <section class="sales-stats" id="sales-stats" aria-label="Résumé ventes"></section>
 
   <section class="sales-tabs" aria-label="Vues rapides">
-    <button type="button" class="active" data-sales-tab="groups">Groupes</button>
+    <button type="button" class="active" data-sales-tab="groups">Pilotage</button>
     <button type="button" data-sales-tab="orders">Commandes</button>
     <button type="button" data-sales-tab="installments">Échéances</button>
   </section>
@@ -61,6 +61,6 @@
 
 <script src="assets/js/fts-firebase.js?v=33"></script>
 <script src="assets/js/fts-utils.js?v=33"></script>
-<script src="assets/js/pages/ventes-admin.js?v=1"></script>
+<script src="assets/js/pages/ventes-admin.js?v=3"></script>
 </body>
 </html>
