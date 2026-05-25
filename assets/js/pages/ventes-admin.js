@@ -68,10 +68,10 @@
     if(direct) return direct;
     return [o.subcategoryDay, o.subcategoryTime, o.subcategoryLevel, o.subcategoryAge, o.subcategoryNote].map(x=>String(x||'').trim()).filter(Boolean).join(' · ');
   }
-  function subgroupLabel(o){
-    const name = o.subcategoryName || o.subcategoryId || 'Groupe non renseigné';
+  function subgroupKey(o){
+    const name = o.subcategoryName || o.subcategoryTitle || o.subcategoryId || 'Groupe non renseigné';
     const detail = subcategoryDetail(o);
-    return detail ? name + ' — ' + detail : name;
+    return detail ? `${name} — ${detail}` : name;
   }
   function itemLabel(o){ return o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
@@ -133,7 +133,7 @@
       if(status !== 'all' && statusKind(o.status) !== status) return false;
       if(season !== 'all' && String(o.season || '') !== season) return false;
       if(q){
-        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.subcategorySeasonDetail,o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryNote,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,o.variantLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan].join(' '));
+        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.subcategorySeasonDetail,o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,o.variantLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan].join(' '));
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -171,8 +171,8 @@
         <div class="sales-person-pay"><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span><strong>${euro(amount(o))}</strong></div>
       </summary>
       <div class="sales-person-body">
+        ${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
         <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
-        ${subcategoryDetail(o) ? `<div><span>Groupe choisi</span><strong>${esc(o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>` : ''}
         <div><span>Échéances</span><strong>${esc(payText)}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
         <div><span>Référence</span><strong>${esc(o.id || '—')}</strong><small>${esc(shortDate(o.createdAt))} · ${esc(o.helloAssoPaymentId || o.checkoutIntentId || '')}</small></div>
       </div>
@@ -192,7 +192,7 @@
     }).join('');
   }
   function renderActivityCard(activity, rows){
-    const subgroups = sortAlphaEntries(Array.from(byMap(rows, subgroupLabel).entries()));
+    const subgroups = sortAlphaEntries(Array.from(byMap(rows, subgroupKey).entries()));
     const s = summarize(rows);
     return `<article class="sales-activity-card">
       <header><div><h3>${esc(activity)}</h3><p>${s.paid} confirmé(s) · ${s.pending} attente · ${euro(s.revenue)}</p></div><span>${esc(typeIcon('season_registration'))}</span></header>
@@ -266,7 +266,7 @@
       <div class="sales-order-head"><div><div class="sales-order-title">${esc(itemLabel(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
       <div class="sales-order-grid">
         <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
-        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,subgroupLabel(o),o.offerLabel].filter(Boolean).join(' · '))}</small></div>
+        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel].filter(Boolean).join(' · '))}</small></div>
         <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
         <div class="sales-mini"><span>Échéances</span><strong>${sum.paid}/${sum.total} payée(s)</strong><small>${sum.remaining} restante(s) · ${sum.refused} refusée(s)</small></div>
         <div class="sales-mini"><span>Type</span><strong>${esc(typeLabel(typeKey(o)))}</strong><small>${esc(o.source || '')}</small></div>
@@ -287,7 +287,7 @@
       const bk = b.kind === 'refused' ? 0 : b.kind === 'pending' ? 1 : b.kind === 'scheduled' ? 2 : 3;
       return ak-bk || String(a.installment.date||'').localeCompare(String(b.installment.date||'')) || Number(a.installment.number||0)-Number(b.installment.number||0);
     });
-    $('sales-installments').innerHTML = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>📆 Échéances</h2><p>Refus et échéances à surveiller remontent en premier.</p></div></div><div class="sales-table">${rows.map(({order:o,installment:x,kind})=>`<div class="sales-row"><div><strong>${esc(studentName(o))}</strong><small>${esc(o.activityName || typeLabel(typeKey(o)))} · ${esc(subgroupLabel(o) || '')}</small></div><div><strong>Échéance #${esc(x.number || '?')}</strong><small>${esc(x.date || 'Date inconnue')}</small></div><div><span class="sales-status ${kind==='paid'?'paid':kind==='refused'?'refused':'pending'}">${esc(x.status || 'en attente')}</span><small>${esc(o.paymentPlan || '')}</small></div><div><strong>${euro(x.amount)}</strong><small>${esc(o.id || '')}</small></div></div>`).join('')}</div></section>`;
+    $('sales-installments').innerHTML = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>📆 Échéances</h2><p>Refus et échéances à surveiller remontent en premier.</p></div></div><div class="sales-table">${rows.map(({order:o,installment:x,kind})=>`<div class="sales-row"><div><strong>${esc(studentName(o))}</strong><small>${esc(o.activityName || typeLabel(typeKey(o)))} · ${esc([o.subcategoryName,subcategoryDetail(o)].filter(Boolean).join(' · '))}</small></div><div><strong>Échéance #${esc(x.number || '?')}</strong><small>${esc(x.date || 'Date inconnue')}</small></div><div><span class="sales-status ${kind==='paid'?'paid':kind==='refused'?'refused':'pending'}">${esc(x.status || 'en attente')}</span><small>${esc(o.paymentPlan || '')}</small></div><div><strong>${euro(x.amount)}</strong><small>${esc(o.id || '')}</small></div></div>`).join('')}</div></section>`;
   }
   function renderAll(){
     const list = filteredOrders();
@@ -343,11 +343,11 @@
   }
   function exportCsv(){
     const rows = filteredOrders();
-    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','note','formule','eleve','payeur','email','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
+    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','formule','eleve','payeur','email','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
     const lines = [head.join(';')];
     rows.forEach(o=>{
       const sum = installmentSummary(o);
-      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryNote,o.offerLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
+      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,o.offerLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
       lines.push(row.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';'));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
