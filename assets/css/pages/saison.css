@@ -6,3 +6,20 @@
 
 /* v152 — saison alimentée par Catégories officielles */
 .season-desc{font-size:.88rem;color:var(--muted);line-height:1.65;margin:-.2rem 0 1rem}.season-subcats{background:#101010;border:1px solid var(--border);border-radius:var(--r-sm);padding:1rem;margin-bottom:1.2rem}.season-subcats-title{font-family:var(--font-display);font-size:1.1rem;margin-bottom:.75rem;color:var(--white)}.season-subcats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.7rem}.season-subcat{background:#171717;border:1px solid rgba(255,255,255,.07);border-radius:var(--r-sm);padding:.85rem}.season-subcat strong{display:block;color:var(--white);font-size:.88rem;line-height:1.35}.season-subcat-meta{font-size:.72rem;color:var(--gold);line-height:1.45;margin-top:.35rem}.season-subcat-note{font-size:.72rem;color:var(--muted);line-height:1.45;margin-top:.35rem}.season-subcat-price{font-family:var(--font-display);font-size:1rem;color:var(--gold);margin-top:.45rem}
+
+/* Paiement HelloAsso — visible uniquement admin/bêta */
+.offer-actions{display:flex;gap:.55rem;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.fts-pay-btn{border:0;cursor:pointer}
+.fts-payment-modal{position:fixed;inset:0;display:none;align-items:flex-end;justify-content:center;padding:1rem;background:rgba(0,0,0,.68);z-index:9999;backdrop-filter:blur(8px)}
+.fts-payment-modal.open{display:flex}
+.fts-payment-card{position:relative;width:min(620px,100%);max-height:92vh;overflow:auto;border:1px solid rgba(255,255,255,.14);border-radius:26px;background:linear-gradient(160deg,rgba(24,20,36,.98),rgba(8,8,14,.98));box-shadow:0 24px 80px rgba(0,0,0,.48);padding:1.15rem;color:#fff}
+.fts-payment-card h2{margin:.25rem 2.5rem .5rem 0;font-size:1.55rem}
+.fts-payment-close{position:absolute;top:.8rem;right:.8rem;width:40px;height:40px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.08);color:#fff;font-size:1.4rem;cursor:pointer}
+.fts-pay-summary{color:rgba(255,255,255,.78);line-height:1.45;margin:.2rem 0 1rem}
+.fts-pay-grid{display:grid;grid-template-columns:1fr;gap:.75rem}
+.fts-pay-grid label{display:grid;gap:.35rem;color:rgba(255,255,255,.76);font-size:.9rem}
+.fts-pay-grid input,.fts-pay-grid select{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.08);color:#fff;padding:.85rem;font:inherit;outline:none}
+.fts-pay-grid option{color:#111;background:#fff}
+.fts-pay-submit{width:100%;margin-top:1rem;border:0;cursor:pointer;text-align:center}
+.fts-pay-msg{min-height:1.2rem;margin-top:.75rem;color:#ffd37a;font-size:.92rem}
+@media (min-width:720px){.fts-payment-modal{align-items:center}.fts-payment-card{padding:1.4rem}.fts-pay-grid{grid-template-columns:1fr 1fr}.fts-pay-submit{width:auto}}
