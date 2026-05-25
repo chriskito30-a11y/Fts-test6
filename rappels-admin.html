@@ -232,7 +232,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
         <div class="list-head">
           <div>
             <div class="mini-title">Rappels programmés</div>
-            <div class="hint">Liste issue de <code>fts_scheduled_reminders</code>. Les rappels à envoyer passent automatiquement de <b>pending</b> à <b>sent</b> quand une page admin est ouverte et que <b>sendAt</b> est passé.</div>
+            <div class="hint">Liste issue de <code>fts_scheduled_reminders</code>. Les rappels à envoyer passent automatiquement de <b>pending</b> à <b>sent</b> via le Worker Cloudflare quand <b>sendAt</b> est passé. L’ancien dispatcher navigateur/admin est conservé dans le code mais désactivé.</div>
           </div>
           <div class="list-count" id="reminder-count">—</div>
         </div>
@@ -285,7 +285,7 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/services/reminders.service.js?v=69"></script>
 <script src="assets/js/services/calendar-exclusions.service.js?v=74"></script>
 <script src="assets/js/services/schedules.service.js?v=69"></script>
-<script src="assets/js/services/reminder-dispatcher.service.js?v=69"></script>
+<script src="assets/js/services/reminder-dispatcher.service.js?v=70"></script>
 <script src="assets/js/pages/rappels-admin.js?v=78-74"></script>
 
 <script src="assets/js/fts-enjoy.js?v=6"></script>
