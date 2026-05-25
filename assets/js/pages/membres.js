@@ -1362,6 +1362,9 @@ async function loadEvts() {
           h: v.hour || v.heure || v.time || v.h || '',
           l: v.location || v.lieu || v.l || '',
           u: v.url || v.link || v.lien || v.u || '',
+          paymentEnabled: v.paymentEnabled === true || v.payEnabled === true,
+          paymentType: v.paymentType || v.saleType || (String(v.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket'),
+          priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
           important: v.important === true || v.priority === 'important',
           targetCategories: normList(v.targetCategories || v.categories || v.groups),
           targetSubgroups: normList(v.targetSubgroups || v.targetSubcategories || v.subgroups || v.subcategories),
@@ -1402,8 +1405,39 @@ function showEvts(es) {
       </div>
       ${e.important?`<span class="evt-type important">Important</span>`:''}
       ${e.t?`<span class="evt-type">${FTS.esc(e.t)}</span>`:''}
-      ${e.u?`<a href="${FTS.esc(FTS.safeUrl(e.u, '#'))}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:''}
+      ${e.paymentEnabled && e.priceCents ? `<button type="button" class="evt-link evt-pay" data-event-pay="${FTS.esc(e.id)}">${e.paymentType==='stage_registration'?'Réserver le stage':'Acheter ma place'} · ${(Number(e.priceCents)/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})}</button>` : (e.u?`<a href="${FTS.esc(FTS.safeUrl(e.u, '#'))}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:'')}
     </div>`).join('');
+  el.querySelectorAll('[data-event-pay]').forEach(btn => btn.addEventListener('click', () => startEventCheckout(btn.getAttribute('data-event-pay'), btn)));
+}
+
+function paymentWorkerUrl(){
+  const cfg = FTS.PAYMENT || {};
+  return String(cfg.workerUrl || cfg.apiBase || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,'');
+}
+async function startEventCheckout(eventId, btn){
+  const event = allEvts.find(e => String(e.id) === String(eventId));
+  if(!event || !event.paymentEnabled) return;
+  const quantityRaw = window.prompt('Nombre de place(s) à réserver ?', '1');
+  if(quantityRaw === null) return;
+  const quantity = Math.max(1, Math.min(20, Math.round(Number(quantityRaw || 1)) || 1));
+  const oldText = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Préparation…'; }
+  try{
+    if(!firebase.auth().currentUser) throw new Error('not_connected');
+    const token = await firebase.auth().currentUser.getIdToken(true);
+    const res = await fetch(paymentWorkerUrl() + '/checkout', {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + token },
+      body:JSON.stringify({ type:event.paymentType || 'event_ticket', source:'membres.html', eventId, quantity })
+    });
+    const data = await res.json().catch(()=>null);
+    if(!res.ok || !data || data.ok === false || !data.redirectUrl) throw new Error((data && data.error) || 'checkout_failed');
+    location.href = data.redirectUrl;
+  }catch(e){
+    console.warn('[FTS événement paiement]', e);
+    alert(e && e.message === 'event_full' ? 'Il n’y a plus assez de places disponibles.' : 'Impossible de lancer le paiement pour cet événement.');
+    if(btn){ btn.disabled = false; btn.textContent = oldText; }
+  }
 }
 
 function toggleEvts() {

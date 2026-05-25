@@ -1,0 +1,16 @@
+(function(window){
+  'use strict';
+  const FTS=window.FTS=window.FTS||{}; const $=id=>document.getElementById(id);
+  const esc=v=>FTS.esc?FTS.esc(v==null?'':v):String(v==null?'':v).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const euro=c=>(Number(c||0)/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+  let products=[];
+  function worker(){ return String((FTS.PAYMENT&&FTS.PAYMENT.workerUrl)||'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,''); }
+  async function token(){ return firebase.auth().currentUser.getIdToken(true); }
+  async function api(path,opts){ const res=await fetch(worker()+path,Object.assign({headers:{'Content-Type':'application/json','Authorization':'Bearer '+await token()}},opts||{})); const data=await res.json().catch(()=>null); if(!res.ok||!data||data.ok===false) throw new Error((data&&data.error)||('HTTP '+res.status)); return data; }
+  function guard(txt){ $('shop-guard').hidden=false; $('shop-guard').innerHTML='<div class="shop-empty">'+esc(txt)+'</div>'; $('shop-list').hidden=true; }
+  function render(){ const box=$('shop-list'); $('shop-guard').hidden=true; box.hidden=false; if(!products.length){ box.innerHTML='<div class="shop-empty">Aucun article disponible pour le moment.</div>'; return; } box.innerHTML=products.map(p=>`<article class="shop-item"><div class="shop-img">${p.imageUrl?`<img src="${esc(p.imageUrl)}" alt=""/>`:'🛍️'}</div><div class="shop-body"><span>${esc(p.category||'Boutique')}</span><h2>${esc(p.name||'Article')}</h2><p>${esc(p.description||'')}</p>${p.variantsText?`<small>${esc(p.variantsText)}</small>`:''}<div class="shop-buy"><strong>${euro(p.priceCents)}</strong><button type="button" data-buy="${esc(p.id)}">Acheter</button></div></div></article>`).join(''); box.querySelectorAll('[data-buy]').forEach(btn=>btn.addEventListener('click',()=>buy(btn.getAttribute('data-buy'),btn))); }
+  async function buy(id,btn){ const p=products.find(x=>String(x.id)===String(id)); if(!p) return; const quantityRaw=prompt('Quantité ?', '1'); if(quantityRaw===null) return; const quantity=Math.max(1,Math.min(20,Math.round(Number(quantityRaw||1))||1)); const variantLabel=p.variantsText?prompt('Précise la taille/couleur si nécessaire :','')||'':''; const old=btn.textContent; btn.disabled=true; btn.textContent='Préparation…'; try{ const data=await api('/checkout',{method:'POST',body:JSON.stringify({type:'shop_order',source:'boutique.html',productId:id,quantity,variantLabel})}); if(!data.redirectUrl) throw new Error('redirect_missing'); location.href=data.redirectUrl; }catch(e){ console.warn(e); alert(e.message==='product_out_of_stock'?'Stock insuffisant.':'Impossible de lancer le paiement.'); btn.disabled=false; btn.textContent=old; } }
+  async function load(){ const data=await api('/catalog/products',{method:'GET'}); products=data.products||[]; render(); }
+  function boot(){ FTS.initFirebase(); firebase.auth().onAuthStateChanged(async user=>{ if(!user){ guard('Connecte-toi à ton compte Fais Ton Show pour accéder à la boutique.'); return; } await load().catch(e=>guard('Boutique indisponible : '+e.message)); }); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();
+})(window);
