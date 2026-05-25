@@ -27,6 +27,7 @@
   font-family: var(--font-body, 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, sans-serif);
   color: var(--enjoy-text);
   pointer-events: none;
+  --enjoy-vvh: 100vh;
 }
 
 .fts-enjoy-root.is-hidden { display: none; }
@@ -173,6 +174,8 @@
   padding: 14px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .fts-enjoy-message {
@@ -278,6 +281,7 @@
 
 .fts-enjoy-inputbar {
   display: flex;
+  flex-shrink: 0;
   gap: 8px;
   padding: 12px;
   border-top: 1px solid var(--enjoy-line);
@@ -343,7 +347,8 @@ body.fts-enjoy-open-mobile { overflow: hidden; }
     left: 0;
     right: 0;
     bottom: 0;
-    top: 0;
+    top: auto;
+    height: var(--enjoy-vvh, 100dvh);
     background: rgba(0,0,0,.38);
     pointer-events: auto;
     display: flex;
@@ -358,8 +363,13 @@ body.fts-enjoy-open-mobile { overflow: hidden; }
   .fts-enjoy-panel {
     position: static;
     width: 100%;
-    max-height: calc(100vh - 24px - env(safe-area-inset-top));
+    max-height: calc(var(--enjoy-vvh, 100dvh) - 24px - env(safe-area-inset-top));
     border-radius: 28px 28px 20px 20px;
+  }
+
+  .fts-enjoy-root.is-typing .fts-enjoy-panel {
+    max-height: calc(var(--enjoy-vvh, 100dvh) - 8px);
+    border-radius: 22px 22px 16px 16px;
   }
 
   .fts-enjoy-grid { grid-template-columns: 1fr; }
