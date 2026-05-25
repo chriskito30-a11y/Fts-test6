@@ -1,4 +1,4 @@
-const CACHE = 'fts-v192-enjoy-v5';
+const CACHE = 'fts-v193-enjoy-v6';
 const FILES = [
   './manifest.json',
   './index.html',
