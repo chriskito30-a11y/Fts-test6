@@ -1326,3 +1326,21 @@ body.fts-chat-modern .chat-empty-title.fts-brand-title::before {
     min-height: calc(100vh - 104px);
   }
 }
+
+
+/* Correctif v34 — PC Messages/Forum : la navigation globale ne doit pas recouvrir la zone de saisie
+   Contexte : le correctif v33 rendait la bottom-nav visible sur ordinateur même quand une conversation/catégorie était ouverte.
+   Problème : sur PC, la nav fixe passait devant le champ de rédaction.
+   Solution douce : on garde la nav visible sur l’écran de liste/sélection, mais on la masque dès qu’un chat est ouvert.
+   Mobile inchangé : le comportement existant continue de masquer la nav en conversation. */
+@media (min-width: 701px) {
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-nav,
+  body.fts-chat-modern.chat-open .fts-bottom-nav {
+    display: none !important;
+  }
+
+  body.fts-chat-modern .app.chat-open ~ .fts-bottom-spacer,
+  body.fts-chat-modern.chat-open .fts-bottom-spacer {
+    display: none !important;
+  }
+}
