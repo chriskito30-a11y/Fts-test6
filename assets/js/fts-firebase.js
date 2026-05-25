@@ -62,6 +62,15 @@ FTS.EMAIL = {
 };
 
 
+/* ── WORKER PAIEMENT HELLOASSO ──────────────────────────────────
+   À remplacer après création du Worker Cloudflare fts-helloasso-api.
+   Les secrets HelloAsso restent uniquement côté Cloudflare.
+*/
+FTS.PAYMENT = {
+  workerUrl: "https://fts-helloasso-api.gros-christophe.workers.dev",
+};
+
+
 /* ── INITIALISATION FIREBASE ──────────────────────────────────── */
 /*
   Retourne l'instance db (Realtime Database).
