@@ -224,7 +224,7 @@
     updateViewportHeight();
     state.root.classList.add('is-open');
     if (isMobileEnjoy()) document.body.classList.add('fts-enjoy-open-mobile');
-    setTimeout(() => { updateViewportHeight(); if (state.input) state.input.focus({ preventScroll:true }); }, 120);
+    setTimeout(() => { updateViewportHeight(); }, 120);
   }
 
   function close() {
