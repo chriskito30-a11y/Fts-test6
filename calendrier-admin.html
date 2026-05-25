@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=DM+Sans:wght@300;400;500&amp;display=swap" rel="stylesheet"/>
-<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/calendrier-admin.css?v=7" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/><link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/><link href="assets/css/pages/calendrier-admin.css?v=5" rel="stylesheet"/>
 <link href="assets/css/fts-admin-mode.css?v=79" rel="stylesheet"/>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -63,26 +63,10 @@
 <div class="form-section">
 <div class="section-title"><span>3</span>Date, lieu et détails</div>
 <div class="form-grid">
-<div class="field"><label>Date de début</label><input id="e-date" type="date" required/></div>
-<div class="field"><label>Date de fin <small>(optionnel)</small></label><input id="e-end-date" type="date"/></div>
+<div class="field"><label>Date</label><input id="e-date" type="date"/></div>
 <div class="field"><label>Heure</label><input id="e-hour" type="time"/></div>
 <div class="field full"><label>Lieu</label><input id="e-location" placeholder="Salle, ville…"/></div>
 <div class="field full"><label>Lien inscription / infos</label><input id="e-url" placeholder="https://…"/></div>
-</div>
-</div>
-<div class="form-section payment-section" data-admin-advanced>
-<div class="section-title"><span>4</span>Paiement HelloAsso</div>
-<div class="target-help">Si le prix est renseigné et le paiement activé, l’espace membres affichera un bouton de paiement. Le nombre de places max reste privé côté admin.</div>
-<div class="form-grid">
-<div class="field"><label>Paiement</label><select id="e-payment-enabled"><option value="false">Non</option><option value="true">Oui</option></select></div>
-<div class="field"><label>Nature de la vente</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option></select></div>
-<div class="field"><label>Prix</label><input id="e-price" type="number" min="0" step="0.01" placeholder="Ex : 12"/></div>
-<div class="field"><label>Places max privées</label><input id="e-max-seats" type="number" min="0" step="1" placeholder="Ex : 180"/></div>
-</div>
-</div>
-<div class="form-section">
-<div class="section-title"><span>5</span>Notes</div>
-<div class="form-grid">
 <div class="field full" data-admin-advanced><label>Note interne / description</label><textarea id="e-desc" placeholder="Optionnel — détails utiles pour l’équipe"></textarea></div>
 </div>
 </div>
@@ -122,7 +106,7 @@
 <script src="assets/js/services/notifications.service.js?v=142"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=70"></script>
-<script src="assets/js/pages/calendrier-admin.js?v=144"></script>
+<script src="assets/js/pages/calendrier-admin.js?v=142"></script>
 
 <script src="assets/js/fts-enjoy.js?v=6"></script>
 <script>
