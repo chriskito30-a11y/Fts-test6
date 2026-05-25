@@ -1,7 +1,7 @@
 /* ================================================================
    FTS — Ventes & inscriptions admin
-   Lecture seule des commandes existantes RTDB.
-   Ne modifie aucune commande, aucun paiement, aucun membre.
+   Vue pilotage lisible : types > activités > sous-groupes > personnes.
+   Lecture seule. Ne modifie aucune commande, aucun paiement, aucun membre.
    ================================================================ */
 (function(window){
   'use strict';
@@ -14,22 +14,30 @@
   let activeTab = 'groups';
 
   const $ = id => document.getElementById(id);
-  const esc = v => FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const esc = v => FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
   const norm = v => String(v == null ? '' : v).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
   const cents = v => Number(v || 0);
   const euro = v => (cents(v) / 100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
   const dateLabel = ts => ts ? new Date(Number(ts)).toLocaleString('fr-FR') : 'Date inconnue';
+  const shortDate = ts => ts ? new Date(Number(ts)).toLocaleDateString('fr-FR') : '—';
 
-  function typeLabel(type){
-    const t = String(type || '').toLowerCase();
-    if(t === 'season_registration') return 'Inscription saison';
-    if(t === 'event_ticket') return 'Place spectacle / événement';
-    if(t === 'stage_registration') return 'Stage';
-    if(t === 'shop_order') return 'Boutique';
-    if(t === 'membership') return 'Adhésion';
-    if(t === 'one_off') return 'Ponctuel';
-    return type || 'Paiement';
+  const TYPE_ORDER = ['season_registration','event_ticket','stage_registration','shop_order','membership','one_off','other'];
+  const TYPE_META = {
+    season_registration:{label:'Inscriptions saison', icon:'🎭', hint:'Activités, formules et sous-groupes'},
+    event_ticket:{label:'Spectacles / événements', icon:'🎟️', hint:'Billetterie et réservations'},
+    stage_registration:{label:'Stages', icon:'🚀', hint:'Inscriptions aux stages'},
+    shop_order:{label:'Boutique', icon:'🛍️', hint:'Goodies, tenues et articles'},
+    membership:{label:'Adhésions', icon:'🤝', hint:'Adhésions simples'},
+    one_off:{label:'Ponctuel', icon:'✨', hint:'Costumes, frais ou paiements divers'},
+    other:{label:'Autres paiements', icon:'💳', hint:'Commandes non classées'}
+  };
+
+  function typeKey(o){
+    const t = String(o.type || '').trim();
+    return TYPE_META[t] ? t : 'other';
   }
+  function typeLabel(type){ return (TYPE_META[type] && TYPE_META[type].label) || type || 'Paiement'; }
+  function typeIcon(type){ return (TYPE_META[type] && TYPE_META[type].icon) || '💳'; }
   function statusKind(status){
     const s = norm(status || '');
     if(['paid','authorized','validated','success','confirmed','succeeded'].includes(s)) return 'paid';
@@ -55,6 +63,7 @@
   }
   function payerEmail(o){ return o.userEmail || (o.payer && o.payer.email) || o.email || ''; }
   function studentName(o){ return o.studentName || o.beneficiaryName || o.memberName || o.childName || payerName(o); }
+  function itemLabel(o){ return o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
   function paidAmount(o){ return cents(o.paidAmount || (statusKind(o.status)==='paid' ? amount(o) : 0)); }
   function remainingAmount(o){
@@ -63,27 +72,45 @@
   }
   function installmentSummary(o){
     const list = Array.isArray(o.installments) ? o.installments : [];
-    if(!list.length) return {total: statusKind(o.status)==='paid' ? 1 : 0, paid: statusKind(o.status)==='paid' ? 1 : 0, pending: statusKind(o.status)==='pending' ? 1 : 0, refused: statusKind(o.status)==='refused' ? 1 : 0, remaining: statusKind(o.status)==='paid' ? 0 : 1};
+    if(!list.length){
+      return {
+        total: statusKind(o.status)==='paid' || statusKind(o.status)==='pending' || statusKind(o.status)==='refused' ? 1 : 0,
+        paid: statusKind(o.status)==='paid' ? 1 : 0,
+        pending: statusKind(o.status)==='pending' ? 1 : 0,
+        refused: statusKind(o.status)==='refused' ? 1 : 0,
+        remaining: statusKind(o.status)==='paid' ? 0 : 1
+      };
+    }
     let paid=0,pending=0,refused=0;
     list.forEach(x=>{ const k=installmentKind(x.status); if(k==='paid') paid++; else if(k==='refused') refused++; else pending++; });
     return {total:list.length, paid, pending, refused, remaining:Math.max(0, list.length - paid - refused)};
   }
-  function groupKey(o){
-    const type = String(o.type || 'payment');
-    if(type === 'season_registration'){
-      return [o.season || 'Saison non renseignée', o.activityName || o.activityId || 'Activité non renseignée', o.subcategoryName || o.subcategoryId || 'Groupe non renseigné'].join('||');
-    }
-    if(type === 'event_ticket') return ['Événements', o.eventTitle || o.eventName || o.itemName || 'Événement non renseigné'].join('||');
-    if(type === 'stage_registration') return ['Stages', o.stageTitle || o.stageName || o.itemName || 'Stage non renseigné'].join('||');
-    if(type === 'shop_order') return ['Boutique', o.productName || o.itemName || 'Article non renseigné'].join('||');
-    if(type === 'membership') return ['Adhésions', o.season || 'Saison non renseignée'].join('||');
-    if(type === 'one_off') return ['Ponctuel', o.itemName || o.label || 'Paiement ponctuel'].join('||');
-    return ['Autres paiements', typeLabel(type)].join('||');
+  function summarize(list){
+    const paid = list.filter(o=>statusKind(o.status)==='paid');
+    const pending = list.filter(o=>statusKind(o.status)==='pending');
+    const refused = list.filter(o=>statusKind(o.status)==='refused');
+    return {
+      total:list.length,
+      paid:paid.length,
+      pending:pending.length,
+      refused:refused.length,
+      revenue:paid.reduce((sum,o)=>sum + paidAmount(o), 0),
+      waitingAmount:pending.reduce((s,o)=>s + remainingAmount(o),0),
+      remainingAmount:list.reduce((s,o)=>s + remainingAmount(o),0),
+      remainingInstallments:list.reduce((s,o)=>s + installmentSummary(o).remaining,0),
+      refusedInstallments:list.reduce((s,o)=>s + installmentSummary(o).refused,0)
+    };
   }
-  function groupTitleFromKey(key){
-    const parts = String(key).split('||');
-    if(parts.length >= 3) return {main: parts[1], sub: parts[0] + ' · ' + parts[2], icon:'🎭'};
-    return {main: parts[1] || parts[0], sub: parts[0], icon:'🎫'};
+  function byMap(list, keyFn){
+    const m = new Map();
+    list.forEach(x=>{ const k = keyFn(x) || 'Non renseigné'; if(!m.has(k)) m.set(k, []); m.get(k).push(x); });
+    return m;
+  }
+  function sortAlphaEntries(entries){
+    return entries.sort((a,b)=>String(a[0]).localeCompare(String(b[0]), 'fr', {numeric:true, sensitivity:'base'}));
+  }
+  function sortTypeEntries(entries){
+    return entries.sort((a,b)=>TYPE_ORDER.indexOf(a[0]) - TYPE_ORDER.indexOf(b[0]));
   }
 
   function filteredOrders(){
@@ -96,87 +123,160 @@
       if(status !== 'all' && statusKind(o.status) !== status) return false;
       if(season !== 'all' && String(o.season || '') !== season) return false;
       if(q){
-        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,studentName(o),payerName(o),payerEmail(o)].join(' '));
+        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,studentName(o),payerName(o),payerEmail(o),o.paymentPlan].join(' '));
         if(!hay.includes(q)) return false;
       }
       return true;
     }).sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
   }
 
+  function metric(label, value, detail, cls=''){
+    return `<article class="sales-stat ${cls}"><strong>${esc(value)}</strong><span>${esc(label)}${detail ? ' · ' + esc(detail) : ''}</span></article>`;
+  }
   function renderStats(list){
-    const paid = list.filter(o=>statusKind(o.status)==='paid');
-    const pending = list.filter(o=>statusKind(o.status)==='pending');
-    const refused = list.filter(o=>statusKind(o.status)==='refused');
-    const revenue = paid.reduce((sum,o)=>sum + paidAmount(o), 0);
-    const html = [
-      ['Commandes', list.length, 'Tous statuts'],
-      ['Validées', paid.length, euro(revenue)],
-      ['En attente', pending.length, euro(pending.reduce((s,o)=>s+remainingAmount(o),0)) + ' restant'],
-      ['Refusées / annulées', refused.length, 'À vérifier']
-    ].map(x=>`<article class="sales-stat"><strong>${esc(x[1])}</strong><span>${esc(x[0])} · ${esc(x[2])}</span></article>`).join('');
-    $('sales-stats').innerHTML = html;
+    const s = summarize(list);
+    $('sales-stats').innerHTML = [
+      metric('Commandes', s.total, 'tous statuts'),
+      metric('Validées', s.paid, euro(s.revenue), 'ok'),
+      metric('En attente', s.pending, euro(s.waitingAmount) + ' restant', 'wait'),
+      metric('Alertes', s.refused + s.refusedInstallments, 'refus / incidents', 'bad')
+    ].join('');
+  }
+
+  function badgesFor(list){
+    const s = summarize(list);
+    return `<div class="sales-badges">
+      <span class="sales-badge ok">${s.paid} payé(s)</span>
+      <span class="sales-badge wait">${s.pending} attente</span>
+      <span class="sales-badge bad">${s.refused} refusé(s)</span>
+      <span class="sales-badge money">${euro(s.revenue)}</span>
+    </div>`;
+  }
+  function orderPersonLine(o){
+    const sum = installmentSummary(o);
+    const payText = sum.total > 1 ? `${sum.paid}/${sum.total} échéance(s) payée(s) · ${sum.remaining} restante(s)${sum.refused ? ' · ' + sum.refused + ' refusée(s)' : ''}` : (statusKind(o.status)==='paid' ? 'Paiement complet' : 'Paiement non finalisé');
+    return `<details class="sales-person">
+      <summary>
+        <div class="sales-person-main"><strong>${esc(studentName(o))}</strong><small>${esc(o.offerLabel || typeLabel(typeKey(o)))}${o.paymentPlan ? ' · ' + esc(o.paymentPlan) : ''}</small></div>
+        <div class="sales-person-pay"><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span><strong>${euro(amount(o))}</strong></div>
+      </summary>
+      <div class="sales-person-body">
+        <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
+        <div><span>Échéances</span><strong>${esc(payText)}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
+        <div><span>Référence</span><strong>${esc(o.id || '—')}</strong><small>${esc(shortDate(o.createdAt))} · ${esc(o.helloAssoPaymentId || o.checkoutIntentId || '')}</small></div>
+      </div>
+    </details>`;
+  }
+
+  function renderSeasonType(list){
+    const seasons = sortAlphaEntries(Array.from(byMap(list, o=>o.season || 'Saison non renseignée').entries())).reverse();
+    return seasons.map(([season, seasonRows])=>{
+      const activities = sortAlphaEntries(Array.from(byMap(seasonRows, o=>o.activityName || o.activityId || 'Activité non renseignée').entries()));
+      return `<section class="sales-season-block">
+        <div class="sales-section-head"><div><h2>${esc(season)}</h2><p>Vue par activité puis par sous-groupe.</p></div>${badgesFor(seasonRows)}</div>
+        <div class="sales-activity-grid">
+          ${activities.map(([activity, activityRows])=>renderActivityCard(activity, activityRows)).join('')}
+        </div>
+      </section>`;
+    }).join('');
+  }
+  function renderActivityCard(activity, rows){
+    const subgroups = sortAlphaEntries(Array.from(byMap(rows, o=>o.subcategoryName || o.subcategoryId || 'Groupe non renseigné').entries()));
+    const s = summarize(rows);
+    return `<article class="sales-activity-card">
+      <header><div><h3>${esc(activity)}</h3><p>${s.paid} confirmé(s) · ${s.pending} attente · ${euro(s.revenue)}</p></div><span>${esc(typeIcon('season_registration'))}</span></header>
+      <div class="sales-subgroups">
+        ${subgroups.map(([group, groupRows], index)=>renderSubgroup(group, groupRows, index === 0 && subgroups.length === 1)).join('')}
+      </div>
+    </article>`;
+  }
+  function renderSubgroup(group, rows, open){
+    const s = summarize(rows);
+    const paidRows = rows.filter(o=>statusKind(o.status)==='paid');
+    const pendingRows = rows.filter(o=>statusKind(o.status)==='pending');
+    const refusedRows = rows.filter(o=>statusKind(o.status)==='refused');
+    return `<details class="sales-subgroup" ${open ? 'open' : ''}>
+      <summary>
+        <div><strong>${esc(group)}</strong><small>${s.paid} confirmé(s) · ${s.pending} attente · ${s.refused} refusé(s)</small></div>
+        <div class="sales-subgroup-count"><b>${s.paid}</b><span>payés</span></div>
+      </summary>
+      <div class="sales-people-list">
+        ${paidRows.length ? `<h4>✅ Confirmés</h4>${paidRows.map(orderPersonLine).join('')}` : ''}
+        ${pendingRows.length ? `<h4>⏳ En attente</h4>${pendingRows.map(orderPersonLine).join('')}` : ''}
+        ${refusedRows.length ? `<h4>⚠️ Refusés / annulés</h4>${refusedRows.map(orderPersonLine).join('')}` : ''}
+      </div>
+    </details>`;
+  }
+
+  function renderGenericType(type, list){
+    const meta = TYPE_META[type] || TYPE_META.other;
+    const keyFn = type === 'event_ticket' ? (o=>o.eventTitle || o.eventName || itemLabel(o))
+      : type === 'stage_registration' ? (o=>o.stageTitle || o.stageName || itemLabel(o))
+      : type === 'shop_order' ? (o=>o.productName || itemLabel(o))
+      : type === 'membership' ? (o=>o.season || 'Adhésions')
+      : type === 'one_off' ? (o=>itemLabel(o))
+      : (o=>itemLabel(o));
+    const groups = sortAlphaEntries(Array.from(byMap(list, keyFn).entries()));
+    return `<section class="sales-type-block">
+      <div class="sales-section-head"><div><h2>${esc(meta.icon)} ${esc(meta.label)}</h2><p>${esc(meta.hint)}</p></div>${badgesFor(list)}</div>
+      <div class="sales-generic-list">
+        ${groups.map(([name, rows])=>{
+          const s=summarize(rows);
+          return `<details class="sales-subgroup" open>
+            <summary><div><strong>${esc(name)}</strong><small>${s.total} commande(s) · ${euro(s.revenue)} encaissé</small></div><div class="sales-subgroup-count"><b>${s.paid}</b><span>payés</span></div></summary>
+            <div class="sales-people-list">${rows.map(orderPersonLine).join('')}</div>
+          </details>`;
+        }).join('')}
+      </div>
+    </section>`;
   }
 
   function renderGroups(list){
-    const groups = new Map();
-    list.forEach(o=>{
-      const key = groupKey(o);
-      if(!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(o);
-    });
-    if(!groups.size){ $('sales-groups').innerHTML = '<div class="sales-empty">Aucune commande ne correspond aux filtres.</div>'; return; }
-    $('sales-groups').innerHTML = Array.from(groups.entries()).map(([key,rows])=>{
-      const t = groupTitleFromKey(key);
-      const paid = rows.filter(o=>statusKind(o.status)==='paid');
-      const pending = rows.filter(o=>statusKind(o.status)==='pending');
-      const refused = rows.filter(o=>statusKind(o.status)==='refused');
-      const revenue = paid.reduce((sum,o)=>sum+paidAmount(o),0);
-      return `<details class="sales-group" open>
-        <summary>
-          <div class="sales-group-title"><div class="sales-group-ico">${esc(t.icon)}</div><div><h2>${esc(t.main)}</h2><p>${esc(t.sub)}</p></div></div>
-          <div class="sales-badges"><span class="sales-badge ok">${paid.length} validé(s)</span><span class="sales-badge wait">${pending.length} attente</span><span class="sales-badge bad">${refused.length} refusé(s)</span><span class="sales-badge money">${euro(revenue)}</span></div>
-        </summary>
-        <div class="sales-table">${rows.map(renderCompactRow).join('')}</div>
-      </details>`;
+    if(!list.length){ $('sales-groups').innerHTML = '<div class="sales-empty">Aucune commande ne correspond aux filtres.</div>'; return; }
+    const types = sortTypeEntries(Array.from(byMap(list, typeKey).entries()));
+    $('sales-groups').innerHTML = types.map(([type, rows])=>{
+      if(type === 'season_registration') return renderSeasonType(rows);
+      return renderGenericType(type, rows);
     }).join('');
   }
-  function renderCompactRow(o){
-    const sum = installmentSummary(o);
-    return `<div class="sales-row">
-      <div><strong>${esc(studentName(o))}</strong><small>${esc(payerName(o))}${payerEmail(o)?' · '+esc(payerEmail(o)):''}</small></div>
-      <div><strong>${esc(o.offerLabel || typeLabel(o.type))}</strong><small>${esc(o.paymentPlan || '')}${sum.total>1?' · '+sum.remaining+' échéance(s) restante(s)':''}</small></div>
-      <div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span><small>${esc(o.id || '')}</small></div>
-      <div><strong>${euro(amount(o))}</strong><small>${esc(dateLabel(o.createdAt))}</small></div>
-    </div>`;
-  }
+
   function renderOrders(list){
     if(!list.length){ $('sales-orders').innerHTML = '<div class="sales-empty">Aucune commande ne correspond aux filtres.</div>'; return; }
-    $('sales-orders').innerHTML = list.map(o=>{
-      const sum = installmentSummary(o);
-      const inst = Array.isArray(o.installments) ? o.installments.map(x=>`<span class="sales-installment ${installmentKind(x.status)}">#${esc(x.number||'?')} · ${euro(x.amount)} · ${esc(x.date||'')} · ${esc(x.status||'')}</span>`).join('') : '';
-      return `<article class="sales-order-card">
-        <div class="sales-order-head"><div><div class="sales-order-title">${esc(o.itemName || typeLabel(o.type))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
-        <div class="sales-order-grid">
-          <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
-          <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,o.offerLabel].filter(Boolean).join(' · '))}</small></div>
-          <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
-          <div class="sales-mini"><span>Échéances</span><strong>${sum.paid}/${sum.total} payée(s)</strong><small>${sum.remaining} restante(s) · ${sum.refused} refusée(s)</small></div>
-          <div class="sales-mini"><span>Type</span><strong>${esc(typeLabel(o.type))}</strong><small>${esc(o.source || '')}</small></div>
-          <div class="sales-mini"><span>HelloAsso</span><strong>${esc(o.helloAssoPaymentId || o.checkoutIntentId || '—')}</strong><small>${esc(o.provider || '')}</small></div>
-        </div>
-        ${inst ? `<div class="sales-installment-list">${inst}</div>` : ''}
-      </article>`;
+    const types = sortTypeEntries(Array.from(byMap(list, typeKey).entries()));
+    $('sales-orders').innerHTML = types.map(([type, rows])=>{
+      const meta = TYPE_META[type] || TYPE_META.other;
+      return `<section class="sales-type-block"><div class="sales-section-head"><div><h2>${esc(meta.icon)} ${esc(meta.label)}</h2><p>Liste complète des commandes.</p></div>${badgesFor(rows)}</div>${rows.map(renderOrderCard).join('')}</section>`;
     }).join('');
+  }
+  function renderOrderCard(o){
+    const sum = installmentSummary(o);
+    const inst = Array.isArray(o.installments) ? o.installments.map(x=>`<span class="sales-installment ${installmentKind(x.status)}">#${esc(x.number||'?')} · ${euro(x.amount)} · ${esc(x.date||'')} · ${esc(x.status||'')}</span>`).join('') : '';
+    return `<article class="sales-order-card">
+      <div class="sales-order-head"><div><div class="sales-order-title">${esc(itemLabel(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
+      <div class="sales-order-grid">
+        <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
+        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,o.offerLabel].filter(Boolean).join(' · '))}</small></div>
+        <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
+        <div class="sales-mini"><span>Échéances</span><strong>${sum.paid}/${sum.total} payée(s)</strong><small>${sum.remaining} restante(s) · ${sum.refused} refusée(s)</small></div>
+        <div class="sales-mini"><span>Type</span><strong>${esc(typeLabel(typeKey(o)))}</strong><small>${esc(o.source || '')}</small></div>
+        <div class="sales-mini"><span>HelloAsso</span><strong>${esc(o.helloAssoPaymentId || o.checkoutIntentId || '—')}</strong><small>${esc(o.provider || '')}</small></div>
+      </div>
+      ${inst ? `<div class="sales-installment-list">${inst}</div>` : ''}
+    </article>`;
   }
   function renderInstallments(list){
     const rows = [];
     list.forEach(o=>{
       const inst = Array.isArray(o.installments) ? o.installments : [];
-      inst.forEach(x=>rows.push({order:o, installment:x}));
+      inst.forEach(x=>rows.push({order:o, installment:x, kind:installmentKind(x.status)}));
     });
     if(!rows.length){ $('sales-installments').innerHTML = '<div class="sales-empty">Aucune échéance détaillée enregistrée pour les commandes filtrées.</div>'; return; }
-    rows.sort((a,b)=>String(a.installment.date||'').localeCompare(String(b.installment.date||'')) || Number(a.installment.number||0)-Number(b.installment.number||0));
-    $('sales-installments').innerHTML = `<div class="sales-table">${rows.map(({order:o,installment:x})=>`<div class="sales-row"><div><strong>${esc(studentName(o))}</strong><small>${esc(o.activityName || typeLabel(o.type))} · ${esc(o.subcategoryName || '')}</small></div><div><strong>Échéance #${esc(x.number || '?')}</strong><small>${esc(x.date || 'Date inconnue')}</small></div><div><span class="sales-status ${installmentKind(x.status)==='paid'?'paid':installmentKind(x.status)==='refused'?'refused':'pending'}">${esc(x.status || 'en attente')}</span><small>${esc(o.paymentPlan || '')}</small></div><div><strong>${euro(x.amount)}</strong><small>${esc(o.id || '')}</small></div></div>`).join('')}</div>`;
+    rows.sort((a,b)=>{
+      const ak = a.kind === 'refused' ? 0 : a.kind === 'pending' ? 1 : a.kind === 'scheduled' ? 2 : 3;
+      const bk = b.kind === 'refused' ? 0 : b.kind === 'pending' ? 1 : b.kind === 'scheduled' ? 2 : 3;
+      return ak-bk || String(a.installment.date||'').localeCompare(String(b.installment.date||'')) || Number(a.installment.number||0)-Number(b.installment.number||0);
+    });
+    $('sales-installments').innerHTML = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>📆 Échéances</h2><p>Refus et échéances à surveiller remontent en premier.</p></div></div><div class="sales-table">${rows.map(({order:o,installment:x,kind})=>`<div class="sales-row"><div><strong>${esc(studentName(o))}</strong><small>${esc(o.activityName || typeLabel(typeKey(o)))} · ${esc(o.subcategoryName || '')}</small></div><div><strong>Échéance #${esc(x.number || '?')}</strong><small>${esc(x.date || 'Date inconnue')}</small></div><div><span class="sales-status ${kind==='paid'?'paid':kind==='refused'?'refused':'pending'}">${esc(x.status || 'en attente')}</span><small>${esc(o.paymentPlan || '')}</small></div><div><strong>${euro(x.amount)}</strong><small>${esc(o.id || '')}</small></div></div>`).join('')}</div></section>`;
   }
   function renderAll(){
     const list = filteredOrders();
