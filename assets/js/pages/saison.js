@@ -110,17 +110,27 @@ function normalizeOfferKey(value){
     .replace(/[^a-z0-9]+/g,' ')
     .trim();
   if(!s) return '';
-  if(['loisir','loisirs','decouverte'].includes(s)) return 'loisir';
-  if(['performance','perf','perfo','scene','troupe'].includes(s)) return 'perf';
+  if(['loisir','loisirs','kid','kids','decouverte','parcours loisir'].includes(s)) return 'loisir';
+  if(['performance','perf','perfo','scene','troupe','avance','avancee','parcours performance'].includes(s)) return 'perf';
   if(['option','options'].includes(s)) return 'option';
   if(['inclus','incluse','offert','offerte'].includes(s)) return 'inclus';
   return s.replace(/\s+/g,'_');
 }
 function parseAllowedOffers(value){
-  if(Array.isArray(value)) return value.map(normalizeOfferKey).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
-  return String(value||'').split(/[,+/;]|\bet\b/gi).map(normalizeOfferKey).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
+  let raw=[];
+  if(Array.isArray(value)) raw=value;
+  else if(value&&typeof value==='object') raw=Object.values(value);
+  else raw=String(value||'').split(/[,+/;]|\bet\b/gi);
+  return raw.map(normalizeOfferKey).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
 }
-function offerKeyForFilter(offer){return normalizeOfferKey((offer&&offer.key)||'')||normalizeOfferKey((offer&&offer.style)||'')||normalizeOfferKey((offer&&offer.label)||'');}
+function offerTokensForFilter(offer){
+  if(!offer) return [];
+  return [offer.key,offer.style,offer.label,offer.name,offer.title]
+    .flatMap(v=>parseAllowedOffers(v))
+    .filter(Boolean)
+    .filter((x,i,a)=>a.indexOf(x)===i);
+}
+function offerKeyForFilter(offer){return offerTokensForFilter(offer)[0]||'';}
 function activeOfferForItem(item){
   const list=(item&&item.offers)||[];
   const selected=selectedSeasonOffers[item.id]||'';
@@ -128,13 +138,22 @@ function activeOfferForItem(item){
 }
 function subcatAllowedOffers(s){
   const ss=subcatSeason(s);
-  return parseAllowedOffers(ss.allowedOffers||ss.formules||ss.parcours||ss.offerKeys||'');
+  const raw=[];
+  [
+    ss.allowedOffers,ss.formules,ss.parcours,ss.offerKeys,ss.allowedOffer,ss.formule,ss.parcoursAutorises,ss.formulesAutorisees,
+    s&&s.allowedOffers,s&&s.formules,s&&s.parcours,s&&s.offerKeys,s&&s.allowedOffer,s&&s.formule
+  ].forEach(v=>{
+    if(Array.isArray(v)) raw.push(...v);
+    else if(v&&typeof v==='object') raw.push(...Object.values(v));
+    else if(v) raw.push(v);
+  });
+  return parseAllowedOffers(raw);
 }
 function subcatAllowsOffer(s,offer){
   const allowed=subcatAllowedOffers(s);
   if(!allowed.length) return true;
-  const current=offerKeyForFilter(offer);
-  return !!current && allowed.includes(current);
+  const currentTokens=offerTokensForFilter(offer);
+  return currentTokens.some(t=>allowed.includes(t));
 }
 function offerLabelFromAllowed(key){
   if(key==='loisir') return 'Loisir';
