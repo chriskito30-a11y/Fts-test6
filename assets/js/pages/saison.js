@@ -156,11 +156,35 @@ function subcatAllowsOffer(s,offer){
   return currentTokens.some(t=>allowed.includes(t));
 }
 function offerLabelFromAllowed(key){
-  if(key==='loisir') return 'Loisir';
-  if(key==='perf') return 'Performance';
-  if(key==='option') return 'Option';
-  if(key==='inclus') return 'Inclus';
-  return key;
+  const labels={
+    loisir:'Loisir',
+    perf:'Performance',
+    performance:'Performance',
+    option:'Option',
+    inclus:'Inclus',
+    loisir_30:'Loisir 30 min',
+    loisir_30_min:'Loisir 30 min',
+    loisir_1h:'Loisir 1h',
+    loisir_1_h:'Loisir 1h',
+    perf_30:'Performance 30 min',
+    perf_30_min:'Performance 30 min',
+    performance_30:'Performance 30 min',
+    performance_30_min:'Performance 30 min',
+    perf_1h:'Performance 1h',
+    perf_1_h:'Performance 1h',
+    performance_1h:'Performance 1h',
+    performance_1_h:'Performance 1h'
+  };
+  if(labels[key]) return labels[key];
+  return String(key||'')
+    .replace(/_/g,' ')
+    .replace(/\bperf\b/gi,'Performance')
+    .replace(/\bloisir\b/gi,'Loisir')
+    .replace(/\boption\b/gi,'Option')
+    .replace(/\binclus\b/gi,'Inclus')
+    .replace(/\b30\b/g,'30 min')
+    .replace(/\s+/g,' ')
+    .trim();
 }
 function allowedOfferBadges(s){
   const allowed=subcatAllowedOffers(s);
