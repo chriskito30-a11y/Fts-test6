@@ -868,7 +868,8 @@ function renderCList(){
 function categorySeasonLines(c){
   return (c.subcatsArray||[]).map(s=>{
     const ss=s.season||{};
-    const maxSeats = ss.maxSeats || ss.placesMax || ss.capacity || '';
+    const hasMaxSeats = Object.prototype.hasOwnProperty.call(ss, 'maxSeats') || Object.prototype.hasOwnProperty.call(ss, 'placesMax') || Object.prototype.hasOwnProperty.call(ss, 'capacity');
+    const maxSeats = hasMaxSeats ? (ss.maxSeats ?? ss.placesMax ?? ss.capacity ?? '') : '';
     const rawAllowed = ss.allowedOffers || ss.formules || ss.parcours || '';
     const allowedOffers = Array.isArray(rawAllowed) ? rawAllowed.join(', ') : String(rawAllowed || '');
     const parts=[s.name||'', ss.day||'', ss.time||'', ss.level||'', ss.note||'', maxSeats, allowedOffers];
@@ -905,10 +906,11 @@ function parseSeasonSubcatLines(){
     const parts=line.split('|').map(x=>x.trim());
     const name=parts[0]||'';
     if(!name) return;
+    const hasMaxSeatsColumn = parts.length > 5;
     const maxSeats = Number(String(parts[5] || '').replace(/[^0-9]/g, '')) || 0;
     const allowedOffers = parseSeasonAllowedOffers(parts[6] || '');
     out[FTS.norm(name)]={showOnSeason:true,day:parts[1]||'',time:parts[2]||'',level:parts[3]||'',note:parts[4]||''};
-    if(maxSeats > 0) out[FTS.norm(name)].maxSeats = maxSeats;
+    if(hasMaxSeatsColumn) out[FTS.norm(name)].maxSeats = maxSeats;
     if(allowedOffers.length) out[FTS.norm(name)].allowedOffers = allowedOffers;
   });
   return out;
