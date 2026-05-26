@@ -43,3 +43,10 @@
 
 /* v157 — places max par sous-groupe */
 .season-subcat-capacity{display:inline-flex;align-items:center;gap:.25rem;margin-top:.5rem;padding:.22rem .52rem;border-radius:999px;background:rgba(248,231,2,.12);border:1px solid rgba(248,231,2,.25);color:var(--gold);font-size:.68rem;font-weight:800}
+
+/* V13 — compatibilité des sous-groupes avec les formules Saison */
+.season-subcat.is-hidden-by-offer{display:none}
+.season-subcat-offers{display:flex;flex-wrap:wrap;gap:.28rem;margin-top:.45rem}
+.season-subcat-offers span{display:inline-flex;align-items:center;border:1px solid rgba(248,231,2,.22);background:rgba(248,231,2,.1);color:var(--gold);border-radius:999px;padding:.16rem .48rem;font-size:.64rem;font-weight:900;line-height:1.2}
+.season-subcats-empty{display:none;margin-top:.75rem;border:1px dashed rgba(248,231,2,.28);border-radius:16px;padding:.8rem;color:var(--muted);font-size:.82rem;line-height:1.45;background:rgba(248,231,2,.06)}
+.season-subcats-empty.open{display:block}
