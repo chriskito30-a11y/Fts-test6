@@ -966,7 +966,7 @@ async function saveCategory(){
     await db.ref().update(updates);
     await syncResourcesCategoryRename(oldKey,key,name);
     $('c-key').value=key;
-    msg('msg-c','Catégorie enregistrée. Les détails Saison, y compris les places max, seront visibles sur saison.html.');
+    msg('msg-c','Catégorie enregistrée. Les détails Saison, places max et formules autorisées seront visibles sur saison.html.');
   });
 }
 async function syncResourcesCategoryRename(oldKey,newKey,newName){

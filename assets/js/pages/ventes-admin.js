@@ -63,6 +63,11 @@
   }
   function payerEmail(o){ return o.userEmail || (o.payer && o.payer.email) || o.email || ''; }
   function studentName(o){ return o.studentName || o.participantName || o.beneficiaryName || o.memberName || o.childName || payerName(o); }
+  function offerTokenLabel(t){ return ({loisir:'Loisir',perf:'Performance',performance:'Performance',option:'Option',inclus:'Inclus'}[String(t||'').toLowerCase()] || t); }
+  function subcategoryAllowedOffersLabel(o){
+    const raw = Array.isArray(o.subcategoryAllowedOffers) ? o.subcategoryAllowedOffers : [];
+    return raw.length ? raw.map(offerTokenLabel).join(' + ') : '';
+  }
   function subcategoryDetail(o){
     const direct = String(o.subcategorySeasonDetail || '').trim();
     if(direct) return direct;
@@ -182,6 +187,7 @@
       <div class="sales-person-body">
         ${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
         ${subcategoryMaxSeats(o)>0?`<div><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} places max</strong><small>Limite enregistrée au moment de la commande</small></div>`:''}
+        ${subcategoryAllowedOffersLabel(o)?`<div><span>Formules autorisées</span><strong>${esc(subcategoryAllowedOffersLabel(o))}</strong><small>Règle enregistrée au moment du paiement</small></div>`:''}
         <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
         <div><span>Échéances</span><strong>${esc(payText)}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
         <div><span>Référence</span><strong>${esc(o.id || '—')}</strong><small>${esc(shortDate(o.createdAt))} · ${esc(o.helloAssoPaymentId || o.checkoutIntentId || '')}</small></div>
@@ -358,11 +364,11 @@
   }
   function exportCsv(){
     const rows = filteredOrders();
-    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formule','eleve','payeur','email','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
+    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formules_autorisees','formule','eleve','payeur','email','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
     const lines = [head.join(';')];
     rows.forEach(o=>{
       const sum = installmentSummary(o);
-      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',o.offerLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
+      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',subcategoryAllowedOffersLabel(o),o.offerLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
       lines.push(row.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';'));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
