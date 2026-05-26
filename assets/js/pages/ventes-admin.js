@@ -1,7 +1,7 @@
 /* ================================================================
    FTS — Ventes & inscriptions admin
    Vue pilotage lisible : types > activités > sous-groupes > personnes.
-   Lecture seule. Ne modifie aucune commande, aucun paiement, aucun membre.
+   Lecture admin. La suppression retire uniquement les commandes locales sélectionnées de fts_orders.
    ================================================================ */
 (function(window){
   'use strict';
@@ -12,6 +12,7 @@
   let profile = null;
   let orders = [];
   let activeTab = 'groups';
+  const selectedOrderIds = new Set();
 
   const $ = id => document.getElementById(id);
   const esc = v => FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
@@ -154,6 +155,30 @@
     }).sort((a,b)=>Number(b.createdAt||0)-Number(a.createdAt||0));
   }
 
+  function filteredOrderIds(){
+    return filteredOrders().map(o=>String(o.id || '')).filter(Boolean);
+  }
+  function selectionCountLabel(count){
+    return count + ' commande' + (count > 1 ? 's' : '') + ' sélectionnée' + (count > 1 ? 's' : '');
+  }
+  function updateBulkUi(){
+    const bulk = $('sales-bulk');
+    if(bulk) bulk.hidden = activeTab !== 'orders';
+    const count = selectedOrderIds.size;
+    const label = $('sales-selected-count');
+    if(label) label.textContent = selectionCountLabel(count);
+    const btn = $('sales-delete-selected');
+    if(btn) btn.disabled = count < 1;
+    const all = $('sales-select-all');
+    if(all){
+      const ids = filteredOrderIds();
+      const selectedInFilter = ids.filter(id=>selectedOrderIds.has(id)).length;
+      all.checked = ids.length > 0 && selectedInFilter === ids.length;
+      all.indeterminate = selectedInFilter > 0 && selectedInFilter < ids.length;
+      all.disabled = ids.length < 1;
+    }
+  }
+
   function metric(label, value, detail, cls=''){
     return `<article class="sales-stat ${cls}"><strong>${esc(value)}</strong><span>${esc(label)}${detail ? ' · ' + esc(detail) : ''}</span></article>`;
   }
@@ -282,8 +307,10 @@
   function renderOrderCard(o){
     const sum = installmentSummary(o);
     const inst = Array.isArray(o.installments) ? o.installments.map(x=>`<span class="sales-installment ${installmentKind(x.status)}">#${esc(x.number||'?')} · ${euro(x.amount)} · ${esc(x.date||'')} · ${esc(x.status||'')}</span>`).join('') : '';
-    return `<article class="sales-order-card">
-      <div class="sales-order-head"><div><div class="sales-order-title">${esc(itemLabel(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
+    const id = String(o.id || '');
+    const checked = id && selectedOrderIds.has(id) ? 'checked' : '';
+    return `<article class="sales-order-card ${checked ? 'is-selected' : ''}">
+      <div class="sales-order-head"><label class="sales-order-select"><input class="sales-order-checkbox" type="checkbox" data-order-id="${esc(id)}" ${checked}/> <span>Sélectionner</span></label><div><div class="sales-order-title">${esc(itemLabel(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
       <div class="sales-order-grid">
         <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
         <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel].filter(Boolean).join(' · '))}</small></div>
@@ -316,6 +343,7 @@
     renderGroups(list);
     renderOrders(list);
     renderInstallments(list);
+    updateBulkUi();
   }
   function fillSeasons(){
     const select = $('sales-season'); if(!select) return;
@@ -341,6 +369,8 @@
       const data = await res.json().catch(()=>null);
       if(!res.ok || !data || data.ok === false) throw new Error((data && data.error) || ('admin_orders_' + res.status));
       orders = Array.isArray(data.orders) ? data.orders : [];
+      const existingIds = new Set(orders.map(o=>String(o.id || '')).filter(Boolean));
+      Array.from(selectedOrderIds).forEach(id=>{ if(!existingIds.has(id)) selectedOrderIds.delete(id); });
       fillSeasons();
       renderAll();
     }catch(e){
@@ -352,14 +382,56 @@
       if($('sales-refresh')) $('sales-refresh').disabled = false;
     }
   }
+  async function deleteSelectedOrders(){
+    const ids = Array.from(selectedOrderIds).filter(Boolean);
+    if(!ids.length){ updateBulkUi(); return; }
+    const msg = `Supprimer définitivement ${ids.length} commande(s) de l’admin ventes ?\n\nCela supprime uniquement la trace locale dans l’app Fais Ton Show. Le paiement réel HelloAsso n’est pas annulé ni remboursé.`;
+    if(!window.confirm(msg)) return;
+    const btn = $('sales-delete-selected');
+    if(btn) btn.disabled = true;
+    fail('');
+    try{
+      const token = await firebase.auth().currentUser.getIdToken(true);
+      const res = await fetch(paymentWorkerUrl() + '/admin/orders/delete', {
+        method:'POST',
+        headers:{ Authorization:'Bearer ' + token, 'Content-Type':'application/json', Accept:'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      const data = await res.json().catch(()=>null);
+      if(!res.ok || !data || data.ok === false) throw new Error((data && data.error) || ('delete_orders_' + res.status));
+      selectedOrderIds.clear();
+      await loadOrders();
+    }catch(e){
+      console.warn('[FTS ventes admin] suppression impossible', e);
+      fail('Suppression impossible. Vérifie que le Worker déployé contient /admin/orders/delete et que ton compte est admin.');
+      updateBulkUi();
+    }
+  }
+
   function bindUi(){
     ['sales-search','sales-type','sales-status','sales-season'].forEach(id=>{ const el=$(id); if(el) el.addEventListener('input', renderAll); if(el) el.addEventListener('change', renderAll); });
     const refresh = $('sales-refresh'); if(refresh) refresh.addEventListener('click', loadOrders);
     const exportBtn = $('sales-export'); if(exportBtn) exportBtn.addEventListener('click', exportCsv);
+    const deleteBtn = $('sales-delete-selected'); if(deleteBtn) deleteBtn.addEventListener('click', deleteSelectedOrders);
+    const selectAll = $('sales-select-all'); if(selectAll) selectAll.addEventListener('change', ()=>{
+      const ids = filteredOrderIds();
+      if(selectAll.checked) ids.forEach(id=>selectedOrderIds.add(id));
+      else ids.forEach(id=>selectedOrderIds.delete(id));
+      renderAll();
+    });
+    const ordersView = $('sales-orders'); if(ordersView) ordersView.addEventListener('change', e=>{
+      const box = e.target && e.target.closest ? e.target.closest('.sales-order-checkbox') : null;
+      if(!box) return;
+      const id = String(box.getAttribute('data-order-id') || '');
+      if(!id) return;
+      if(box.checked) selectedOrderIds.add(id); else selectedOrderIds.delete(id);
+      renderAll();
+    });
     document.querySelectorAll('[data-sales-tab]').forEach(btn=>btn.addEventListener('click',()=>{
       activeTab = btn.getAttribute('data-sales-tab') || 'groups';
       document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active', b===btn));
       ['groups','orders','installments'].forEach(name=>{ const el=$('sales-'+name); if(el) el.hidden = name !== activeTab; });
+      updateBulkUi();
     }));
   }
   function exportCsv(){
