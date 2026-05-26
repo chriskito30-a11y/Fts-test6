@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
-<link href="assets/css/pages/ventes-admin.css?v=5" rel="stylesheet"/>
+<link href="assets/css/pages/ventes-admin.css?v=6" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -52,6 +52,15 @@
     <button type="button" data-sales-tab="installments">Échéances</button>
   </section>
 
+
+  <section class="sales-bulk" id="sales-bulk" hidden aria-label="Actions sur les commandes sélectionnées">
+    <label class="sales-check-all"><input id="sales-select-all" type="checkbox"/> Tout sélectionner dans les filtres</label>
+    <div class="sales-bulk-actions">
+      <span id="sales-selected-count">0 commande sélectionnée</span>
+      <button type="button" class="sales-btn danger" id="sales-delete-selected" disabled>Supprimer la sélection</button>
+    </div>
+  </section>
+
   <main class="sales-content">
     <section id="sales-groups" class="sales-view"></section>
     <section id="sales-orders" class="sales-view" hidden></section>
@@ -61,6 +70,6 @@
 
 <script src="assets/js/fts-firebase.js?v=33"></script>
 <script src="assets/js/fts-utils.js?v=33"></script>
-<script src="assets/js/pages/ventes-admin.js?v=8"></script>
+<script src="assets/js/pages/ventes-admin.js?v=9"></script>
 </body>
 </html>
