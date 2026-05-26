@@ -877,10 +877,15 @@ function categorySeasonLines(c){
   }).join('\n');
 }
 function normalizeSeasonOfferToken(value){
-  const s=String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+  const s=String(value||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
   if(!s) return '';
-  if(['loisir','loisirs','kids','kid','decouverte','découverte'].includes(s)) return 'loisir';
-  if(['performance','perf','perfo','scene','scène','troupe','avance','avancé','avancee','avancée'].includes(s)) return 'perf';
+  if(['loisir','loisirs','decouverte'].includes(s)) return 'loisir';
+  if(['performance','perf','perfo','scene','troupe'].includes(s)) return 'perf';
   if(['option','options'].includes(s)) return 'option';
   if(['inclus','incluse','offert','offerte'].includes(s)) return 'inclus';
   return s.replace(/\s+/g,'_');
@@ -905,6 +910,44 @@ function parseSeasonSubcatLines(){
     out[FTS.norm(name)]={showOnSeason:true,day:parts[1]||'',time:parts[2]||'',level:parts[3]||'',note:parts[4]||''};
     if(maxSeats > 0) out[FTS.norm(name)].maxSeats = maxSeats;
     if(allowedOffers.length) out[FTS.norm(name)].allowedOffers = allowedOffers;
+  });
+  return out;
+}
+function setValueIfExists(id,value){ const el=$(id); if(el) el.value=value==null?'':String(value); }
+function newCategory(){
+  ['c-key','c-name','c-icon','c-subcats','c-season-subtitle','c-season-price','c-season-desc','c-season-link','c-season-subcats'].forEach(id=>{ const el=$(id); if(el) el.value=''; });
+  $('c-order').value='100';
+  $('c-active').value='true';
+  setValueIfExists('c-season-show','true');
+  renderCList();
+}
+function editCategory(key){
+  const c=categoriesRaw.find(x=>x.key===key); if(!c)return;
+  const season=c.season||{};
+  $('c-key').value=key;
+  $('c-name').value=c.name||c.category||'';
+  $('c-icon').value=c.icon||c.emoji||FTS.catIcon(c.name||c.category||'');
+  $('c-order').value=normalizePriorityValue(c.order);
+  $('c-active').value=String(c.active!==false);
+  $('c-subcats').value=(c.subcatsArray||[]).map(s=>s.name).join('\n');
+  setValueIfExists('c-season-show', String(season.showOnSeason!==false));
+  setValueIfExists('c-season-subtitle', season.subtitle||'');
+  setValueIfExists('c-season-price', season.price||season.priceNote||'');
+  setValueIfExists('c-season-desc', season.description||'');
+  setValueIfExists('c-season-link', season.link||'');
+  setValueIfExists('c-season-subcats', categorySeasonLines(c));
+  renderCList();
+}
+function cleanObjectDeep(obj){
+  if(!obj || typeof obj!=='object') return obj;
+  const out=Array.isArray(obj)?[]:{};
+  Object.keys(obj).forEach(k=>{
+    const v=obj[k];
+    if(v===undefined || v===null || v==='') return;
+    if(typeof v==='object'){
+      const child=cleanObjectDeep(v);
+      if(Array.isArray(child) ? child.length : Object.keys(child||{}).length) out[k]=child;
+    }else out[k]=v;
   });
   return out;
 }

@@ -44,7 +44,6 @@ const DEFAULT_SAISON={
 };
 let saison=DEFAULT_SAISON,current=null;
 let selectedSeasonSubcats={};
-let selectedSeasonOffers={};
 let legacySaison=DEFAULT_SAISON;
 let officialCategories=null;
 let ftsPaymentUser=null;
@@ -97,53 +96,81 @@ function buildSeasonFromCategories(categories){
   });
   return {...(legacySaison||DEFAULT_SAISON),items};
 }
-function render(){const m=saison.meta||DEFAULT_SAISON.meta;document.getElementById('page-eyebrow').textContent=m.eyebrow||'';document.getElementById('page-title').innerHTML=esc(m.title||'SAISON')+'<br><span>'+esc(m.year||'')+'</span>';document.getElementById('page-slogan').textContent=m.slogan||'';document.getElementById('parcours-cards').innerHTML=(saison.parcoursIntro||[]).map(p=>`<div class="p-card ${esc(p.key)}"><span class="p-icon">${esc(p.icon)}</span><div class="p-tag">${esc(p.tag)}</div><div class="p-title">${esc(p.title)}</div><p class="p-desc">${esc(p.desc)}</p></div>`).join('');const items=itemList();document.getElementById('tiles').innerHTML=items.map(i=>`<button class="tile" data-id="${esc(i.id)}" data-fts-click="toggle('${esc(i.id)}')"><span class="tile-icon">${esc(i.icon)}</span><div class="tile-name">${esc(i.name)}</div><div class="tile-sub">${esc(i.subtitle)}</div>${i.badge?`<span class="tile-badge">${esc(i.badge)}</span>`:''}<span class="tile-arrow">▼</span></button>`).join('')||'<div class="loading-card">Aucune activité publiée pour le moment.</div>';document.getElementById('panels').innerHTML=items.map(renderPanel).join('');}
+function render(){const m=saison.meta||DEFAULT_SAISON.meta;document.getElementById('page-eyebrow').textContent=m.eyebrow||'';document.getElementById('page-title').innerHTML=esc(m.title||'SAISON')+'<br><span>'+esc(m.year||'')+'</span>';document.getElementById('page-slogan').textContent=m.slogan||'';document.getElementById('parcours-cards').innerHTML=(saison.parcoursIntro||[]).map(p=>`<div class="p-card ${esc(p.key)}"><span class="p-icon">${esc(p.icon)}</span><div class="p-tag">${esc(p.tag)}</div><div class="p-title">${esc(p.title)}</div><p class="p-desc">${esc(p.desc)}</p></div>`).join('');const items=itemList();document.getElementById('tiles').innerHTML=items.map(i=>`<button class="tile" data-id="${esc(i.id)}" data-fts-click="toggle('${esc(i.id)}')"><span class="tile-icon">${esc(i.icon)}</span><div class="tile-name">${esc(i.name)}</div><div class="tile-sub">${esc(i.subtitle)}</div>${i.badge?`<span class="tile-badge">${esc(i.badge)}</span>`:''}<span class="tile-arrow">▼</span></button>`).join('')||'<div class="loading-card">Aucune activité publiée pour le moment.</div>';document.getElementById('panels').innerHTML=items.map(renderPanel).join('');items.forEach(i=>refreshSubcatOfferFilter(i.id));}
 function renderPanel(i){return `<div class="panel" id="panel-${esc(i.id)}"><div class="panel-hdr"><span class="panel-icon">${esc(i.icon)}</span><div><div class="panel-title">${esc(i.name)}</div><div class="panel-sub">${esc(i.subtitle)}</div></div></div><div class="panel-body">${i.description?`<p class="season-desc">${esc(i.description)}</p>`:''}${renderSubcats(i)}${renderOffers(i)}</div></div>`;}
 function subcatKey(s){return typeof s==='string'?(norm(s)||s):(s.key||norm(s.name||s.label)||'principal');}
 function subcatName(s){return typeof s==='string'?s:(s.name||s.label||'Groupe principal');}
 function subcatSeason(s){return (typeof s==='object'&&s&&s.season)?s.season:{};}
-function offerToken(value){
-  const raw=norm(value||'');
-  if(!raw) return '';
-  if(['perf','performance','performances','parcours_performance','performance_fts','pro','troupe','scene','scenique'].includes(raw)) return 'perf';
-  if(['loisir','loisirs','parcours_loisir','kids','kid','decouverte','debutant'].includes(raw)) return 'loisir';
-  if(['option','options'].includes(raw)) return 'option';
-  if(['inclus','inclu','incluse','offert','offerte'].includes(raw)) return 'inclus';
-  return raw;
+function normalizeOfferKey(value){
+  const s=String(value||'')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^a-z0-9]+/g,' ')
+    .trim();
+  if(!s) return '';
+  if(['loisir','loisirs','decouverte'].includes(s)) return 'loisir';
+  if(['performance','perf','perfo','scene','troupe'].includes(s)) return 'perf';
+  if(['option','options'].includes(s)) return 'option';
+  if(['inclus','incluse','offert','offerte'].includes(s)) return 'inclus';
+  return s.replace(/\s+/g,'_');
 }
-function offerTokens(value){
-  if(Array.isArray(value)) return value.map(offerToken).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
-  return String(value||'').split(/[,+/;]|\bet\b/gi).map(offerToken).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
+function parseAllowedOffers(value){
+  if(Array.isArray(value)) return value.map(normalizeOfferKey).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
+  return String(value||'').split(/[,+/;]|\bet\b/gi).map(normalizeOfferKey).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i);
 }
-function offerTokensFromOffer(offerOrKey){
-  if(offerOrKey && typeof offerOrKey==='object'){
-    const bag=[offerOrKey.key,offerOrKey.style,offerOrKey.label,offerOrKey.name,offerOrKey.title].filter(Boolean).join(',');
-    const tokens=offerTokens(bag);
-    if(tokens.length) return tokens;
-  }
-  return offerTokens(offerOrKey||'');
+function offerKeyForFilter(offer){return normalizeOfferKey((offer&&offer.key)||'')||normalizeOfferKey((offer&&offer.style)||'')||normalizeOfferKey((offer&&offer.label)||'');}
+function activeOfferForItem(item){
+  const list=(item&&item.offers)||[];
+  const selected=selectedSeasonOffers[item.id]||'';
+  return list.find(o=>String(o.key)===String(selected))||list[0]||null;
 }
-function offerLabelFromToken(t){return ({loisir:'Loisir',perf:'Performance',option:'Option',inclus:'Inclus'}[t]||t);}
-function allowedOffersForSubcat(s){
+function subcatAllowedOffers(s){
   const ss=subcatSeason(s);
-  return offerTokens(ss.allowedOffers||ss.allowedOfferKeys||ss.offers||ss.formules||ss.formula||ss.parcours||ss.offer||ss.offre||'');
+  return parseAllowedOffers(ss.allowedOffers||ss.formules||ss.parcours||ss.offerKeys||'');
 }
-function subcatAllowsOffer(s, offerOrKey){
-  const allowed=allowedOffersForSubcat(s);
+function subcatAllowsOffer(s,offer){
+  const allowed=subcatAllowedOffers(s);
   if(!allowed.length) return true;
-  const keys=offerTokensFromOffer(offerOrKey);
-  return !keys.length ? true : keys.some(k=>allowed.includes(k));
+  const current=offerKeyForFilter(offer);
+  return !!current && allowed.includes(current);
 }
-function currentOffer(item){
-  const offers=(item&&item.offers)||[];
-  const selected=selectedSeasonOffers[item.id];
-  return offers.find(o=>String(o.key)===String(selected)) || offers[0] || null;
+function offerLabelFromAllowed(key){
+  if(key==='loisir') return 'Loisir';
+  if(key==='perf') return 'Performance';
+  if(key==='option') return 'Option';
+  if(key==='inclus') return 'Inclus';
+  return key;
 }
-function currentOfferKey(item){
-  const offer=currentOffer(item);
-  return offer ? offer.key : '';
+function allowedOfferBadges(s){
+  const allowed=subcatAllowedOffers(s);
+  if(!allowed.length) return '';
+  return `<div class="season-subcat-offers">${allowed.map(x=>`<span>${esc(offerLabelFromAllowed(x))}</span>`).join('')}</div>`;
 }
-
+function refreshSubcatOfferFilter(activityId){
+  const item=itemList().find(x=>String(x.id)===String(activityId));
+  if(!item) return;
+  const offer=activeOfferForItem(item);
+  const subs=(item.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false));
+  const visibleKeys=subs.filter(s=>subcatAllowsOffer(s,offer)).map(subcatKey);
+  const selected=selectedSeasonSubcats[item.id]||'';
+  if(selected && !visibleKeys.includes(selected)) selectedSeasonSubcats[item.id]='';
+  const safeActivity=window.CSS&&CSS.escape?CSS.escape(activityId):String(activityId).replace(/[^a-zA-Z0-9_-]/g,'\\$&');
+  document.querySelectorAll(`.season-subcat[data-activity="${safeActivity}"]`).forEach(btn=>{
+    const key=btn.getAttribute('data-subcat')||'';
+    const ok=visibleKeys.includes(key);
+    btn.hidden=!ok;
+    btn.classList.toggle('selected', ok && selectedSeasonSubcats[item.id]===key);
+  });
+  document.querySelectorAll(`[id^="season-subcat-detail-${safeActivity}-"]`).forEach(el=>{
+    const key=el.getAttribute('data-subcat')||'';
+    const ok=visibleKeys.includes(key);
+    el.hidden=!ok;
+    if(!ok || selectedSeasonSubcats[item.id]!==key) el.classList.remove('open');
+  });
+  const empty=document.getElementById(`season-subcat-empty-${activityId}`);
+  if(empty) empty.hidden=visibleKeys.length>0;
+}
 function subcatPaymentInfo(s){
   const ss=subcatSeason(s);
   const name=subcatName(s);
@@ -157,12 +184,10 @@ function subcatPaymentInfo(s){
   const maxSeats=Number(ss.maxSeats||ss.placesMax||ss.capacity||0)||0;
   const direct=ss.seasonDetail||ss.detail||ss.details||ss.saisonDetail||'';
   const seasonDetail=String(direct||[day,time,level,age,note].filter(Boolean).join(' · ')).trim();
-  const allowedOffers=allowedOffersForSubcat(s);
-  return {key:subcatKey(s),name,title,day,time,level,age,note,price,maxSeats,allowedOffers,seasonDetail};
+  return {key:subcatKey(s),name,title,day,time,level,age,note,price,maxSeats,seasonDetail,allowedOffers:subcatAllowedOffers(s)};
 }
 function renderSubcatDetails(activityId,s){
   const ss=subcatSeason(s);
-  const allowed=allowedOffersForSubcat(s);
   const lines=[];
   if(ss.day) lines.push(['Jour',ss.day]);
   if(ss.time) lines.push(['Horaire',ss.time]);
@@ -171,56 +196,26 @@ function renderSubcatDetails(activityId,s){
   if(ss.price) lines.push(['Tarif spécifique',ss.price]);
   const maxSeats=Number(ss.maxSeats||ss.placesMax||ss.capacity||0)||0;
   if(maxSeats>0) lines.push(['Places disponibles',maxSeats+' maximum']);
-  if(allowed.length) lines.push(['Formules',allowed.map(offerLabelFromToken).join(' + ')]);
   const lineHtml=lines.length?`<div class="season-subcat-detail-grid">${lines.map(([k,v])=>`<div><span>${esc(k)}</span><strong>${esc(v)}</strong></div>`).join('')}</div>`:'';
   const note=ss.note?`<p class="season-subcat-detail-note">${esc(ss.note)}</p>`:'';
   if(!lineHtml&&!note) return '';
-  return `<div class="season-subcat-detail" id="season-subcat-detail-${esc(activityId)}-${esc(subcatKey(s))}">${lineHtml}${note}</div>`;
+  return `<div class="season-subcat-detail" id="season-subcat-detail-${esc(activityId)}-${esc(subcatKey(s))}" data-subcat="${esc(subcatKey(s))}">${lineHtml}${note}</div>`;
 }
 function renderSubcats(i){
   const subs=(i.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false));
   if(!subs.length) return '';
   const selected=selectedSeasonSubcats[i.id]||'';
-  const activeOffer=currentOffer(i);
-  const visibleCount=subs.filter(s=>subcatAllowsOffer(s,activeOffer)).length;
-  return `<div class="season-subcats" data-activity="${esc(i.id)}"><div class="season-subcats-title">Groupes / horaires</div><div class="season-subcats-help">Choisis un groupe compatible avec la formule sélectionnée. Les groupes non compatibles sont masqués automatiquement.</div><div class="season-subcats-grid">${subs.map(s=>{const ss=subcatSeason(s);const key=subcatKey(s);const bits=[ss.day,ss.time,ss.level].filter(Boolean);const active=selected&&selected===key;const allowed=allowedOffersForSubcat(s);const compatible=subcatAllowsOffer(s,activeOffer);return `<button type="button" class="season-subcat${active?' selected':''}${compatible?'':' is-hidden-by-offer'}" data-activity="${esc(i.id)}" data-subcat="${esc(key)}" data-offers="${esc(allowed.join(','))}" data-fts-click="selectSeasonSubcat('${esc(i.id)}','${esc(key)}')"><strong>${esc(ss.title||subcatName(s))}</strong>${allowed.length?`<div class="season-subcat-offers">${allowed.map(x=>`<span>${esc(offerLabelFromToken(x))}</span>`).join('')}</div>`:''}${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}${Number(ss.maxSeats||ss.placesMax||ss.capacity||0)>0?`<div class="season-subcat-capacity">${esc(String(Number(ss.maxSeats||ss.placesMax||ss.capacity||0)))} places max</div>`:''}<span class="season-subcat-check">✓</span></button>`}).join('')}</div><div class="season-subcats-empty${visibleCount?'':' open'}" data-empty-for="${esc(i.id)}">Aucun groupe n’est disponible pour cette formule.</div>${subs.map(s=>renderSubcatDetails(i.id,s)).join('')}</div>`;
+  const activeOffer=activeOfferForItem(i);
+  const offerLabel=activeOffer?(activeOffer.label||activeOffer.key||'formule'):'';
+  return `<div class="season-subcats"><div class="season-subcats-title">Groupes / horaires</div><div class="season-subcats-help">Choisis d’abord la formule puis le groupe concerné : le paiement sera pré-rempli avec ce choix.</div><div class="season-subcats-empty" id="season-subcat-empty-${esc(i.id)}" hidden>Aucun groupe compatible avec ${esc(offerLabel)} pour le moment.</div><div class="season-subcats-grid">${subs.map(s=>{const ss=subcatSeason(s);const key=subcatKey(s);const bits=[ss.day,ss.time,ss.level].filter(Boolean);const visible=subcatAllowsOffer(s,activeOffer);const active=selected&&selected===key&&visible;return `<button type="button" class="season-subcat${active?' selected':''}" ${visible?'':'hidden'} data-activity="${esc(i.id)}" data-subcat="${esc(key)}" data-fts-click="selectSeasonSubcat('${esc(i.id)}','${esc(key)}')"><strong>${esc(ss.title||subcatName(s))}</strong>${bits.length?`<div class="season-subcat-meta">${bits.map(esc).join(' · ')}</div>`:''}${allowedOfferBadges(s)}${ss.note?`<div class="season-subcat-note">${esc(ss.note)}</div>`:''}${ss.price?`<div class="season-subcat-price">${esc(ss.price)}</div>`:''}${Number(ss.maxSeats||ss.placesMax||ss.capacity||0)>0?`<div class="season-subcat-capacity">${esc(String(Number(ss.maxSeats||ss.placesMax||ss.capacity||0)))} places max</div>`:''}<span class="season-subcat-check">✓</span></button>`}).join('')}</div>${subs.map(s=>renderSubcatDetails(i.id,s)).join('')}</div>`;
 }
 function selectSeasonSubcat(activityId,subcatId){
-  const item=itemList().find(x=>String(x.id)===String(activityId));
-  const offer=currentOffer(item||{});
-  const sub=item ? (item.subcats||[]).find(s=>subcatKey(s)===subcatId) : null;
-  if(sub && !subcatAllowsOffer(sub, offer)){
-    alert('Ce groupe n’est pas disponible pour cette formule. Choisis une formule compatible ou un autre groupe.');
-    return;
-  }
   selectedSeasonSubcats[activityId]=subcatId;
-  const safeActivity=window.CSS&&CSS.escape?CSS.escape(activityId):activityId.replace(/[^a-zA-Z0-9_-]/g,'\$&');
+  const safeActivity=window.CSS&&CSS.escape?CSS.escape(activityId):activityId.replace(/[^a-zA-Z0-9_-]/g,'\\$&');
   document.querySelectorAll(`.season-subcat[data-activity="${safeActivity}"]`).forEach(btn=>btn.classList.toggle('selected',btn.getAttribute('data-subcat')===subcatId));
   document.querySelectorAll(`[id^="season-subcat-detail-${safeActivity}-"]`).forEach(el=>el.classList.remove('open'));
   const detail=document.getElementById(`season-subcat-detail-${activityId}-${subcatId}`);
   if(detail) detail.classList.add('open');
-}
-function updateSeasonSubcatVisibility(activityId,offerKey){
-  const item=itemList().find(x=>String(x.id)===String(activityId));
-  if(!item) return;
-  selectedSeasonOffers[activityId]=offerKey;
-  const offerObj=((item&&item.offers)||[]).find(o=>String(o.key)===String(offerKey)) || offerKey;
-  const safeActivity=window.CSS&&CSS.escape?CSS.escape(activityId):activityId.replace(/[^a-zA-Z0-9_-]/g,'\$&');
-  let visible=0;
-  document.querySelectorAll(`.season-subcat[data-activity="${safeActivity}"]`).forEach(btn=>{
-    const subId=btn.getAttribute('data-subcat')||'';
-    const sub=(item.subcats||[]).find(s=>subcatKey(s)===subId);
-    const ok=!sub || subcatAllowsOffer(sub, offerObj);
-    btn.classList.toggle('is-hidden-by-offer', !ok);
-    if(ok) visible++;
-    if(!ok && selectedSeasonSubcats[activityId]===subId){
-      selectedSeasonSubcats[activityId]='';
-      btn.classList.remove('selected');
-      document.querySelectorAll(`[id^="season-subcat-detail-${safeActivity}-"]`).forEach(el=>el.classList.remove('open'));
-    }
-  });
-  const empty=document.querySelector(`[data-empty-for="${safeActivity}"]`);
-  if(empty) empty.classList.toggle('open', visible===0);
 }
 function renderOffers(i){const offers=i.offers||[];const tabs=offers.length>1?`<div class="tabs">${offers.map((o,idx)=>`<button class="tab ${idx===0?'act':''} ${esc(o.style||o.key)}" data-fts-click="switchTab('${esc(i.id)}','${esc(o.key)}',this)">${esc(o.label||o.key)}</button>`).join('')}</div>`:'';return tabs+offers.map((o,idx)=>`<div class="tab-content ${idx===0?'act':''}" id="${esc(i.id)}-${esc(o.key)}"><div class="c-main ${o.style==='perf'?'perf':''}">${o.main||''}</div>${renderBullets(o.bullets)}${renderOfferBox(o,i)}</div>`).join('');}
 function renderBullets(bullets){if(!bullets||!bullets.length)return'';return `<ul class="c-list">${bullets.map(b=>{const gift=String(b).includes('🎁');const warn=String(b).includes('💰');return `<li class="${gift?'gift':warn?'warn':'incl'}"><span class="icon">${gift?'🎁':warn?'💰':'✔'}</span><span>${esc(String(b).replace(/^([✔⚡🎁💰])\s*/,'')).replace(/Offert :/,'<strong>Offert :</strong>')}</span></li>`}).join('')}</ul>`}
@@ -272,15 +267,15 @@ function openSeasonPayment(activityId,offerKey){
   if(!item||!offer){alert('Formule introuvable.');return;}
   const prices=priceChoices(offer.price);
   if(!prices.length){alert('Tarif non reconnu pour cette formule.');return;}
+  selectedSeasonOffers[item.id]=offer.key;
+  refreshSubcatOfferFilter(item.id);
   const chosenSubcat=selectedSeasonSubcat(item);
-  if((item.subcats||[]).length && !chosenSubcat){
-    alert('Choisis d’abord le groupe / horaire concerné avant de lancer le paiement.');
-    const zone=document.querySelector(`#panel-${CSS.escape(item.id)} .season-subcats`);
-    if(zone) zone.scrollIntoView({behavior:'smooth',block:'center'});
+  if(chosenSubcat && !subcatAllowsOffer((item.subcats||[]).find(s=>subcatKey(s)===chosenSubcat.key), offer)){
+    alert('Ce groupe n’est pas disponible pour cette formule. Choisis un groupe compatible.');
     return;
   }
-  if(chosenSubcat && !subcatAllowsOffer((item.subcats||[]).find(s=>subcatKey(s)===chosenSubcat.key), offer)){
-    alert('Ce groupe n’est pas disponible pour cette formule. Choisis une formule compatible ou un autre groupe.');
+  if((item.subcats||[]).length && !chosenSubcat){
+    alert('Choisis d’abord le groupe / horaire concerné avant de lancer le paiement.');
     const zone=document.querySelector(`#panel-${CSS.escape(item.id)} .season-subcats`);
     if(zone) zone.scrollIntoView({behavior:'smooth',block:'center'});
     return;
@@ -313,11 +308,11 @@ async function submitSeasonPayment(event){
     const form=event.target;
     const item=ftsPaymentContext.item, offer=ftsPaymentContext.offer;
     const selectedSubcat=findSeasonSubcat(item,form.subcategoryId.value)||{key:form.subcategoryId.value,name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',maxSeats:0,seasonDetail:''};
-    const payload={source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:selectedSubcat.key,subcategoryName:selectedSubcat.name,subcategoryTitle:selectedSubcat.title,subcategoryDay:selectedSubcat.day,subcategoryTime:selectedSubcat.time,subcategoryLevel:selectedSubcat.level,subcategoryAge:selectedSubcat.age,subcategoryNote:selectedSubcat.note,subcategoryPrice:selectedSubcat.price,subcategoryMaxSeats:Number(selectedSubcat.maxSeats||0)||0,subcategoryAllowedOffers:selectedSubcat.allowedOffers||[],subcategorySeasonDetail:selectedSubcat.seasonDetail,subcategory:selectedSubcat,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value},student:{name:form.studentName.value}};
+    const payload={source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:selectedSubcat.key,subcategoryName:selectedSubcat.name,subcategoryTitle:selectedSubcat.title,subcategoryDay:selectedSubcat.day,subcategoryTime:selectedSubcat.time,subcategoryLevel:selectedSubcat.level,subcategoryAge:selectedSubcat.age,subcategoryNote:selectedSubcat.note,subcategoryPrice:selectedSubcat.price,subcategoryMaxSeats:Number(selectedSubcat.maxSeats||0)||0,subcategorySeasonDetail:selectedSubcat.seasonDetail,subcategoryAllowedOffers:selectedSubcat.allowedOffers||[],subcategory:selectedSubcat,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value},student:{name:form.studentName.value}};
     msg.textContent='Création du paiement sécurisé…';
     const res=await fetch(ftsPaymentApiBase()+'/checkout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
     const data=await res.json().catch(()=>({}));
-    if(!res.ok||!data.ok){const labels={subcategory_full:'Ce groupe est complet : le nombre de places maximum est atteint.',subcategory_offer_not_allowed:'Ce groupe n’est pas disponible pour la formule sélectionnée.',payment_access_denied:'Paiement non autorisé pour ce compte.'};throw new Error(labels[data.error]||data.error||'Erreur création paiement');}
+    if(!res.ok||!data.ok){const labels={subcategory_full:'Ce groupe est complet : le nombre de places maximum est atteint.',subcategory_offer_not_allowed:'Ce groupe n’est pas disponible pour cette formule.',payment_access_denied:'Paiement non autorisé pour ce compte.'};throw new Error(labels[data.error]||data.error||'Erreur création paiement');}
     location.href=data.redirectUrl;
   }catch(e){msg.textContent='Impossible de lancer le paiement : '+(e&&e.message?e.message:e);}
 }
@@ -339,7 +334,7 @@ function initSeasonPaymentGate(){
 }
 
 function toggle(id){const tile=document.querySelector('[data-id="'+id+'"]'),panel=document.getElementById('panel-'+id);if(!tile||!panel)return;if(current&&current!==id){const oldT=document.querySelector('[data-id="'+current+'"]'),oldP=document.getElementById('panel-'+current);if(oldT)oldT.classList.remove('open');if(oldP)oldP.classList.remove('open')}if(current===id){tile.classList.remove('open');panel.classList.remove('open');current=null}else{tile.classList.add('open');panel.classList.add('open');current=id;setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),50)}}
-function switchTab(disc,parcours,btn){const panel=document.getElementById('panel-'+disc);panel.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));panel.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('act'));btn.classList.add('act');document.getElementById(disc+'-'+parcours).classList.add('act');updateSeasonSubcatVisibility(disc,parcours)}
+function switchTab(disc,parcours,btn){selectedSeasonOffers[disc]=parcours;const panel=document.getElementById('panel-'+disc);panel.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));panel.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('act'));btn.classList.add('act');document.getElementById(disc+'-'+parcours).classList.add('act');refreshSubcatOfferFilter(disc)}
 function applySeason(){saison=officialCategories?buildSeasonFromCategories(officialCategories):(legacySaison||DEFAULT_SAISON);render();}
 function finishInitialRender(){applySeason();document.body.classList.remove('saison-loading')}
 function loadSaison(){
