@@ -44,6 +44,7 @@ const DEFAULT_SAISON={
 };
 let saison=DEFAULT_SAISON,current=null;
 let selectedSeasonSubcats={};
+let selectedSeasonOffers={};
 let legacySaison=DEFAULT_SAISON;
 let officialCategories=null;
 let ftsPaymentUser=null;
@@ -336,7 +337,20 @@ function initSeasonPaymentGate(){
 function toggle(id){const tile=document.querySelector('[data-id="'+id+'"]'),panel=document.getElementById('panel-'+id);if(!tile||!panel)return;if(current&&current!==id){const oldT=document.querySelector('[data-id="'+current+'"]'),oldP=document.getElementById('panel-'+current);if(oldT)oldT.classList.remove('open');if(oldP)oldP.classList.remove('open')}if(current===id){tile.classList.remove('open');panel.classList.remove('open');current=null}else{tile.classList.add('open');panel.classList.add('open');current=id;setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),50)}}
 function switchTab(disc,parcours,btn){selectedSeasonOffers[disc]=parcours;const panel=document.getElementById('panel-'+disc);panel.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));panel.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('act'));btn.classList.add('act');document.getElementById(disc+'-'+parcours).classList.add('act');refreshSubcatOfferFilter(disc)}
 function applySeason(){saison=officialCategories?buildSeasonFromCategories(officialCategories):(legacySaison||DEFAULT_SAISON);render();}
-function finishInitialRender(){applySeason();document.body.classList.remove('saison-loading')}
+function finishInitialRender(){
+  try{ applySeason(); }
+  catch(e){ console.warn('[FTS Saison render]',e); saison=legacySaison||DEFAULT_SAISON; renderFallbackSeason(); }
+  document.body.classList.remove('saison-loading');
+}
+function renderFallbackSeason(){
+  try{ render(); }
+  catch(e){
+    const tiles=document.getElementById('tiles');
+    const panels=document.getElementById('panels');
+    if(tiles) tiles.innerHTML='<div class="loading-card">Impossible d’afficher la saison pour le moment.</div>';
+    if(panels) panels.innerHTML='';
+  }
+}
 function loadSaison(){
   let rendered=false;
   try{
