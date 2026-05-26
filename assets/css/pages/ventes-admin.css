@@ -10,3 +10,16 @@
 /* v5 — jauges places sous-groupes */
 .sales-subgroup.full>summary{border-color:rgba(255,95,95,.35)}
 .sales-subgroup.full .sales-subgroup-count b{color:#ff7b7b}
+
+
+/* v6 — suppression admin commandes sélectionnées */
+.sales-btn.danger{background:linear-gradient(135deg,#ff6b8b,#ff3d6e);color:#fff;box-shadow:0 12px 28px rgba(255,61,110,.24)}
+.sales-btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.sales-bulk{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;background:rgba(255,255,255,.08);border:1px solid var(--sales-line);border-radius:22px;padding:12px 14px}
+.sales-check-all,.sales-order-select{display:inline-flex;align-items:center;gap:8px;color:#fff;font-weight:800;font-size:13px;cursor:pointer;user-select:none}
+.sales-check-all input,.sales-order-select input{width:18px;height:18px;accent-color:#ffce4a;cursor:pointer}
+.sales-bulk-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;color:var(--sales-muted);font-size:13px;font-weight:800}
+.sales-order-card.is-selected{border-color:rgba(255,206,74,.55);background:rgba(255,206,74,.09)}
+.sales-order-head{align-items:center}
+.sales-order-select{flex:0 0 auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:8px 10px}
+@media(max-width:860px){.sales-bulk{align-items:flex-start;flex-direction:column}.sales-bulk-actions{width:100%;justify-content:space-between}.sales-order-head{display:grid;grid-template-columns:1fr;gap:10px}.sales-order-select{width:max-content}}
