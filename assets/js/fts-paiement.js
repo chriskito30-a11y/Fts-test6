@@ -53,11 +53,20 @@
   }
 
   async function api(path, options){
-    const token = await getToken(false);
+    options = options || {};
+    const headers = Object.assign({ 'Content-Type':'application/json' }, options.headers || {});
+    if(!options.optionalAuth){
+      const token = await getToken(false);
+      headers.Authorization = 'Bearer ' + token;
+    }else if(window.firebase && firebase.auth && firebase.auth().currentUser){
+      const token = await firebase.auth().currentUser.getIdToken(false).catch(() => '');
+      if(token) headers.Authorization = 'Bearer ' + token;
+    }
+    delete options.optionalAuth;
     const res = await fetch(WORKER_URL + path, Object.assign({
       method:'GET',
-      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + token }
-    }, options || {}));
+      headers
+    }, options));
     const data = await res.json().catch(() => null);
     if(!res.ok || !data || data.ok === false){
       const err = new Error((data && data.error) || ('HTTP ' + res.status));
@@ -117,6 +126,23 @@
     }
   }
 
+  function setConfirmationMode(kind){
+    const hero = document.querySelector('.payment-hero');
+    if(!hero) return;
+    const title = hero.querySelector('h1');
+    const text = hero.querySelector('p');
+    const security = hero.querySelector('.payment-security-line');
+    if(kind === 'free'){
+      if(title) title.textContent = 'Réservation confirmée';
+      if(text) text.textContent = 'Votre réservation gratuite est enregistrée. Aucun paiement en ligne n’est nécessaire.';
+      if(security) security.hidden = true;
+    }else if(kind === 'offline'){
+      if(title) title.textContent = 'Demande enregistrée';
+      if(text) text.textContent = 'Votre commande est enregistrée. Le paiement sera remis à l’association.';
+      if(security) security.hidden = true;
+    }
+  }
+
   async function handleReturn(){
     const params = new URLSearchParams(location.search);
     const orderId = params.get('orderId') || params.get('order') || params.get('localOrderId');
@@ -126,12 +152,12 @@
     if(!panel || !box || (!orderId && !result)) return;
     panel.hidden = false;
     let html = '<div class="payment-status-pill pending">Vérification en cours</div><p>Vérification de votre réservation ou paiement.</p>';
-    if(result === 'free') html = '<div class="payment-status-pill pending">Confirmation en cours</div><p>Vérification de votre réservation gratuite.</p>';
-    if(result === 'offline') html = '<div class="payment-status-pill pending">Confirmation en cours</div><p>Vérification de votre commande avec paiement hors ligne.</p>';
+    if(result === 'free') { setConfirmationMode('free'); html = '<div class="payment-status-pill pending">Confirmation en cours</div><p>Vérification de votre réservation gratuite.</p>'; }
+    if(result === 'offline') { setConfirmationMode('offline'); html = '<div class="payment-status-pill pending">Confirmation en cours</div><p>Vérification de votre commande avec paiement hors ligne.</p>'; }
     box.innerHTML = html;
     if(orderId){
       try{
-        const data = await api('/payment-status?orderId=' + encodeURIComponent(orderId), { method:'GET' });
+        const data = await api('/payment-status?orderId=' + encodeURIComponent(orderId), { method:'GET', optionalAuth:true });
         const order = data.order || {};
         const cls = statusClass(order.status);
         const status = String(order.status || '').toLowerCase();
@@ -139,8 +165,10 @@
         const itemName = order.itemName || order.itemTitle || 'Fais Ton Show';
         let detail = '';
         if(status === 'free_confirmed' || globalStatus === 'free'){
+          setConfirmationMode('free');
           detail = '<p>Aucun paiement en ligne n’est requis. Votre réservation est bien enregistrée.</p>';
         }else if(status === 'offline_pending' || globalStatus === 'offline_pending'){
+          setConfirmationMode('offline');
           detail = '<p>Votre demande est enregistrée. Le règlement est à remettre à l’association.</p>';
           if(order.totalAmount || order.amountCents) detail += '<p><strong>Montant à régler : '+esc(formatEuros(order.totalAmount || order.amountCents))+'</strong></p>';
           if(order.offlineMethod) detail += '<p>Mode prévu : '+esc(order.offlineMethod)+'</p>';
@@ -157,7 +185,10 @@
   }
 
   async function initPaymentPage(){
+    const params = new URLSearchParams(location.search);
+    const hasReturnOrder = !!(params.get('orderId') || params.get('order') || params.get('localOrderId') || params.get('result') || params.get('status') || params.get('code'));
     await handleReturn();
+    if(hasReturnOrder){ hideGuard(); const itemsPanel = $('payment-items-panel'); if(itemsPanel) itemsPanel.hidden = true; return; }
     if(!state.user){ setGuard('Connexion nécessaire', 'Connectez-vous à votre compte Fais Ton Show pour accéder au paiement.'); return; }
     if(!canSeePayments()){
       setGuard('Paiement indisponible', 'Le paiement en ligne sera affiché ici lorsqu’il sera ouvert aux membres concernés.');
