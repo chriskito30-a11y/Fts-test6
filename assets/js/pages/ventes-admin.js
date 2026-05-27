@@ -41,7 +41,9 @@
   function typeIcon(type){ return (TYPE_META[type] && TYPE_META[type].icon) || '💳'; }
   function statusKind(status){
     const s = norm(status || '');
-    if(['paid','authorized','validated','success','confirmed','succeeded'].includes(s)) return 'paid';
+    if(['paid','authorized','validated','success','confirmed','succeeded','offline_received'].includes(s)) return 'paid';
+    if(['free_confirmed'].includes(s)) return 'free';
+    if(['offline_pending'].includes(s)) return 'offline';
     if(['refused','failed','error','canceled','cancelled','abandoned','contested','refunded'].includes(s)) return 'refused';
     return 'pending';
   }
@@ -49,11 +51,16 @@
     const k = statusKind(status);
     if(k === 'paid') return 'Validé';
     if(k === 'refused') return 'Refusé / annulé';
+    if(s==='free_confirmed') return 'Gratuit confirmé';
+    if(s==='offline_pending') return 'Paiement à recevoir';
+    if(s==='offline_received') return 'Paiement reçu hors ligne';
     return 'En attente';
   }
   function installmentKind(status){
     const s = norm(status || '');
-    if(['paid','authorized','validated','success','confirmed','succeeded'].includes(s)) return 'paid';
+    if(['paid','authorized','validated','success','confirmed','succeeded','offline_received'].includes(s)) return 'paid';
+    if(['free_confirmed'].includes(s)) return 'free';
+    if(['offline_pending'].includes(s)) return 'offline';
     if(['refused','failed','error','canceled','cancelled','contested'].includes(s)) return 'refused';
     if(['scheduled','pending','initial_pending'].includes(s)) return s === 'scheduled' ? 'scheduled' : 'pending';
     return 'pending';
@@ -401,7 +408,7 @@
       const bk = b.kind === 'refused' ? 0 : b.kind === 'pending' ? 1 : b.kind === 'scheduled' ? 2 : 3;
       return ak-bk || String(a.installment.date||'').localeCompare(String(b.installment.date||'')) || Number(a.installment.number||0)-Number(b.installment.number||0);
     });
-    $('sales-installments').innerHTML = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>📆 Échéances</h2><p>Refus et échéances à surveiller remontent en premier.</p></div></div><div class="sales-table">${rows.map(({order:o,installment:x,kind})=>`<div class="sales-row"><div><strong>${esc(studentName(o))}</strong><small>${esc(o.activityName || typeLabel(typeKey(o)))} · ${esc([o.subcategoryName,subcategoryDetail(o)].filter(Boolean).join(' · '))}</small></div><div><strong>Échéance #${esc(x.number || '?')}</strong><small>${esc(x.date || 'Date inconnue')}</small></div><div><span class="sales-status ${kind==='paid'?'paid':kind==='refused'?'refused':'pending'}">${esc(x.status || 'en attente')}</span><small>${esc(o.paymentPlan || '')}</small></div><div><strong>${euro(x.amount)}</strong><small>${esc(o.id || '')}</small></div></div>`).join('')}</div></section>`;
+    $('sales-installments').innerHTML = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>📆 Échéances</h2><p>Refus et échéances à surveiller remontent en premier.</p></div></div><div class="sales-table">${rows.map(({order:o,installment:x,kind})=>`<div class="sales-row"><div><strong>${esc(studentName(o))}</strong><small>${esc(o.activityName || typeLabel(typeKey(o)))} · ${esc([o.subcategoryName,subcategoryDetail(o)].filter(Boolean).join(' · '))}</small></div><div><strong>Échéance #${esc(x.number || '?')}</strong><small>${esc(x.date || 'Date inconnue')}</small></div><div><span class="sales-status ${kind==='paid'?'paid':kind==='refused'?'refused':'pending'}">${esc(x.status || 'en attente')}</span><small>${esc(o.paymentPlan || '')}</small></div><div><strong>${euro(x.amount)}</strong><small>${esc(o.id || '')}${promoInfo(o)?' · '+esc(promoInfo(o)):''}</small></div></div>`).join('')}</div></section>`;
   }
   function renderAll(){
     const list = filteredOrders();
@@ -488,7 +495,7 @@
     });
     const ordersView = $('sales-orders'); if(ordersView) ordersView.addEventListener('change', e=>{
       const box = e.target && e.target.closest ? e.target.closest('.sales-order-checkbox') : null;
-      if(!box) return;
+      if(!box){ const offline=e.target && e.target.closest ? e.target.closest('.sales-offline-paid-btn') : null; if(offline){ offline.disabled=true; markOfflinePaid(String(offline.getAttribute('data-order-id')||'')); } return; }
       const id = String(box.getAttribute('data-order-id') || '');
       if(!id) return;
       if(box.checked) selectedOrderIds.add(id); else selectedOrderIds.delete(id);
@@ -496,7 +503,7 @@
     });
     const shopView = $('sales-shop'); if(shopView) shopView.addEventListener('click', e=>{
       const btn = e.target && e.target.closest ? e.target.closest('.sales-pickup-btn') : null;
-      if(!btn) return;
+      if(!btn){ const offline=e.target && e.target.closest ? e.target.closest('.sales-offline-paid-btn') : null; if(offline){ offline.disabled=true; markOfflinePaid(String(offline.getAttribute('data-order-id')||'')); } return; }
       btn.disabled = true;
       markShopPickedUp(String(btn.getAttribute('data-order-id') || ''));
     });
@@ -509,11 +516,11 @@
   }
   function exportCsv(){
     const rows = filteredOrders();
-    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formules_autorisees','formule','participant_prenom','participant_nom','participant','payeur','email','telephone','telephone_urgence','produit','variante','quantite','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
+    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formules_autorisees','formule','participant_prenom','participant_nom','participant','payeur','email','telephone','telephone_urgence','produit','variante','quantite','plan','prix_initial','remise','code_promo','mode_special','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
     const lines = [head.join(';')];
     rows.forEach(o=>{
       const sum = installmentSummary(o);
-      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',subcategoryAllowedOffersLabel(o),o.offerLabel,participantFirstName(o),participantLastName(o),studentName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.productName||'',variantInfo(o),o.quantity||'',o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
+      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',subcategoryAllowedOffersLabel(o),o.offerLabel,participantFirstName(o),participantLastName(o),studentName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.productName||'',variantInfo(o),o.quantity||'',o.paymentPlan,originalAmount(o)/100,discountAmount(o)/100,o.promoCode||'',promoInfo(o),amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
       lines.push(row.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';'));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});

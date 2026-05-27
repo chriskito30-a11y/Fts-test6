@@ -1439,8 +1439,9 @@ function ensureMemberPaymentModal(){
         <label>Téléphone<input name="phone" type="tel" autocomplete="tel"></label>
         <label class="full">Nom du participant<input name="participantName" required></label>
         <label>Nombre de places<input name="quantity" type="number" min="1" max="20" value="1" required></label>
+        <label class="full">Code promo / code spécial<input name="promoCode" placeholder="Optionnel"></label>
       </div>
-      <button class="evt-link member-pay-submit" type="submit">Continuer vers HelloAsso</button>
+      <button class="evt-link member-pay-submit" type="submit">Continuer</button>
       <div id="member-pay-msg" class="member-pay-msg"></div>
     </form>
   </div>`;
@@ -1480,11 +1481,11 @@ async function submitMemberEventPayment(ev){
     if(user){ const token=await user.getIdToken(); headers.Authorization='Bearer '+token; }
     const res=await fetch(((FTS.PAYMENT&&FTS.PAYMENT.workerUrl)||'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,'') + '/checkout', {
       method:'POST', headers,
-      body:JSON.stringify({type:e.paymentType||'event_ticket',source:'membres.html',eventId:e.id,quantity:Math.max(1,Math.min(20,Number(form.quantity.value||1)||1)),payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},participant:{name:form.participantName.value}})
+      body:JSON.stringify({type:e.paymentType||'event_ticket',source:'membres.html',eventId:e.id,quantity:Math.max(1,Math.min(20,Number(form.quantity.value||1)||1)),payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},participant:{name:form.participantName.value},promoCode:form.promoCode?form.promoCode.value:''})
     });
     const data=await res.json().catch(()=>({}));
-    if(!res.ok || !data.redirectUrl) throw new Error(data.error || 'Erreur paiement');
-    location.href=data.redirectUrl;
+    if(!res.ok || (!data.redirectUrl && !data.confirmationUrl)) throw new Error(data.error || 'Erreur paiement');
+    location.href=data.redirectUrl || data.confirmationUrl;
   }catch(err){
     console.warn('[FTS event payment]', err);
     msg.textContent = err && err.message === 'event_full' ? 'Il n’y a plus assez de places disponibles.' : 'Impossible de lancer le paiement.';

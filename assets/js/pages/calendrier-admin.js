@@ -65,7 +65,7 @@ function collectPaymentFieldsForSave(){
   const paymentType = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
   const priceCents = centsFromEuroInput('e-price');
   const maxSeats = Math.max(0, Number(($('e-max-seats') && $('e-max-seats').value) || 0) || 0);
-  if(paymentEnabled && !priceCents) throw new Error('Prix requis si le paiement est activé');
+  if(paymentEnabled && priceCents < 0) throw new Error('Prix invalide');
   return { paymentEnabled, payEnabled: paymentEnabled, paymentType, saleType: paymentType, priceCents, maxSeats, capacity:maxSeats };
 }
 function collectEndDateForSave(){
