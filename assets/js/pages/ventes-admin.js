@@ -95,6 +95,12 @@
     if(o.remainingAmount != null) return cents(o.remainingAmount);
     return Math.max(0, amount(o) - paidAmount(o));
   }
+  function isShopPickedUp(o){
+    return !!(o.shopPickedUpAt || o.pickedUpAt || (o.fulfillment && o.fulfillment.pickedUpAt) || String(o.fulfillmentStatus || '') === 'picked_up');
+  }
+  function shopTodoOrders(list){
+    return list.filter(o=>typeKey(o)==='shop_order' && statusKind(o.status)==='paid' && !isShopPickedUp(o));
+  }
   function installmentSummary(o){
     const list = Array.isArray(o.installments) ? o.installments : [];
     if(!list.length){
@@ -323,6 +329,55 @@
       ${inst ? `<div class="sales-installment-list">${inst}</div>` : ''}
     </article>`;
   }
+  function renderShopTodo(list){
+    const rows = shopTodoOrders(list);
+    if(!rows.length){
+      $('sales-shop').innerHTML = '<div class="sales-empty">Aucune commande boutique à traiter.</div>';
+      return;
+    }
+    const totalQty = rows.reduce((sum,o)=>sum + Math.max(1, Number(o.quantity || 1) || 1), 0);
+    $('sales-shop').innerHTML = `<section class="sales-type-block">
+      <div class="sales-section-head"><div><h2>🛍️ Boutique à traiter</h2><p>${rows.length} commande(s) · ${totalQty} article(s) à remettre.</p></div></div>
+      <div class="sales-shop-list">${rows.map(renderShopTodoCard).join('')}</div>
+    </section>`;
+  }
+  function renderShopTodoCard(o){
+    const id = String(o.id || '');
+    return `<article class="sales-shop-card">
+      <div>
+        <strong>${esc(o.productName || itemLabel(o))}</strong>
+        <small>${esc(o.variantLabel || 'Aucune variante')} · Qté ${esc(o.quantity || 1)}</small>
+      </div>
+      <div>
+        <strong>${esc(payerName(o))}</strong>
+        <small>${esc(payerEmail(o))}</small>
+      </div>
+      <div>
+        <strong>${euro(amount(o))}</strong>
+        <small>${esc(shortDate(o.createdAt))}</small>
+      </div>
+      <button type="button" class="sales-btn small sales-pickup-btn" data-order-id="${esc(id)}">Marquer récupérée</button>
+    </article>`;
+  }
+  async function markShopPickedUp(orderId){
+    if(!orderId) return;
+    fail('');
+    try{
+      const token = await firebase.auth().currentUser.getIdToken(true);
+      const res = await fetch(paymentWorkerUrl() + '/admin/orders/pickup', {
+        method:'POST',
+        headers:{ Authorization:'Bearer ' + token, 'Content-Type':'application/json', Accept:'application/json' },
+        body: JSON.stringify({ id:orderId, pickedUp:true })
+      });
+      const data = await res.json().catch(()=>null);
+      if(!res.ok || !data || data.ok === false) throw new Error((data && data.error) || ('pickup_order_' + res.status));
+      await loadOrders();
+    }catch(e){
+      console.warn('[FTS ventes admin] récupération boutique impossible', e);
+      fail('Impossible de marquer la commande comme récupérée. Vérifie que le Worker contient /admin/orders/pickup.');
+    }
+  }
+
   function renderInstallments(list){
     const rows = [];
     list.forEach(o=>{
@@ -342,6 +397,7 @@
     renderStats(list);
     renderGroups(list);
     renderOrders(list);
+    renderShopTodo(list);
     renderInstallments(list);
     updateBulkUi();
   }
@@ -427,10 +483,16 @@
       if(box.checked) selectedOrderIds.add(id); else selectedOrderIds.delete(id);
       renderAll();
     });
+    const shopView = $('sales-shop'); if(shopView) shopView.addEventListener('click', e=>{
+      const btn = e.target && e.target.closest ? e.target.closest('.sales-pickup-btn') : null;
+      if(!btn) return;
+      btn.disabled = true;
+      markShopPickedUp(String(btn.getAttribute('data-order-id') || ''));
+    });
     document.querySelectorAll('[data-sales-tab]').forEach(btn=>btn.addEventListener('click',()=>{
       activeTab = btn.getAttribute('data-sales-tab') || 'groups';
       document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active', b===btn));
-      ['groups','orders','installments'].forEach(name=>{ const el=$('sales-'+name); if(el) el.hidden = name !== activeTab; });
+      ['groups','orders','shop','installments'].forEach(name=>{ const el=$('sales-'+name); if(el) el.hidden = name !== activeTab; });
       updateBulkUi();
     }));
   }
