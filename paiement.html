@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Paiement — Fais Ton Show</title>
+  <title>Réservation / paiement — Fais Ton Show</title>
   <link href="./manifest.json" rel="manifest"/>
   <link href="https://fonts.googleapis.com" rel="preconnect"/>
   <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
@@ -19,16 +19,16 @@
   <main class="payment-wrap" id="payment-app">
     <section class="payment-hero">
       <div class="payment-kicker">Fais Ton Show</div>
-      <h1>Paiement sécurisé</h1>
-      <p>Réglez une inscription, une réservation ou un achat lié à l’association depuis un parcours simple et mobile.</p>
+      <h1>Réservation / paiement</h1>
+      <p>Validez une inscription, une réservation ou un achat lié à l’association depuis un parcours simple et mobile.</p>
       <div class="payment-security-line">
-        <span>🔐 Paiement via HelloAsso</span>
-        <span>🛡️ Aucun secret dans l’application</span>
+        <span>🔐 Paiement en ligne via HelloAsso si nécessaire</span>
+        <span>🎟️ Gratuit ou hors ligne possible selon le cas</span>
       </div>
     </section>
 
     <section class="payment-panel" id="payment-status-panel" hidden>
-      <div class="panel-title">Suivi du paiement</div>
+      <div class="panel-title">Suivi de la réservation / du paiement</div>
       <div id="payment-return-status" class="payment-status-card">Vérification du statut…</div>
     </section>
 
@@ -40,8 +40,8 @@
     <section class="payment-panel" id="payment-items-panel" hidden>
       <div class="panel-head">
         <div>
-          <div class="panel-title">Paiements disponibles</div>
-          <p>Choisissez l’élément concerné. Vous serez redirigé vers HelloAsso pour finaliser le paiement.</p>
+          <div class="panel-title">Parcours disponibles</div>
+          <p>Choisissez l’élément concerné. Selon le cas, la réservation sera gratuite, hors ligne ou redirigée vers HelloAsso.</p>
         </div>
       </div>
       <div class="payment-grid" id="payment-items"></div>
@@ -60,6 +60,6 @@
   <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/services/auth.service.js?v=1"></script>
   <script src="assets/js/services/users.service.js?v=1"></script>
-  <script src="assets/js/fts-paiement.js?v=1"></script>
+  <script src="assets/js/fts-paiement.js?v=2"></script>
 </body>
 </html>
