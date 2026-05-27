@@ -19,7 +19,6 @@ function $(id){ return document.getElementById(id); }
    sans remplacer calendrier-admin.html.
 ──────────────────────────────────────────────────────────────── */
 function ensureEventPaymentFields(){
-  if($('e-payment-enabled')) return;
   const dateSection = $('e-date') && $('e-date').closest ? $('e-date').closest('.form-section') : null;
   if(!dateSection) return;
   const grid = dateSection.querySelector('.form-grid');
@@ -28,17 +27,52 @@ function ensureEventPaymentFields(){
   if(dateField && !$('e-end-date')){
     dateField.insertAdjacentHTML('afterend', '<div class="field"><label>Date de fin <small>(optionnel pour les stages)</small></label><input id="e-end-date" type="date"/></div>');
   }
-  dateSection.insertAdjacentHTML('afterend', `
-    <div class="form-section fts-payment-admin-section" id="event-payment-section">
-      <div class="section-title"><span>4</span>Paiement / réservation</div>
-      <div class="target-help">Pour un spectacle ou un stage payant, active le paiement. Les places max restent privées et ne sont pas affichées au public.</div>
-      <div class="form-grid">
-        <div class="field"><label>Paiement activé</label><select id="e-payment-enabled"><option value="false">Non</option><option value="true">Oui</option></select></div>
-        <div class="field"><label>Nature</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option></select></div>
-        <div class="field"><label>Prix en €</label><input id="e-price" type="number" min="0" step="0.01" placeholder="Ex : 12"/></div>
-        <div class="field"><label>Places max privées</label><input id="e-max-seats" type="number" min="0" step="1" placeholder="0 = illimité"/></div>
-      </div>
-    </div>`);
+  if(!$('event-payment-section')){
+    dateSection.insertAdjacentHTML('afterend', `
+      <div class="form-section fts-payment-admin-section" id="event-payment-section">
+        <div class="section-title"><span>4</span>Paiement / réservation</div>
+        <div class="target-help">Active la réservation pour les événements gratuits, payants ou hors ligne. Les places max restent privées et ne sont pas affichées au public.</div>
+        <div class="form-grid">
+          <div class="field"><label>Réservation / paiement activé</label><select id="e-payment-enabled"><option value="false">Non</option><option value="true">Oui</option></select></div>
+          <div class="field"><label>Nature</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option></select></div>
+          <div class="field"><label>Prix en €</label><input id="e-price" type="number" min="0" step="0.01" placeholder="0 = gratuit"/></div>
+          <div class="field"><label>Places max privées</label><input id="e-max-seats" type="number" min="0" step="1" placeholder="0 = illimité"/></div>
+        </div>
+        <div class="event-promo-inline" data-admin-advanced>
+          <div class="event-promo-title">
+            <strong>Codes promo & spéciaux</strong>
+            <span>Réduction, gratuité via code, ou paiement hors ligne chèque / espèces.</span>
+          </div>
+          <div class="promo-admin-card promo-admin-card-inline" data-promo-admin data-promo-calendar="true" data-promo-scope="event_ticket"></div>
+        </div>
+      </div>`);
+  }
+  bindPaymentPromoContextHandlers();
+  updateCalendarPromoContext();
+  if(window.FTSPromoAdmin && typeof window.FTSPromoAdmin.init === 'function'){
+    window.FTSPromoAdmin.init();
+  }
+}
+function currentCalendarEventId(){
+  return String(($('e-key') && $('e-key').value) || selectedKey || '').trim();
+}
+function bindPaymentPromoContextHandlers(){
+  const typeEl = $('e-payment-type');
+  if(typeEl && !typeEl.__ftsPromoContextBound){
+    typeEl.__ftsPromoContextBound = true;
+    typeEl.addEventListener('change', updateCalendarPromoContext);
+  }
+}
+function updateCalendarPromoContext(){
+  const section = document.querySelector('[data-promo-calendar="true"]');
+  if(!section) return;
+  const scope = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
+  const eventId = currentCalendarEventId();
+  section.setAttribute('data-promo-scope', scope);
+  section.setAttribute('data-current-event-id', eventId);
+  if(window.FTSPromoAdmin && typeof window.FTSPromoAdmin.refreshContext === 'function'){
+    window.FTSPromoAdmin.refreshContext(section);
+  }
 }
 function centsFromEuroInput(id){
   const el=$(id); const raw=el?String(el.value||'').replace(',','.').trim():'';
@@ -65,7 +99,7 @@ function collectPaymentFieldsForSave(){
   const paymentType = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
   const priceCents = centsFromEuroInput('e-price');
   const maxSeats = Math.max(0, Number(($('e-max-seats') && $('e-max-seats').value) || 0) || 0);
-  if(paymentEnabled && priceCents < 0) throw new Error('Prix invalide');
+  if(paymentEnabled && !priceCents) throw new Error('Prix requis si le paiement est activé');
   return { paymentEnabled, payEnabled: paymentEnabled, paymentType, saleType: paymentType, priceCents, maxSeats, capacity:maxSeats };
 }
 function collectEndDateForSave(){
@@ -476,6 +510,7 @@ function newEvent(){
   if($('e-important')) $('e-important').value='false';
   if($('e-payment-enabled')) $('e-payment-enabled').value='false';
   if($('e-payment-type')) $('e-payment-type').value='event_ticket';
+  updateCalendarPromoContext();
   resetTargetSelection();
   renderList();
 }
@@ -493,6 +528,7 @@ function editEvent(key){
   $('e-desc').value=e.desc||'';
   if($('e-important')) $('e-important').value=String(!!e.important);
   applyPaymentFieldsToForm(e);
+  updateCalendarPromoContext();
   setTargetSelectionFromEvent(e);
   renderList();
 }
@@ -739,6 +775,7 @@ async function saveEvent(){
       await db.ref('fts_content/questionnaire/options/' + selected.qKey).remove();
     }
     selectedKey=key; $('e-key').value=key;
+    updateCalendarPromoContext();
     msg('Événement enregistré — visible dans membres et dans le questionnaire');
   }catch(e){
     console.warn('[FTS Calendrier] saveEvent', e);
