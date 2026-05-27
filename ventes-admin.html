@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
 <link href="assets/css/fts.css" rel="stylesheet"/>
 <link href="assets/css/fts-nav.css?v=40" rel="stylesheet"/>
-<link href="assets/css/pages/ventes-admin.css?v=6" rel="stylesheet"/>
+<link href="assets/css/pages/ventes-admin.css?v=7" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -49,6 +49,7 @@
   <section class="sales-tabs" aria-label="Vues rapides">
     <button type="button" class="active" data-sales-tab="groups">Pilotage</button>
     <button type="button" data-sales-tab="orders">Commandes</button>
+    <button type="button" data-sales-tab="shop">Boutique à traiter</button>
     <button type="button" data-sales-tab="installments">Échéances</button>
   </section>
 
@@ -64,12 +65,13 @@
   <main class="sales-content">
     <section id="sales-groups" class="sales-view"></section>
     <section id="sales-orders" class="sales-view" hidden></section>
+    <section id="sales-shop" class="sales-view" hidden></section>
     <section id="sales-installments" class="sales-view" hidden></section>
   </main>
 </div>
 
 <script src="assets/js/fts-firebase.js?v=33"></script>
 <script src="assets/js/fts-utils.js?v=33"></script>
-<script src="assets/js/pages/ventes-admin.js?v=9"></script>
+<script src="assets/js/pages/ventes-admin.js?v=10"></script>
 </body>
 </html>
