@@ -89,6 +89,61 @@
     return p.scope === 'stage_registration' ? 'Tous les stages' : 'Tous les spectacles / événements';
   }
 
+  function isShopScope(scope){ return scope === 'shop_order'; }
+  function shopProductRows(state){
+    const products = Array.isArray(state.products) ? state.products : [];
+    return products.filter(p => p && p.active !== false).sort((a,b) => Number(a.order || 999) - Number(b.order || 999) || String(a.name || a.title || '').localeCompare(String(b.name || b.title || ''), 'fr'));
+  }
+  function renderShopProductPicker(section, selected){
+    const box = section.querySelector('.promo-products-picker');
+    if(!box) return;
+    const state = section.__promoState || {};
+    const rows = shopProductRows(state);
+    const selectedSet = new Set(Array.isArray(selected) ? selected.map(String) : []);
+    if(state.productsLoading){
+      box.innerHTML = '<div class="promo-picker-empty">Chargement des articles…</div>';
+      return;
+    }
+    if(state.productsError){
+      box.innerHTML = '<div class="promo-picker-empty bad">Impossible de charger les articles : ' + esc(state.productsError) + '</div>';
+      return;
+    }
+    if(!rows.length){
+      box.innerHTML = '<div class="promo-picker-empty">Aucun article boutique disponible.</div>';
+      return;
+    }
+    box.innerHTML = rows.map(product => {
+      const id = String(product.id || product.productId || '');
+      const name = product.name || product.title || id;
+      const meta = [product.category || '', product.priceCents ? euro(product.priceCents) : '', product.stock ? ('Stock ' + product.stock) : 'Stock non limité'].filter(Boolean).join(' · ');
+      return '<label class="promo-product-option"><input type="checkbox" class="promo-product-check" value="' + esc(id) + '" ' + (selectedSet.has(id) ? 'checked' : '') + '><span><strong>' + esc(name) + '</strong><small>' + esc(meta) + '</small></span></label>';
+    }).join('');
+  }
+  function selectedShopProductIds(section){
+    return Array.from(section.querySelectorAll('.promo-product-check:checked')).map(input => String(input.value || '').trim()).filter(Boolean);
+  }
+  async function loadShopProducts(section){
+    const state = section.__promoState || {};
+    if(state.productsLoaded || state.productsLoading) return;
+    const box = section.querySelector('.promo-products-picker');
+    if(!box) return;
+    state.productsLoading = true;
+    state.productsError = '';
+    renderShopProductPicker(section, []);
+    try{
+      const data = await api('/admin/catalog');
+      const raw = data && data.products || {};
+      state.products = Array.isArray(raw) ? raw : Object.entries(raw || {}).map(([id, product]) => Object.assign({ id }, product || {}));
+      state.productsLoaded = true;
+    }catch(e){
+      state.productsError = e && e.message || 'erreur';
+      state.products = [];
+    }finally{
+      state.productsLoading = false;
+      renderShopProductPicker(section, state.pendingProductIds || []);
+    }
+  }
+
   function buildSection(section){
     if(section.__promoBuilt) return;
     section.__promoBuilt = true;
@@ -110,7 +165,7 @@
       </div>
       <div class="promo-targets">
         ${initialScope === 'season_registration' ? '<label>Activités autorisées <small>IDs séparés par virgule, vide = toutes</small><input class="promo-activities" placeholder="theatre, danse"></label><label>Formules autorisées<input class="promo-offers" placeholder="loisir, perf"></label><label>Groupes autorisés<input class="promo-subcats" placeholder="baby_show, adultes"></label>' : ''}
-        ${initialScope === 'shop_order' ? '<label>Produits autorisés <small>IDs séparés par virgule, vide = toute boutique</small><input class="promo-products" placeholder="tshirt, mug"></label>' : ''}
+        ${initialScope === 'shop_order' ? '<div class="promo-product-picker-wrap"><div class="promo-picker-title">Produits autorisés</div><small>Coche les articles concernés. Si rien n’est coché, le code est valable sur toute la boutique.</small><div class="promo-products-picker"><div class="promo-picker-empty">Chargement des articles…</div></div></div>' : ''}
         ${isCalendar ? '<label class="promo-current-event"><span>Portée du code</span><select class="promo-event-mode"><option value="current">Cet événement uniquement</option><option value="all_scope">Tous les événements du type choisi</option></select><small class="promo-current-event-help">Sélectionne d’abord un événement existant pour utiliser “Cet événement uniquement”.</small></label>' : (isEventScope(initialScope) ? '<label>Événements autorisés <small>IDs séparés par virgule, vide = tous</small><input class="promo-events" placeholder="eventId"></label>' : '')}
       </div>
       <div class="promo-actions"><button type="button" class="btn-gold promo-save">Enregistrer le code</button><button type="button" class="btn-outline promo-reset">Nouveau</button></div>
@@ -138,7 +193,11 @@
       q('.promo-offline').value = p && p.offlineMethod || '';
       q('.promo-active').checked = !p || p.active !== false;
       q('.promo-public').checked = !!(p && p.publicVisible);
-      if(q('.promo-products')) q('.promo-products').value = csv(p && p.productIds);
+      if(isShopScope(initialScope)){
+        st.pendingProductIds = Array.isArray(p && p.productIds) ? p.productIds.map(String) : [];
+        renderShopProductPicker(section, st.pendingProductIds);
+        loadShopProducts(section);
+      }
       if(q('.promo-events')) q('.promo-events').value = csv(p && p.eventIds);
       if(q('.promo-activities')) q('.promo-activities').value = csv(p && p.activityIds);
       if(q('.promo-offers')) q('.promo-offers').value = csv(p && p.offerKeys);
@@ -194,7 +253,7 @@
         endsAt:msFromDate(q('.promo-end').value, true),
         maxUses:Number(q('.promo-max').value || 0) || 0,
         offlineMethod:q('.promo-offline').value,
-        productIds:q('.promo-products') ? list(q('.promo-products').value) : [],
+        productIds:isShopScope(initialScope) ? selectedShopProductIds(section) : [],
         eventIds,
         activityIds:q('.promo-activities') ? list(q('.promo-activities').value) : [],
         offerKeys:q('.promo-offers') ? list(q('.promo-offers').value) : [],
@@ -231,6 +290,7 @@
       }
     });
     refreshContext(section);
+    if(isShopScope(initialScope)) loadShopProducts(section);
     load();
   }
 
