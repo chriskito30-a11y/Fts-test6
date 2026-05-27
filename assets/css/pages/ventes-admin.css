@@ -23,3 +23,11 @@
 .sales-order-head{align-items:center}
 .sales-order-select{flex:0 0 auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:999px;padding:8px 10px}
 @media(max-width:860px){.sales-bulk{align-items:flex-start;flex-direction:column}.sales-bulk-actions{width:100%;justify-content:space-between}.sales-order-head{display:grid;grid-template-columns:1fr;gap:10px}.sales-order-select{width:max-content}}
+
+
+/* v7 — suivi boutique minimal */
+.sales-btn.small{padding:9px 12px;font-size:12px}
+.sales-shop-list{display:grid;gap:10px}
+.sales-shop-card{display:grid;grid-template-columns:1.4fr 1.2fr .8fr auto;gap:10px;align-items:center;background:var(--sales-card);border:1px solid var(--sales-line);border-radius:20px;padding:14px}
+.sales-shop-card strong{display:block;overflow-wrap:anywhere}.sales-shop-card small{display:block;color:var(--sales-muted);margin-top:3px;overflow-wrap:anywhere}
+@media(max-width:860px){.sales-shop-card{grid-template-columns:1fr}.sales-shop-card .sales-btn{width:100%}}
