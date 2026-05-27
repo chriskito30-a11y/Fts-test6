@@ -63,7 +63,16 @@
     return o.userName || [p.firstName, p.lastName].filter(Boolean).join(' ') || o.payerName || o.userEmail || o.uid || 'Payeur inconnu';
   }
   function payerEmail(o){ return o.userEmail || (o.payer && o.payer.email) || o.email || ''; }
-  function studentName(o){ return o.studentName || o.participantName || o.beneficiaryName || o.memberName || o.childName || payerName(o); }
+  function payerPhone(o){ const p=o.payer||{}; return o.payerPhone || p.phone || p.tel || p.telephone || o.phone || o.tel || ''; }
+  function emergencyPhone(o){ return o.emergencyPhone || o.emergencyContactPhone || (o.student && (o.student.emergencyPhone || o.student.emergencyContactPhone)) || ''; }
+  function participantFirstName(o){ return o.studentFirstName || o.participantFirstName || ''; }
+  function participantLastName(o){ return o.studentLastName || o.participantLastName || ''; }
+  function studentName(o){ return [participantFirstName(o), participantLastName(o)].filter(Boolean).join(' ') || o.studentName || o.participantName || o.beneficiaryName || o.memberName || o.childName || payerName(o); }
+  function variantInfo(o){
+    if(o.variantLabel) return o.variantLabel;
+    if(o.variants && typeof o.variants === 'object') return Object.entries(o.variants).map(([k,v])=>`${k}: ${v}`).join(' · ');
+    return '';
+  }
   function offerTokenLabel(t){ return ({loisir:'Loisir',perf:'Performance',performance:'Performance',option:'Option',inclus:'Inclus'}[String(t||'').toLowerCase()] || t); }
   function subcategoryAllowedOffersLabel(o){
     const raw = Array.isArray(o.subcategoryAllowedOffers) ? o.subcategoryAllowedOffers : [];
@@ -154,7 +163,7 @@
       if(status !== 'all' && statusKind(o.status) !== status) return false;
       if(season !== 'all' && String(o.season || '') !== season) return false;
       if(q){
-        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.subcategorySeasonDetail,o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,o.variantLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan].join(' '));
+        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.subcategorySeasonDetail,o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,o.variantLabel,variantInfo(o),studentName(o),participantFirstName(o),participantLastName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.paymentPlan].join(' '));
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -219,7 +228,8 @@
         ${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
         ${subcategoryMaxSeats(o)>0?`<div><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} places max</strong><small>Limite enregistrée au moment de la commande</small></div>`:''}
         ${subcategoryAllowedOffersLabel(o)?`<div><span>Formules autorisées</span><strong>${esc(subcategoryAllowedOffersLabel(o))}</strong><small>Règle enregistrée au moment du paiement</small></div>`:''}
-        <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
+        <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small></div>
+        ${emergencyPhone(o)?`<div><span>Urgence</span><strong>${esc(emergencyPhone(o))}</strong><small>Téléphone d’urgence</small></div>`:''}
         <div><span>Échéances</span><strong>${esc(payText)}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
         <div><span>Référence</span><strong>${esc(o.id || '—')}</strong><small>${esc(shortDate(o.createdAt))} · ${esc(o.helloAssoPaymentId || o.checkoutIntentId || '')}</small></div>
       </div>
@@ -318,8 +328,9 @@
     return `<article class="sales-order-card ${checked ? 'is-selected' : ''}">
       <div class="sales-order-head"><label class="sales-order-select"><input class="sales-order-checkbox" type="checkbox" data-order-id="${esc(id)}" ${checked}/> <span>Sélectionner</span></label><div><div class="sales-order-title">${esc(itemLabel(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
       <div class="sales-order-grid">
-        <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc(payerEmail(o))}</small></div>
-        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel].filter(Boolean).join(' · '))}</small></div>
+        <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small></div>
+        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel,variantInfo(o)].filter(Boolean).join(' · '))}</small></div>
+        ${emergencyPhone(o)?`<div class="sales-mini"><span>Urgence</span><strong>${esc(emergencyPhone(o))}</strong><small>Contact renseigné à l'inscription</small></div>`:''}
         ${subcategoryMaxSeats(o)>0?`<div class="sales-mini"><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} max</strong><small>Limite du sous-groupe au moment du paiement</small></div>`:''}
         <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
         <div class="sales-mini"><span>Échéances</span><strong>${sum.paid}/${sum.total} payée(s)</strong><small>${sum.remaining} restante(s) · ${sum.refused} refusée(s)</small></div>
@@ -350,7 +361,7 @@
       </div>
       <div>
         <strong>${esc(payerName(o))}</strong>
-        <small>${esc(payerEmail(o))}</small>
+        <small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small>
       </div>
       <div>
         <strong>${euro(amount(o))}</strong>
@@ -498,11 +509,11 @@
   }
   function exportCsv(){
     const rows = filteredOrders();
-    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formules_autorisees','formule','eleve','payeur','email','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
+    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formules_autorisees','formule','participant_prenom','participant_nom','participant','payeur','email','telephone','telephone_urgence','produit','variante','quantite','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
     const lines = [head.join(';')];
     rows.forEach(o=>{
       const sum = installmentSummary(o);
-      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',subcategoryAllowedOffersLabel(o),o.offerLabel,studentName(o),payerName(o),payerEmail(o),o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
+      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',subcategoryAllowedOffersLabel(o),o.offerLabel,participantFirstName(o),participantLastName(o),studentName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.productName||'',variantInfo(o),o.quantity||'',o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
       lines.push(row.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';'));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});

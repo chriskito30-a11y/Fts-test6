@@ -266,9 +266,9 @@ function renderBullets(bullets){if(!bullets||!bullets.length)return'';return `<u
 function renderOfferBox(o,i){const rawLink=String(o.link||saison.inscriptionDefault||'').trim();const link=(rawLink&&rawLink!=='#')?FTS.safeUrl(rawLink,''):'';const paymentBtn=renderPaymentButton(i,o);return `<div class="offer-box"><div><div class="offer-price">${esc(o.price||'Tarif à venir')} ${o.price?'<small>/ saison</small>':''}</div>${o.priceNote?`<div class="offer-note">${esc(o.priceNote)}</div>`:''}</div><div class="offer-actions">${link?`<a class="btn-register" href="${esc(link)}" target="_blank" rel="noopener">S'inscrire</a>`:`<span class="btn-register muted">Lien bientôt disponible</span>`}${paymentBtn}</div></div>`;}
 
 
-/* ── Paiement HelloAsso admin/bêta ────────────────────────────── */
+/* ── Paiement HelloAsso public contrôlé ────────────────────────────── */
 function ftsPaymentApiBase(){return String((FTS.PAYMENT&&FTS.PAYMENT.workerUrl)||'').replace(/\/+$/,'');}
-function ftsCanShowPayment(){return !!(ftsPaymentEnabled && ftsPaymentUser && ftsPaymentApiBase() && !ftsPaymentApiBase().includes('REMPLACER_PAR_URL_WORKER'));}
+function ftsCanShowPayment(){return !!(ftsPaymentApiBase() && !ftsPaymentApiBase().includes('REMPLACER_PAR_URL_WORKER'));}
 function priceChoices(priceLabel){
   const raw=String(priceLabel||'').replace(',', '.');
   const matches=raw.match(/\d+(?:\.\d{1,2})?/g)||[];
@@ -301,7 +301,7 @@ function ensureSeasonPaymentModal(){
   const div=document.createElement('div');
   div.id='fts-season-payment-modal';
   div.className='fts-payment-modal';
-  div.innerHTML=`<div class="fts-payment-card"><button type="button" class="fts-payment-close" data-fts-click="closeSeasonPayment()">×</button><div class="eyebrow">Paiement sécurisé HelloAsso</div><h2 id="fts-pay-title">Règlement Fais Ton Show</h2><p id="fts-pay-summary" class="fts-pay-summary"></p><form id="fts-pay-form"><div class="fts-pay-grid"><label>Prénom payeur<input name="firstName" required></label><label>Nom payeur<input name="lastName" required></label><label>Email payeur<input name="email" type="email" required></label><label>Nom de l'élève<input name="studentName" required></label><label id="fts-pay-sub-wrap">Groupe<select name="subcategoryId"></select></label><label>Montant<select name="amountCents"></select></label><label>Paiement<select name="paymentPlan"><option value="1x">Paiement en 1 fois</option><option value="3x">Paiement en 3 fois</option><option value="5x">Paiement en 5 fois</option><option value="10x">Paiement en 10 fois</option></select></label></div><button class="btn-register fts-pay-submit" type="submit">Continuer vers HelloAsso</button><div id="fts-pay-msg" class="fts-pay-msg"></div></form></div>`;
+  div.innerHTML=`<div class="fts-payment-card"><button type="button" class="fts-payment-close" data-fts-click="closeSeasonPayment()">×</button><div class="eyebrow">Paiement sécurisé HelloAsso</div><h2 id="fts-pay-title">Règlement Fais Ton Show</h2><p id="fts-pay-summary" class="fts-pay-summary"></p><form id="fts-pay-form"><div class="fts-pay-section-title">Responsable / payeur</div><div class="fts-pay-grid"><label>Prénom responsable<input name="firstName" autocomplete="given-name" required></label><label>Nom responsable<input name="lastName" autocomplete="family-name" required></label><label>Email responsable<input name="email" type="email" autocomplete="email" required></label><label>Téléphone responsable<input name="phone" type="tel" autocomplete="tel" required></label></div><div class="fts-pay-section-title">Participant / élève</div><div class="fts-pay-grid"><label>Prénom participant<input name="studentFirstName" required></label><label>Nom participant<input name="studentLastName" required></label><label>Téléphone d'urgence<input name="emergencyPhone" type="tel" required></label><label id="fts-pay-sub-wrap">Groupe<select name="subcategoryId"></select></label><label>Montant<select name="amountCents"></select></label><label>Paiement<select name="paymentPlan"><option value="1x">Paiement en 1 fois</option><option value="3x">Paiement en 3 fois</option><option value="5x">Paiement en 5 fois</option><option value="10x">Paiement en 10 fois</option></select></label></div><button class="btn-register fts-pay-submit" type="submit">Continuer vers HelloAsso</button><div id="fts-pay-msg" class="fts-pay-msg"></div></form></div>`;
   document.body.appendChild(div);
   document.getElementById('fts-pay-form').addEventListener('submit',submitSeasonPayment);
 }
@@ -330,10 +330,11 @@ function openSeasonPayment(activityId,offerKey){
   const email=(ftsPaymentUser&&ftsPaymentUser.email)||profile.email||'';
   const first=profile.firstName||profile.prenom||'';
   const last=profile.lastName||profile.nom||'';
+  const phone=profile.phone||profile.tel||profile.telephone||'';
   document.getElementById('fts-pay-title').textContent=(item.name||'Activité')+' · '+(offer.label||offer.key||'Formule');
   document.getElementById('fts-pay-summary').innerHTML=`<strong>${esc(item.name)}</strong><br>Formule : <strong>${esc(offer.label||offer.key)}</strong><br>${chosenSubcat?`Groupe : <strong>${esc(chosenSubcat.title||chosenSubcat.name)}</strong>${chosenSubcat.seasonDetail?`<br><span class="fts-pay-subdetail">${esc(chosenSubcat.seasonDetail)}</span>`:''}<br>`:''}Saison : <strong>${esc((saison.meta&&saison.meta.year)||'')}</strong>`;
   const form=document.getElementById('fts-pay-form');
-  form.firstName.value=first; form.lastName.value=last; form.email.value=email; form.studentName.value=[first,last].filter(Boolean).join(' ');
+  form.firstName.value=first; form.lastName.value=last; form.email.value=email; form.phone.value=phone; form.studentFirstName.value=''; form.studentLastName.value=''; form.emergencyPhone.value='';
   form.amountCents.innerHTML=prices.map(p=>`<option value="${p.cents}">${esc(p.label)}</option>`).join('');
   const subs=item.subcats||[];
   const wrap=document.getElementById('fts-pay-sub-wrap');
@@ -347,16 +348,19 @@ async function submitSeasonPayment(event){
   event.preventDefault();
   const msg=document.getElementById('fts-pay-msg');
   try{
-    if(!ftsPaymentContext||!ftsPaymentUser)throw new Error('Session paiement indisponible.');
-    const token=await ftsPaymentUser.getIdToken(true);
+    if(!ftsPaymentContext)throw new Error('Session paiement indisponible.');
+    const token=ftsPaymentUser?await ftsPaymentUser.getIdToken(true):'';
     const form=event.target;
     const item=ftsPaymentContext.item, offer=ftsPaymentContext.offer;
     const selectedSubcat=findSeasonSubcat(item,form.subcategoryId.value)||{key:form.subcategoryId.value,name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',maxSeats:0,seasonDetail:''};
-    const payload={source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:selectedSubcat.key,subcategoryName:selectedSubcat.name,subcategoryTitle:selectedSubcat.title,subcategoryDay:selectedSubcat.day,subcategoryTime:selectedSubcat.time,subcategoryLevel:selectedSubcat.level,subcategoryAge:selectedSubcat.age,subcategoryNote:selectedSubcat.note,subcategoryPrice:selectedSubcat.price,subcategoryMaxSeats:Number(selectedSubcat.maxSeats||0)||0,subcategorySeasonDetail:selectedSubcat.seasonDetail,subcategoryAllowedOffers:selectedSubcat.allowedOffers||[],subcategory:selectedSubcat,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value},student:{name:form.studentName.value}};
+    const studentFirstName=String(form.studentFirstName.value||'').trim();
+    const studentLastName=String(form.studentLastName.value||'').trim();
+    const payload={type:'season_registration',source:'saison.html',activityId:item.id,offerKey:offer.key,amountCents:Number(form.amountCents.value),paymentPlan:form.paymentPlan.value,subcategoryId:selectedSubcat.key,subcategoryName:selectedSubcat.name,subcategoryTitle:selectedSubcat.title,subcategoryDay:selectedSubcat.day,subcategoryTime:selectedSubcat.time,subcategoryLevel:selectedSubcat.level,subcategoryAge:selectedSubcat.age,subcategoryNote:selectedSubcat.note,subcategoryPrice:selectedSubcat.price,subcategoryMaxSeats:Number(selectedSubcat.maxSeats||0)||0,subcategorySeasonDetail:selectedSubcat.seasonDetail,subcategoryAllowedOffers:selectedSubcat.allowedOffers||[],subcategory:selectedSubcat,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},student:{firstName:studentFirstName,lastName:studentLastName,name:[studentFirstName,studentLastName].filter(Boolean).join(' '),emergencyPhone:form.emergencyPhone.value},emergencyPhone:form.emergencyPhone.value};
     msg.textContent='Création du paiement sécurisé…';
-    const res=await fetch(ftsPaymentApiBase()+'/checkout',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(payload)});
+    const headers={'Content-Type':'application/json'}; if(token) headers.Authorization='Bearer '+token;
+    const res=await fetch(ftsPaymentApiBase()+'/checkout',{method:'POST',headers,body:JSON.stringify(payload)});
     const data=await res.json().catch(()=>({}));
-    if(!res.ok||!data.ok){const labels={subcategory_full:'Ce groupe est complet : le nombre de places maximum est atteint.',subcategory_offer_not_allowed:'Ce groupe n’est pas disponible pour cette formule.',payment_access_denied:'Paiement non autorisé pour ce compte.'};throw new Error(labels[data.error]||data.error||'Erreur création paiement');}
+    if(!res.ok||!data.ok){const labels={subcategory_full:'Ce groupe est complet : le nombre de places maximum est atteint.',subcategory_offer_not_allowed:'Ce groupe n’est pas disponible pour cette formule.',payment_access_denied:'Paiement non autorisé pour ce compte.',missing_payer_first_name:'Prénom responsable obligatoire.',missing_payer_last_name:'Nom responsable obligatoire.',invalid_payer_email:'Email responsable invalide.',missing_payer_phone:'Téléphone responsable obligatoire.',missing_student_first_name:'Prénom participant obligatoire.',missing_student_last_name:'Nom participant obligatoire.',missing_emergency_phone:'Téléphone d’urgence obligatoire.'};throw new Error(labels[data.error]||data.error||'Erreur création paiement');}
     location.href=data.redirectUrl;
   }catch(e){msg.textContent='Impossible de lancer le paiement : '+(e&&e.message?e.message:e);}
 }
