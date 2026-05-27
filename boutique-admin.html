@@ -33,7 +33,7 @@
         <input type="hidden" id="p-id"/>
         <label>Nom de l’article<input id="p-name" required placeholder="Ex : T-shirt Fais Ton Show"/></label>
         <label>Description<textarea id="p-description" placeholder="Description courte affichée dans la boutique"></textarea></label>
-        <div class="shop-form-row"><label>Prix en €<input id="p-price" required type="number" min="1" step="0.01" placeholder="15"/></label><label>Stock privé<input id="p-stock" type="number" min="0" step="1" placeholder="0 = non limité"/></label></div>
+        <div class="shop-form-row"><label>Prix en €<input id="p-price" required type="number" min="0" step="0.01" placeholder="15"/></label><label>Stock privé<input id="p-stock" type="number" min="0" step="1" placeholder="0 = non limité"/></label></div>
         <div class="shop-form-row"><label>Catégorie<input id="p-category" placeholder="Textile, Goodies, Costumes…"/></label><label>Ordre<input id="p-order" type="number" step="1" placeholder="999"/></label></div>
         <label>Image URL<input id="p-image" placeholder="https://…"/></label>
         <div class="shop-image-tools">
@@ -49,10 +49,12 @@
         <div id="shop-msg" class="shop-msg"></div>
       </form>
     </section>
-  </main>
+  <section class="promo-admin-card" data-promo-admin data-promo-scope="shop_order"></section>
+</main>
 </div>
 <script src="assets/js/fts-firebase.js?v=33"></script>
 <script src="assets/js/fts-utils.js?v=33"></script>
-<script src="assets/js/pages/boutique-admin.js?v=4"></script>
+<script src="assets/js/pages/boutique-admin.js?v=5"></script>
+<script src="assets/js/fts-promo-admin.js?v=1"></script>
 </body>
 </html>
