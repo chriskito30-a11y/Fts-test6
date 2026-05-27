@@ -24,12 +24,15 @@
   function canSeePayments(){ return isAdmin() || isPaymentBeta(); }
   function statusClass(status){
     const s = String(status || '').toLowerCase();
-    if(['paid','authorized','validated','success','confirmed'].includes(s)) return 'paid';
+    if(['paid','authorized','validated','success','confirmed','free_confirmed','offline_received'].includes(s)) return 'paid';
     if(['refused','failed','error','canceled','cancelled','abandoned'].includes(s)) return 'refused';
     return 'pending';
   }
   function statusLabel(status){
     const s = String(status || '').toLowerCase();
+    if(['free_confirmed'].includes(s)) return 'Réservation gratuite confirmée';
+    if(['offline_pending'].includes(s)) return 'Paiement à recevoir';
+    if(['offline_received'].includes(s)) return 'Paiement reçu hors ligne';
     if(['paid','authorized','validated','success','confirmed'].includes(s)) return 'Paiement validé';
     if(['refused','failed','error'].includes(s)) return 'Paiement refusé';
     if(['canceled','cancelled'].includes(s)) return 'Paiement annulé';
@@ -122,16 +125,33 @@
     const box = $('payment-return-status');
     if(!panel || !box || (!orderId && !result)) return;
     panel.hidden = false;
-    let html = '<div class="payment-status-pill pending">Vérification en cours</div><p>Retour depuis HelloAsso reçu. Le statut définitif sera confirmé par le serveur.</p>';
+    let html = '<div class="payment-status-pill pending">Vérification en cours</div><p>Vérification de votre réservation ou paiement.</p>';
+    if(result === 'free') html = '<div class="payment-status-pill pending">Confirmation en cours</div><p>Vérification de votre réservation gratuite.</p>';
+    if(result === 'offline') html = '<div class="payment-status-pill pending">Confirmation en cours</div><p>Vérification de votre commande avec paiement hors ligne.</p>';
     box.innerHTML = html;
     if(orderId){
       try{
         const data = await api('/payment-status?orderId=' + encodeURIComponent(orderId), { method:'GET' });
         const order = data.order || {};
         const cls = statusClass(order.status);
-        box.innerHTML = `<div class="payment-status-pill ${cls}">${esc(statusLabel(order.status))}</div><p>${esc(order.itemName || order.itemTitle || 'Paiement Fais Ton Show')}</p><small>Référence : ${esc(order.id || orderId)}</small>`;
+        const status = String(order.status || '').toLowerCase();
+        const globalStatus = String(order.globalPaymentStatus || '').toLowerCase();
+        const itemName = order.itemName || order.itemTitle || 'Fais Ton Show';
+        let detail = '';
+        if(status === 'free_confirmed' || globalStatus === 'free'){
+          detail = '<p>Aucun paiement en ligne n’est requis. Votre réservation est bien enregistrée.</p>';
+        }else if(status === 'offline_pending' || globalStatus === 'offline_pending'){
+          detail = '<p>Votre demande est enregistrée. Le règlement est à remettre à l’association.</p>';
+          if(order.totalAmount || order.amountCents) detail += '<p><strong>Montant à régler : '+esc(formatEuros(order.totalAmount || order.amountCents))+'</strong></p>';
+          if(order.offlineMethod) detail += '<p>Mode prévu : '+esc(order.offlineMethod)+'</p>';
+        }else if(status === 'offline_received' || globalStatus === 'offline_received'){
+          detail = '<p>Le paiement hors ligne a été marqué comme reçu par l’administration.</p>';
+        }
+        box.innerHTML = `<div class="payment-status-pill ${cls}">${esc(statusLabel(order.status))}</div><p>${esc(itemName)}</p>${detail}<small>Référence : ${esc(order.id || orderId)}</small>`;
       }catch(e){
-        box.innerHTML = '<div class="payment-status-pill pending">Paiement en attente</div><p>Le retour a bien été reçu. Le statut sera mis à jour dès que HelloAsso aura confirmé le paiement.</p>';
+        if(result === 'free') box.innerHTML = '<div class="payment-status-pill pending">Réservation en cours de confirmation</div><p>La réservation gratuite a été demandée, mais le statut n’a pas pu être relu pour le moment.</p>';
+        else if(result === 'offline') box.innerHTML = '<div class="payment-status-pill pending">Paiement hors ligne enregistré</div><p>La commande a été créée, mais le statut n’a pas pu être relu pour le moment.</p>';
+        else box.innerHTML = '<div class="payment-status-pill pending">Paiement en attente</div><p>Le retour a bien été reçu. Le statut sera mis à jour dès que HelloAsso aura confirmé le paiement.</p>';
       }
     }
   }
