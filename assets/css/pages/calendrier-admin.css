@@ -422,3 +422,16 @@ html,body{max-width:100%;overflow-x:hidden}
   .promo-row{align-items:flex-start;flex-direction:column;}
   .promo-row > div:last-child{width:100%;justify-content:flex-start;}
 }
+
+/* Promo pickers — listes cochables lisibles */
+.promo-picker-wrap{grid-column:1/-1;display:grid;gap:8px}
+.promo-picker-title{font-weight:900;color:#fff}
+.promo-picker-wrap small{color:rgba(255,255,255,.62);line-height:1.35}
+.promo-products-picker,.promo-activities-picker,.promo-offers-picker,.promo-subcats-picker,.promo-events-picker{display:grid;gap:8px;max-height:320px;overflow:auto;padding:8px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(0,0,0,.16)}
+.promo-target-option{display:flex!important;grid-template-columns:auto 1fr!important;align-items:flex-start;gap:10px;padding:10px;border:1px solid rgba(255,255,255,.10);border-radius:15px;background:rgba(255,255,255,.045);cursor:pointer}
+.promo-target-option:hover{background:rgba(255,255,255,.075)}
+.promo-target-option input{width:auto!important;margin-top:3px;accent-color:#ffd666}
+.promo-target-option strong{display:block;color:#fff;font-size:.95rem}
+.promo-target-option small{display:block;margin-top:2px;color:rgba(255,255,255,.62);font-weight:600}
+.promo-picker-empty{padding:12px;color:rgba(255,255,255,.66);border-radius:12px;background:rgba(255,255,255,.045)}
+.promo-picker-empty.bad{color:#ffb0b0}
