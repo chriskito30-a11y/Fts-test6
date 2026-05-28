@@ -319,7 +319,7 @@ function adminRenderTodayPanel(data){
     adminRenderTodayCard('📅','événements sur 30 jours', data.upcomingEvents || 0, 'Dates proches à vérifier.', 'calendrier-admin.html', ''),
     adminRenderTodayCard('📊','sondages actifs', data.activePolls || 0, 'Réponses à suivre.', 'sondages.html', ''),
     adminRenderTodayCard('🤖','rappels à venir', data.pendingReminders || 0, 'Rappels pending programmés.', 'rappels-admin.html', ''),
-    adminRenderTodayCard('⚠️','rappels à vérifier', data.reminderErrors || 0, 'Avec erreur de dispatch ou blocage.', 'rappels-admin.html', (data.reminderErrors||0)>0?'danger':'')
+    adminRenderTodayCard('⚠️','rappels à vérifier', data.reminderErrors || 0, 'Avec erreur de dispatch ou blocage.', 'rappels-admin.html#reminder-errors', (data.reminderErrors||0)>0?'danger':'')
   ];
   grid.innerHTML = cards.join('');
 }
@@ -354,7 +354,7 @@ async function adminLoadTodaySignals(users, pendingCount){
     Object.values(reminders).forEach(r=>{
       if(!r) return;
       if(r.status === 'pending') data.pendingReminders += 1;
-      if(r.dispatchError || r.status === 'failed' || r.status === 'error') data.reminderErrors += 1;
+      { const lockAt = Number(r.dispatchLockAt || 0); const staleDispatch = r.status === 'dispatching' && lockAt && Date.now() - lockAt > 2*60*1000; if(r.dispatchError || r.lastDispatchError || r.error || r.status === 'failed' || r.status === 'error' || staleDispatch) data.reminderErrors += 1; }
     });
   }catch(e){ console.warn('[FTS Admin V79] signaux indisponibles', e); }
   adminV79State.today = data;

@@ -122,8 +122,70 @@
   function maxSeatsForRows(list){
     return list.reduce((max,o)=>Math.max(max, subcategoryMaxSeats(o)), 0);
   }
+  function cartSeasonLines(o){ return Array.isArray(o && o.cartLines) ? o.cartLines.filter(l=>l && l.type === 'season_registration') : []; }
+  function cartShopLines(o){ return Array.isArray(o && o.cartLines) ? o.cartLines.filter(l=>l && l.type === 'shop_order') : []; }
+  function lineStudentName(line, parent){ return [line && line.studentFirstName, line && line.studentLastName].filter(Boolean).join(' ') || (line && line.studentName) || studentName(parent || {}); }
+  function lineSubcategoryDetail(line){
+    const direct = String(line && line.subcategorySeasonDetail || '').trim();
+    if(direct) return direct;
+    return [line && line.subcategoryDay, line && line.subcategoryTime, line && line.subcategoryLevel, line && line.subcategoryAge, line && line.subcategoryNote].map(x=>String(x||'').trim()).filter(Boolean).join(' · ');
+  }
+  function lineGroupName(line){ return (line && (line.subcategoryTitle || line.subcategoryName || line.subcategoryId)) || 'Groupe non renseigné'; }
+  function lineSubgroupKey(line){ const detail = lineSubcategoryDetail(line); const name = lineGroupName(line); return detail ? `${name} — ${detail}` : name; }
+  function lineOfferLabel(line){ return (line && line.offerLabel) || offerTokenLabel(line && line.offerKey) || ''; }
+  function lineActivityLabel(line){ return (line && (line.activityName || line.activityId)) || 'Activité non renseignée'; }
+  function lineAmount(line){ return cents(line && line.amountCents || 0); }
+  function cartLinesDetailedLabel(o){
+    const lines = Array.isArray(o && o.cartLines) ? o.cartLines : [];
+    return lines.map(l=>{
+      if(l.type === 'season_registration') return [lineStudentName(l,o), lineActivityLabel(l), lineGroupName(l), lineOfferLabel(l)].filter(Boolean).join(' · ');
+      if(l.type === 'shop_order') return [l.productName || l.itemName || 'Article boutique', l.variantLabel, l.quantity ? 'Qté ' + l.quantity : ''].filter(Boolean).join(' · ');
+      return l.itemName || l.type || '';
+    }).filter(Boolean).join(' + ');
+  }
   function cartLinesLabel(o){ const lines=Array.isArray(o.cartLines)?o.cartLines:[]; return lines.length?lines.map(l=>l.activityName||l.productName||l.itemName||l.type).filter(Boolean).join(' + '):''; }
-  function itemLabel(o){ return cartLinesLabel(o) || o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
+  function renderCartLinesMini(o){
+    const lines = Array.isArray(o && o.cartLines) ? o.cartLines : [];
+    if(!lines.length) return '';
+    return `<div class="sales-cart-lines">${lines.map(l=>{
+      if(l.type === 'season_registration'){
+        const title = [lineStudentName(l,o), lineActivityLabel(l)].filter(Boolean).join(' — ');
+        const detail = [lineGroupName(l), lineSubcategoryDetail(l), lineOfferLabel(l), euro(lineAmount(l))].filter(Boolean).join(' · ');
+        return `<div class="sales-cart-line season"><strong>${esc(title)}</strong><small>${esc(detail)}</small></div>`;
+      }
+      if(l.type === 'shop_order'){
+        const title = l.productName || l.itemName || 'Article boutique';
+        const detail = [l.variantLabel, l.quantity ? 'Qté ' + l.quantity : '', euro(lineAmount(l))].filter(Boolean).join(' · ');
+        return `<div class="sales-cart-line shop"><strong>${esc(title)}</strong><small>${esc(detail)}</small></div>`;
+      }
+      return `<div class="sales-cart-line"><strong>${esc(l.itemName || l.type || 'Ligne')}</strong></div>`;
+    }).join('')}</div>`;
+  }
+  function orderFromCartLine(parent, line){
+    return Object.assign({}, parent, line, {
+      id: parent.id,
+      type: line.type || parent.type,
+      parentType: parent.type,
+      cartParentId: parent.id,
+      status: parent.status,
+      globalPaymentStatus: parent.globalPaymentStatus,
+      provider: parent.provider,
+      paymentPlan: parent.paymentPlan,
+      payer: parent.payer,
+      userName: parent.userName,
+      userEmail: parent.userEmail,
+      payerPhone: parent.payerPhone,
+      installments: parent.installments,
+      createdAt: parent.createdAt,
+      updatedAt: parent.updatedAt,
+      amountCents: line.amountCents || 0,
+      totalAmount: line.amountCents || 0,
+      paidAmount: statusKind(parent.status)==='paid' ? (line.amountCents || 0) : 0,
+      remainingAmount: statusKind(parent.status)==='paid' ? 0 : (line.amountCents || 0),
+      itemName: line.itemName || parent.itemName
+    });
+  }
+  function itemLabel(o){ return cartLinesDetailedLabel(o) || o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
   function paidAmount(o){
     const s = norm(o && o.status || '');
@@ -195,7 +257,7 @@
       if(status !== 'all' && statusKind(o.status) !== status) return false;
       if(season !== 'all' && String(o.season || '') !== season) return false;
       if(q){
-        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.subcategorySeasonDetail,o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,o.variantLabel,variantInfo(o),studentName(o),participantFirstName(o),participantLastName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.paymentPlan].join(' '));
+        const hay = norm([o.id,o.itemName,o.activityName,o.subcategoryName,o.subcategorySeasonDetail,o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,o.offerLabel,o.eventTitle,o.stageTitle,o.productName,o.variantLabel,variantInfo(o),studentName(o),participantFirstName(o),participantLastName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.paymentPlan,cartLinesDetailedLabel(o)].join(' '));
         if(!hay.includes(q)) return false;
       }
       return true;
@@ -257,7 +319,7 @@
         <div class="sales-person-pay"><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span><strong>${euro(amount(o))}</strong></div>
       </summary>
       <div class="sales-person-body">
-        ${Array.isArray(o.cartLines)&&o.cartLines.length?`<div><span>Détail panier</span><strong>${esc(o.cartLines.length+' ligne(s)')}</strong><small>${esc(cartLinesLabel(o))}</small></div>`:''}${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
+        ${Array.isArray(o.cartLines)&&o.cartLines.length?`<div><span>Détail panier</span><strong>${esc(o.cartLines.length+' ligne(s)')}</strong><small>${esc(cartLinesDetailedLabel(o) || cartLinesLabel(o))}</small></div>${renderCartLinesMini(o)}`:''}${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
         ${subcategoryMaxSeats(o)>0?`<div><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} places max</strong><small>Limite enregistrée au moment de la commande</small></div>`:''}
         ${subcategoryAllowedOffersLabel(o)?`<div><span>Formules autorisées</span><strong>${esc(subcategoryAllowedOffersLabel(o))}</strong><small>Règle enregistrée au moment du paiement</small></div>`:''}
         <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small></div>
@@ -335,11 +397,29 @@
     </section>`;
   }
 
+  function renderMixedCartType(list){
+    const seasonOrders = [];
+    const shopRows = [];
+    list.forEach(o=>{
+      cartSeasonLines(o).forEach(line=>seasonOrders.push(orderFromCartLine(o, line)));
+      cartShopLines(o).forEach(line=>shopRows.push(orderFromCartLine(o, line)));
+    });
+    const meta = TYPE_META.mixed_cart;
+    const intro = `<section class="sales-type-block sales-mixed-overview">
+      <div class="sales-section-head"><div><h2>${esc(meta.icon)} Paniers mixtes détaillés</h2><p>Les paniers sont éclatés ci-dessous par activité, groupe et formule pour retrouver facilement qui est inscrit où.</p></div>${badgesFor(list)}</div>
+    </section>`;
+    const seasonHtml = seasonOrders.length ? renderSeasonType(seasonOrders) : '';
+    const shopHtml = shopRows.length ? renderGenericType('shop_order', shopRows) : '';
+    const rawHtml = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>🧾 Commandes panier complètes</h2><p>Vue originale par commande pour contrôler le paiement groupé et les échéances.</p></div></div><div class="sales-generic-list">${list.map(orderPersonLine).join('')}</div></section>`;
+    return intro + seasonHtml + shopHtml + rawHtml;
+  }
+
   function renderGroups(list){
     if(!list.length){ $('sales-groups').innerHTML = '<div class="sales-empty">Aucune commande ne correspond aux filtres.</div>'; return; }
     const types = sortTypeEntries(Array.from(byMap(list, typeKey).entries()));
     $('sales-groups').innerHTML = types.map(([type, rows])=>{
       if(type === 'season_registration') return renderSeasonType(rows);
+      if(type === 'mixed_cart') return renderMixedCartType(rows);
       return renderGenericType(type, rows);
     }).join('');
   }
@@ -361,7 +441,7 @@
       <div class="sales-order-head"><label class="sales-order-select"><input class="sales-order-checkbox" type="checkbox" data-order-id="${esc(id)}" ${checked}/> <span>Sélectionner</span></label><div><div class="sales-order-title">${esc(itemLabel(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
       <div class="sales-order-grid">
         <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small></div>
-        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc(cartLinesLabel(o) || [o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel,variantInfo(o)].filter(Boolean).join(' · '))}</small></div>
+        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc(cartLinesDetailedLabel(o) || [o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel,variantInfo(o)].filter(Boolean).join(' · '))}</small></div>
         ${emergencyPhone(o)?`<div class="sales-mini"><span>Urgence</span><strong>${esc(emergencyPhone(o))}</strong><small>Contact renseigné à l'inscription</small></div>`:''}
         ${subcategoryMaxSeats(o)>0?`<div class="sales-mini"><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} max</strong><small>Limite du sous-groupe au moment du paiement</small></div>`:''}
         <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>

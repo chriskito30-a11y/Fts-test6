@@ -55,6 +55,10 @@
         renderCourseOptions();
         updateConditionalFields();
         updatePreview();
+        if(location.hash === '#reminder-errors'){
+          filterStatus = 'issues';
+          document.querySelectorAll('[data-filter-status]').forEach(b => b.classList.toggle('active', b.getAttribute('data-filter-status') === 'issues'));
+        }
         listenReminders();
         bindDispatcherStatus();
         if(FTS.Services && FTS.Services.ReminderDispatcher && FTS.Services.ReminderDispatcher.start){
@@ -1079,10 +1083,27 @@
     });
   }
 
+  function isReminderIssue(r){
+    if(!r) return false;
+    const status = String(r.status || '').toLowerCase();
+    const lockAt = Number(r.dispatchLockAt || 0);
+    const staleDispatch = status === 'dispatching' && lockAt && Date.now() - lockAt > 2 * 60 * 1000;
+    return !!(r.dispatchError || r.lastDispatchError || r.error || status === 'failed' || status === 'error' || staleDispatch);
+  }
+  function reminderIssueText(r){
+    if(!r) return '';
+    if(r.dispatchError) return String(r.dispatchError);
+    if(r.lastDispatchError) return String(r.lastDispatchError);
+    if(r.error) return String(r.error);
+    if(String(r.status || '').toLowerCase() === 'dispatching') return 'Blocage possible : rappel resté en cours de dispatch.';
+    if(['failed','error'].includes(String(r.status || '').toLowerCase())) return 'Erreur de dispatch.';
+    return '';
+  }
+
   function sortedReminders(){
     return Object.entries(reminders || {})
       .filter(([,r]) => r)
-      .filter(([,r]) => filterStatus === 'all' || (r.status || 'standby') === filterStatus)
+      .filter(([,r]) => filterStatus === 'all' || (filterStatus === 'issues' ? isReminderIssue(r) : (r.status || 'standby') === filterStatus))
       .sort((a,b) => (a[1].sendAt || 0) - (b[1].sendAt || 0));
   }
 
@@ -1110,7 +1131,7 @@
       }
       const g = map.get(key);
       g.rows.push([id,r]);
-      const status = r.status || 'standby';
+      const status = isReminderIssue(r) ? 'issues' : (r.status || 'standby');
       g.statusCounts[status] = (g.statusCounts[status] || 0) + 1;
       const t = Number(r.sendAt || 0);
       if(t && (!g.nextAt || t < g.nextAt)) g.nextAt = t;
@@ -1120,14 +1141,16 @@
 
   function renderReminderRow(id, r){
     const active = selectedReminderId === id;
-    const status = r.status || 'standby';
-    return `<article class="reminder-row ${active ? 'active' : ''}" data-reminder-id="${esc(id)}">
+    const hasIssue = isReminderIssue(r);
+    const status = hasIssue ? 'issues' : (r.status || 'standby');
+    const issue = hasIssue ? reminderIssueText(r) : '';
+    return `<article class="reminder-row ${active ? 'active' : ''} ${hasIssue ? 'has-issue' : ''}" data-reminder-id="${esc(id)}">
       <div class="reminder-top">
         <div>
           <div class="reminder-title">${esc(r.title || 'Rappel')}</div>
-          <div class="reminder-meta">Envoi prévu : ${esc(formatFullDateTime(r.sendAt))}</div>
+          <div class="reminder-meta">Envoi prévu : ${esc(formatFullDateTime(r.sendAt))}${issue ? ' · ⚠️ ' + esc(issue) : ''}</div>
         </div>
-        <span class="badge ${esc(status)}">${statusLabel(status)}</span>
+        <span class="badge ${esc(status)}">${esc(hasIssue ? 'À vérifier' : statusLabel(status))}</span>
       </div>
     </article>`;
   }
@@ -1145,11 +1168,13 @@
       const pending = g.statusCounts.pending || 0;
       const sent = g.statusCounts.sent || 0;
       const paused = (g.statusCounts.standby || 0) + (g.statusCounts.paused || 0);
+      const issues = g.statusCounts.issues || 0;
       const meta = [
         `${g.rows.length} rappel(s)`,
         pending ? `${pending} à envoyer` : '',
         sent ? `${sent} envoyé(s)` : '',
         paused ? `${paused} en pause` : '',
+        issues ? `${issues} à vérifier` : '',
         g.nextAt ? `prochain : ${formatFullDateTime(g.nextAt)}` : ''
       ].filter(Boolean).join(' · ');
       return `<details class="reminder-group" ${hasSelected ? 'open' : ''}>
@@ -1179,6 +1204,7 @@
         <div><span>canal</span><strong>${esc(r.channel || 'dm_auto')}</strong></div>
         <div><span>messageType</span><strong>${esc(r.messageType || 'auto-reminder')}</strong></div>
         <div><span>dispatch</span><strong>${esc(r.dispatchMode || (r.status === 'pending' ? 'native-admin' : 'standby'))}</strong></div>
+        ${isReminderIssue(r) ? `<div><span>alerte</span><strong>${esc(reminderIssueText(r) || 'À vérifier')}</strong></div>` : ''}
       </div>
       <div class="row-actions">
         <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
@@ -1197,6 +1223,8 @@
     if(status === 'sent') return 'Envoyé';
     if(status === 'sent_test') return 'Test réel envoyé';
     if(status === 'cancelled') return 'Annulé';
+    if(status === 'failed' || status === 'error') return 'Erreur';
+    if(status === 'issues') return 'À vérifier';
     return 'En pause';
   }
 
