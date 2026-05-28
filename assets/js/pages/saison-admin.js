@@ -3,7 +3,7 @@
    Extrait depuis saison-admin.html pour supprimer le JavaScript inline.
    ================================================================ */
 
-const DEFAULT_SAISON={meta:{eyebrow:"Association culturelle",title:"SAISON",year:"2026/2027",slogan:"Deux parcours, une passion — trouvez votre place sur scène"},parcoursIntro:[{key:"loisir",icon:"🎈",tag:"Parcours Loisir",title:"À ton rythme",desc:"1 cours hebdomadaire pour découvrir, s'amuser et progresser librement."},{key:"perf",icon:"🚀",tag:"Parcours Performance",title:"Aller plus loin",desc:"Plus de technique, plusieurs spectacles dans l'année — et l'Atelier Improvisation offert toute l'année."}],inscriptionDefault:"",items:[]};
+const DEFAULT_SAISON={meta:{eyebrow:"Association culturelle",title:"SAISON",year:"2026/2027",slogan:"Deux parcours, une passion — trouvez votre place sur scène"},parcoursIntro:[{key:"loisir",icon:"🎈",tag:"Parcours Loisir",title:"À ton rythme",desc:"1 cours hebdomadaire pour découvrir, s'amuser et progresser librement."},{key:"perf",icon:"🚀",tag:"Parcours Performance",title:"Aller plus loin",desc:"Plus de technique, plusieurs spectacles dans l'année — et l'Atelier Improvisation offert toute l'année."}],inscriptionDefault:"",paymentOptions:{allowedPlans:[1,3,5,10],firstInstallmentPercents:{"1":100,"3":33.33,"5":30,"10":25},installmentDay:10},items:[]};
 let db,auth,saison=JSON.parse(JSON.stringify(DEFAULT_SAISON)),selectedIndex=0,loadedCategories=[],isPublishingSeason=false;
 const FALLBACK_ITEMS=[
 {id:"theatre",active:true,order:10,icon:"🎭",name:"Théâtre",subtitle:"Mercredi · Lundi",badge:"",offers:[{key:"loisir",label:"🎈 Loisir",style:"loisir",main:"1 cours hebdomadaire le <strong>mercredi</strong>.",bullets:["Plusieurs ateliers de théâtre dans la saison inclus","Plusieurs ateliers d'expression corporelle inclus"],price:"270€",priceNote:"Tarif saison",link:""},{key:"perf",label:"🚀 Performance",style:"perf",main:"1 cours hebdomadaire le <strong>mercredi</strong> + entraînements supplémentaires.",bullets:["Nouveau : entraînement jeudi dès octobre","Atelier Improvisation offert toute l'année"],price:"",priceNote:"Tarif à compléter",link:""}]},
@@ -14,7 +14,87 @@ const FALLBACK_ITEMS=[
 {id:"formation",active:true,order:70,icon:"🎼",name:"Formation Musicale",subtitle:"Option Musique & Chant",badge:"",offers:[{key:"option",label:"🎼 Option",style:"option",main:"Option payante en supplément, réservée aux élèves déjà inscrits en Musique & Chant.",bullets:[],price:"150€",priceNote:"Tarif saison",link:""}]},
 {id:"atelier",active:true,order:80,icon:"🎨",name:"Atelier Créatif",subtitle:"Inclus Performance",badge:"Offert",offers:[{key:"inclus",label:"🎁 Inclus",style:"option",main:"Inclus automatiquement dans tous les Parcours Performance.",bullets:["Offert toute l'année pour tous les élèves Performance"],price:"160€",priceNote:"Tarif atelier seul — offert en Performance",link:""}]}
 ];
-function ensureData(){if(!saison.items||!saison.items.length)saison.items=JSON.parse(JSON.stringify(FALLBACK_ITEMS));}
+function ensureData(){if(!saison.items||!saison.items.length)saison.items=JSON.parse(JSON.stringify(FALLBACK_ITEMS));ensurePaymentOptions();}
+function defaultFirstInstallmentPercent(plan){
+  const n=Number(plan)||1;
+  if(n<=1)return 100;
+  if(n===3)return 33.33;
+  if(n===5)return 30;
+  if(n===10)return 25;
+  return Math.round((100/n)*100)/100;
+}
+function ensurePaymentOptions(){
+  const p=saison.paymentOptions&&typeof saison.paymentOptions==='object'?saison.paymentOptions:{};
+  let plans=Array.isArray(p.allowedPlans)?p.allowedPlans.map(n=>Number(n)).filter(n=>Number.isFinite(n)&&n>=1&&n<=12):[1,3,5,10];
+  if(!plans.includes(1))plans.unshift(1);
+  plans=Array.from(new Set(plans)).sort((a,b)=>a-b);
+  const legacy=Number(p.firstInstallmentPercent);
+  const percents=(p.firstInstallmentPercents&&typeof p.firstInstallmentPercents==='object')?p.firstInstallmentPercents:{};
+  const cleanPercents={};
+  for(let n=1;n<=12;n++){
+    let v=Number(percents[String(n)]);
+    if(!Number.isFinite(v)&&n!==1&&Number.isFinite(legacy)&&legacy>0)v=legacy;
+    if(!Number.isFinite(v)||v<=0||v>100)v=defaultFirstInstallmentPercent(n);
+    if(n===1)v=100;
+    cleanPercents[String(n)]=Math.round(v*100)/100;
+  }
+  let day=Number(p.installmentDay);
+  if(!Number.isFinite(day)||day<1||day>27)day=10;
+  saison.paymentOptions={allowedPlans:plans,firstInstallmentPercents:cleanPercents,firstInstallmentPercent:cleanPercents['3']||25,installmentDay:Math.round(day)};
+}
+function formatEurosFromCents(cents){return (Math.round(Number(cents||0))/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});}
+function splitRemainderAdmin(amount,count){
+  if(!count)return[];
+  const base=Math.floor(amount/count), rest=amount-base*count;
+  return Array.from({length:count},(_,i)=>base+(i<rest?1:0));
+}
+function schedulePreviewAdmin(totalCents,plan,percent){
+  const n=Number(plan)||1;
+  if(n<=1)return{first:totalCents,rest:[],label:formatEurosFromCents(totalCents)};
+  const pct=Math.min(100,Math.max(1,Number(percent)||defaultFirstInstallmentPercent(n)));
+  const first=Math.max(100,Math.ceil(totalCents*pct/100));
+  const rest=splitRemainderAdmin(Math.max(0,totalCents-first),n-1);
+  const uniq=Array.from(new Set(rest));
+  const label=uniq.length===1?`${formatEurosFromCents(first)} puis ${n-1} × ${formatEurosFromCents(uniq[0])}`:`${formatEurosFromCents(first)} puis ${rest.map(formatEurosFromCents).join(' / ')}`;
+  return{first,rest,label};
+}
+function renderPaymentOptions(){
+  ensurePaymentOptions();
+  const table=document.getElementById('season-plan-table');
+  if(!table)return;
+  const allowed=new Set((saison.paymentOptions.allowedPlans||[]).map(Number));
+  const amountInput=document.getElementById('season-preview-amount');
+  const amountCents=Math.max(0,Math.round(Number(amountInput&&amountInput.value||400)*100));
+  table.innerHTML='<div class="season-plan-head"><span>Actif</span><span>Paiement</span><span>1ère échéance</span><span>Aperçu sur '+formatEurosFromCents(amountCents)+'</span></div>'+Array.from({length:12},(_,i)=>i+1).map(n=>{
+    const percent=saison.paymentOptions.firstInstallmentPercents[String(n)]||defaultFirstInstallmentPercent(n);
+    const prev=schedulePreviewAdmin(amountCents,n,percent);
+    return `<div class="season-plan-row ${allowed.has(n)?'is-active':'is-muted'}"><label class="season-plan-check"><input type="checkbox" value="${n}" ${allowed.has(n)?'checked':''} ${n===1?'disabled':''}> <span>${n} fois</span></label><div>${n===1?'Paiement complet':'Paiement en '+n+' fois'}</div><label class="season-percent-field"><input type="number" min="1" max="100" step="0.01" data-plan-percent="${n}" value="${percent}" ${n===1?'disabled':''}> <span>%</span></label><div class="season-plan-preview">${prev.label}</div></div>`;
+  }).join('');
+  table.querySelectorAll('input[type="checkbox"]').forEach(el=>el.addEventListener('change',readPaymentOptions));
+  table.querySelectorAll('[data-plan-percent]').forEach(el=>el.addEventListener('input',readPaymentOptions));
+  const day=document.getElementById('season-installment-day');
+  if(day){day.value=saison.paymentOptions.installmentDay;if(!day.__ftsBound){day.__ftsBound=true;day.addEventListener('input',readPaymentOptions);}}
+  if(amountInput&&!amountInput.__ftsBound){amountInput.__ftsBound=true;amountInput.addEventListener('input',renderPaymentOptions);}
+}
+function readPaymentOptions(){
+  const checked=Array.from(document.querySelectorAll('#season-plan-table input[type="checkbox"]:checked')).map(el=>Number(el.value)).filter(n=>Number.isFinite(n)&&n>=1&&n<=12);
+  if(!checked.includes(1))checked.unshift(1);
+  const percents={};
+  document.querySelectorAll('#season-plan-table [data-plan-percent]').forEach(el=>{
+    const n=String(el.getAttribute('data-plan-percent'));
+    let v=Number(el.value);
+    if(!Number.isFinite(v)||v<1)v=1;
+    if(v>100)v=100;
+    if(n==='1')v=100;
+    percents[n]=Math.round(v*100)/100;
+  });
+  for(let n=1;n<=12;n++){if(!percents[String(n)])percents[String(n)]=defaultFirstInstallmentPercent(n);}
+  let day=Number(document.getElementById('season-installment-day')?.value||10);
+  if(!Number.isFinite(day)||day<1)day=1;
+  if(day>27)day=27;
+  saison.paymentOptions={allowedPlans:Array.from(new Set(checked)).sort((a,b)=>a-b),firstInstallmentPercents:percents,firstInstallmentPercent:percents['3']||25,installmentDay:Math.round(day)};
+  renderPaymentOptions();
+}
 function seasonNorm(value){return (FTS.norm?FTS.norm(value||''):String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));}
 function seasonDefaultOfferForCategory(cat){
   const label=cat && (cat.name||cat.category) ? (cat.name||cat.category) : 'Activité';
@@ -79,7 +159,7 @@ function syncSeasonWithOfficialCategories(){
   return added;
 }
 function init(){db=FTS.initFirebase();auth=firebase.auth();auth.onAuthStateChanged(async user=>{if(!user){location.href='auth.html';return}const snap=await db.ref('fts_users/'+user.uid).once('value');const profile=snap.val();if(!profile||profile.role!=='admin'){location.href='membres.html';return}document.getElementById('auth-loading').style.display='none';document.getElementById('admin-shell').style.display='block';loadedCategories=await FTS.getCategoryStructureAsync(db);await load();});}
-async function load(){const snap=await db.ref('fts_saison/config').once('value');if(snap.val())saison=snap.val();ensureData();const added=syncSeasonWithOfficialCategories();bindMeta();renderList();selectActivity(0);if(added)showMsg('ok',added+' catégorie(s) officielle(s) ajoutée(s) dans Saison. Ajoute les tarifs puis clique sur Publier.')}
+async function load(){const snap=await db.ref('fts_saison/config').once('value');if(snap.val())saison=snap.val();ensureData();const added=syncSeasonWithOfficialCategories();bindMeta();renderPaymentOptions();renderList();selectActivity(0);if(added)showMsg('ok',added+' catégorie(s) officielle(s) ajoutée(s) dans Saison. Ajoute les tarifs puis clique sur Publier.')}
 function bindMeta(){document.getElementById('m-title').value=saison.meta?.title||'';document.getElementById('m-year').value=saison.meta?.year||'';document.getElementById('m-slogan').value=saison.meta?.slogan||'';document.getElementById('m-link').value=saison.inscriptionDefault||'';['m-title','m-year','m-slogan','m-link'].forEach(id=>document.getElementById(id).addEventListener('input', readMeta))}
 function readMeta(){saison.meta=saison.meta||{};saison.meta.title=document.getElementById('m-title').value;saison.meta.year=document.getElementById('m-year').value;saison.meta.slogan=document.getElementById('m-slogan').value;saison.inscriptionDefault=document.getElementById('m-link').value}
 function sortedItems(){return saison.items.map((it,i)=>({...it,_i:i})).sort((a,b)=>(+a.order||0)-(+b.order||0))}
@@ -133,6 +213,7 @@ async function saveAll(){
   isPublishingSeason = true;
   try{
     readMeta();
+    readPaymentOptions();
     readActivity();
     syncSeasonWithOfficialCategories();
     await db.ref('fts_saison/config').set({...saison,updatedAt:Date.now()});
@@ -143,7 +224,7 @@ async function saveAll(){
     isPublishingSeason = false;
   }
 }
-function exportJson(){readMeta();document.getElementById('json-area').value=JSON.stringify(saison,null,2);showMsg('ok','Export JSON généré.')}function importJson(){try{if(!confirm('Importer ce JSON dans l’éditeur ? Les modifications non publiées seront remplacées.'))return;saison=JSON.parse(document.getElementById('json-area').value);ensureData();bindMeta();renderList();selectActivity(0);showMsg('ok','JSON importé. Clique sur Publier pour l’envoyer en ligne.')}catch(e){showMsg('err','JSON invalide : '+e.message)}}
+function exportJson(){readMeta();document.getElementById('json-area').value=JSON.stringify(saison,null,2);showMsg('ok','Export JSON généré.')}function importJson(){try{if(!confirm('Importer ce JSON dans l’éditeur ? Les modifications non publiées seront remplacées.'))return;saison=JSON.parse(document.getElementById('json-area').value);ensureData();bindMeta();renderPaymentOptions();renderList();selectActivity(0);showMsg('ok','JSON importé. Clique sur Publier pour l’envoyer en ligne.')}catch(e){showMsg('err','JSON invalide : '+e.message)}}
 function showMsg(cls,txt){const m=document.getElementById('msg');m.className='msg '+cls;m.textContent=txt;setTimeout(()=>m.className='msg',4500)}function doLogout(){firebase.auth().signOut().then(()=>location.href='auth.html')}
 init();
 

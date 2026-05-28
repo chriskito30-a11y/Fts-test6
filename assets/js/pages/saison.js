@@ -263,7 +263,7 @@ function selectSeasonSubcat(activityId,subcatId){
 }
 function renderOffers(i){const offers=i.offers||[];const tabs=offers.length>1?`<div class="tabs">${offers.map((o,idx)=>`<button class="tab ${idx===0?'act':''} ${esc(o.style||o.key)}" data-fts-click="switchTab('${esc(i.id)}','${esc(o.key)}',this)">${esc(o.label||o.key)}</button>`).join('')}</div>`:'';return tabs+offers.map((o,idx)=>`<div class="tab-content ${idx===0?'act':''}" id="${esc(i.id)}-${esc(o.key)}"><div class="c-main ${o.style==='perf'?'perf':''}">${o.main||''}</div>${renderBullets(o.bullets)}${renderOfferBox(o,i)}</div>`).join('');}
 function renderBullets(bullets){if(!bullets||!bullets.length)return'';return `<ul class="c-list">${bullets.map(b=>{const gift=String(b).includes('🎁');const warn=String(b).includes('💰');return `<li class="${gift?'gift':warn?'warn':'incl'}"><span class="icon">${gift?'🎁':warn?'💰':'✔'}</span><span>${esc(String(b).replace(/^([✔⚡🎁💰])\s*/,'')).replace(/Offert :/,'<strong>Offert :</strong>')}</span></li>`}).join('')}</ul>`}
-function renderOfferBox(o,i){const rawLink=String(o.link||saison.inscriptionDefault||'').trim();const link=(rawLink&&rawLink!=='#')?FTS.safeUrl(rawLink,''):'';const paymentBtn=renderPaymentButton(i,o);const linkAction=link?`<a class="btn-register" href="${esc(link)}" target="_blank" rel="noopener">S'inscrire</a>`:(paymentBtn?'':`<span class="btn-register muted">Lien bientôt disponible</span>`);return `<div class="offer-box"><div><div class="offer-price">${esc(o.price||'Tarif à venir')} ${o.price?'<small>/ saison</small>':''}</div>${o.priceNote?`<div class="offer-note">${esc(o.priceNote)}</div>`:''}</div><div class="offer-actions">${linkAction}${paymentBtn}</div></div>`;}
+function renderOfferBox(o,i){const rawLink=String(o.link||saison.inscriptionDefault||'').trim();const link=(rawLink&&rawLink!=='#')?FTS.safeUrl(rawLink,''):'';const paymentBtn=renderPaymentButton(i,o);return `<div class="offer-box"><div><div class="offer-price">${esc(o.price||'Tarif à venir')} ${o.price?'<small>/ saison</small>':''}</div>${o.priceNote?`<div class="offer-note">${esc(o.priceNote)}</div>`:''}</div><div class="offer-actions">${link?`<a class="btn-register" href="${esc(link)}" target="_blank" rel="noopener">S'inscrire</a>`:`<span class="btn-register muted">Lien bientôt disponible</span>`}${paymentBtn}</div></div>`;}
 
 
 /* ── Paiement HelloAsso public contrôlé ────────────────────────────── */
@@ -296,12 +296,61 @@ function findSeasonSubcat(item,key){
   const found=subs.find(s=>subcatKey(s)===key);
   return found?subcatPaymentInfo(found):null;
 }
+
+function seasonPaymentOptions(){
+  const p=(saison&&saison.paymentOptions&&typeof saison.paymentOptions==='object')?saison.paymentOptions:{};
+  let plans=Array.isArray(p.allowedPlans)?p.allowedPlans.map(n=>Number(n)).filter(n=>Number.isFinite(n)&&n>=1&&n<=12):[1,3,5,10];
+  if(!plans.includes(1))plans.unshift(1);
+  plans=Array.from(new Set(plans)).sort((a,b)=>a-b);
+  return {allowedPlans:plans,firstInstallmentPercents:(p.firstInstallmentPercents&&typeof p.firstInstallmentPercents==='object')?p.firstInstallmentPercents:{},installmentDay:Number(p.installmentDay||10)||10};
+}
+function defaultFirstInstallmentPercentPublic(n){
+  n=Number(n)||1;
+  if(n<=1)return 100;
+  if(n===3)return 33.33;
+  if(n===5)return 30;
+  if(n===10)return 25;
+  return Math.round((100/n)*100)/100;
+}
+function firstInstallmentPercentForPlan(plan){
+  const opts=seasonPaymentOptions();
+  const n=Number(String(plan||'1x').replace('x',''))||1;
+  const direct=Number((opts.firstInstallmentPercents||{})[String(n)]);
+  return (Number.isFinite(direct)&&direct>0&&direct<=100)?(n===1?100:direct):defaultFirstInstallmentPercentPublic(n);
+}
+function renderPaymentPlanOptions(select){
+  if(!select)return;
+  const opts=seasonPaymentOptions();
+  select.innerHTML=opts.allowedPlans.map(n=>`<option value="${n}x">Paiement en ${n} fois</option>`).join('');
+}
+function splitRemainderPublic(amount,count){
+  if(!count)return[];
+  const base=Math.floor(amount/count),rest=amount-base*count;
+  return Array.from({length:count},(_,i)=>base+(i<rest?1:0));
+}
+function formatCentsPublic(cents){return (Math.round(Number(cents||0))/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});}
+function updatePaymentSchedulePreview(){
+  const form=document.getElementById('fts-pay-form');
+  const box=document.getElementById('fts-pay-schedule-preview');
+  if(!form||!box)return;
+  const total=Number(form.amountCents&&form.amountCents.value||0)||0;
+  const plan=String(form.paymentPlan&&form.paymentPlan.value||'1x');
+  const count=Number(plan.replace('x',''))||1;
+  if(count<=1){box.innerHTML='<strong>Paiement en 1 fois</strong><br>'+formatCentsPublic(total)+' au règlement.';return;}
+  const pct=firstInstallmentPercentForPlan(plan);
+  const first=Math.max(100,Math.ceil(total*pct/100));
+  const rest=splitRemainderPublic(Math.max(0,total-first),count-1);
+  const uniq=Array.from(new Set(rest));
+  const next=uniq.length===1?(count-1)+' échéance(s) de '+formatCentsPublic(uniq[0]):rest.map(formatCentsPublic).join(' / ');
+  box.innerHTML='<strong>Paiement en '+count+' fois</strong><br>1ère échéance : '+formatCentsPublic(first)+' ('+pct+'%)<br>Puis '+next+'.';
+}
+
 function ensureSeasonPaymentModal(){
   if(document.getElementById('fts-season-payment-modal'))return;
   const div=document.createElement('div');
   div.id='fts-season-payment-modal';
   div.className='fts-payment-modal';
-  div.innerHTML=`<div class="fts-payment-card"><button type="button" class="fts-payment-close" data-fts-click="closeSeasonPayment()">×</button><div class="eyebrow">Paiement sécurisé HelloAsso</div><h2 id="fts-pay-title">Règlement Fais Ton Show</h2><p id="fts-pay-summary" class="fts-pay-summary"></p><form id="fts-pay-form"><div class="fts-pay-section-title">Responsable / payeur</div><div class="fts-pay-grid"><label>Prénom responsable<input name="firstName" autocomplete="given-name" required></label><label>Nom responsable<input name="lastName" autocomplete="family-name" required></label><label>Email responsable<input name="email" type="email" autocomplete="email" required></label><label>Téléphone responsable<input name="phone" type="tel" autocomplete="tel" required></label></div><div class="fts-pay-section-title">Participant / élève</div><div class="fts-pay-grid"><label>Prénom participant<input name="studentFirstName" required></label><label>Nom participant<input name="studentLastName" required></label><label>Téléphone d'urgence<input name="emergencyPhone" type="tel" required></label><label id="fts-pay-sub-wrap">Groupe<select name="subcategoryId"></select></label><label>Montant<select name="amountCents"></select></label><label>Paiement<select name="paymentPlan"><option value="1x">Paiement en 1 fois</option><option value="3x">Paiement en 3 fois</option><option value="5x">Paiement en 5 fois</option><option value="10x">Paiement en 10 fois</option></select></label></div><div class="promo-field"><label>Code promo / code spécial <input name="promoCode" placeholder="Optionnel : réduction, gratuité ou chèque/espèces"></label></div><button class="btn-register fts-pay-submit" type="submit">Continuer</button><div id="fts-pay-msg" class="fts-pay-msg"></div></form></div>`;
+  div.innerHTML=`<div class="fts-payment-card"><button type="button" class="fts-payment-close" data-fts-click="closeSeasonPayment()">×</button><div class="eyebrow">Paiement sécurisé HelloAsso</div><h2 id="fts-pay-title">Règlement Fais Ton Show</h2><p id="fts-pay-summary" class="fts-pay-summary"></p><form id="fts-pay-form"><div class="fts-pay-section-title">Responsable / payeur</div><div class="fts-pay-grid"><label>Prénom responsable<input name="firstName" autocomplete="given-name" required></label><label>Nom responsable<input name="lastName" autocomplete="family-name" required></label><label>Email responsable<input name="email" type="email" autocomplete="email" required></label><label>Téléphone responsable<input name="phone" type="tel" autocomplete="tel" required></label></div><div class="fts-pay-section-title">Participant / élève</div><div class="fts-pay-grid"><label>Prénom participant<input name="studentFirstName" required></label><label>Nom participant<input name="studentLastName" required></label><label>Téléphone d'urgence<input name="emergencyPhone" type="tel" required></label><label id="fts-pay-sub-wrap">Groupe<select name="subcategoryId"></select></label><label>Montant<select name="amountCents"></select></label><label>Paiement<select name="paymentPlan"></select></label></div><div id="fts-pay-schedule-preview" class="fts-pay-schedule-preview"></div><div class="promo-field"><label>Code promo / code spécial <input name="promoCode" placeholder="Optionnel : réduction, gratuité ou chèque/espèces"></label></div><button class="btn-register fts-pay-submit" type="submit">Continuer</button><div id="fts-pay-msg" class="fts-pay-msg"></div></form></div>`;
   document.body.appendChild(div);
   document.getElementById('fts-pay-form').addEventListener('submit',submitSeasonPayment);
 }
@@ -336,6 +385,10 @@ function openSeasonPayment(activityId,offerKey){
   const form=document.getElementById('fts-pay-form');
   form.firstName.value=first; form.lastName.value=last; form.email.value=email; form.phone.value=phone; form.studentFirstName.value=''; form.studentLastName.value=''; form.emergencyPhone.value='';
   form.amountCents.innerHTML=prices.map(p=>`<option value="${p.cents}">${esc(p.label)}</option>`).join('');
+  renderPaymentPlanOptions(form.paymentPlan);
+  form.amountCents.onchange=updatePaymentSchedulePreview;
+  form.paymentPlan.onchange=updatePaymentSchedulePreview;
+  updatePaymentSchedulePreview();
   const subs=item.subcats||[];
   const wrap=document.getElementById('fts-pay-sub-wrap');
   if(subs.length){const compatibleSubs=subs.filter(s=>subcatAllowsOffer(s,offer));wrap.style.display='grid';form.subcategoryId.innerHTML=compatibleSubs.map(s=>{const sub=subcatPaymentInfo(s);const label=sub.seasonDetail?`${sub.title||sub.name} — ${sub.seasonDetail}`:(sub.title||sub.name);return `<option value="${esc(sub.key)}">${esc(label)}</option>`}).join(''); if(chosenSubcat) form.subcategoryId.value=chosenSubcat.key;}
