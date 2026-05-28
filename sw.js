@@ -1,4 +1,4 @@
-const CACHE = 'fts-v197-layout-fix';
+const CACHE = 'fts-v198-member-season-button-fix';
 const FILES = [
   './manifest.json',
   './index.html',
