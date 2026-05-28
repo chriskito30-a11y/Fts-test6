@@ -1,4 +1,4 @@
-const CACHE = 'fts-v198-member-season-button-fix';
+const CACHE = 'fts-v201-legacy-access-modal-fix';
 const FILES = [
   './manifest.json',
   './index.html',
