@@ -294,6 +294,57 @@ function importJson(){
   }
 }
 function showMsg(cls,txt){const m=document.getElementById('msg');m.className='msg '+cls;m.textContent=txt;setTimeout(()=>m.className='msg',4500)}function doLogout(){firebase.auth().signOut().then(()=>location.href='auth.html')}
+
+/* ── Options liées Saison — constructeur simple ─────────────────── */
+function seasonAdminCatalog(){
+  const rows=[];
+  (loadedCategories||[]).forEach(cat=>{
+    const catId=cat.key||seasonNorm(cat.name||cat.category||'');
+    const catLabel=cat.name||cat.category||catId;
+    const raw=cat.subcats||cat.subcategories||{};
+    const subs=Array.isArray(raw)?raw.map((v,i)=>[String(i),v]):Object.entries(raw||{});
+    subs.forEach(([key,val])=>{
+      const sub=typeof val==='object'&&val?val:{name:String(val||key)};
+      if(sub.active===false)return;
+      const subId=sub.key||key;
+      const subLabel=sub.name||sub.label||subId;
+      rows.push({categoryId:catId,categoryLabel:catLabel,subcategoryId:subId,subcategoryLabel:subLabel,label:catLabel+' — '+subLabel});
+    });
+  });
+  if(!rows.length){
+    (saison.items||[]).forEach(it=>rows.push({categoryId:it.id,categoryLabel:it.name||it.id,subcategoryId:'principal',subcategoryLabel:'Groupe principal',label:(it.name||it.id)+' — Groupe principal'}));
+  }
+  return rows.sort((a,b)=>a.label.localeCompare(b.label,'fr'));
+}
+function selectedActivitySubcatsAdmin(){
+  const a=saison.items[selectedIndex]||{};
+  const key=a.officialCategoryKey||a.id||seasonNorm(a.name||'');
+  const cat=(loadedCategories||[]).find(c=>seasonNorm(c.key||c.name||c.category)===seasonNorm(key)||seasonNorm(c.name||c.category)===seasonNorm(a.name));
+  const raw=cat&&(cat.subcats||cat.subcategories)||{};
+  const entries=Array.isArray(raw)?raw.map((v,i)=>[String(i),v]):Object.entries(raw||{});
+  return entries.map(([k,v])=>{const sub=typeof v==='object'&&v?v:{name:String(v||k)};return{key:sub.key||k,label:sub.name||sub.label||sub.key||k,active:sub.active!==false};}).filter(x=>x.active);
+}
+function ensureOfferLinkedOptions(offer){if(!Array.isArray(offer.linkedOptions))offer.linkedOptions=[];return offer.linkedOptions;}
+function linkedRuleLabel(rule){
+  const type=rule.type==='paid'?'payante':'incluse';
+  const max=Number(rule.maxChoices||1)||1;
+  const req=rule.required?'obligatoire':'facultative';
+  return `${type} · ${req} · ${max} choix max`;
+}
+function renderOfferLinkedOptions(offerIndex,offer){
+  const rules=ensureOfferLinkedOptions(offer);
+  const catalog=seasonAdminCatalog();
+  const subcats=selectedActivitySubcatsAdmin();
+  return `<div class="linked-options-admin"><div class="linked-head"><div><strong>Options liées à cette formule</strong><small>Choix inclus, options payantes, prix fixe ou prix Saison. Les choix viennent des catégories/sous-catégories existantes.</small></div><button type="button" class="btn-outline" data-fts-click="addLinkedOptionRule(${offerIndex})">+ Ajouter une règle</button></div>${rules.length?rules.map((r,ri)=>`<div class="linked-rule"><div class="linked-rule-title"><div><strong>${FTS.esc(r.label||'Option liée')}</strong><small>${FTS.esc(linkedRuleLabel(r))}</small></div><button type="button" class="btn-outline danger" data-fts-click="deleteLinkedOptionRule(${offerIndex},${ri})">Supprimer</button></div><div class="form-grid modern-form linked-grid"><div class="field full"><label>Titre affiché</label><input value="${FTS.esc(r.label||'')}" data-fts-input="setLinkedOptionRule(${offerIndex},${ri},'label',this.value)" placeholder="Choisis ton cours complémentaire"></div><div class="field"><label>Type</label><select data-fts-change="setLinkedOptionRule(${offerIndex},${ri},'type',this.value)"><option value="included" ${r.type!=='paid'?'selected':''}>Incluse / offerte</option><option value="paid" ${r.type==='paid'?'selected':''}>Option payante</option></select></div><div class="field"><label>Obligatoire</label><select data-fts-change="setLinkedOptionRule(${offerIndex},${ri},'required',this.value==='true')"><option value="false" ${!r.required?'selected':''}>Non</option><option value="true" ${r.required?'selected':''}>Oui</option></select></div><div class="field"><label>Nombre max de choix</label><select data-fts-change="setLinkedOptionRule(${offerIndex},${ri},'maxChoices',Number(this.value))">${[1,2,3].map(n=>`<option value="${n}" ${Number(r.maxChoices||1)===n?'selected':''}>${n}</option>`).join('')}</select></div><div class="field"><label>Prix</label><select data-fts-change="setLinkedOptionRule(${offerIndex},${ri},'pricingMode',this.value)"><option value="free" ${(r.pricingMode||'free')==='free'?'selected':''}>0€ / inclus</option><option value="season_price" ${r.pricingMode==='season_price'?'selected':''}>Prix Saison du cours choisi</option><option value="fixed" ${r.pricingMode==='fixed'?'selected':''}>Prix fixe défini ici</option></select></div><div class="field"><label>Prix fixe en €</label><input type="number" min="0" step="1" value="${Number(r.priceCents||0)/100||''}" data-fts-input="setLinkedOptionFixedPrice(${offerIndex},${ri},this.value)" placeholder="Ex : 120"></div></div><div class="linked-split"><div><div class="linked-mini-title">Groupes concernés par cette règle</div><small>Laisse vide = tous les groupes de cette formule.</small><div class="linked-checks">${subcats.map(s=>`<label><input type="checkbox" ${Array.isArray(r.subcategoryIds)&&r.subcategoryIds.includes(s.key)?'checked':''} data-fts-change="toggleLinkedRuleSubcat(${offerIndex},${ri},'${FTS.esc(String(s.key))}',this.checked)"> ${FTS.esc(s.label)}</label>`).join('')||'<em>Aucun groupe détecté.</em>'}</div></div><div><div class="linked-mini-title">Cours proposés dans la liste</div><small>La capacité sera décomptée sur le cours choisi.</small><div class="linked-checks linked-course-checks">${catalog.map(c=>{const on=(r.choices||[]).some(ch=>ch.categoryId===c.categoryId&&ch.subcategoryId===c.subcategoryId);return `<label><input type="checkbox" ${on?'checked':''} data-fts-change="toggleLinkedRuleChoice(${offerIndex},${ri},'${FTS.esc(c.categoryId)}','${FTS.esc(c.subcategoryId)}',this.checked)"> ${FTS.esc(c.label)}</label>`;}).join('')}</div></div></div></div>`).join(''):'<div class="linked-empty">Aucune option liée pour cette formule.</div>'}</div>`;
+}
+function addLinkedOptionRule(offerIndex){const offer=saison.items[selectedIndex].offers[offerIndex];ensureOfferLinkedOptions(offer).push({id:'opt_'+Date.now().toString(36),active:true,label:'Option liée',type:'included',required:false,maxChoices:1,pricingMode:'free',priceCents:0,subcategoryIds:[],choices:[]});renderOffers();}
+function deleteLinkedOptionRule(offerIndex,ruleIndex){if(!confirm('Supprimer cette règle d’option ?'))return;ensureOfferLinkedOptions(saison.items[selectedIndex].offers[offerIndex]).splice(ruleIndex,1);renderOffers();}
+function setLinkedOptionRule(offerIndex,ruleIndex,key,value){const r=ensureOfferLinkedOptions(saison.items[selectedIndex].offers[offerIndex])[ruleIndex];if(!r)return;r[key]=value;renderPreview();}
+function setLinkedOptionFixedPrice(offerIndex,ruleIndex,value){const r=ensureOfferLinkedOptions(saison.items[selectedIndex].offers[offerIndex])[ruleIndex];if(!r)return;r.priceCents=Math.max(0,Math.round(Number(value||0)*100)||0);renderPreview();}
+function toggleLinkedRuleSubcat(offerIndex,ruleIndex,subcatId,checked){const r=ensureOfferLinkedOptions(saison.items[selectedIndex].offers[offerIndex])[ruleIndex];if(!r)return;r.subcategoryIds=Array.isArray(r.subcategoryIds)?r.subcategoryIds:[];r.subcategoryIds=r.subcategoryIds.filter(x=>String(x)!==String(subcatId));if(checked)r.subcategoryIds.push(subcatId);renderPreview();}
+function toggleLinkedRuleChoice(offerIndex,ruleIndex,categoryId,subcategoryId,checked){const r=ensureOfferLinkedOptions(saison.items[selectedIndex].offers[offerIndex])[ruleIndex];if(!r)return;r.choices=Array.isArray(r.choices)?r.choices:[];r.choices=r.choices.filter(x=>!(String(x.categoryId)===String(categoryId)&&String(x.subcategoryId)===String(subcategoryId)));if(checked)r.choices.push({categoryId,subcategoryId});renderPreview();}
+function renderOffers(){const a=saison.items[selectedIndex];document.getElementById('offers').innerHTML=(a.offers||[]).map((o,idx)=>`<div class="offer-card modern-offer"><div class="offer-head"><div><div class="offer-title">Formule ${idx+1}</div><div class="offer-subtitle">Bloc affiché quand l’utilisateur ouvre l’activité sur saison.html</div></div><button class="btn-outline danger" data-fts-click="deleteOffer(${idx})">Supprimer</button></div><div class="form-grid modern-form"><div class="field"><label>Identifiant interne</label><input value="${FTS.esc(o.key||'')}" data-fts-input="setOffer(${idx},'key',this.value)" placeholder="loisir, perf, option"><small>Technique : sert à ouvrir le bon onglet. Évite les espaces.</small></div><div class="field"><label>Nom du bouton / onglet</label><input value="${FTS.esc(o.label||'')}" data-fts-input="setOffer(${idx},'label',this.value)" placeholder="🎈 Loisir"><small>Texte visible par les familles.</small></div><div class="field"><label>Couleur du parcours</label><select data-fts-change="setOffer(${idx},'style',this.value)"><option ${o.style==='loisir'?'selected':''} value="loisir">Loisir</option><option ${o.style==='perf'?'selected':''} value="perf">Performance</option><option ${o.style==='option'?'selected':''} value="option">Option</option></select><small>Change seulement le style visuel.</small></div><div class="field"><label>Tarif affiché</label><input value="${FTS.esc(o.price||'')}" data-fts-input="setOffer(${idx},'price',this.value)" placeholder="270€, 180€ / 200€…"><small>Visible dans le bloc d’inscription.</small></div><div class="field full"><label>Lien d’inscription spécifique</label><input value="${FTS.esc(o.link||'')}" data-fts-input="setOffer(${idx},'link',this.value)" placeholder="Vide = lien par défaut"><small>Laisse vide si cette formule utilise le lien général.</small></div><div class="field full"><label>Texte principal de la formule</label><textarea data-fts-input="setOffer(${idx},'main',this.value)" placeholder="1 cours hebdomadaire…">${FTS.esc(o.main||'')}</textarea><small>Accepte le HTML déjà utilisé, par exemple &lt;strong&gt;mercredi&lt;/strong&gt;.</small></div><div class="field full"><label>Points inclus / avantages</label><textarea data-fts-input="setOfferBullets(${idx},this.value)" placeholder="Une ligne = un avantage">${FTS.esc((o.bullets||[]).join('\n'))}</textarea><small>Chaque ligne devient une coche sur la page publique.</small></div><div class="field full"><label>Petite note sous le tarif</label><input value="${FTS.esc(o.priceNote||'')}" data-fts-input="setOffer(${idx},'priceNote',this.value)" placeholder="Tarif saison, adhésion comprise…"><small>Précision rassurante affichée sous le prix.</small></div></div>${renderOfferLinkedOptions(idx,o)}</div>`).join('');renderPreview()}
+
 init();
 
 /* FTS_AUTO_EXTRACTED_HANDLERS:saison-admin.html */

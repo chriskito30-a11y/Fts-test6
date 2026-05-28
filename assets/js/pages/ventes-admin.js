@@ -122,6 +122,41 @@
   function maxSeatsForRows(list){
     return list.reduce((max,o)=>Math.max(max, subcategoryMaxSeats(o)), 0);
   }
+
+  function reservationLines(o){ return Array.isArray(o && o.reservationLines) ? o.reservationLines.filter(l=>l && l.type === 'season_registration') : []; }
+  function orderFromReservationLine(parent, line){
+    return Object.assign({}, parent, line, {
+      id: parent.id,
+      type: line.type || parent.type,
+      parentType: parent.type,
+      reservationParentId: parent.id,
+      status: parent.status,
+      globalPaymentStatus: parent.globalPaymentStatus,
+      provider: parent.provider,
+      paymentPlan: parent.paymentPlan,
+      payer: parent.payer,
+      userName: parent.userName,
+      userEmail: parent.userEmail,
+      payerPhone: parent.payerPhone,
+      installments: parent.installments,
+      createdAt: parent.createdAt,
+      updatedAt: parent.updatedAt,
+      amountCents: line.amountCents || 0,
+      totalAmount: line.amountCents || 0,
+      itemName: line.itemName || parent.itemName || '',
+      source: parent.source
+    });
+  }
+  function expandSeasonReservations(rows){
+    const out=[];
+    rows.forEach(o=>{
+      const lines=reservationLines(o);
+      if(lines.length) lines.forEach(line=>out.push(orderFromReservationLine(o,line)));
+      else out.push(o);
+    });
+    return out;
+  }
+
   function cartSeasonLines(o){ return Array.isArray(o && o.cartLines) ? o.cartLines.filter(l=>l && l.type === 'season_registration') : []; }
   function cartShopLines(o){ return Array.isArray(o && o.cartLines) ? o.cartLines.filter(l=>l && l.type === 'shop_order') : []; }
   function lineStudentName(line, parent){ return [line && line.studentFirstName, line && line.studentLastName].filter(Boolean).join(' ') || (line && line.studentName) || studentName(parent || {}); }
@@ -150,7 +185,7 @@
     return `<div class="sales-cart-lines">${lines.map(l=>{
       if(l.type === 'season_registration'){
         const title = [lineStudentName(l,o), lineActivityLabel(l)].filter(Boolean).join(' — ');
-        const detail = [lineGroupName(l), lineSubcategoryDetail(l), lineOfferLabel(l), euro(lineAmount(l))].filter(Boolean).join(' · ');
+        const detail = [l.kind && l.kind !== 'main' ? (l.kind === 'paid_option' ? 'Option payante' : 'Option incluse') : '', l.optionRuleLabel || '', lineGroupName(l), lineSubcategoryDetail(l), lineOfferLabel(l), euro(lineAmount(l))].filter(Boolean).join(' · ');
         return `<div class="sales-cart-line season"><strong>${esc(title)}</strong><small>${esc(detail)}</small></div>`;
       }
       if(l.type === 'shop_order'){
@@ -418,7 +453,7 @@
     if(!list.length){ $('sales-groups').innerHTML = '<div class="sales-empty">Aucune commande ne correspond aux filtres.</div>'; return; }
     const types = sortTypeEntries(Array.from(byMap(list, typeKey).entries()));
     $('sales-groups').innerHTML = types.map(([type, rows])=>{
-      if(type === 'season_registration') return renderSeasonType(rows);
+      if(type === 'season_registration') return renderSeasonType(expandSeasonReservations(rows));
       if(type === 'mixed_cart') return renderMixedCartType(rows);
       return renderGenericType(type, rows);
     }).join('');
