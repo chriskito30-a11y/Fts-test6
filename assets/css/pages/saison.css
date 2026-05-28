@@ -66,3 +66,10 @@
 
 /* v-linked-options — options incluses/payantes Saison */
 .fts-linked-options{margin:.9rem 0;padding:.9rem;border:1px solid rgba(248,231,2,.20);border-radius:18px;background:rgba(248,231,2,.07)}.fts-linked-rule{margin-top:.7rem;padding:.75rem;border-radius:16px;background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.09)}.fts-linked-rule strong{display:block;color:#fff}.fts-linked-rule small{display:block;color:rgba(255,255,255,.68);margin:.15rem 0 .55rem}.fts-linked-choice-list{display:grid;gap:.45rem}.fts-linked-choice{display:flex;align-items:center;gap:.55rem;padding:.6rem .7rem;border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(255,255,255,.055);color:#fff;cursor:pointer}.fts-linked-choice input{accent-color:var(--gold)}.fts-linked-choice span{flex:1;line-height:1.25}.fts-linked-choice em{font-style:normal;color:var(--gold);font-weight:900;white-space:nowrap}.fts-cart-linked{grid-column:1/-1;margin-top:.7rem}.fts-cart-linked .fts-linked-options{margin:.55rem 0 0;padding:.75rem}.fts-cart-linked .fts-pay-section-title{margin-top:0}.fts-cart-line>div:first-child{min-width:0}
+
+/* v-linked-options-details — horaires lisibles dans les options liées */
+.fts-linked-choice-main{flex:1;display:grid;gap:.16rem;min-width:0;line-height:1.25}
+.fts-linked-choice-title{display:block;color:#fff;font-weight:800;line-height:1.25}
+.fts-linked-choice-meta{display:block;color:rgba(255,255,255,.68);font-size:.74rem;line-height:1.35;font-weight:500}
+.fts-linked-choice em{align-self:center}
+@media(max-width:520px){.fts-linked-choice{align-items:flex-start}.fts-linked-choice em{font-size:.82rem;margin-top:.08rem}}
