@@ -944,3 +944,42 @@ body { overflow-x: hidden; }
   .approval-review-actions{justify-content:stretch;}
   .approval-review-actions button{width:100%;}
 }
+
+/* Anciens accès visibles dans la modale d'édition */
+.legacy-access-notice {
+  margin: 10px 0 14px;
+  padding: 12px;
+  border: 1px solid rgba(245, 158, 11, .35);
+  background: rgba(245, 158, 11, .09);
+  border-radius: 16px;
+  color: var(--text);
+}
+.legacy-access-notice.hidden { display: none !important; }
+.legacy-access-title {
+  font-weight: 900;
+  margin-bottom: 4px;
+  color: #92400e;
+}
+.legacy-access-notice p {
+  margin: 0 0 8px;
+  font-size: .86rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.legacy-access-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.legacy-access-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: #fff7ed;
+  border: 1px solid rgba(245, 158, 11, .35);
+  color: #7c2d12;
+  font-size: .78rem;
+  font-weight: 700;
+}
