@@ -1,4 +1,4 @@
-const CACHE = 'fts-v202-counted-people-cleanup';
+const CACHE = 'fts-v204-guided-support-mail';
 const FILES = [
   './manifest.json',
   './index.html',
