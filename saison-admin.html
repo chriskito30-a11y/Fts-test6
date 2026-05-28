@@ -52,7 +52,23 @@
 <div class="field"><label>Titre principal affiché</label><input id="m-title" placeholder="SAISON"/><small>Exemple : SAISON</small></div><div class="field"><label>Année de saison</label><input id="m-year" placeholder="2026/2027"/><small>Affiché sous le titre principal.</small></div>
 <div class="field full"><label>Phrase d’accroche</label><input id="m-slogan" placeholder="Deux parcours, une passion…"/><small>Petit texte rassurant visible sous le titre.</small></div><div class="field full"><label>Lien d’inscription par défaut</label><input id="m-link" placeholder="https://www.helloasso.com/..."/><small>Utilisé quand une formule n’a pas son propre lien.</small></div>
 </div>
-<hr class="divider"/><div class="section-head"><div><div class="mini-title">Activité sélectionnée</div><h2>Carte activité</h2></div><span class="soft-badge">Tuile + bloc déroulant</span></div><div class="muted-note" id="empty-edit">Sélectionne une activité à gauche.</div>
+<hr class="divider"/>
+<div class="section-head season-pay-settings-head"><div><div class="mini-title">Paiement Saison</div><h2>Échelonnement des inscriptions</h2></div><span class="soft-badge">Uniquement saison.html</span></div>
+<div class="season-payment-settings" id="season-payment-settings">
+  <div class="muted-note">Coche les paiements proposés, règle le pourcentage de première échéance pour chaque nombre de fois, puis vérifie l’impact sur les échéances restantes.</div>
+  <div class="season-installment-toolbar">
+    <label>Montant test pour aperçu
+      <input id="season-preview-amount" type="number" min="0" step="10" value="400" placeholder="400"/>
+    </label>
+    <label>Jour des échéances suivantes
+      <input id="season-installment-day" type="number" min="1" max="27" step="1" placeholder="10"/>
+    </label>
+  </div>
+  <div class="season-plan-table" id="season-plan-table" aria-label="Réglage des échéances Saison"></div>
+  <small class="season-payment-help">Le paiement en 1 fois reste toujours disponible. Pour les autres lignes : 1ère échéance = % choisi, puis le reste est réparti sur les échéances suivantes.</small>
+</div>
+<hr class="divider"/>
+<div class="section-head"><div><div class="mini-title">Activité sélectionnée</div><h2>Carte activité</h2></div><span class="soft-badge">Tuile + bloc déroulant</span></div><div class="muted-note" id="empty-edit">Sélectionne une activité à gauche.</div>
 <div class="u-saison-admin-inline-3" id="editor">
 <div class="preview-panel" id="saison-preview"></div>
 <div class="category-helper" id="season-cat-helper"></div>
