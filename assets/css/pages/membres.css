@@ -3618,3 +3618,44 @@ button.profile-pill:focus-visible {
   border-color:rgba(248,231,2,.55) !important;
   background:rgba(248,231,2,.10) !important;
 }
+
+
+/* Correctif v38 — bouton Saison raccord avec les autres accès rapides */
+.welcome-card.smart-hero .account-actions a.btn-account,
+.welcome-card.smart-hero .account-actions a.btn-account:link,
+.welcome-card.smart-hero .account-actions a.btn-account:visited{
+  text-decoration:none !important;
+}
+.welcome-card.smart-hero .account-actions .member-season-quick{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:.35rem !important;
+  width:100% !important;
+  min-width:0 !important;
+  line-height:1 !important;
+  white-space:nowrap !important;
+  text-align:center !important;
+  text-decoration:none !important;
+}
+.welcome-card.smart-hero .account-actions .member-season-quick .quick-ico{
+  flex:0 0 auto !important;
+  font-size:1.02rem !important;
+  line-height:1 !important;
+}
+.welcome-card.smart-hero .account-actions .member-season-quick .quick-title{
+  display:inline-block !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  font-size:.74rem !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+  text-decoration:none !important;
+}
+@media (max-width:380px){
+  .welcome-card.smart-hero .account-actions .member-season-quick{ gap:.25rem !important; }
+  .welcome-card.smart-hero .account-actions .member-season-quick .quick-title{ font-size:.66rem !important; }
+  .welcome-card.smart-hero .account-actions .member-season-quick .quick-ico{ font-size:.92rem !important; }
+}
