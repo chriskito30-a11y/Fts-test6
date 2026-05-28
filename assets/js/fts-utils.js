@@ -420,14 +420,25 @@ FTS.getCategoryStructureAsync = async function(db) {
       const subs = [];
       const rawSubs = v.subcats || v.subcategories || {};
       if (Array.isArray(rawSubs)) {
-        rawSubs.forEach(s => {
-          if (typeof s === 'string') subs.push({ name: s, active: true });
-          else if (s && s.active !== false && (s.name || s.label)) subs.push({ name: s.name || s.label, active: true });
+        rawSubs.forEach((s, index) => {
+          if (typeof s === 'string') subs.push({ key: FTS.norm(s || String(index)), id: FTS.norm(s || String(index)), name: s, label: s, active: true });
+          else if (s && s.active !== false && (s.name || s.label || s.key || s.id)) {
+            const subName = s.name || s.label || s.key || s.id;
+            const subKey = s.key || s.id || FTS.norm(subName || String(index));
+            subs.push(Object.assign({}, s, { key: subKey, id: s.id || subKey, name: subName, label: s.label || subName, active: true }));
+          }
         });
       } else {
-        Object.values(rawSubs).forEach(s => {
-          if (typeof s === 'string') subs.push({ name: s, active: true });
-          else if (s && s.active !== false && (s.name || s.label)) subs.push({ name: s.name || s.label, active: true });
+        Object.entries(rawSubs).forEach(([subKeyRaw, s]) => {
+          if (typeof s === 'string') {
+            const subKey = subKeyRaw || FTS.norm(s);
+            subs.push({ key: subKey, id: subKey, name: s, label: s, active: true });
+          }
+          else if (s && s.active !== false && (s.name || s.label || s.key || s.id)) {
+            const subName = s.name || s.label || s.key || s.id || subKeyRaw;
+            const subKey = s.key || s.id || subKeyRaw || FTS.norm(subName);
+            subs.push(Object.assign({}, s, { key: subKey, id: s.id || subKey, name: subName, label: s.label || subName, active: true }));
+          }
         });
       }
       rows.push({
