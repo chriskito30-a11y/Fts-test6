@@ -127,6 +127,68 @@ async function submitIndexPayment(e){
 }
 function isPayableOption(opt){ return !!(opt && (opt.paymentEnabled || opt.payEnabled)); }
 
+function eventMetaLine(opt){
+  const detail = Array.isArray(opt && opt.detail) ? opt.detail : [];
+  const parts = [];
+  detail.forEach(d => {
+    const key = String(d && d[0] || '').toLowerCase();
+    const val = String(d && d[1] || '').trim();
+    if (!val) return;
+    if (key.includes('date') || key.includes('lieu')) parts.push(val);
+  });
+  if (!parts.length && opt && opt.date) parts.push(String(opt.date));
+  return parts.slice(0, 2).join(' · ');
+}
+
+function upcomingEventButton(opt){
+  if (isPayableOption(opt)) {
+    const label = opt.paymentType === 'stage_registration' ? 'Réserver' : 'Acheter ma place';
+    const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : '';
+    return `<button type="button" class="upcoming-event-action" data-fts-click="openUpcomingEventPayment(${FTS.jsArg(opt.id)})">${label}${price} →</button>`;
+  }
+  const href = FTS.safeUrl(opt.link || '#', '#');
+  return `<a class="upcoming-event-action" href="${FTS.esc(href)}"${href === '#' ? '' : ' target="_blank" rel="noopener"'}>Voir le lien →</a>`;
+}
+
+function renderUpcomingEvents(){
+  const host = document.getElementById('upcoming-events-list');
+  const zone = document.getElementById('upcoming-events');
+  if (!host || !zone) return;
+  const events = ((step3Options.event && step3Options.event.options) || [])
+    .filter(Boolean)
+    .slice()
+    .sort((a, b) => {
+      if ((a.ts || 0) || (b.ts || 0)) return (a.ts || Number.MAX_SAFE_INTEGER) - (b.ts || Number.MAX_SAFE_INTEGER);
+      return String(a.date || a.title || '').localeCompare(String(b.date || b.title || ''), 'fr');
+    })
+    .slice(0, 6);
+
+  if (!events.length) {
+    host.innerHTML = `<div class="upcoming-events-empty">Aucun événement ouvert à la réservation pour le moment.</div>`;
+    return;
+  }
+
+  host.innerHTML = events.map(opt => {
+    const meta = eventMetaLine(opt);
+    const desc = opt.desc || opt.destDesc || '';
+    return `<article class="upcoming-event-card">
+      <div class="upcoming-event-icon" aria-hidden="true">${FTS.esc(opt.icon || '🎪')}</div>
+      <div class="upcoming-event-main">
+        <h3>${FTS.esc(opt.title || 'Événement Fais Ton Show')}</h3>
+        ${meta ? `<div class="upcoming-event-meta">${FTS.esc(meta)}</div>` : ''}
+        ${desc ? `<p>${FTS.esc(desc)}</p>` : ''}
+      </div>
+      <div class="upcoming-event-cta">${upcomingEventButton(opt)}</div>
+    </article>`;
+  }).join('');
+}
+
+function openUpcomingEventPayment(eventId){
+  const events = (step3Options.event && step3Options.event.options) || [];
+  const opt = events.find(e => String(e.id) === String(eventId) || String(e.eventId) === String(eventId));
+  if (opt) openIndexPayment(opt);
+}
+
 /* ── CHARGEMENT QUESTIONNAIRE FIREBASE ────────────────────────── */
 async function loadQuestionnaire() {
   const db = FTS.initFirebase();
@@ -179,6 +241,7 @@ async function loadQuestionnaire() {
 
   // 3) Sécurité : si aucun événement futur n'est exploitable, on ne casse pas les autres choix.
   initPage();
+  renderUpcomingEvents();
 }
 
 function normalizeEventTs(v) {
@@ -378,6 +441,7 @@ function selectStep2(el) {
 /* ── ÉTAPE 3 ─────────────────────────────────────────────────── */
 function goStep3() {
   if (state.step2 === 'adhesion' || state.step2 === 'renew') { location.href = 'saison.html'; return; }
+  if (state.step2 === 'goodie') { location.href = 'boutique.html'; return; }
   const q3 = step3Options[state.step2];
   if (!q3 || !q3.options.length) {
     document.getElementById('card').innerHTML = `
