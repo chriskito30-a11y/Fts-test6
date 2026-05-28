@@ -58,25 +58,45 @@ function schedulePreviewAdmin(totalCents,plan,percent){
   const label=uniq.length===1?`${formatEurosFromCents(first)} puis ${n-1} × ${formatEurosFromCents(uniq[0])}`:`${formatEurosFromCents(first)} puis ${rest.map(formatEurosFromCents).join(' / ')}`;
   return{first,rest,label};
 }
+function getSeasonPreviewAmountCents(){
+  const amountInput=document.getElementById('season-preview-amount');
+  return Math.max(0,Math.round(Number(amountInput&&amountInput.value||400)*100));
+}
+function updatePaymentPlanPreviews(){
+  const table=document.getElementById('season-plan-table');
+  if(!table)return;
+  const amountCents=getSeasonPreviewAmountCents();
+  const head=table.querySelector('.season-plan-head span:last-child');
+  if(head)head.textContent='Aperçu sur '+formatEurosFromCents(amountCents);
+  table.querySelectorAll('.season-plan-row').forEach(row=>{
+    const input=row.querySelector('[data-plan-percent]');
+    const preview=row.querySelector('.season-plan-preview');
+    if(!input||!preview)return;
+    const n=Number(input.getAttribute('data-plan-percent'))||1;
+    const raw=String(input.value||'').trim();
+    const percent=raw===''?defaultFirstInstallmentPercent(n):Number(raw);
+    preview.textContent=schedulePreviewAdmin(amountCents,n,percent).label;
+  });
+}
 function renderPaymentOptions(){
   ensurePaymentOptions();
   const table=document.getElementById('season-plan-table');
   if(!table)return;
   const allowed=new Set((saison.paymentOptions.allowedPlans||[]).map(Number));
   const amountInput=document.getElementById('season-preview-amount');
-  const amountCents=Math.max(0,Math.round(Number(amountInput&&amountInput.value||400)*100));
+  const amountCents=getSeasonPreviewAmountCents();
   table.innerHTML='<div class="season-plan-head"><span>Actif</span><span>Paiement</span><span>1ère échéance</span><span>Aperçu sur '+formatEurosFromCents(amountCents)+'</span></div>'+Array.from({length:12},(_,i)=>i+1).map(n=>{
     const percent=saison.paymentOptions.firstInstallmentPercents[String(n)]||defaultFirstInstallmentPercent(n);
     const prev=schedulePreviewAdmin(amountCents,n,percent);
     return `<div class="season-plan-row ${allowed.has(n)?'is-active':'is-muted'}"><label class="season-plan-check"><input type="checkbox" value="${n}" ${allowed.has(n)?'checked':''} ${n===1?'disabled':''}> <span>${n} fois</span></label><div>${n===1?'Paiement complet':'Paiement en '+n+' fois'}</div><label class="season-percent-field"><input type="number" min="1" max="100" step="0.01" data-plan-percent="${n}" value="${percent}" ${n===1?'disabled':''}> <span>%</span></label><div class="season-plan-preview">${prev.label}</div></div>`;
   }).join('');
-  table.querySelectorAll('input[type="checkbox"]').forEach(el=>el.addEventListener('change',readPaymentOptions));
-  table.querySelectorAll('[data-plan-percent]').forEach(el=>el.addEventListener('input',readPaymentOptions));
+  table.querySelectorAll('input[type="checkbox"]').forEach(el=>el.addEventListener('change',()=>readPaymentOptions(true)));
+  table.querySelectorAll('[data-plan-percent]').forEach(el=>el.addEventListener('input',()=>readPaymentOptions(false)));
   const day=document.getElementById('season-installment-day');
-  if(day){day.value=saison.paymentOptions.installmentDay;if(!day.__ftsBound){day.__ftsBound=true;day.addEventListener('input',readPaymentOptions);}}
-  if(amountInput&&!amountInput.__ftsBound){amountInput.__ftsBound=true;amountInput.addEventListener('input',renderPaymentOptions);}
+  if(day){day.value=saison.paymentOptions.installmentDay;if(!day.__ftsBound){day.__ftsBound=true;day.addEventListener('input',()=>readPaymentOptions(false));}}
+  if(amountInput&&!amountInput.__ftsBound){amountInput.__ftsBound=true;amountInput.addEventListener('input',updatePaymentPlanPreviews);}
 }
-function readPaymentOptions(){
+function readPaymentOptions(shouldRender=true){
   const checked=Array.from(document.querySelectorAll('#season-plan-table input[type="checkbox"]:checked')).map(el=>Number(el.value)).filter(n=>Number.isFinite(n)&&n>=1&&n<=12);
   if(!checked.includes(1))checked.unshift(1);
   const percents={};
@@ -93,7 +113,8 @@ function readPaymentOptions(){
   if(!Number.isFinite(day)||day<1)day=1;
   if(day>27)day=27;
   saison.paymentOptions={allowedPlans:Array.from(new Set(checked)).sort((a,b)=>a-b),firstInstallmentPercents:percents,firstInstallmentPercent:percents['3']||25,installmentDay:Math.round(day)};
-  renderPaymentOptions();
+  if(shouldRender)renderPaymentOptions();
+  else updatePaymentPlanPreviews();
 }
 function seasonNorm(value){return (FTS.norm?FTS.norm(value||''):String(value||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));}
 function seasonDefaultOfferForCategory(cat){
