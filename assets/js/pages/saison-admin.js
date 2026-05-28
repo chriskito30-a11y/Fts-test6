@@ -62,6 +62,15 @@ function getSeasonPreviewAmountCents(){
   const amountInput=document.getElementById('season-preview-amount');
   return Math.max(0,Math.round(Number(amountInput&&amountInput.value||400)*100));
 }
+function parsePercentInputValue(value,plan,mode){
+  const n=Number(plan)||1;
+  if(n===1)return 100;
+  const raw=String(value==null?'':value).trim().replace(',', '.');
+  if(raw==='')return mode==='fallback'?defaultFirstInstallmentPercent(n):null;
+  const v=Number(raw);
+  if(!Number.isFinite(v))return mode==='fallback'?defaultFirstInstallmentPercent(n):null;
+  return Math.min(100,Math.max(1,Math.round(v*100)/100));
+}
 function updatePaymentPlanPreviews(){
   const table=document.getElementById('season-plan-table');
   if(!table)return;
@@ -73,8 +82,7 @@ function updatePaymentPlanPreviews(){
     const preview=row.querySelector('.season-plan-preview');
     if(!input||!preview)return;
     const n=Number(input.getAttribute('data-plan-percent'))||1;
-    const raw=String(input.value||'').trim();
-    const percent=raw===''?defaultFirstInstallmentPercent(n):Number(raw);
+    const percent=parsePercentInputValue(input.value,n,'fallback');
     preview.textContent=schedulePreviewAdmin(amountCents,n,percent).label;
   });
 }
@@ -88,10 +96,13 @@ function renderPaymentOptions(){
   table.innerHTML='<div class="season-plan-head"><span>Actif</span><span>Paiement</span><span>1ère échéance</span><span>Aperçu sur '+formatEurosFromCents(amountCents)+'</span></div>'+Array.from({length:12},(_,i)=>i+1).map(n=>{
     const percent=saison.paymentOptions.firstInstallmentPercents[String(n)]||defaultFirstInstallmentPercent(n);
     const prev=schedulePreviewAdmin(amountCents,n,percent);
-    return `<div class="season-plan-row ${allowed.has(n)?'is-active':'is-muted'}"><label class="season-plan-check"><input type="checkbox" value="${n}" ${allowed.has(n)?'checked':''} ${n===1?'disabled':''}> <span>${n} fois</span></label><div>${n===1?'Paiement complet':'Paiement en '+n+' fois'}</div><label class="season-percent-field"><input type="number" min="1" max="100" step="0.01" data-plan-percent="${n}" value="${percent}" ${n===1?'disabled':''}> <span>%</span></label><div class="season-plan-preview">${prev.label}</div></div>`;
+    return `<div class="season-plan-row ${allowed.has(n)?'is-active':'is-muted'}"><label class="season-plan-check"><input type="checkbox" value="${n}" ${allowed.has(n)?'checked':''} ${n===1?'disabled':''}> <span>${n} fois</span></label><div>${n===1?'Paiement complet':'Paiement en '+n+' fois'}</div><label class="season-percent-field"><input type="text" inputmode="decimal" autocomplete="off" data-plan-percent="${n}" value="${percent}" ${n===1?'disabled':''}> <span>%</span></label><div class="season-plan-preview">${prev.label}</div></div>`;
   }).join('');
   table.querySelectorAll('input[type="checkbox"]').forEach(el=>el.addEventListener('change',()=>readPaymentOptions(true)));
-  table.querySelectorAll('[data-plan-percent]').forEach(el=>el.addEventListener('input',()=>readPaymentOptions(false)));
+  table.querySelectorAll('[data-plan-percent]').forEach(el=>{
+    el.addEventListener('input',()=>readPaymentOptions(false));
+    el.addEventListener('blur',()=>readPaymentOptions(false));
+  });
   const day=document.getElementById('season-installment-day');
   if(day){day.value=saison.paymentOptions.installmentDay;if(!day.__ftsBound){day.__ftsBound=true;day.addEventListener('input',()=>readPaymentOptions(false));}}
   if(amountInput&&!amountInput.__ftsBound){amountInput.__ftsBound=true;amountInput.addEventListener('input',updatePaymentPlanPreviews);}
@@ -102,11 +113,8 @@ function readPaymentOptions(shouldRender=true){
   const percents={};
   document.querySelectorAll('#season-plan-table [data-plan-percent]').forEach(el=>{
     const n=String(el.getAttribute('data-plan-percent'));
-    let v=Number(el.value);
-    if(!Number.isFinite(v)||v<1)v=1;
-    if(v>100)v=100;
-    if(n==='1')v=100;
-    percents[n]=Math.round(v*100)/100;
+    const parsed=parsePercentInputValue(el.value,n,'strict');
+    if(parsed!==null)percents[n]=parsed;
   });
   for(let n=1;n<=12;n++){if(!percents[String(n)])percents[String(n)]=defaultFirstInstallmentPercent(n);}
   let day=Number(document.getElementById('season-installment-day')?.value||10);
