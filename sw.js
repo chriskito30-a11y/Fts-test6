@@ -1,4 +1,4 @@
-const CACHE = 'fts-v201-legacy-access-modal-fix';
+const CACHE = 'fts-v202-counted-people-cleanup';
 const FILES = [
   './manifest.json',
   './index.html',
