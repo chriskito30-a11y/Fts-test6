@@ -120,22 +120,60 @@ function normList(arr) {
     .filter(Boolean);
 }
 
+function uniqueNormList(list) {
+  const seen = new Set();
+  const out = [];
+  normList(list).forEach(v => {
+    const k = FTS.norm(v);
+    if (!k || seen.has(k)) return;
+    seen.add(k);
+    out.push(v);
+  });
+  return out;
+}
+function officialCategoryFor(value) {
+  const n = FTS.norm(value);
+  return (C.categories || []).find(c => c && c.name && FTS.norm(c.name) === n) || null;
+}
+function officialCategoryNamesFrom(values) {
+  const out = [];
+  normList(values).forEach(v => {
+    const cat = officialCategoryFor(v);
+    if (cat) out.push(cat.name);
+  });
+  return uniqueNormList(out);
+}
+function officialSubcatNamesFrom(values) {
+  const official = [];
+  (C.categories || []).forEach(cat => (cat.subcats || []).forEach(sub => official.push(sub)));
+  const officialNorms = new Map(official.map(v => [FTS.norm(v), v]));
+  const out = [];
+  normList(values).forEach(v => {
+    const label = officialNorms.get(FTS.norm(v));
+    if (label) out.push(label);
+  });
+  return uniqueNormList(out);
+}
+
 function userDisciplines() {
   const own = normList(userProfile && (userProfile.disciplines || userProfile.group));
-  // Inclure les disciplines des enfants pour que le parent accède aux ressources de son enfant
+  // Inclure les disciplines des enfants pour que le parent accède aux ressources de son enfant.
+  // Filtrage volontaire : côté membre, une catégorie n'est valide que si elle existe encore
+  // dans la configuration officielle active chargée depuis fts_content/categories.
   const child = (userProfile && userProfile.hasEnfant && Array.isArray(userProfile.enfants))
-    ? userProfile.enfants.flatMap(e => Array.isArray(e.disciplines) ? e.disciplines : [])
+    ? userProfile.enfants.flatMap(e => normList(e.disciplines || e.group || []))
     : [];
-  return [...new Set([...own, ...child])];
+  return officialCategoryNamesFrom([...own, ...child]);
 }
 
 function userSubgroups() {
   const own = normList(userProfile && (userProfile.subgroups || userProfile.subcategories || userProfile.subgroup));
-  // Inclure les sous-groupes des enfants (ex: "Show Danse Junior" d'Emma)
+  // Inclure les sous-groupes des enfants, mais ne garder côté membre que les sous-catégories
+  // encore présentes dans les catégories officielles actives.
   const child = (userProfile && userProfile.hasEnfant && Array.isArray(userProfile.enfants))
-    ? userProfile.enfants.flatMap(e => normList(e.subgroups || e.subgroup || []))
+    ? userProfile.enfants.flatMap(e => normList(e.subgroups || e.subcategories || e.subgroup || []))
     : [];
-  return [...new Set([...own, ...child])];
+  return officialSubcatNamesFrom([...own, ...child]);
 }
 
 function allowedSubcatsForCategory(cat) {
@@ -259,14 +297,11 @@ function awardMemberDailyLoginXp(memberUid) {
 function renderDashboard(profile, email) {
   const displayName = profile.firstName || profile.name || email || 'membre';
 
-  // Disciplines affichées = propres + celles des enfants
-  const ownDiscs   = profile.disciplines || [];
-  const childDiscs = (profile.hasEnfant && Array.isArray(profile.enfants))
-    ? profile.enfants.flatMap(e => Array.isArray(e.disciplines) ? e.disciplines : [])
-    : [];
+  // Disciplines affichées = uniquement les accès officiels actifs.
+  // Les anciennes catégories restent nettoyables côté admin, mais ne sont plus affichées ici.
   const discs = profile.role === 'admin'
     ? C.categories.map(c => c.name)
-    : [...new Set([...ownDiscs, ...childDiscs])];
+    : userDisciplines();
 
   const roleLabel = profile.role === 'admin' ? 'Admin' : profile.role === 'prof' ? 'Prof' : 'Membre';
   const roleIcon  = profile.role === 'admin' ? '🛡' : profile.role === 'prof' ? '🎓' : '👤';

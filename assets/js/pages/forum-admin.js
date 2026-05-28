@@ -12,6 +12,8 @@
 
 let db, firebaseOk    = false;
 let allUsers          = {};
+let allRawUsers       = {};
+let allRawForumUsers  = {};
 let allGroups         = [];
 let currentMsgChannel = "general";
 let currentAdminUser = null;
@@ -214,6 +216,44 @@ function uniqList(list) {
   });
   return out;
 }
+
+function officialCategoryNames() {
+  return uniqList(allGroups.map(g => g.cat).filter(Boolean));
+}
+function officialCategoryNormSet() {
+  return new Set(officialCategoryNames().map(c => FTS.norm(c)));
+}
+function isOfficialCategory(cat) {
+  return officialCategoryNormSet().has(FTS.norm(cat));
+}
+function officialSubcatsFor(cat) {
+  const catNorm = FTS.norm(cat);
+  return uniqList(allGroups
+    .filter(g => FTS.norm(g.cat) === catNorm && g.sub)
+    .map(g => g.sub));
+}
+function isOfficialSubcat(cat, sub) {
+  const subNorm = FTS.norm(sub);
+  return officialSubcatsFor(cat).some(s => FTS.norm(s) === subNorm);
+}
+function legacyValuesFrom(values, officialValues) {
+  const official = new Set(normList(officialValues).map(v => FTS.norm(v)));
+  return uniqList(values).filter(v => !official.has(FTS.norm(v)));
+}
+function rawSubgroupsMapForOwner(owner) {
+  return owner && owner.subgroupsByCat && typeof owner.subgroupsByCat === 'object' ? owner.subgroupsByCat : {};
+}
+function exactSubgroupsForCatFromOwner(owner, cat) {
+  const map = rawSubgroupsMapForOwner(owner);
+  const directKey = Object.keys(map).find(k => FTS.norm(k) === FTS.norm(cat));
+  if (directKey) return normList(map[directKey]);
+  return normList(owner && (owner.subgroups || owner.subcategories || owner.subgroup));
+}
+function mergeCategoryLists() {
+  const out = [];
+  Array.from(arguments).forEach(list => normList(list).forEach(v => out.push(v)));
+  return uniqList(out);
+}
 function childDisciplinesFrom(enfants) {
   return Array.isArray(enfants) ? enfants.flatMap(e => normList(e.disciplines || e.group || [])) : [];
 }
@@ -246,6 +286,7 @@ function normalizeAdminUser(id, u) {
     subgroup: subgroups.join(", "),
     disciplines,
     subgroups,
+    subgroupsByCat: u.subgroupsByCat || {},
     hasEnfant: u.hasEnfant || false,
     enfants: Array.isArray(u.enfants) ? u.enfants : [],
     specialBadge: u.specialBadge || null,
@@ -286,6 +327,8 @@ function listenUsers() {
     const forumSnap = await db.ref("fts_forum/users").once("value").catch(() => null);
     const forumUsers = forumSnap && forumSnap.val ? (forumSnap.val() || {}) : {};
     allUsers = {};
+    allRawUsers = raw || {};
+    allRawForumUsers = forumUsers || {};
     Object.keys(raw).forEach(id => {
       allUsers[id] = normalizeAdminUser(id, Object.assign({}, raw[id], {
         specialBadge: (forumUsers[id] && forumUsers[id].specialBadge) || raw[id].specialBadge || null,
@@ -305,6 +348,8 @@ async function refreshAdminUsersOnce() {
   const forumSnap = await db.ref("fts_forum/users").once("value").catch(() => null);
   const forumUsers = forumSnap && forumSnap.val ? (forumSnap.val() || {}) : {};
   allUsers = {};
+  allRawUsers = raw || {};
+  allRawForumUsers = forumUsers || {};
   Object.keys(raw).forEach(id => {
     allUsers[id] = normalizeAdminUser(id, Object.assign({}, raw[id], {
       specialBadge: (forumUsers[id] && forumUsers[id].specialBadge) || raw[id].specialBadge || null,
@@ -479,6 +524,7 @@ function renderCategorySummary() {
   let totalPeople = 0;
   Object.values(allUsers || {}).forEach(u => {
     if (!u || u.status !== "active") return;
+    if (String(u.role || "member").toLowerCase() !== "member") return;
     const people = getPeopleFromUser(u);
     totalPeople += people.length;
 
@@ -1201,20 +1247,32 @@ function getActivePillValues(selector) {
     .filter(Boolean);
 }
 
-function pillHtml(label, active, type) {
-  return `<div class="pill ${active ? "active" : ""}" data-value="${FTS.esc(label)}" data-fts-click="toggleModPill(this,'${type}')">${FTS.esc(label)}</div>`;
+function pillHtml(label, active, type, opts) {
+  opts = opts || {};
+  const cls = ['pill'];
+  if (active) cls.push('active');
+  if (opts.legacy) cls.push('pill-legacy');
+  const suffix = opts.legacy ? '<small>ancien</small>' : '';
+  const click = opts.child ? `toggleEnfantSubPill(this)` : `toggleModPill(this,'${type}')`;
+  return `<div class="${cls.join(' ')}" data-value="${FTS.esc(label)}" data-legacy="${opts.legacy ? 'true' : 'false'}" data-fts-click="${click}">${FTS.esc(label)}${suffix}</div>`;
 }
 
 function openModModal(id) {
   const u = allUsers[id];
   if (!u) return;
+  const rawUser = allRawUsers[id] || u;
 
-  const uCats = normList(u.disciplines || u.group);
-
-  const uSubs = normList(u.subgroups || u.subgroup);
-
-  const cats = [...new Set(allGroups.map(g => g.cat).filter(Boolean))];
+  const uCats = normList(rawUser.disciplines || rawUser.group || u.disciplines || u.group);
+  const uSubs = normList(rawUser.subgroups || rawUser.subcategories || rawUser.subgroup || u.subgroups || u.subgroup);
+  const officialCats = officialCategoryNames();
+  const parentLegacyCats = legacyValuesFrom(uCats, officialCats);
+  const cats = mergeCategoryLists(officialCats, parentLegacyCats);
   const role = u.role || "member";
+
+  window.__ftsCurrentModAccess = {
+    parent: { cats: uCats, subs: uSubs, subgroupsByCat: rawUser.subgroupsByCat || {} },
+    children: {}
+  };
 
   document.getElementById("mod-uid").value = id;
 
@@ -1230,12 +1288,11 @@ function openModModal(id) {
     : "Discipline(s) — clique pour sélectionner";
   document.querySelector("label[for=''].modal-label, #mod-modal .modal-label")
     || document.querySelectorAll("#mod-modal .modal-label")[0];
-  // met à jour le label discipline
   const discLabel = document.querySelectorAll("#mod-modal .modal-label")[1];
   if (discLabel) discLabel.innerHTML = labelParent;
 
   document.getElementById("mod-cat-pills").innerHTML = cats
-    .map(c => pillHtml(c, uCats.includes(c), "cat"))
+    .map(c => pillHtml(c, uCats.some(v => FTS.norm(v) === FTS.norm(c)), "cat", { legacy: !isOfficialCategory(c) }))
     .join("");
 
   updateModSubGroups(uSubs);
@@ -1243,26 +1300,32 @@ function openModModal(id) {
   // Section enfants
   const enfantsSection = document.getElementById("mod-enfants-section");
   const enfantsBlocks  = document.getElementById("mod-enfants-blocks");
+  const rawChildren = Array.isArray(rawUser.enfants) ? rawUser.enfants : [];
 
   if (u.hasEnfant && u.enfants.length) {
     enfantsSection.style.display = "block";
     enfantsBlocks.innerHTML = u.enfants.map((e, i) => {
-      const eCats = Array.isArray(e.disciplines) ? e.disciplines : [];
+      const rawChild = rawChildren[i] || e || {};
+      const eCats = normList(rawChild.disciplines || rawChild.group || e.disciplines || e.group);
+      const eSubs = normList(rawChild.subgroups || rawChild.subcategories || rawChild.subgroup || e.subgroups || e.subgroup);
+      const childLegacyCats = legacyValuesFrom(eCats, officialCats);
+      const childCats = mergeCategoryLists(officialCats, childLegacyCats);
+      window.__ftsCurrentModAccess.children[i] = { cats: eCats, subs: eSubs, subgroupsByCat: rawChild.subgroupsByCat || {} };
       return `
         <div class="modal-enfant-block">
           <div class="modal-enfant-title">🎩 Enfant ${i+1} — ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${childInfoHtml(e)}</div>
           <div class="pill-container mod-enfant-pills" id="mod-enfant-pills-${i}">
-            ${cats.map(c => `<div class="pill ${eCats.includes(c) ? 'active' : ''}"
-              data-value="${FTS.esc(c)}" data-enfant="${i}"
-              data-fts-click="toggleEnfantPill(this, ${i})">${FTS.esc(c)}</div>`).join('')}
+            ${childCats.map(c => `<div class="pill ${eCats.some(v => FTS.norm(v) === FTS.norm(c)) ? 'active' : ''} ${!isOfficialCategory(c) ? 'pill-legacy' : ''}"
+              data-value="${FTS.esc(c)}" data-enfant="${i}" data-legacy="${!isOfficialCategory(c) ? 'true' : 'false'}"
+              data-fts-click="toggleEnfantPill(this, ${i})">${FTS.esc(c)}${!isOfficialCategory(c) ? '<small>ancien</small>' : ''}</div>`).join('')}
           </div>
           <div id="mod-enfant-subcats-${i}"></div>
         </div>`;
     }).join("");
 
-    // Afficher les sous-catégories existantes de chaque enfant
     u.enfants.forEach((e, i) => {
-      const eSubs = normList(e.subgroups || e.subgroup);
+      const rawChild = rawChildren[i] || e || {};
+      const eSubs = normList(rawChild.subgroups || rawChild.subcategories || rawChild.subgroup || e.subgroups || e.subgroup);
       updateModEnfantSubcats(i, eSubs);
     });
   } else {
@@ -1292,26 +1355,27 @@ function updateModEnfantSubcats(enfantIdx, selectedSubs = []) {
   const wrap = document.getElementById("mod-enfant-subcats-" + enfantIdx);
   if (!wrap) return;
   const activeCats = getActivePillValues("#mod-enfant-pills-" + enfantIdx + " .pill.active");
+  const access = window.__ftsCurrentModAccess && window.__ftsCurrentModAccess.children ? window.__ftsCurrentModAccess.children[enfantIdx] : null;
   if (!activeCats.length) { wrap.innerHTML = ""; return; }
 
   wrap.innerHTML = activeCats.map(cat => {
-    const subs = [...new Set(allGroups
-      .filter(g => g.cat === cat && g.sub)
-      .map(g => g.sub)
-      .filter(Boolean)
-    )];
-    if (!subs.length) {
-      return `<div class="sub-group">
-        <div class="sub-group-lbl">${FTS.esc(cat)}</div>
-        <p class="no-sub-note">Pas de créneau spécifique.</p>
+    const subs = officialSubcatsFor(cat);
+    const rawForCat = access ? exactSubgroupsForCatFromOwner(access, cat) : selectedSubs;
+    const legacySubs = legacyValuesFrom(rawForCat, subs).filter(s => normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)));
+    const allSubs = mergeCategoryLists(subs, legacySubs);
+
+    if (!allSubs.length) {
+      return `<div class="sub-group" data-cat="${FTS.esc(cat)}">
+        <div class="sub-group-lbl ${!isOfficialCategory(cat) ? 'is-legacy' : ''}">${FTS.esc(cat)}${!isOfficialCategory(cat) ? ' · ancien' : ''}</div>
+        <p class="no-sub-note">${isOfficialCategory(cat) ? 'Pas de créneau spécifique.' : 'Ancienne catégorie conservée tant qu’elle reste cochée.'}</p>
       </div>`;
     }
-    return `<div class="sub-group">
-      <div class="sub-group-lbl">${FTS.esc(cat)}</div>
+    return `<div class="sub-group" data-cat="${FTS.esc(cat)}">
+      <div class="sub-group-lbl ${!isOfficialCategory(cat) ? 'is-legacy' : ''}">${FTS.esc(cat)}${!isOfficialCategory(cat) ? ' · ancien' : ''}</div>
       <div class="pill-container">
-        ${subs.map(s => `<div class="pill ${selectedSubs.includes(s) ? 'active' : ''}"
-          data-value="${FTS.esc(s)}"
-          data-fts-click="toggleEnfantSubPill(this)">${FTS.esc(s)}</div>`).join('')}
+        ${allSubs.map(s => `<div class="pill ${normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)) ? 'active' : ''} ${!isOfficialSubcat(cat, s) ? 'pill-legacy' : ''}"
+          data-value="${FTS.esc(s)}" data-legacy="${!isOfficialSubcat(cat, s) ? 'true' : 'false'}"
+          data-fts-click="toggleEnfantSubPill(this)">${FTS.esc(s)}${!isOfficialSubcat(cat, s) ? '<small>ancien</small>' : ''}</div>`).join('')}
       </div>
     </div>`;
   }).join("");
@@ -1324,6 +1388,7 @@ function toggleEnfantSubPill(el) {
 function updateModSubGroups(selectedSubs = []) {
   const activeCats = getActivePillValues("#mod-cat-pills .pill.active");
   const wrap = document.getElementById("mod-sub-groups");
+  const access = window.__ftsCurrentModAccess && window.__ftsCurrentModAccess.parent ? window.__ftsCurrentModAccess.parent : null;
 
   if (!activeCats.length) {
     wrap.innerHTML = "";
@@ -1331,35 +1396,58 @@ function updateModSubGroups(selectedSubs = []) {
   }
 
   wrap.innerHTML = activeCats.map(cat => {
-    const subs = [...new Set(allGroups
-      .filter(g => g.cat === cat && g.sub)
-      .map(g => g.sub)
-      .filter(Boolean)
-    )];
+    const subs = officialSubcatsFor(cat);
+    const rawForCat = access ? exactSubgroupsForCatFromOwner(access, cat) : selectedSubs;
+    const legacySubs = legacyValuesFrom(rawForCat, subs).filter(s => normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)));
+    const allSubs = mergeCategoryLists(subs, legacySubs);
 
-    if (!subs.length) {
-      return `<div class="sub-group">
-        <div class="sub-group-lbl">${FTS.esc(cat)}</div>
-        <p class="no-sub-note">Pas de créneau spécifique.</p>
+    if (!allSubs.length) {
+      return `<div class="sub-group" data-cat="${FTS.esc(cat)}">
+        <div class="sub-group-lbl ${!isOfficialCategory(cat) ? 'is-legacy' : ''}">${FTS.esc(cat)}${!isOfficialCategory(cat) ? ' · ancien' : ''}</div>
+        <p class="no-sub-note">${isOfficialCategory(cat) ? 'Pas de créneau spécifique.' : 'Ancienne catégorie conservée tant qu’elle reste cochée.'}</p>
       </div>`;
     }
 
     return `<div class="sub-group" data-cat="${FTS.esc(cat)}">
-      <div class="sub-group-lbl">${FTS.esc(cat)}</div>
+      <div class="sub-group-lbl ${!isOfficialCategory(cat) ? 'is-legacy' : ''}">${FTS.esc(cat)}${!isOfficialCategory(cat) ? ' · ancien' : ''}</div>
       <div class="pill-container mod-sub-pills">
-        ${subs.map(s => pillHtml(s, selectedSubs.includes(s), "sub")).join("")}
+        ${allSubs.map(s => pillHtml(s, normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)), "sub", { legacy: !isOfficialSubcat(cat, s) })).join("")}
       </div>
     </div>`;
   }).join("");
 }
 
+function selectedSubgroupsByCat(rootSelector) {
+  const map = {};
+  const all = [];
+  document.querySelectorAll(rootSelector + " .sub-group[data-cat]").forEach(group => {
+    const cat = (group.dataset.cat || '').trim();
+    if (!cat) return;
+    const subs = Array.from(group.querySelectorAll('.pill.active'))
+      .map(p => (p.dataset.value || p.textContent || '').replace(/ancien$/i, '').trim())
+      .filter(Boolean);
+    map[cat] = uniqList(subs);
+    all.push(...subs);
+  });
+  return { map, all: uniqList(all) };
+}
+
+function mergeSubgroupsByCatMaps() {
+  const out = {};
+  Array.from(arguments).forEach(map => {
+    if (!map || typeof map !== 'object') return;
+    Object.entries(map).forEach(([cat, subs]) => {
+      if (!cat) return;
+      out[cat] = uniqList([...(out[cat] || []), ...normList(subs)]);
+    });
+  });
+  return out;
+}
+
 function buildSubgroupsByCat(cats, subs) {
   const result = {};
   cats.forEach(cat => {
-    const validSubs = allGroups
-      .filter(g => g.cat === cat && g.sub)
-      .map(g => g.sub);
-    result[cat] = subs.filter(s => validSubs.includes(s));
+    result[cat] = normList(subs).filter(s => isOfficialSubcat(cat, s));
   });
   return result;
 }
@@ -1369,27 +1457,31 @@ async function saveModification() {
   if (!id) return;
 
   const cats = getActivePillValues("#mod-cat-pills .pill.active");
-  const subs = getActivePillValues(".mod-sub-pills .pill.active");
+  const parentSubsData = selectedSubgroupsByCat("#mod-sub-groups");
+  const subs = parentSubsData.all;
+  const subgroupsByCat = parentSubsData.map;
 
   // Rôle sélectionné
   const activePill = document.querySelector(".role-pill[class*='active-']");
   const role = activePill ? activePill.dataset.role : "member";
-  const subgroupsByCat = buildSubgroupsByCat(cats, subs);
 
   // Disciplines des enfants (si applicable)
   const u = allUsers[id] || {};
-  let enfants = Array.isArray(u.enfants) ? [...u.enfants] : [];
+  const rawUser = allRawUsers[id] || u || {};
+  let enfants = Array.isArray(rawUser.enfants) ? rawUser.enfants.map(e => ({ ...(e || {}) })) : (Array.isArray(u.enfants) ? u.enfants.map(e => ({ ...(e || {}) })) : []);
+  const childMaps = [];
+
   if (u.hasEnfant && enfants.length) {
     enfants = enfants.map((e, i) => {
       const eCats = Array.from(
         document.querySelectorAll(`#mod-enfant-pills-${i} .pill.active`)
-      ).map(p => (p.dataset.value || p.textContent || "").trim()).filter(Boolean);
+      ).map(p => (p.dataset.value || p.textContent || "").replace(/ancien$/i, '').trim()).filter(Boolean);
 
-      const eSubs = Array.from(
-        document.querySelectorAll(`#mod-enfant-subcats-${i} .pill.active`)
-      ).map(p => (p.dataset.value || "").trim()).filter(Boolean);
+      const childData = selectedSubgroupsByCat(`#mod-enfant-subcats-${i}`);
+      childMaps.push(childData.map);
+      const eSubs = childData.all;
 
-      return { ...e, disciplines: eCats, subgroups: eSubs, subgroup: eSubs.join(", ") };
+      return { ...e, disciplines: eCats, group: eCats.join(", "), subgroups: eSubs, subgroup: eSubs.join(", "), subgroupsByCat: childData.map };
     });
   }
 
@@ -1413,10 +1505,10 @@ async function saveModification() {
   const childSubs  = childSubgroupsFrom(enfants);
   const allForumDiscs = uniqList([...cats, ...childDiscs]);
   const allForumSubs  = uniqList([...subs, ...childSubs]);
-  const forumSubgroupsByCat = buildSubgroupsByCatFromLists(allForumDiscs, allForumSubs);
+  const forumSubgroupsByCat = mergeSubgroupsByCatMaps(subgroupsByCat, ...childMaps);
 
   const forumUpdate = {
-    name: allUsers[id]?.name || "Membre",
+    name: allUsers[id]?.name || rawUser.name || "Membre",
     group:         allForumDiscs.join(", "),
     groups:        allForumDiscs,
     subgroup:      allForumSubs.join(", "),
@@ -1428,14 +1520,23 @@ async function saveModification() {
   };
 
   try {
-    await db.ref().update({
-      ["fts_users/" + id]: { ...(allUsers[id] || {}), ...userUpdate },
-      ["fts_forum/users/" + id]: forumUpdate,
+    const nextUser = { ...(allRawUsers[id] || {}), ...userUpdate };
+    const nextForumUser = { ...(allRawForumUsers[id] || {}), ...forumUpdate };
+
+    // set() volontaire : on remplace l'objet profil avec la liste d'accès reconstruite,
+    // afin qu'une ancienne catégorie/sous-catégorie décochée disparaisse réellement.
+    await db.ref("fts_users/" + id).set(nextUser);
+    await db.ref("fts_forum/users/" + id).set(nextForumUser).catch(async () => {
+      // Secours si les règles forum refusent certains champs : la source officielle reste fts_users.
+      await db.ref("fts_forum/users/" + id).update(forumUpdate);
     });
 
-    allUsers[id] = normalizeAdminUser(id, { ...(allUsers[id] || {}), ...userUpdate });
+    allRawUsers[id] = nextUser;
+    allRawForumUsers[id] = nextForumUser;
+    allUsers[id] = normalizeAdminUser(id, { ...nextUser, specialBadge: nextForumUser.specialBadge || nextUser.specialBadge || null, stats: Object.assign({}, nextUser.stats || {}, nextForumUser.stats || {}) });
     renderPending();
     renderMembers();
+    renderCategorySummary();
     closeModModal();
   } catch (e) {
     console.warn("[FTS Admin] Sauvegarde accès impossible", e);
