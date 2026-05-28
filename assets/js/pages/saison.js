@@ -263,7 +263,7 @@ function selectSeasonSubcat(activityId,subcatId){
 }
 function renderOffers(i){const offers=i.offers||[];const tabs=offers.length>1?`<div class="tabs">${offers.map((o,idx)=>`<button class="tab ${idx===0?'act':''} ${esc(o.style||o.key)}" data-fts-click="switchTab('${esc(i.id)}','${esc(o.key)}',this)">${esc(o.label||o.key)}</button>`).join('')}</div>`:'';return tabs+offers.map((o,idx)=>`<div class="tab-content ${idx===0?'act':''}" id="${esc(i.id)}-${esc(o.key)}"><div class="c-main ${o.style==='perf'?'perf':''}">${o.main||''}</div>${renderBullets(o.bullets)}${renderOfferBox(o,i)}</div>`).join('');}
 function renderBullets(bullets){if(!bullets||!bullets.length)return'';return `<ul class="c-list">${bullets.map(b=>{const gift=String(b).includes('🎁');const warn=String(b).includes('💰');return `<li class="${gift?'gift':warn?'warn':'incl'}"><span class="icon">${gift?'🎁':warn?'💰':'✔'}</span><span>${esc(String(b).replace(/^([✔⚡🎁💰])\s*/,'')).replace(/Offert :/,'<strong>Offert :</strong>')}</span></li>`}).join('')}</ul>`}
-function renderOfferBox(o,i){const rawLink=String(o.link||saison.inscriptionDefault||'').trim();const link=(rawLink&&rawLink!=='#')?FTS.safeUrl(rawLink,''):'';const paymentBtn=renderPaymentButton(i,o);return `<div class="offer-box"><div><div class="offer-price">${esc(o.price||'Tarif à venir')} ${o.price?'<small>/ saison</small>':''}</div>${o.priceNote?`<div class="offer-note">${esc(o.priceNote)}</div>`:''}</div><div class="offer-actions">${link?`<a class="btn-register" href="${esc(link)}" target="_blank" rel="noopener">S'inscrire</a>`:`<span class="btn-register muted">Lien bientôt disponible</span>`}${paymentBtn}</div></div>`;}
+function renderOfferBox(o,i){const rawLink=String(o.link||saison.inscriptionDefault||'').trim();const link=(rawLink&&rawLink!=='#')?FTS.safeUrl(rawLink,''):'';const paymentBtn=renderPaymentButton(i,o);const soon=(!link&&!paymentBtn)?`<span class="btn-register muted">Lien bientôt disponible</span>`:'';return `<div class="offer-box"><div><div class="offer-price">${esc(o.price||'Tarif à venir')} ${o.price?'<small>/ saison</small>':''}</div>${o.priceNote?`<div class="offer-note">${esc(o.priceNote)}</div>`:''}</div><div class="offer-actions">${link?`<a class="btn-register" href="${esc(link)}" target="_blank" rel="noopener">S'inscrire</a>`:''}${paymentBtn}${soon}</div></div>`;}
 
 
 /* ── Paiement HelloAsso public contrôlé ────────────────────────────── */
@@ -280,7 +280,7 @@ function renderPaymentButton(item,offer){
   if(!ftsCanShowPayment()) return '';
   const prices=priceChoices(offer&&offer.price);
   if(!prices.length) return '<span class="btn-register muted">Paiement indisponible</span>';
-  return `<button type="button" class="btn-register fts-pay-btn" data-fts-click="openSeasonPayment('${esc(item.id)}','${esc(offer.key)}')">Payer</button>`;
+  return `<button type="button" class="btn-register fts-cart-add" data-fts-click="addSeasonToCart('${esc(item.id)}','${esc(offer.key)}')">Ajouter au panier</button><button type="button" class="btn-register fts-pay-btn fts-direct-pay" data-fts-click="openSeasonPayment('${esc(item.id)}','${esc(offer.key)}')">Payer seul</button>`;
 }
 function selectedSeasonSubcat(item){
   const subs=item&&Array.isArray(item.subcats)?item.subcats:[];
@@ -296,55 +296,6 @@ function findSeasonSubcat(item,key){
   const found=subs.find(s=>subcatKey(s)===key);
   return found?subcatPaymentInfo(found):null;
 }
-
-function seasonPaymentOptions(){
-  const p=(saison&&saison.paymentOptions&&typeof saison.paymentOptions==='object')?saison.paymentOptions:{};
-  let plans=Array.isArray(p.allowedPlans)?p.allowedPlans.map(n=>Number(n)).filter(n=>Number.isFinite(n)&&n>=1&&n<=12):[1,3,5,10];
-  if(!plans.includes(1))plans.unshift(1);
-  plans=Array.from(new Set(plans)).sort((a,b)=>a-b);
-  return {allowedPlans:plans,firstInstallmentPercents:(p.firstInstallmentPercents&&typeof p.firstInstallmentPercents==='object')?p.firstInstallmentPercents:{},installmentDay:Number(p.installmentDay||10)||10};
-}
-function defaultFirstInstallmentPercentPublic(n){
-  n=Number(n)||1;
-  if(n<=1)return 100;
-  if(n===3)return 33.33;
-  if(n===5)return 30;
-  if(n===10)return 25;
-  return Math.round((100/n)*100)/100;
-}
-function firstInstallmentPercentForPlan(plan){
-  const opts=seasonPaymentOptions();
-  const n=Number(String(plan||'1x').replace('x',''))||1;
-  const direct=Number((opts.firstInstallmentPercents||{})[String(n)]);
-  return (Number.isFinite(direct)&&direct>0&&direct<=100)?(n===1?100:direct):defaultFirstInstallmentPercentPublic(n);
-}
-function renderPaymentPlanOptions(select){
-  if(!select)return;
-  const opts=seasonPaymentOptions();
-  select.innerHTML=opts.allowedPlans.map(n=>`<option value="${n}x">Paiement en ${n} fois</option>`).join('');
-}
-function splitRemainderPublic(amount,count){
-  if(!count)return[];
-  const base=Math.floor(amount/count),rest=amount-base*count;
-  return Array.from({length:count},(_,i)=>base+(i<rest?1:0));
-}
-function formatCentsPublic(cents){return (Math.round(Number(cents||0))/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});}
-function updatePaymentSchedulePreview(){
-  const form=document.getElementById('fts-pay-form');
-  const box=document.getElementById('fts-pay-schedule-preview');
-  if(!form||!box)return;
-  const total=Number(form.amountCents&&form.amountCents.value||0)||0;
-  const plan=String(form.paymentPlan&&form.paymentPlan.value||'1x');
-  const count=Number(plan.replace('x',''))||1;
-  if(count<=1){box.innerHTML='<strong>Paiement en 1 fois</strong><br>'+formatCentsPublic(total)+' au règlement.';return;}
-  const pct=firstInstallmentPercentForPlan(plan);
-  const first=Math.max(100,Math.ceil(total*pct/100));
-  const rest=splitRemainderPublic(Math.max(0,total-first),count-1);
-  const uniq=Array.from(new Set(rest));
-  const next=uniq.length===1?(count-1)+' échéance(s) de '+formatCentsPublic(uniq[0]):rest.map(formatCentsPublic).join(' / ');
-  box.innerHTML='<strong>Paiement en '+count+' fois</strong><br>1ère échéance : '+formatCentsPublic(first)+' ('+pct+'%)<br>Puis '+next+'.';
-}
-
 function ensureSeasonPaymentModal(){
   if(document.getElementById('fts-season-payment-modal'))return;
   const div=document.createElement('div');
@@ -385,10 +336,11 @@ function openSeasonPayment(activityId,offerKey){
   const form=document.getElementById('fts-pay-form');
   form.firstName.value=first; form.lastName.value=last; form.email.value=email; form.phone.value=phone; form.studentFirstName.value=''; form.studentLastName.value=''; form.emergencyPhone.value='';
   form.amountCents.innerHTML=prices.map(p=>`<option value="${p.cents}">${esc(p.label)}</option>`).join('');
-  renderPaymentPlanOptions(form.paymentPlan);
-  form.amountCents.onchange=updatePaymentSchedulePreview;
-  form.paymentPlan.onchange=updatePaymentSchedulePreview;
-  updatePaymentSchedulePreview();
+  renderPaymentPlanSelect(form.paymentPlan);
+  const updatePreview=()=>updatePaymentSchedulePreview('fts-pay-schedule-preview',Number(form.amountCents.value||0),form.paymentPlan.value);
+  form.amountCents.onchange=updatePreview;
+  form.paymentPlan.onchange=updatePreview;
+  updatePreview();
   const subs=item.subcats||[];
   const wrap=document.getElementById('fts-pay-sub-wrap');
   if(subs.length){const compatibleSubs=subs.filter(s=>subcatAllowsOffer(s,offer));wrap.style.display='grid';form.subcategoryId.innerHTML=compatibleSubs.map(s=>{const sub=subcatPaymentInfo(s);const label=sub.seasonDetail?`${sub.title||sub.name} — ${sub.seasonDetail}`:(sub.title||sub.name);return `<option value="${esc(sub.key)}">${esc(label)}</option>`}).join(''); if(chosenSubcat) form.subcategoryId.value=chosenSubcat.key;}
@@ -433,6 +385,44 @@ function initSeasonPaymentGate(){
     render();
   });
 }
+
+
+/* ── Panier mixte Saison + Boutique ─────────────────────────────── */
+const FTS_SEASON_CART_KEY='fts_season_mixed_cart_v1';
+let ftsSeasonCart={season:[],shop:[]};
+let ftsCartProducts=[];
+let ftsCartProductsLoaded=false;
+function cartId(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
+function normalizePaymentOptionsFront(){
+  const raw=(saison&&saison.paymentOptions)||{};
+  const allowed=Array.isArray(raw.allowedPlans)?raw.allowedPlans.map(x=>String(x||'').trim()).filter(x=>/^([1-9]|1[0-2])x$/.test(x)):['1x','3x','5x','10x'];
+  const first={}; const src=raw.firstInstallmentPercents&&typeof raw.firstInstallmentPercents==='object'?raw.firstInstallmentPercents:{};
+  for(let i=1;i<=12;i++){const k=i+'x';const fallback=i===1?100:Math.round((100/i)*100)/100;first[k]=Math.min(100,Math.max(1,Number(src[k]||0)||fallback));}
+  return {allowedPlans:allowed.length?allowed:['1x'],firstInstallmentPercents:first,installmentDay:Math.min(27,Math.max(1,Number(raw.installmentDay||10)||10))};
+}
+function paymentPlanLabel(plan){const n=Number(String(plan).replace('x',''))||1;return n===1?'Paiement en 1 fois':'Paiement en '+n+' fois';}
+function renderPaymentPlanSelect(select){if(!select)return;const opts=normalizePaymentOptionsFront();select.innerHTML=opts.allowedPlans.map(p=>`<option value="${esc(p)}">${esc(paymentPlanLabel(p))}</option>`).join('');}
+function splitPreview(amount,count){if(!count)return[];const base=Math.floor(amount/count);const rest=amount-base*count;return Array.from({length:count},(_,i)=>base+(i<rest?1:0));}
+function paymentSchedulePreview(amount,plan){const opts=normalizePaymentOptionsFront();const count=Number(String(plan).replace('x',''))||1;if(count<=1)return {initial:amount,future:[],percent:100};const percent=Number(opts.firstInstallmentPercents[plan]||(100/count));const initial=Math.max(100,Math.ceil(amount*percent/100));return {initial,future:splitPreview(Math.max(0,amount-initial),count-1),percent};}
+function updatePaymentSchedulePreview(id,amount,plan){const el=document.getElementById(id);if(!el)return;const s=paymentSchedulePreview(amount,plan);const count=Number(String(plan).replace('x',''))||1;if(!amount){el.innerHTML='';return;}el.innerHTML=count<=1?`<strong>${esc(euroFromCents(amount))}</strong> réglé en une fois.`:`<strong>1ère échéance : ${esc(euroFromCents(s.initial))}</strong> (${String(s.percent).replace('.',',')}%) · puis ${s.future.length} échéance(s) d’environ ${esc(euroFromCents(s.future[0]||0))}.`;}
+function euroFromCents(cents){return (Number(cents||0)/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});}
+function loadCart(){try{ftsSeasonCart=JSON.parse(localStorage.getItem(FTS_SEASON_CART_KEY)||'{}')||{};}catch(e){ftsSeasonCart={};}if(!Array.isArray(ftsSeasonCart.season))ftsSeasonCart.season=[];if(!Array.isArray(ftsSeasonCart.shop))ftsSeasonCart.shop=[];}
+function saveCart(){localStorage.setItem(FTS_SEASON_CART_KEY,JSON.stringify(ftsSeasonCart));renderCartBubble();}
+function cartCount(){return (ftsSeasonCart.season||[]).length+(ftsSeasonCart.shop||[]).reduce((s,x)=>s+Math.max(1,Number(x.quantity||1)||1),0);}
+function renderCartBubble(){ensureSeasonCartShell();const n=cartCount();const b=document.getElementById('fts-cart-bubble');if(b){b.hidden=!n;b.querySelector('strong').textContent=String(n);}}
+async function loadCartProducts(){if(ftsCartProductsLoaded)return;ftsCartProductsLoaded=true;try{const res=await fetch(ftsPaymentApiBase()+'/catalog/products',{method:'GET',headers:{'Content-Type':'application/json'}});const data=await res.json().catch(()=>({}));ftsCartProducts=Array.isArray(data.products)?data.products:[];}catch(e){console.warn('[FTS panier] produits boutique indisponibles',e);ftsCartProducts=[];}}
+function productOptions(text){return String(text||'').split(/\n+/).map((line,i)=>{const parts=line.split(':');if(parts.length<2)return null;const name=parts.shift().trim();const values=parts.join(':').split(',').map(v=>v.trim()).filter(Boolean);return name&&values.length?{name,key:norm(name)||('opt_'+i),values}:null;}).filter(Boolean);}
+function seasonLineFrom(activityId,offerKey){const item=itemList().find(x=>String(x.id)===String(activityId));const offer=item&&(item.offers||[]).find(o=>String(o.key)===String(offerKey));if(!item||!offer)throw new Error('Formule introuvable.');const prices=priceChoices(offer.price);if(!prices.length)throw new Error('Tarif non reconnu.');selectedSeasonOffers[item.id]=offer.key;refreshSubcatOfferFilter(item.id);const chosen=selectedSeasonSubcat(item);if((item.subcats||[]).length&&!chosen)throw new Error('Choisis d’abord le groupe / horaire concerné avant d’ajouter au panier.');return {id:cartId('season'),type:'season_registration',activityId:item.id,activityName:item.name,offerKey:offer.key,offerLabel:offer.label||offer.key,prices,amountCents:prices[0].cents,subcategory:chosen||{key:'principal',name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',maxSeats:0,seasonDetail:'',allowedOffers:[]}};}
+function addSeasonToCart(activityId,offerKey){try{loadCart();const line=seasonLineFrom(activityId,offerKey);ftsSeasonCart.season.push(line);saveCart();openSeasonCart();}catch(e){alert(e&&e.message?e.message:e);}}
+function removeCartLine(kind,id){loadCart();ftsSeasonCart[kind]=(ftsSeasonCart[kind]||[]).filter(x=>String(x.id)!==String(id));saveCart();renderSeasonCart();}
+function updateCartSeasonAmount(id,value){const l=(ftsSeasonCart.season||[]).find(x=>String(x.id)===String(id));if(l){l.amountCents=Number(value)||l.amountCents;saveCart();renderSeasonCart();}}
+function addShopToCart(productId){const p=ftsCartProducts.find(x=>String(x.id)===String(productId));if(!p)return;const card=document.querySelector(`[data-cart-product="${CSS.escape(String(productId))}"]`);const variants={};if(card)card.querySelectorAll('[data-cart-option]').forEach(sel=>{variants[sel.getAttribute('data-cart-option')]=sel.value;});const quantity=card?Math.max(1,Math.min(20,Math.round(Number(card.querySelector('[data-cart-qty]').value||1))||1)):1;loadCart();ftsSeasonCart.shop.push({id:cartId('shop'),type:'shop_order',productId:p.id,productName:p.name||p.title||'Article',unitPriceCents:Number(p.priceCents||0)||0,quantity,variants});saveCart();renderSeasonCart();}
+function ensureSeasonCartShell(){if(document.getElementById('fts-season-cart-modal'))return;const bubble=document.createElement('button');bubble.id='fts-cart-bubble';bubble.type='button';bubble.hidden=true;bubble.className='fts-cart-bubble';bubble.innerHTML='🛒 <strong>0</strong>';bubble.addEventListener('click',openSeasonCart);document.body.appendChild(bubble);const modal=document.createElement('div');modal.id='fts-season-cart-modal';modal.className='fts-payment-modal fts-cart-modal';modal.innerHTML=`<div class="fts-payment-card fts-cart-card"><button type="button" class="fts-payment-close" data-cart-close>×</button><div class="eyebrow">Panier Saison + Boutique</div><h2>Finaliser mon inscription</h2><div id="fts-cart-content"></div></div>`;document.body.appendChild(modal);modal.addEventListener('click',e=>{if(e.target===modal||e.target.closest('[data-cart-close]'))modal.classList.remove('open');});}
+async function openSeasonCart(){ensureSeasonCartShell();loadCart();await loadCartProducts();renderSeasonCart();document.getElementById('fts-season-cart-modal').classList.add('open');}
+function renderSeasonCart(){ensureSeasonCartShell();const box=document.getElementById('fts-cart-content');if(!box)return;const seasonLines=ftsSeasonCart.season||[];const shopLines=ftsSeasonCart.shop||[];const total=seasonLines.reduce((s,x)=>s+Number(x.amountCents||0),0)+shopLines.reduce((s,x)=>s+(Number(x.unitPriceCents||0)*Math.max(1,Number(x.quantity||1)||1)),0);const profile=ftsPaymentProfile||{};const email=(ftsPaymentUser&&ftsPaymentUser.email)||profile.email||'';const first=profile.firstName||profile.prenom||'';const last=profile.lastName||profile.nom||'';const phone=profile.phone||profile.tel||profile.telephone||'';box.innerHTML=`${!seasonLines.length&&!shopLines.length?'<div class="fts-cart-empty">Ton panier est vide. Ajoute une ou plusieurs activités.</div>':''}${seasonLines.length?`<section class="fts-cart-section"><h3>Activités choisies</h3>${seasonLines.map(l=>`<article class="fts-cart-line"><div><strong>${esc(l.activityName)}</strong><small>${esc(l.offerLabel)} · ${esc((l.subcategory&&l.subcategory.title)||(l.subcategory&&l.subcategory.name)||'Groupe principal')}</small></div><select onchange="updateCartSeasonAmount('${esc(l.id)}',this.value)">${(l.prices||[]).map(p=>`<option value="${p.cents}" ${Number(l.amountCents)===Number(p.cents)?'selected':''}>${esc(p.label)}</option>`).join('')}</select><button type="button" onclick="removeCartLine('season','${esc(l.id)}')">Retirer</button></article>`).join('')}</section>`:''}${renderCartShopSuggestions()}${shopLines.length?`<section class="fts-cart-section"><h3>Articles ajoutés</h3>${shopLines.map(l=>`<article class="fts-cart-line"><div><strong>${esc(l.productName)}</strong><small>${esc(Object.entries(l.variants||{}).map(([k,v])=>k+': '+v).join(' · ')||'Boutique')} · quantité ${esc(String(l.quantity||1))}</small></div><strong>${esc(euroFromCents(Number(l.unitPriceCents||0)*Number(l.quantity||1)))}</strong><button type="button" onclick="removeCartLine('shop','${esc(l.id)}')">Retirer</button></article>`).join('')}</section>`:''}<form id="fts-cart-form" class="fts-cart-form"><div class="fts-pay-section-title">Responsable / payeur</div><div class="fts-pay-grid"><label>Prénom responsable<input name="firstName" required value="${esc(first)}"></label><label>Nom responsable<input name="lastName" required value="${esc(last)}"></label><label>Email responsable<input name="email" type="email" required value="${esc(email)}"></label><label>Téléphone responsable<input name="phone" type="tel" required value="${esc(phone)}"></label></div><div class="fts-pay-section-title">Participant / élève</div><div class="fts-pay-grid"><label>Prénom participant<input name="studentFirstName" required></label><label>Nom participant<input name="studentLastName" required></label><label>Téléphone d'urgence<input name="emergencyPhone" type="tel" required></label><label>Paiement<select name="paymentPlan"></select></label></div><div id="fts-cart-schedule-preview" class="fts-pay-schedule-preview"></div><div class="promo-field"><label>Code promo / code spécial <input name="promoCode" placeholder="Optionnel"></label></div><div class="fts-cart-total"><span>Total</span><strong>${esc(euroFromCents(total))}</strong></div><button class="btn-register fts-pay-submit" type="submit" ${total?'':'disabled'}>Passer à la caisse</button><div id="fts-cart-msg" class="fts-pay-msg"></div></form>`;const form=document.getElementById('fts-cart-form');if(form){renderPaymentPlanSelect(form.paymentPlan);const update=()=>updatePaymentSchedulePreview('fts-cart-schedule-preview',total,form.paymentPlan.value);form.paymentPlan.onchange=update;update();form.addEventListener('submit',submitMixedCart);}}
+function renderCartShopSuggestions(){if(!ftsCartProducts.length)return '<section class="fts-cart-section"><h3>Boutique</h3><p class="fts-cart-muted">Aucun article boutique disponible pour le moment.</p></section>';return `<section class="fts-cart-section"><h3>Compléter avec la boutique</h3><p class="fts-cart-muted">Ajoute un t-shirt, sac ou goodie à ton inscription avant de passer à la caisse.</p><div class="fts-cart-products">${ftsCartProducts.slice(0,8).map(p=>{const opts=productOptions(p.variantsText);return `<article class="fts-cart-product" data-cart-product="${esc(p.id)}"><div>${p.imageUrl?`<img src="${esc(p.imageUrl)}" alt="">`:'🛍️'}</div><strong>${esc(p.name||p.title||'Article')}</strong><small>${esc(euroFromCents(p.priceCents))}</small>${opts.map(o=>`<label>${esc(o.name)}<select data-cart-option="${esc(o.name)}" required>${o.values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}</select></label>`).join('')}<label>Qté<input data-cart-qty type="number" min="1" max="20" value="1"></label><button type="button" onclick="addShopToCart('${esc(p.id)}')">Ajouter</button></article>`}).join('')}</div></section>`;}
+async function submitMixedCart(e){e.preventDefault();const msg=document.getElementById('fts-cart-msg');try{loadCart();const seasonLines=ftsSeasonCart.season||[];const shopLines=ftsSeasonCart.shop||[];if(!seasonLines.length&&!shopLines.length)throw new Error('Le panier est vide.');const form=e.target;const token=ftsPaymentUser?await ftsPaymentUser.getIdToken(true):'';const studentFirstName=String(form.studentFirstName.value||'').trim();const studentLastName=String(form.studentLastName.value||'').trim();const payload={type:'mixed_cart',source:'saison.html',paymentPlan:form.paymentPlan.value,promoCode:form.promoCode?form.promoCode.value:'',payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},student:{firstName:studentFirstName,lastName:studentLastName,name:[studentFirstName,studentLastName].filter(Boolean).join(' '),emergencyPhone:form.emergencyPhone.value},emergencyPhone:form.emergencyPhone.value,seasonLines:seasonLines.map(l=>({type:'season_registration',activityId:l.activityId,offerKey:l.offerKey,amountCents:Number(l.amountCents||0),subcategoryId:l.subcategory&&l.subcategory.key,subcategoryName:l.subcategory&&l.subcategory.name,subcategoryTitle:l.subcategory&&l.subcategory.title,subcategoryDay:l.subcategory&&l.subcategory.day,subcategoryTime:l.subcategory&&l.subcategory.time,subcategoryLevel:l.subcategory&&l.subcategory.level,subcategoryAge:l.subcategory&&l.subcategory.age,subcategoryNote:l.subcategory&&l.subcategory.note,subcategoryPrice:l.subcategory&&l.subcategory.price,subcategoryMaxSeats:Number(l.subcategory&&l.subcategory.maxSeats||0)||0,subcategorySeasonDetail:l.subcategory&&l.subcategory.seasonDetail,subcategoryAllowedOffers:l.subcategory&&l.subcategory.allowedOffers||[],subcategory:l.subcategory})),shopLines:shopLines.map(l=>({type:'shop_order',productId:l.productId,quantity:Number(l.quantity||1),variants:l.variants||{}}))};msg.textContent='Création du paiement groupé…';const headers={'Content-Type':'application/json'};if(token)headers.Authorization='Bearer '+token;const res=await fetch(ftsPaymentApiBase()+'/checkout',{method:'POST',headers,body:JSON.stringify(payload)});const data=await res.json().catch(()=>({}));if(!res.ok||!data.ok)throw new Error((data&&data.error)||'Erreur création paiement');localStorage.removeItem(FTS_SEASON_CART_KEY);if(data.redirectUrl)location.href=data.redirectUrl;else if(data.confirmationUrl)location.href=data.confirmationUrl;else msg.textContent='Commande enregistrée.';}catch(err){msg.textContent='Impossible de lancer le paiement groupé : '+(err&&err.message?err.message:err);}}
+loadCart();
 
 function toggle(id){const tile=document.querySelector('[data-id="'+id+'"]'),panel=document.getElementById('panel-'+id);if(!tile||!panel)return;if(current&&current!==id){const oldT=document.querySelector('[data-id="'+current+'"]'),oldP=document.getElementById('panel-'+current);if(oldT)oldT.classList.remove('open');if(oldP)oldP.classList.remove('open')}if(current===id){tile.classList.remove('open');panel.classList.remove('open');current=null}else{tile.classList.add('open');panel.classList.add('open');current=id;setTimeout(()=>panel.scrollIntoView({behavior:'smooth',block:'nearest'}),50)}}
 function switchTab(disc,parcours,btn){selectedSeasonOffers[disc]=parcours;const panel=document.getElementById('panel-'+disc);panel.querySelectorAll('.tab').forEach(t=>t.classList.remove('act'));panel.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('act'));btn.classList.add('act');document.getElementById(disc+'-'+parcours).classList.add('act');refreshSubcatOfferFilter(disc)}

@@ -22,8 +22,9 @@
   const dateLabel = ts => ts ? new Date(Number(ts)).toLocaleString('fr-FR') : 'Date inconnue';
   const shortDate = ts => ts ? new Date(Number(ts)).toLocaleDateString('fr-FR') : '—';
 
-  const TYPE_ORDER = ['season_registration','event_ticket','stage_registration','shop_order','membership','one_off','other'];
+  const TYPE_ORDER = ['mixed_cart','season_registration','event_ticket','stage_registration','shop_order','membership','one_off','other'];
   const TYPE_META = {
+    mixed_cart:{label:'Paniers mixtes', icon:'🧺', hint:'Inscriptions + boutique en paiement groupé'},
     season_registration:{label:'Inscriptions saison', icon:'🎭', hint:'Activités, formules et sous-groupes'},
     event_ticket:{label:'Spectacles / événements', icon:'🎟️', hint:'Billetterie et réservations'},
     stage_registration:{label:'Stages', icon:'🚀', hint:'Inscriptions aux stages'},
@@ -121,7 +122,8 @@
   function maxSeatsForRows(list){
     return list.reduce((max,o)=>Math.max(max, subcategoryMaxSeats(o)), 0);
   }
-  function itemLabel(o){ return o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
+  function cartLinesLabel(o){ const lines=Array.isArray(o.cartLines)?o.cartLines:[]; return lines.length?lines.map(l=>l.activityName||l.productName||l.itemName||l.type).filter(Boolean).join(' + '):''; }
+  function itemLabel(o){ return cartLinesLabel(o) || o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
   function paidAmount(o){
     const s = norm(o && o.status || '');
@@ -255,7 +257,7 @@
         <div class="sales-person-pay"><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span><strong>${euro(amount(o))}</strong></div>
       </summary>
       <div class="sales-person-body">
-        ${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
+        ${Array.isArray(o.cartLines)&&o.cartLines.length?`<div><span>Détail panier</span><strong>${esc(o.cartLines.length+' ligne(s)')}</strong><small>${esc(cartLinesLabel(o))}</small></div>`:''}${subcategoryDetail(o)?`<div><span>Détail groupe</span><strong>${esc(o.subcategoryTitle || o.subcategoryName || 'Groupe')}</strong><small>${esc(subcategoryDetail(o))}</small></div>`:''}
         ${subcategoryMaxSeats(o)>0?`<div><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} places max</strong><small>Limite enregistrée au moment de la commande</small></div>`:''}
         ${subcategoryAllowedOffersLabel(o)?`<div><span>Formules autorisées</span><strong>${esc(subcategoryAllowedOffersLabel(o))}</strong><small>Règle enregistrée au moment du paiement</small></div>`:''}
         <div><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small></div>
@@ -359,7 +361,7 @@
       <div class="sales-order-head"><label class="sales-order-select"><input class="sales-order-checkbox" type="checkbox" data-order-id="${esc(id)}" ${checked}/> <span>Sélectionner</span></label><div><div class="sales-order-title">${esc(itemLabel(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
       <div class="sales-order-grid">
         <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small></div>
-        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc([o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel,variantInfo(o)].filter(Boolean).join(' · '))}</small></div>
+        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc(cartLinesLabel(o) || [o.activityName,o.subcategoryName,subcategoryDetail(o),o.offerLabel,variantInfo(o)].filter(Boolean).join(' · '))}</small></div>
         ${emergencyPhone(o)?`<div class="sales-mini"><span>Urgence</span><strong>${esc(emergencyPhone(o))}</strong><small>Contact renseigné à l'inscription</small></div>`:''}
         ${subcategoryMaxSeats(o)>0?`<div class="sales-mini"><span>Places groupe</span><strong>${esc(String(subcategoryMaxSeats(o)))} max</strong><small>Limite du sous-groupe au moment du paiement</small></div>`:''}
         <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
