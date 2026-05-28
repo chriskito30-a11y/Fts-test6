@@ -86,3 +86,14 @@
 
 /* V74 — statut exclusions plus lisible */
 .calendar-exclusion-head small{line-height:1.35}
+
+
+/* V79 — rappels à vérifier visibles et page plus respirante */
+.badge.issues{border-color:rgba(255,90,90,.45);color:#ff9b9b;background:rgba(255,90,90,.12)}
+.reminder-row.has-issue{border-color:rgba(255,90,90,.35);background:rgba(255,90,90,.055)}
+.reminder-row.has-issue:hover,.reminder-row.has-issue.active{border-color:rgba(255,90,90,.62);background:rgba(255,90,90,.09)}
+.selected-reminder{margin-top:1rem;max-width:100%;overflow-wrap:anywhere}
+@media(min-width:901px){
+  .grid{grid-template-columns:minmax(360px,420px) minmax(0,1fr);align-items:start}
+  .reminder-list{max-height:none;overflow:visible;padding-right:0}
+}
