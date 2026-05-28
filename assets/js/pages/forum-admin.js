@@ -474,31 +474,69 @@ function legacySubgroupsForCat(person, cat) {
 
   return raw.length ? raw : ['Sans sous-groupe actuel'];
 }
-function addLegacyStat(stat, labels) {
+function summaryPersonLabel(person) {
+  return person.personName || person.userName || "Membre";
+}
+function summaryPersonMeta(person) {
+  return person.ownerType === "child" ? "enfant" : "membre";
+}
+function summaryPersonHtml(person, opts = {}) {
+  const mode = opts.mode || "edit";
+  const canRemove = opts.canRemove && opts.cat && opts.label && opts.label !== "Sans sous-groupe actuel";
+  const removeArgs = canRemove
+    ? [person.uid, mode, opts.cat, opts.label, person.ownerType || "parent", String(person.childIndex ?? -1)].map(FTS.jsArg).join(', ')
+    : '';
+  return `<div class="summary-person-row">
+    <div>
+      <strong>${FTS.esc(summaryPersonLabel(person))}</strong>
+      <span>${FTS.esc(summaryPersonMeta(person))}</span>
+    </div>
+    <div class="summary-person-actions">
+      ${canRemove ? `<button class="summary-clean-btn" type="button" data-fts-click="removeLegacyAccess(${removeArgs})">Retirer</button>` : ''}
+      <button class="summary-edit-btn" type="button" data-fts-click="openModModal(${FTS.jsArg(person.uid)})">Éditer</button>
+    </div>
+  </div>`;
+}
+function addLegacyStat(stat, labels, person, cat) {
   if (!labels || !labels.length) return;
   stat.legacyTotal = (stat.legacyTotal || 0) + 1;
   stat.legacy = stat.legacy || {};
+  stat.legacyPeople = stat.legacyPeople || {};
   uniqList(labels).forEach(label => {
     stat.legacy[label] = (stat.legacy[label] || 0) + 1;
+    stat.legacyPeople[label] = stat.legacyPeople[label] || [];
+    if (person) stat.legacyPeople[label].push({ ...person, cat, legacyLabel: label });
   });
 }
-function getPeopleFromUser(u) {
+function getPeopleFromUser(u, uid) {
   const people = [];
+  const userName = u.name || [u.firstName, u.lastName].filter(Boolean).join(" ") || u.email || "Membre";
   const parentCats = normList(u.disciplines || u.group);
   const parentSubs = normList(u.subgroups || u.subgroup);
   if (parentCats.length || parentSubs.length) {
     people.push({
+      uid,
+      userName,
+      personName: userName,
+      ownerType: "parent",
+      childIndex: -1,
       cats: parentCats,
       subs: parentSubs,
       byCat: safeSubgroupsByCat(parentCats, parentSubs, u.subgroupsByCat),
     });
   }
 
-  (Array.isArray(u.enfants) ? u.enfants : []).forEach(e => {
+  (Array.isArray(u.enfants) ? u.enfants : []).forEach((e, idx) => {
     const childCats = normList(e.disciplines || e.group);
     const childSubs = normList(e.subgroups || e.subcategories || e.subgroup);
     if (!childCats.length && !childSubs.length) return;
+    const childName = [e.prenom, e.nom].filter(Boolean).join(" ").trim() || `Enfant ${idx + 1}`;
     people.push({
+      uid,
+      userName,
+      personName: childName + " · " + userName,
+      ownerType: "child",
+      childIndex: idx,
       cats: childCats,
       subs: childSubs,
       byCat: safeSubgroupsByCat(childCats, childSubs, e.subgroupsByCat),
@@ -517,29 +555,38 @@ function renderCategorySummary() {
   const cats = getKnownCategories();
   const stats = {};
   cats.forEach(cat => {
-    stats[cat] = { total: 0, subcats: {}, legacyTotal: 0, legacy: {} };
-    getKnownSubcatsFor(cat).forEach(sub => { stats[cat].subcats[sub] = 0; });
+    stats[cat] = { total: 0, subcats: {}, subPeople: {}, people: [], legacyTotal: 0, legacy: {}, legacyPeople: {}, isLegacyCat: false };
+    getKnownSubcatsFor(cat).forEach(sub => {
+      stats[cat].subcats[sub] = 0;
+      stats[cat].subPeople[sub] = [];
+    });
   });
 
   let totalPeople = 0;
-  Object.values(allUsers || {}).forEach(u => {
+  Object.entries(allUsers || {}).forEach(([uid, u]) => {
     if (!u || u.status !== "active") return;
     if (String(u.role || "member").toLowerCase() !== "member") return;
-    const people = getPeopleFromUser(u);
+    const people = getPeopleFromUser(u, uid);
     totalPeople += people.length;
 
     people.forEach(person => {
       uniqList(person.cats).forEach(cat => {
-        if (!stats[cat]) stats[cat] = { total: 0, subcats: {}, legacyTotal: 0, legacy: {} };
+        if (!stats[cat]) {
+          stats[cat] = { total: 0, subcats: {}, subPeople: {}, people: [], legacyTotal: 0, legacy: {}, legacyPeople: {}, isLegacyCat: !isOfficialCategory(cat) };
+        }
+        stats[cat].isLegacyCat = !isOfficialCategory(cat);
         stats[cat].total += 1;
+        stats[cat].people.push(person);
 
         const subsForCat = safeSubgroupsByCat([cat], person.subs, person.byCat)[cat] || [];
         uniqList(subsForCat).forEach(sub => {
           stats[cat].subcats[sub] = (stats[cat].subcats[sub] || 0) + 1;
+          stats[cat].subPeople[sub] = stats[cat].subPeople[sub] || [];
+          stats[cat].subPeople[sub].push(person);
         });
 
         const legacyLabels = legacySubgroupsForCat(person, cat);
-        addLegacyStat(stats[cat], legacyLabels);
+        addLegacyStat(stats[cat], legacyLabels, person, cat);
       });
     });
   });
@@ -559,22 +606,146 @@ function renderCategorySummary() {
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
     const legacy = Object.entries(stat.legacy || {})
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
-    return `<article class="summary-card">
+    const catPeople = uniqList((stat.people || []).map(p => p.uid + '|' + p.ownerType + '|' + p.childIndex + '|' + p.personName))
+      .map(key => (stat.people || []).find(p => key === p.uid + '|' + p.ownerType + '|' + p.childIndex + '|' + p.personName))
+      .filter(Boolean);
+    return `<article class="summary-card ${stat.isLegacyCat ? 'summary-card-legacy-cat' : ''}">
       <div class="summary-card-top">
-        <strong>${FTS.esc(cat)}</strong>
+        <strong>${FTS.esc(cat)}${stat.isLegacyCat ? ' <small>ancienne catégorie</small>' : ''}</strong>
         <span>${pluralPeople(stat.total)}</span>
       </div>
+      ${stat.isLegacyCat ? `<div class="summary-legacy-cat-note">Catégorie absente de la configuration officielle active.</div>` : ''}
+      <details class="summary-people">
+        <summary><span>Voir les personnes comptées</span><b>${catPeople.length}</b></summary>
+        <div class="summary-people-list">
+          ${catPeople.map(p => summaryPersonHtml(p, { mode: stat.isLegacyCat ? 'category' : 'edit', cat, label: cat, canRemove: stat.isLegacyCat })).join('')}
+        </div>
+      </details>
       ${subs.length ? `<div class="summary-sublist">
-        ${subs.map(([sub, count]) => `<div class="summary-subrow"><span>${FTS.esc(sub)}</span><b>${count}</b></div>`).join('')}
+        ${subs.map(([sub, count]) => {
+          const people = stat.subPeople && stat.subPeople[sub] ? stat.subPeople[sub] : [];
+          return `<details class="summary-subdetail">
+            <summary class="summary-subrow"><span>${FTS.esc(sub)}</span><b>${count}</b></summary>
+            <div class="summary-people-list small">
+              ${people.map(p => summaryPersonHtml(p, { mode: 'edit', cat, label: sub, canRemove: false })).join('') || '<div class="summary-no-people">Aucun détail.</div>'}
+            </div>
+          </details>`;
+        }).join('')}
       </div>` : '<div class="summary-empty-sub">Pas de sous-catégorie configurée.</div>'}
       ${stat.legacyTotal ? `<details class="summary-legacy">
         <summary><span>Autres / anciens groupes</span><b>${stat.legacyTotal}</b></summary>
         <div class="summary-legacy-list">
-          ${legacy.map(([label, count]) => `<div class="summary-subrow summary-legacy-row"><span>${FTS.esc(label)}</span><b>${count}</b></div>`).join('')}
+          ${legacy.map(([label, count]) => {
+            const people = stat.legacyPeople && stat.legacyPeople[label] ? stat.legacyPeople[label] : [];
+            return `<details class="summary-legacy-detail">
+              <summary class="summary-subrow summary-legacy-row"><span>${FTS.esc(label)}</span><b>${count}</b></summary>
+              <div class="summary-people-list small">
+                ${people.map(p => summaryPersonHtml(p, { mode: 'subgroup', cat, label, canRemove: label !== 'Sans sous-groupe actuel' })).join('') || '<div class="summary-no-people">Aucun détail.</div>'}
+              </div>
+            </details>`;
+          }).join('')}
         </div>
       </details>` : ''}
     </article>`;
   }).join('');
+}
+
+function removeOneNormValue(list, value) {
+  const target = FTS.norm(value);
+  return normList(list).filter(v => FTS.norm(v) !== target);
+}
+function cleanSubgroupsMap(map, cat, label, removeWholeCat) {
+  const out = {};
+  Object.entries(map && typeof map === 'object' ? map : {}).forEach(([key, values]) => {
+    if (removeWholeCat && FTS.norm(key) === FTS.norm(cat)) return;
+    const next = removeWholeCat ? normList(values) : (FTS.norm(key) === FTS.norm(cat) ? removeOneNormValue(values, label) : normList(values));
+    if (next.length) out[key] = next;
+  });
+  return out;
+}
+function applyAccessRemovalToOwner(owner, mode, cat, label) {
+  const next = { ...(owner || {}) };
+  let cats = normList(next.disciplines || next.group);
+  let subs = normList(next.subgroups || next.subcategories || next.subgroup);
+  const removeWholeCat = mode === 'category';
+
+  if (removeWholeCat) {
+    cats = removeOneNormValue(cats, cat);
+  } else if (mode === 'subgroup') {
+    subs = removeOneNormValue(subs, label);
+  }
+
+  const map = cleanSubgroupsMap(next.subgroupsByCat || {}, cat, label, removeWholeCat);
+  next.disciplines = cats;
+  next.group = cats.join(', ');
+  next.subgroups = subs;
+  next.subgroup = subs.join(', ');
+  next.subgroupsByCat = map;
+  if ('subcategories' in next) next.subcategories = subs;
+  return next;
+}
+function rebuildForumAccessFromUser(rawUser) {
+  const parentCats = normList(rawUser.disciplines || rawUser.group);
+  const parentSubs = normList(rawUser.subgroups || rawUser.subgroup);
+  const enfants = Array.isArray(rawUser.enfants) ? rawUser.enfants : [];
+  const childDiscs = childDisciplinesFrom(enfants);
+  const childSubs = childSubgroupsFrom(enfants);
+  const childMaps = enfants.map(e => e && e.subgroupsByCat).filter(Boolean);
+  const allForumDiscs = uniqList([...parentCats, ...childDiscs]);
+  const allForumSubs = uniqList([...parentSubs, ...childSubs]);
+  return {
+    group: allForumDiscs.join(', '),
+    groups: allForumDiscs,
+    subgroup: allForumSubs.join(', '),
+    subgroups: allForumSubs,
+    subgroupsByCat: mergeSubgroupsByCatMaps(rawUser.subgroupsByCat || {}, ...childMaps),
+    status: rawUser.status || 'active',
+    role: rawUser.role || 'member',
+    ts: Date.now(),
+  };
+}
+async function removeLegacyAccess(uid, mode, cat, label, ownerType, childIndex) {
+  if (!uid || !mode || !cat) return;
+  const isCategory = mode === 'category';
+  const isSubgroup = mode === 'subgroup';
+  if (!isCategory && !isSubgroup) {
+    openModModal(uid);
+    return;
+  }
+  const readable = isCategory ? `la catégorie ancienne « ${cat} »` : `le groupe ancien « ${label} » dans « ${cat} »`;
+  if (!confirm(`Retirer ${readable} de ce profil ?\n\nCette action met à jour uniquement ce membre/enfant. Elle ne supprime rien globalement.`)) return;
+
+  try {
+    const snap = await db.ref('fts_users/' + uid).once('value');
+    const raw = snap.val() || allRawUsers[uid] || {};
+    const nextUser = { ...raw, updatedAt: Date.now() };
+
+    if (ownerType === 'child') {
+      const idx = Number(childIndex);
+      const enfants = Array.isArray(nextUser.enfants) ? nextUser.enfants.map(e => ({ ...(e || {}) })) : [];
+      if (!Number.isInteger(idx) || idx < 0 || idx >= enfants.length) throw new Error('Enfant introuvable dans le profil.');
+      enfants[idx] = applyAccessRemovalToOwner(enfants[idx], mode, cat, label);
+      nextUser.enfants = enfants;
+    } else {
+      const cleaned = applyAccessRemovalToOwner(nextUser, mode, cat, label);
+      Object.assign(nextUser, cleaned);
+    }
+
+    await db.ref('fts_users/' + uid).set(nextUser);
+
+    const forumUpdate = {
+      ...(allRawForumUsers[uid] || {}),
+      name: allUsers[uid]?.name || nextUser.name || [nextUser.firstName, nextUser.lastName].filter(Boolean).join(' ') || 'Membre',
+      ...rebuildForumAccessFromUser(nextUser),
+    };
+    await db.ref('fts_forum/users/' + uid).set(forumUpdate).catch(async () => {
+      await db.ref('fts_forum/users/' + uid).update(rebuildForumAccessFromUser(nextUser));
+    });
+    await refreshAdminUsersOnce();
+  } catch (err) {
+    console.error('[FTS] Nettoyage accès ancien impossible', err);
+    alert('Impossible de retirer cet accès pour le moment : ' + (err && err.message ? err.message : err));
+  }
 }
 
 
