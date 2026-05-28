@@ -192,11 +192,22 @@ function allowedOfferBadges(s){
   if(!allowed.length) return '';
   return `<div class="season-subcat-offers">${allowed.map(x=>`<span>${esc(offerLabelFromAllowed(x))}</span>`).join('')}</div>`;
 }
+
+function isLinkedOnlySubcat(s){
+  const ss=subcatSeason(s);
+  if(ss.showOnSeason===false || ss.hideOnSeason===true || ss.hiddenOnSeason===true) return true;
+  const allowed=subcatAllowedOffers(s);
+  return allowed.includes('inclus');
+}
+function publicSeasonSubcats(item){
+  return ((item&&item.subcats)||[]).filter(s=>!isLinkedOnlySubcat(s));
+}
+
 function refreshSubcatOfferFilter(activityId){
   const item=itemList().find(x=>String(x.id)===String(activityId));
   if(!item) return;
   const offer=activeOfferForItem(item);
-  const subs=(item.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false));
+  const subs=publicSeasonSubcats(item);
   const visibleKeys=subs.filter(s=>subcatAllowsOffer(s,offer)).map(subcatKey);
   const selected=selectedSeasonSubcats[item.id]||'';
   if(selected && !visibleKeys.includes(selected)) selectedSeasonSubcats[item.id]='';
@@ -247,7 +258,7 @@ function renderSubcatDetails(activityId,s){
   return `<div class="season-subcat-detail" id="season-subcat-detail-${esc(activityId)}-${esc(subcatKey(s))}" data-subcat="${esc(subcatKey(s))}">${lineHtml}${note}</div>`;
 }
 function renderSubcats(i){
-  const subs=(i.subcats||[]).filter(s=>!(s.season&&s.season.showOnSeason===false));
+  const subs=publicSeasonSubcats(i);
   if(!subs.length) return '';
   const selected=selectedSeasonSubcats[i.id]||'';
   const activeOffer=activeOfferForItem(i);
@@ -300,7 +311,7 @@ function renderPaymentButton(item,offer){
   return `<button type="button" class="btn-register fts-cart-add" data-fts-click="addSeasonToCart('${esc(item.id)}','${esc(offer.key)}')">Ajouter au panier</button><button type="button" class="btn-register fts-pay-btn fts-direct-pay" data-fts-click="openSeasonPayment('${esc(item.id)}','${esc(offer.key)}')">Payer seul</button>`;
 }
 function selectedSeasonSubcat(item){
-  const subs=item&&Array.isArray(item.subcats)?item.subcats:[];
+  const subs=publicSeasonSubcats(item);
   if(!subs.length) return {key:'principal',name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',seasonDetail:''};
   const wanted=selectedSeasonSubcats[item.id]||'';
   if(!wanted) return null;
@@ -373,7 +384,7 @@ function openSeasonPayment(activityId,offerKey){
   form.paymentPlan.onchange=updatePreview;
   const subs=item.subcats||[];
   const wrap=document.getElementById('fts-pay-sub-wrap');
-  if(subs.length){const compatibleSubs=subs.filter(s=>subcatAllowsOffer(s,offer));wrap.style.display='grid';form.subcategoryId.innerHTML=compatibleSubs.map(s=>{const sub=subcatPaymentInfo(s);const label=sub.seasonDetail?`${sub.title||sub.name} — ${sub.seasonDetail}`:(sub.title||sub.name);return `<option value="${esc(sub.key)}">${esc(label)}</option>`}).join(''); if(chosenSubcat) form.subcategoryId.value=chosenSubcat.key; form.subcategoryId.onchange=refreshAmountForSubcat;}
+  if(subs.length){const compatibleSubs=publicSeasonSubcats(item).filter(s=>subcatAllowsOffer(s,offer));wrap.style.display='grid';form.subcategoryId.innerHTML=compatibleSubs.map(s=>{const sub=subcatPaymentInfo(s);const label=sub.seasonDetail?`${sub.title||sub.name} — ${sub.seasonDetail}`:(sub.title||sub.name);return `<option value="${esc(sub.key)}">${esc(label)}</option>`}).join(''); if(chosenSubcat) form.subcategoryId.value=chosenSubcat.key; form.subcategoryId.onchange=refreshAmountForSubcat;}
   else{wrap.style.display='none';form.subcategoryId.innerHTML='<option value="principal">Groupe principal</option>';form.subcategoryId.onchange=null;}
   refreshAmountForSubcat();
   document.getElementById('fts-pay-msg').textContent='';
@@ -506,12 +517,21 @@ function linkedChoicePrice(rule,choice){
 function linkedSelectionsTotal(selections){return (selections||[]).reduce((sum,r)=>sum+(r.choices||[]).reduce((s,ch)=>s+Number(ch.amountCents||0),0),0);}
 function lineBaseAmount(line){return Number(line&&line.amountCents||0)||0;}
 function lineTotalAmount(line){return lineBaseAmount(line)+linkedSelectionsTotal(line&&line.linkedOptions||[]);}
+function linkedChoiceMeta(info){
+  const sub=info&&info.sub||{};
+  const slot=[sub.day,sub.time].map(cleanText).filter(Boolean).join(' · ');
+  const parts=[];
+  if(slot)parts.push(slot);
+  if(cleanText(sub.level))parts.push(cleanText(sub.level));
+  if(Number(sub.maxSeats||0)>0)parts.push(Number(sub.maxSeats||0)+' places max');
+  return parts.join(' · ');
+}
 function renderLinkedOptionsInputs(containerId,item,offer,subcat,selections){
   const rules=applicableLinkedRules(item,offer,subcat);
   if(!rules.length)return '';
   const selectedMap={};
   (selections||[]).forEach(r=>(r.choices||[]).forEach(ch=>{selectedMap[(r.ruleId||r.id)+'|'+ch.categoryId+'|'+ch.subcategoryId]=true;}));
-  return `<section class="fts-linked-options" data-linked-container="${esc(containerId)}"><div class="fts-pay-section-title">Options liées à cette inscription</div>${rules.map(rule=>{const max=Math.min(3,Math.max(1,Number(rule.maxChoices||1)||1));const inputType=(max===1&&rule.required)?'radio':'checkbox';return `<div class="fts-linked-rule" data-linked-rule="${esc(rule.id)}" data-required="${rule.required?'1':'0'}" data-max="${max}"><strong>${esc(rule.label||'Option liée')}</strong><small>${rule.required?'Obligatoire':'Facultatif'} · ${max===1?'1 choix':max+' choix maximum'}</small><div class="fts-linked-choice-list">${(rule.choices||[]).map((choice,idx)=>{const info=targetChoiceInfo(choice);if(!info)return'';const amount=linkedChoicePrice(rule,choice);const key=rule.id+'|'+info.categoryId+'|'+info.subcategoryId;const name=containerId+'_'+rule.id;return `<label class="fts-linked-choice"><input type="${inputType}" name="${esc(name)}" value="${esc(info.categoryId+'|'+info.subcategoryId+'|'+info.offerKey)}" data-rule-id="${esc(rule.id)}" data-category-id="${esc(info.categoryId)}" data-subcategory-id="${esc(info.subcategoryId)}" data-offer-key="${esc(info.offerKey)}" data-label="${esc(info.label)}" data-amount-cents="${amount}" ${selectedMap[key]?'checked':''}> <span>${esc(info.label)}</span><em>${amount?('+'+esc(euroFromCents(amount))):'Inclus'}</em></label>`}).join('')}</div></div>`}).join('')}</section>`;
+  return `<section class="fts-linked-options" data-linked-container="${esc(containerId)}"><div class="fts-pay-section-title">Options liées à cette inscription</div>${rules.map(rule=>{const max=Math.min(3,Math.max(1,Number(rule.maxChoices||1)||1));const inputType=(max===1&&rule.required)?'radio':'checkbox';return `<div class="fts-linked-rule" data-linked-rule="${esc(rule.id)}" data-required="${rule.required?'1':'0'}" data-max="${max}"><strong>${esc(rule.label||'Option liée')}</strong><small>${rule.required?'Obligatoire':'Facultatif'} · ${max===1?'1 choix':max+' choix maximum'}</small><div class="fts-linked-choice-list">${(rule.choices||[]).map((choice,idx)=>{const info=targetChoiceInfo(choice);if(!info)return'';const amount=linkedChoicePrice(rule,choice);const key=rule.id+'|'+info.categoryId+'|'+info.subcategoryId;const name=containerId+'_'+rule.id;const meta=linkedChoiceMeta(info);return `<label class="fts-linked-choice"><input type="${inputType}" name="${esc(name)}" value="${esc(info.categoryId+'|'+info.subcategoryId+'|'+info.offerKey)}" data-rule-id="${esc(rule.id)}" data-category-id="${esc(info.categoryId)}" data-subcategory-id="${esc(info.subcategoryId)}" data-offer-key="${esc(info.offerKey)}" data-label="${esc(info.label)}" data-amount-cents="${amount}" ${selectedMap[key]?'checked':''}> <span class="fts-linked-choice-main"><span class="fts-linked-choice-title">${esc(info.label)}</span>${meta?`<small class="fts-linked-choice-meta">${esc(meta)}</small>`:''}</span><em>${amount?('+'+esc(euroFromCents(amount))):'Inclus'}</em></label>`}).join('')}</div></div>`}).join('')}</section>`;
 }
 function collectLinkedOptionsFrom(root,item,offer,subcat){
   const rules=applicableLinkedRules(item,offer,subcat);
@@ -570,7 +590,7 @@ function openSeasonPayment(activityId,offerKey){
   const pricesRefresh=()=>{const currentSubcat=findSeasonSubcat(item,form.subcategoryId.value)||chosenSubcat||{key:'principal',name:'Groupe principal',title:'Groupe principal',price:''};const automatic=automaticAmountForSelection(item,offer,currentSubcat,prices);if(automatic){form.amountCents.innerHTML=`<option value="${automatic}">${esc(lockedPriceLabel(automatic))}</option>`;form.amountCents.value=String(automatic);form.amountCents.disabled=true;form.amountCents.title='Montant choisi automatiquement selon le groupe sélectionné.';}else{form.amountCents.disabled=false;form.amountCents.title='';form.amountCents.innerHTML=prices.map(p=>`<option value="${p.cents}">${esc(p.label)}</option>`).join('');}updateDirectLinkedOptions();};
   form.amountCents.onchange=()=>updateDirectLinkedOptions();form.paymentPlan.onchange=()=>updateDirectLinkedOptions();
   const subs=item.subcats||[];const wrap=document.getElementById('fts-pay-sub-wrap');
-  if(subs.length){const compatibleSubs=subs.filter(s=>subcatAllowsOffer(s,offer));wrap.style.display='grid';form.subcategoryId.innerHTML=compatibleSubs.map(s=>{const sub=subcatPaymentInfo(s);const label=sub.seasonDetail?`${sub.title||sub.name} — ${sub.seasonDetail}`:(sub.title||sub.name);return `<option value="${esc(sub.key)}">${esc(label)}</option>`}).join('');if(chosenSubcat)form.subcategoryId.value=chosenSubcat.key;form.subcategoryId.onchange=pricesRefresh;}else{wrap.style.display='none';form.subcategoryId.innerHTML='<option value="principal">Groupe principal</option>';form.subcategoryId.onchange=null;}
+  if(subs.length){const compatibleSubs=publicSeasonSubcats(item).filter(s=>subcatAllowsOffer(s,offer));wrap.style.display='grid';form.subcategoryId.innerHTML=compatibleSubs.map(s=>{const sub=subcatPaymentInfo(s);const label=sub.seasonDetail?`${sub.title||sub.name} — ${sub.seasonDetail}`:(sub.title||sub.name);return `<option value="${esc(sub.key)}">${esc(label)}</option>`}).join('');if(chosenSubcat)form.subcategoryId.value=chosenSubcat.key;form.subcategoryId.onchange=pricesRefresh;}else{wrap.style.display='none';form.subcategoryId.innerHTML='<option value="principal">Groupe principal</option>';form.subcategoryId.onchange=null;}
   pricesRefresh();document.getElementById('fts-pay-msg').textContent='';document.getElementById('fts-season-payment-modal').classList.add('open');
 }
 async function submitSeasonPayment(event){
