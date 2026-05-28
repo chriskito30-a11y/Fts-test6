@@ -1,4 +1,4 @@
-const CACHE = 'fts-v194-official-green';
+const CACHE = 'fts-v196-public-entrypoints';
 const FILES = [
   './manifest.json',
   './index.html',
