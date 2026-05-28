@@ -28,7 +28,7 @@ html, body { min-height: 100%; }
   grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr);
   grid-template-areas:
     "hero questionnaire"
-    "quick questionnaire"
+    "upcoming upcoming"
     "footer footer";
   gap: 1rem;
   align-content: center;
@@ -807,3 +807,120 @@ html, body { min-height: 100%; }
 }
 .index-payment-card .btn-helloasso:hover,
 .destination .btn-helloasso[type="button"]:hover{filter:brightness(1.03);transform:translateY(-1px)}
+
+
+/* CTA Saison très visible */
+.season-hero-cta {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: .85rem;
+  align-items: center;
+  margin-top: 1rem;
+  padding: .95rem 1rem;
+  border-radius: 20px;
+  text-decoration: none;
+  color: #15110a;
+  background: linear-gradient(135deg, var(--gold), #fff4a8);
+  border: 1px solid rgba(248,231,2,.85);
+  box-shadow: 0 16px 36px rgba(248,231,2,.16);
+  transition: transform .18s ease, box-shadow .18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.season-hero-cta:hover { transform: translateY(-1px); box-shadow: 0 20px 44px rgba(248,231,2,.22); }
+.season-hero-emoji { font-size: 1.55rem; }
+.season-hero-copy { display: grid; gap: .16rem; min-width: 0; }
+.season-hero-copy strong { font-size: .95rem; font-weight: 900; }
+.season-hero-copy small { color: rgba(21,17,10,.78); font-size: .76rem; line-height: 1.35; }
+.season-hero-arrow { font-weight: 900; font-size: 1.2rem; }
+
+/* Prochains événements publics */
+.upcoming-events-zone {
+  grid-area: upcoming;
+  border-radius: 24px;
+  padding: clamp(1rem, 2.5vw, 1.35rem);
+  border: 1px solid rgba(255,255,255,.08);
+  background: linear-gradient(145deg, rgba(255,255,255,.065), rgba(255,255,255,.025));
+  box-shadow: 0 18px 54px rgba(0,0,0,.30);
+  backdrop-filter: blur(14px);
+  animation: fadeUp .55s .14s ease both;
+}
+.upcoming-events-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.upcoming-events-head .zone-kicker { margin-bottom: .45rem; }
+.upcoming-events-head h2 {
+  font-family: var(--font-display);
+  letter-spacing: .035em;
+  line-height: .95;
+  font-size: clamp(1.8rem, 4vw, 2.35rem);
+  margin: 0 0 .35rem;
+}
+.upcoming-events-head p { margin: 0; color: rgba(245,242,238,.68); font-size: .86rem; line-height: 1.45; }
+.upcoming-events-help { color: var(--gold); font-size: .8rem; text-decoration: none; white-space: nowrap; margin-top: .35rem; }
+.upcoming-events-list { display: grid; gap: .7rem; }
+.upcoming-event-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .9rem;
+  padding: .9rem;
+  border-radius: 18px;
+  background: rgba(0,0,0,.22);
+  border: 1px solid rgba(255,255,255,.08);
+}
+.upcoming-event-icon {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 15px;
+  background: rgba(248,231,2,.12);
+  font-size: 1.35rem;
+}
+.upcoming-event-main h3 { margin: 0; font-size: .98rem; line-height: 1.25; }
+.upcoming-event-meta { margin-top: .22rem; color: var(--gold); font-size: .75rem; font-weight: 800; }
+.upcoming-event-main p { margin: .3rem 0 0; color: rgba(245,242,238,.64); font-size: .78rem; line-height: 1.35; }
+.upcoming-event-action {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 40px;
+  padding: .65rem .85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(248,231,2,.48);
+  background: var(--gold);
+  color: #15110a;
+  text-decoration: none;
+  font-weight: 900;
+  font-size: .78rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+.upcoming-events-empty {
+  padding: 1rem;
+  border-radius: 16px;
+  background: rgba(0,0,0,.18);
+  border: 1px solid rgba(255,255,255,.08);
+  color: rgba(245,242,238,.68);
+  font-size: .86rem;
+  text-align: center;
+}
+
+
+@media (max-width: 780px) {
+  .upcoming-events-head { flex-direction: column; }
+  .upcoming-events-help { margin-top: 0; }
+  .upcoming-event-card { grid-template-columns: auto 1fr; align-items: flex-start; }
+  .upcoming-event-cta { grid-column: 1 / -1; width: 100%; }
+  .upcoming-event-action { width: 100%; }
+  .season-hero-cta { grid-template-columns: auto 1fr; }
+  .season-hero-arrow { display: none; }
+}

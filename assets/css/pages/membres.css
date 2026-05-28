@@ -3598,3 +3598,36 @@ button.profile-pill:focus-visible {
 .evt-pay-link:hover,
 .member-pay-submit:hover{filter:brightness(1.03);transform:translateY(-1px);text-decoration:none!important}
 .member-pay-submit{width:100%!important;margin-top:1rem!important;cursor:pointer!important}
+
+
+/* Patch ouverture officielle : accès Saison visible dans Mon espace */
+.member-season-cta {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .8rem;
+  margin: .95rem 0 .85rem;
+  padding: .9rem 1rem;
+  border-radius: 20px;
+  text-decoration: none;
+  color: #15110a;
+  background: linear-gradient(135deg, var(--gold), #fff4a8);
+  border: 1px solid rgba(248,231,2,.82);
+  box-shadow: 0 14px 32px rgba(248,231,2,.14);
+  -webkit-tap-highlight-color: transparent;
+}
+.member-season-cta:hover,
+.member-season-cta:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 40px rgba(248,231,2,.20);
+}
+.member-season-cta-icon { font-size: 1.45rem; }
+.member-season-cta-copy { display: grid; gap: .16rem; min-width: 0; }
+.member-season-cta-copy strong { font-weight: 900; font-size: .92rem; }
+.member-season-cta-copy small { color: rgba(21,17,10,.76); font-size: .74rem; line-height: 1.35; }
+.member-season-cta-arrow { font-weight: 900; font-size: 1.15rem; }
+
+@media (max-width: 520px) {
+  .member-season-cta { grid-template-columns: auto 1fr; }
+  .member-season-cta-arrow { display: none; }
+}
