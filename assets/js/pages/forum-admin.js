@@ -1257,6 +1257,88 @@ function pillHtml(label, active, type, opts) {
   return `<div class="${cls.join(' ')}" data-value="${FTS.esc(label)}" data-legacy="${opts.legacy ? 'true' : 'false'}" data-fts-click="${click}">${FTS.esc(label)}${suffix}</div>`;
 }
 
+function legacyAccessItemsForOwner(owner, label) {
+  const out = [];
+  const cats = normList(owner && (owner.disciplines || owner.categories || owner.groups || owner.group));
+  const subs = normList(owner && (owner.subgroups || owner.subcategories || owner.subgroup));
+  const map = rawSubgroupsMapForOwner(owner || {});
+  const officialCats = officialCategoryNames();
+
+  legacyValuesFrom(cats, officialCats).forEach(cat => {
+    out.push({ type:'cat', label, text: cat });
+  });
+
+  const seen = new Set();
+  Object.keys(map || {}).forEach(cat => {
+    const catLabel = cat || 'Catégorie inconnue';
+    normList(map[cat]).forEach(sub => {
+      if (!sub) return;
+      if (!isOfficialCategory(catLabel) || !isOfficialSubcat(catLabel, sub)) {
+        const key = FTS.norm(label + '|' + catLabel + '|' + sub);
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push({ type:'sub', label, text: `${catLabel} — ${sub}` });
+        }
+      }
+    });
+  });
+
+  if (!Object.keys(map || {}).length) {
+    subs.forEach(sub => {
+      const knownForAtLeastOneSelectedCat = cats.some(cat => isOfficialSubcat(cat, sub));
+      if (!knownForAtLeastOneSelectedCat) {
+        const key = FTS.norm(label + '|sub|' + sub);
+        if (!seen.has(key)) {
+          seen.add(key);
+          out.push({ type:'sub', label, text: sub });
+        }
+      }
+    });
+  }
+
+  return out;
+}
+
+function ensureLegacyAccessNotice() {
+  let box = document.getElementById('mod-legacy-access-notice');
+  if (box) return box;
+  const anchor = document.getElementById('mod-cat-pills');
+  if (!anchor || !anchor.parentNode) return null;
+  box = document.createElement('div');
+  box.id = 'mod-legacy-access-notice';
+  box.className = 'legacy-access-notice hidden';
+  anchor.parentNode.insertBefore(box, anchor);
+  return box;
+}
+
+function renderLegacyAccessNotice(rawUser, visibleUser) {
+  const box = ensureLegacyAccessNotice();
+  if (!box) return;
+  const items = [];
+  const parentName = (visibleUser && visibleUser.name) || rawUser.name || 'Compte principal';
+  items.push(...legacyAccessItemsForOwner(rawUser || {}, parentName));
+
+  const rawChildren = Array.isArray(rawUser && rawUser.enfants) ? rawUser.enfants : [];
+  rawChildren.forEach((child, idx) => {
+    const childName = [child && child.prenom, child && child.nom].filter(Boolean).join(' ') || `Enfant ${idx + 1}`;
+    items.push(...legacyAccessItemsForOwner(child || {}, childName));
+  });
+
+  if (!items.length) {
+    box.classList.add('hidden');
+    box.innerHTML = '';
+    return;
+  }
+
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="legacy-access-title">Anciens accès détectés dans ce profil</div>
+    <p>Ces accès sont encore présents dans Firebase. Ils restent conservés tant qu’ils restent cochés. Pour les supprimer, décoche les badges <b>ancien</b> concernés puis enregistre.</p>
+    <div class="legacy-access-list">
+      ${items.map(item => `<span class="legacy-access-chip"><b>${FTS.esc(item.label)}</b> · ${item.type === 'cat' ? 'catégorie' : 'groupe'} ancien : ${FTS.esc(item.text)}</span>`).join('')}
+    </div>`;
+}
+
 function openModModal(id) {
   const u = allUsers[id];
   if (!u) return;
@@ -1273,6 +1355,8 @@ function openModModal(id) {
     parent: { cats: uCats, subs: uSubs, subgroupsByCat: rawUser.subgroupsByCat || {} },
     children: {}
   };
+
+  renderLegacyAccessNotice(rawUser, u);
 
   document.getElementById("mod-uid").value = id;
 
@@ -1361,7 +1445,11 @@ function updateModEnfantSubcats(enfantIdx, selectedSubs = []) {
   wrap.innerHTML = activeCats.map(cat => {
     const subs = officialSubcatsFor(cat);
     const rawForCat = access ? exactSubgroupsForCatFromOwner(access, cat) : selectedSubs;
-    const legacySubs = legacyValuesFrom(rawForCat, subs).filter(s => normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)));
+    const rawForCatList = normList(rawForCat);
+    const selectedSubsList = normList(selectedSubs);
+    const legacySubs = legacyValuesFrom(rawForCatList, subs).filter(s =>
+      selectedSubsList.some(v => FTS.norm(v) === FTS.norm(s)) || rawForCatList.some(v => FTS.norm(v) === FTS.norm(s))
+    );
     const allSubs = mergeCategoryLists(subs, legacySubs);
 
     if (!allSubs.length) {
@@ -1373,7 +1461,7 @@ function updateModEnfantSubcats(enfantIdx, selectedSubs = []) {
     return `<div class="sub-group" data-cat="${FTS.esc(cat)}">
       <div class="sub-group-lbl ${!isOfficialCategory(cat) ? 'is-legacy' : ''}">${FTS.esc(cat)}${!isOfficialCategory(cat) ? ' · ancien' : ''}</div>
       <div class="pill-container">
-        ${allSubs.map(s => `<div class="pill ${normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)) ? 'active' : ''} ${!isOfficialSubcat(cat, s) ? 'pill-legacy' : ''}"
+        ${allSubs.map(s => `<div class="pill ${(selectedSubsList.some(v => FTS.norm(v) === FTS.norm(s)) || rawForCatList.some(v => FTS.norm(v) === FTS.norm(s))) ? 'active' : ''} ${!isOfficialSubcat(cat, s) ? 'pill-legacy' : ''}"
           data-value="${FTS.esc(s)}" data-legacy="${!isOfficialSubcat(cat, s) ? 'true' : 'false'}"
           data-fts-click="toggleEnfantSubPill(this)">${FTS.esc(s)}${!isOfficialSubcat(cat, s) ? '<small>ancien</small>' : ''}</div>`).join('')}
       </div>
@@ -1398,7 +1486,11 @@ function updateModSubGroups(selectedSubs = []) {
   wrap.innerHTML = activeCats.map(cat => {
     const subs = officialSubcatsFor(cat);
     const rawForCat = access ? exactSubgroupsForCatFromOwner(access, cat) : selectedSubs;
-    const legacySubs = legacyValuesFrom(rawForCat, subs).filter(s => normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)));
+    const rawForCatList = normList(rawForCat);
+    const selectedSubsList = normList(selectedSubs);
+    const legacySubs = legacyValuesFrom(rawForCatList, subs).filter(s =>
+      selectedSubsList.some(v => FTS.norm(v) === FTS.norm(s)) || rawForCatList.some(v => FTS.norm(v) === FTS.norm(s))
+    );
     const allSubs = mergeCategoryLists(subs, legacySubs);
 
     if (!allSubs.length) {
@@ -1411,7 +1503,7 @@ function updateModSubGroups(selectedSubs = []) {
     return `<div class="sub-group" data-cat="${FTS.esc(cat)}">
       <div class="sub-group-lbl ${!isOfficialCategory(cat) ? 'is-legacy' : ''}">${FTS.esc(cat)}${!isOfficialCategory(cat) ? ' · ancien' : ''}</div>
       <div class="pill-container mod-sub-pills">
-        ${allSubs.map(s => pillHtml(s, normList(selectedSubs).some(v => FTS.norm(v) === FTS.norm(s)), "sub", { legacy: !isOfficialSubcat(cat, s) })).join("")}
+        ${allSubs.map(s => pillHtml(s, (selectedSubsList.some(v => FTS.norm(v) === FTS.norm(s)) || rawForCatList.some(v => FTS.norm(v) === FTS.norm(s))), "sub", { legacy: !isOfficialSubcat(cat, s) })).join("")}
       </div>
     </div>`;
   }).join("");
