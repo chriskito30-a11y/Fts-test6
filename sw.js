@@ -1,4 +1,4 @@
-const CACHE = 'fts-v204-guided-support-mail';
+const CACHE = 'fts-v205-footer-no-image-rights';
 const FILES = [
   './manifest.json',
   './index.html',
