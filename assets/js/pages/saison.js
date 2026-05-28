@@ -395,7 +395,17 @@ let ftsCartProductsLoaded=false;
 function cartId(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
 function normalizePaymentOptionsFront(){
   const raw=(saison&&saison.paymentOptions)||{};
-  const allowed=Array.isArray(raw.allowedPlans)?raw.allowedPlans.map(x=>String(x||'').trim()).filter(x=>/^([1-9]|1[0-2])x$/.test(x)):['1x','3x','5x','10x'];
+  const allowed=Array.isArray(raw.allowedPlans)
+  ? raw.allowedPlans
+      .map(x=>{
+        const s=String(x||'').trim().toLowerCase();
+        if(/^([1-9]|1[0-2])x$/.test(s)) return s;
+        if(/^([1-9]|1[0-2])$/.test(s)) return s+'x';
+        return '';
+      })
+      .filter(Boolean)
+      .filter((x,i,arr)=>arr.indexOf(x)===i)
+  : ['1x','3x','5x','10x'];
   const first={}; const src=raw.firstInstallmentPercents&&typeof raw.firstInstallmentPercents==='object'?raw.firstInstallmentPercents:{};
   for(let i=1;i<=12;i++){const k=i+'x';const fallback=i===1?100:Math.round((100/i)*100)/100;first[k]=Math.min(100,Math.max(1,Number(src[k]||0)||fallback));}
   return {allowedPlans:allowed.length?allowed:['1x'],firstInstallmentPercents:first,installmentDay:Math.min(27,Math.max(1,Number(raw.installmentDay||10)||10))};
