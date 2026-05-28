@@ -409,6 +409,34 @@ function safeSubgroupsByCat(personCats, personSubs, explicitMap) {
   });
   return out;
 }
+function rawSubgroupsForCat(personCats, personSubs, explicitMap, cat) {
+  const map = explicitMap && typeof explicitMap === 'object' ? explicitMap : {};
+  const explicit = normList(map[cat]);
+  if (explicit.length) return uniqList(explicit);
+  return uniqList(personSubs);
+}
+function legacySubgroupsForCat(person, cat) {
+  const known = getKnownSubcatsFor(cat);
+  const recognized = safeSubgroupsByCat([cat], person.subs, person.byCat)[cat] || [];
+
+  // Si la personne est déjà expliquée par une sous-catégorie actuelle,
+  // on ne la compte pas dans “anciens groupes”, même si elle possède
+  // aussi d’anciens libellés dans son profil.
+  if (recognized.length) return [];
+
+  const raw = rawSubgroupsForCat([cat], person.subs, person.byCat, cat)
+    .filter(sub => !known.includes(sub));
+
+  return raw.length ? raw : ['Sans sous-groupe actuel'];
+}
+function addLegacyStat(stat, labels) {
+  if (!labels || !labels.length) return;
+  stat.legacyTotal = (stat.legacyTotal || 0) + 1;
+  stat.legacy = stat.legacy || {};
+  uniqList(labels).forEach(label => {
+    stat.legacy[label] = (stat.legacy[label] || 0) + 1;
+  });
+}
 function getPeopleFromUser(u) {
   const people = [];
   const parentCats = normList(u.disciplines || u.group);
@@ -444,7 +472,7 @@ function renderCategorySummary() {
   const cats = getKnownCategories();
   const stats = {};
   cats.forEach(cat => {
-    stats[cat] = { total: 0, subcats: {} };
+    stats[cat] = { total: 0, subcats: {}, legacyTotal: 0, legacy: {} };
     getKnownSubcatsFor(cat).forEach(sub => { stats[cat].subcats[sub] = 0; });
   });
 
@@ -456,13 +484,16 @@ function renderCategorySummary() {
 
     people.forEach(person => {
       uniqList(person.cats).forEach(cat => {
-        if (!stats[cat]) stats[cat] = { total: 0, subcats: {} };
+        if (!stats[cat]) stats[cat] = { total: 0, subcats: {}, legacyTotal: 0, legacy: {} };
         stats[cat].total += 1;
 
         const subsForCat = safeSubgroupsByCat([cat], person.subs, person.byCat)[cat] || [];
         uniqList(subsForCat).forEach(sub => {
           stats[cat].subcats[sub] = (stats[cat].subcats[sub] || 0) + 1;
         });
+
+        const legacyLabels = legacySubgroupsForCat(person, cat);
+        addLegacyStat(stats[cat], legacyLabels);
       });
     });
   });
@@ -480,6 +511,8 @@ function renderCategorySummary() {
   wrap.innerHTML = visibleCats.map(([cat, stat]) => {
     const subs = Object.entries(stat.subcats || {})
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
+    const legacy = Object.entries(stat.legacy || {})
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'fr'));
     return `<article class="summary-card">
       <div class="summary-card-top">
         <strong>${FTS.esc(cat)}</strong>
@@ -488,6 +521,12 @@ function renderCategorySummary() {
       ${subs.length ? `<div class="summary-sublist">
         ${subs.map(([sub, count]) => `<div class="summary-subrow"><span>${FTS.esc(sub)}</span><b>${count}</b></div>`).join('')}
       </div>` : '<div class="summary-empty-sub">Pas de sous-catégorie configurée.</div>'}
+      ${stat.legacyTotal ? `<details class="summary-legacy">
+        <summary><span>Autres / anciens groupes</span><b>${stat.legacyTotal}</b></summary>
+        <div class="summary-legacy-list">
+          ${legacy.map(([label, count]) => `<div class="summary-subrow summary-legacy-row"><span>${FTS.esc(label)}</span><b>${count}</b></div>`).join('')}
+        </div>
+      </details>` : ''}
     </article>`;
   }).join('');
 }
