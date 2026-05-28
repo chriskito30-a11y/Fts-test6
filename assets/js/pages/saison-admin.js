@@ -296,19 +296,27 @@ function importJson(){
 function showMsg(cls,txt){const m=document.getElementById('msg');m.className='msg '+cls;m.textContent=txt;setTimeout(()=>m.className='msg',4500)}function doLogout(){firebase.auth().signOut().then(()=>location.href='auth.html')}
 
 /* ── Options liées Saison — constructeur simple ─────────────────── */
+function seasonAdminSubEntries(cat){
+  const raw=cat&&(cat.subcats||cat.subcategories||cat.subs)||{};
+  if(Array.isArray(raw))return raw.map((v,i)=>[String(i),v]);
+  return Object.entries(raw||{});
+}
+function seasonAdminSubInfo(key,val){
+  const sub=typeof val==='object'&&val?val:{name:String(val||key)};
+  if(sub.active===false)return null;
+  const label=sub.name||sub.label||sub.title||sub.key||sub.id||key;
+  const id=sub.key||sub.id||key||seasonNorm(label);
+  return {key:String(id||'principal'),label:String(label||'Groupe principal'),active:true};
+}
 function seasonAdminCatalog(){
   const rows=[];
   (loadedCategories||[]).forEach(cat=>{
-    const catId=cat.key||seasonNorm(cat.name||cat.category||'');
-    const catLabel=cat.name||cat.category||catId;
-    const raw=cat.subcats||cat.subcategories||{};
-    const subs=Array.isArray(raw)?raw.map((v,i)=>[String(i),v]):Object.entries(raw||{});
-    subs.forEach(([key,val])=>{
-      const sub=typeof val==='object'&&val?val:{name:String(val||key)};
-      if(sub.active===false)return;
-      const subId=sub.key||key;
-      const subLabel=sub.name||sub.label||subId;
-      rows.push({categoryId:catId,categoryLabel:catLabel,subcategoryId:subId,subcategoryLabel:subLabel,label:catLabel+' — '+subLabel});
+    const catId=cat.key||cat.id||seasonNorm(cat.name||cat.category||'');
+    const catLabel=cat.name||cat.category||cat.label||catId;
+    seasonAdminSubEntries(cat).forEach(([key,val])=>{
+      const sub=seasonAdminSubInfo(key,val);
+      if(!sub)return;
+      rows.push({categoryId:catId,categoryLabel:catLabel,subcategoryId:sub.key,subcategoryLabel:sub.label,label:catLabel+' — '+sub.label});
     });
   });
   if(!rows.length){
@@ -319,10 +327,8 @@ function seasonAdminCatalog(){
 function selectedActivitySubcatsAdmin(){
   const a=saison.items[selectedIndex]||{};
   const key=a.officialCategoryKey||a.id||seasonNorm(a.name||'');
-  const cat=(loadedCategories||[]).find(c=>seasonNorm(c.key||c.name||c.category)===seasonNorm(key)||seasonNorm(c.name||c.category)===seasonNorm(a.name));
-  const raw=cat&&(cat.subcats||cat.subcategories)||{};
-  const entries=Array.isArray(raw)?raw.map((v,i)=>[String(i),v]):Object.entries(raw||{});
-  return entries.map(([k,v])=>{const sub=typeof v==='object'&&v?v:{name:String(v||k)};return{key:sub.key||k,label:sub.name||sub.label||sub.key||k,active:sub.active!==false};}).filter(x=>x.active);
+  const cat=(loadedCategories||[]).find(c=>seasonNorm(c.key||c.id||c.name||c.category)===seasonNorm(key)||seasonNorm(c.name||c.category)===seasonNorm(a.name));
+  return seasonAdminSubEntries(cat).map(([k,v])=>seasonAdminSubInfo(k,v)).filter(Boolean);
 }
 function ensureOfferLinkedOptions(offer){if(!Array.isArray(offer.linkedOptions))offer.linkedOptions=[];return offer.linkedOptions;}
 function linkedRuleLabel(rule){
