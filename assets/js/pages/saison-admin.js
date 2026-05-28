@@ -254,34 +254,43 @@ async function saveAll(){
   }
 }
 function exportJson(){readMeta();document.getElementById('json-area').value=JSON.stringify(saison,null,2);showMsg('ok','Export JSON généré.')}
+function currentActivityImportKey(){
+  const a=saison&&Array.isArray(saison.items)?saison.items[selectedIndex]:null;
+  if(!a)return'';
+  return String(a.id||a.officialCategoryKey||a.name||'');
+}
+function findActivityIndexAfterImport(wanted){
+  const key=seasonNorm(wanted||'');
+  if(!key||!saison||!Array.isArray(saison.items))return 0;
+  const idx=saison.items.findIndex(it=>{
+    const values=[it&&it.id,it&&it.officialCategoryKey,it&&it.name,it&&it.officialCategoryName].map(seasonNorm);
+    return values.includes(key);
+  });
+  return idx>=0?idx:0;
+}
+function selectedActivityPriceSummary(){
+  const a=saison&&Array.isArray(saison.items)?saison.items[selectedIndex]:null;
+  const prices=(a&&Array.isArray(a.offers)?a.offers:[]).map(o=>String(o&&o.price||'').trim()).filter(Boolean);
+  return prices.length?prices.join(' / '):'tarif vide';
+}
 function importJson(){
   try{
     if(!confirm('Importer ce JSON dans l’éditeur ? Les modifications non publiées seront remplacées.'))return;
-    const previousItem=saison.items&&saison.items[selectedIndex]?saison.items[selectedIndex]:null;
-    const previousId=previousItem&&previousItem.id?String(previousItem.id):'';
-    const previousName=previousItem&&previousItem.name?seasonNorm(previousItem.name):'';
-    const imported=JSON.parse(document.getElementById('json-area').value);
-    if(!imported||typeof imported!=='object')throw new Error('Le JSON doit être un objet Saison complet.');
-    saison=imported;
+    const area=document.getElementById('json-area');
+    const wanted=currentActivityImportKey();
+    const parsed=JSON.parse(area.value);
+    if(!parsed||typeof parsed!=='object')throw new Error('Le JSON doit être un objet Saison.');
+    saison=parsed;
     ensureData();
+    syncSeasonWithOfficialCategories();
     bindMeta();
     renderPaymentOptions();
     renderList();
-    let nextIndex=0;
-    if(previousId){
-      const byId=saison.items.findIndex(it=>String(it&&it.id||'')===previousId);
-      if(byId>=0)nextIndex=byId;
-    }
-    if(nextIndex===0&&previousName){
-      const byName=saison.items.findIndex(it=>seasonNorm(it&&it.name||'')===previousName);
-      if(byName>=0)nextIndex=byName;
-    }
-    selectedIndex=Math.min(Math.max(nextIndex,0),Math.max(0,(saison.items||[]).length-1));
-    selectActivity(selectedIndex);
-    document.getElementById('json-area').value=JSON.stringify(saison,null,2);
-    showMsg('ok','JSON importé dans l’éditeur. Vérifie le champ Tarif affiché, puis clique sur Publier.');
+    selectActivity(findActivityIndexAfterImport(wanted));
+    area.value=JSON.stringify(saison,null,2);
+    showMsg('ok','JSON importé dans l’éditeur. Activité affichée : '+((saison.items[selectedIndex]&&saison.items[selectedIndex].name)||'')+' · '+selectedActivityPriceSummary()+'. Clique sur Publier pour l’envoyer en ligne.');
   }catch(e){
-    showMsg('err','JSON invalide : '+e.message)
+    showMsg('err','JSON invalide : '+e.message);
   }
 }
 function showMsg(cls,txt){const m=document.getElementById('msg');m.className='msg '+cls;m.textContent=txt;setTimeout(()=>m.className='msg',4500)}function doLogout(){firebase.auth().signOut().then(()=>location.href='auth.html')}
