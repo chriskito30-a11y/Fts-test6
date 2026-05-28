@@ -81,3 +81,21 @@
 .promo-target-option small{display:block;margin-top:2px;color:rgba(255,255,255,.62);font-weight:600}
 .promo-picker-empty{padding:12px;color:rgba(255,255,255,.66);border-radius:12px;background:rgba(255,255,255,.045)}
 .promo-picker-empty.bad{color:#ffb0b0}
+
+
+/* Réglage détaillé des échéances Saison */
+.season-payment-settings{border:1px solid rgba(255,255,255,.12);border-radius:22px;padding:18px;background:rgba(255,255,255,.045);display:grid;gap:14px;margin-bottom:18px}
+.season-installment-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.season-installment-toolbar label{display:grid;gap:8px;font-weight:700;color:#fff}
+.season-installment-toolbar input,.season-percent-field input{width:100%;border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(0,0,0,.22);color:#fff;padding:11px 12px}
+.season-plan-table{display:grid;gap:8px}
+.season-plan-head,.season-plan-row{display:grid;grid-template-columns:110px 1fr 140px 1.5fr;gap:10px;align-items:center}
+.season-plan-head{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.62);padding:0 10px}
+.season-plan-row{padding:10px;border:1px solid rgba(255,255,255,.11);border-radius:16px;background:rgba(0,0,0,.18)}
+.season-plan-row.is-muted{opacity:.55}
+.season-plan-check{display:flex;gap:8px;align-items:center;color:#fff;font-weight:800}
+.season-percent-field{display:flex;gap:6px;align-items:center}
+.season-percent-field span{color:rgba(255,255,255,.72)}
+.season-plan-preview{color:rgba(255,255,255,.86);font-size:.92rem}
+.season-payment-help{color:rgba(255,255,255,.62)}
+@media(max-width:760px){.season-installment-toolbar{grid-template-columns:1fr}.season-plan-head{display:none}.season-plan-row{grid-template-columns:1fr}.season-plan-preview{padding-top:4px}}
