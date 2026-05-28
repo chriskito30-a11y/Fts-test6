@@ -253,7 +253,37 @@ async function saveAll(){
     isPublishingSeason = false;
   }
 }
-function exportJson(){readMeta();document.getElementById('json-area').value=JSON.stringify(saison,null,2);showMsg('ok','Export JSON généré.')}function importJson(){try{if(!confirm('Importer ce JSON dans l’éditeur ? Les modifications non publiées seront remplacées.'))return;saison=JSON.parse(document.getElementById('json-area').value);ensureData();bindMeta();renderPaymentOptions();renderList();selectActivity(0);showMsg('ok','JSON importé. Clique sur Publier pour l’envoyer en ligne.')}catch(e){showMsg('err','JSON invalide : '+e.message)}}
+function exportJson(){readMeta();document.getElementById('json-area').value=JSON.stringify(saison,null,2);showMsg('ok','Export JSON généré.')}
+function importJson(){
+  try{
+    if(!confirm('Importer ce JSON dans l’éditeur ? Les modifications non publiées seront remplacées.'))return;
+    const previousItem=saison.items&&saison.items[selectedIndex]?saison.items[selectedIndex]:null;
+    const previousId=previousItem&&previousItem.id?String(previousItem.id):'';
+    const previousName=previousItem&&previousItem.name?seasonNorm(previousItem.name):'';
+    const imported=JSON.parse(document.getElementById('json-area').value);
+    if(!imported||typeof imported!=='object')throw new Error('Le JSON doit être un objet Saison complet.');
+    saison=imported;
+    ensureData();
+    bindMeta();
+    renderPaymentOptions();
+    renderList();
+    let nextIndex=0;
+    if(previousId){
+      const byId=saison.items.findIndex(it=>String(it&&it.id||'')===previousId);
+      if(byId>=0)nextIndex=byId;
+    }
+    if(nextIndex===0&&previousName){
+      const byName=saison.items.findIndex(it=>seasonNorm(it&&it.name||'')===previousName);
+      if(byName>=0)nextIndex=byName;
+    }
+    selectedIndex=Math.min(Math.max(nextIndex,0),Math.max(0,(saison.items||[]).length-1));
+    selectActivity(selectedIndex);
+    document.getElementById('json-area').value=JSON.stringify(saison,null,2);
+    showMsg('ok','JSON importé dans l’éditeur. Vérifie le champ Tarif affiché, puis clique sur Publier.');
+  }catch(e){
+    showMsg('err','JSON invalide : '+e.message)
+  }
+}
 function showMsg(cls,txt){const m=document.getElementById('msg');m.className='msg '+cls;m.textContent=txt;setTimeout(()=>m.className='msg',4500)}function doLogout(){firebase.auth().signOut().then(()=>location.href='auth.html')}
 init();
 

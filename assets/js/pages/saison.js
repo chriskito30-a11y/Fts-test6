@@ -79,8 +79,9 @@ function buildSeasonFromCategories(categories){
     const subcats=categorySubcats(c);
     const label=c.name||c.category||c.key;
     const title=cs.title||label;
-    const hasCustomOffer=Array.isArray(cs.offers)&&cs.offers.length;
-    const offers=hasCustomOffer?cs.offers:(legacy.offers&&legacy.offers.length?legacy.offers:[{key:'infos',label:'Infos',style:'option',main:cs.description?esc(cs.description):`Informations à venir pour <strong>${esc(title)}</strong>.`,bullets:[],price:cs.price||'',priceNote:cs.priceNote||'',link:cs.link||''}]);
+    const hasSeasonConfigOffer=Array.isArray(legacy.offers)&&legacy.offers.length;
+    const hasCategoryOffer=Array.isArray(cs.offers)&&cs.offers.length;
+    const offers=hasSeasonConfigOffer?legacy.offers:(hasCategoryOffer?cs.offers:[{key:'infos',label:'Infos',style:'option',main:cs.description?esc(cs.description):`Informations à venir pour <strong>${esc(title)}</strong>.`,bullets:[],price:cs.price||'',priceNote:cs.priceNote||'',link:cs.link||''}]);
     return {
       id:c.key||norm(title),
       active:c.active!==false,
