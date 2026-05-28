@@ -187,6 +187,33 @@
 }
 .sub-group-lbl::after { content: ""; flex: 1; height: 1px; background: var(--border); }
 .no-sub-note { font-size: .7rem; color: #555; font-style: italic; padding: .2rem 0; }
+
+/* Accès obsolètes visibles uniquement dans l'édition admin */
+.pill.pill-legacy {
+  border-color: rgba(255, 193, 7, .55);
+  background: rgba(255, 193, 7, .08);
+  color: #f6d37a;
+}
+.pill.pill-legacy.active {
+  background: rgba(255, 193, 7, .22);
+  border-color: rgba(255, 193, 7, .85);
+  color: #ffe2a0;
+}
+.pill.pill-legacy small {
+  display: inline-flex;
+  margin-left: .4rem;
+  padding: .08rem .34rem;
+  border-radius: 999px;
+  background: rgba(0,0,0,.22);
+  font-size: .58rem;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: inherit;
+}
+.sub-group-lbl.is-legacy {
+  color: #f6d37a;
+}
 .modal-row { display: flex; gap: .6rem; margin-top: 1.5rem; }
 .modal-row button {
   flex: 1; padding: .75rem; border-radius: var(--r-sm);
