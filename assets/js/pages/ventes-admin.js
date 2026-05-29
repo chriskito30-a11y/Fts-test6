@@ -13,6 +13,7 @@
   let orders = [];
   let activeTab = 'groups';
   const selectedOrderIds = new Set();
+  let officialCategories = null;
 
   const $ = id => document.getElementById(id);
   const esc = v => FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
@@ -98,6 +99,82 @@
     if(o.variants && typeof o.variants === 'object') return Object.entries(o.variants).map(([k,v])=>`${k}: ${v}`).join(' · ');
     return '';
   }
+  function categorySubcats(cat){
+    const raw = cat && (cat.subcats || cat.subcategories || {});
+    const out = [];
+    if(Array.isArray(raw)){
+      raw.forEach((s,i)=>{
+        if(typeof s === 'string') out.push({key:norm(s)||String(i), name:s, active:true});
+        else if(s) out.push(Object.assign({key:s.key || norm(s.name || s.label) || String(i)}, s, {name:s.name || s.label || s.title || s.key || String(i), active:s.active !== false}));
+      });
+    }else{
+      Object.entries(raw || {}).forEach(([k,s])=>{
+        if(typeof s === 'string') out.push({key:k, name:s, active:true});
+        else if(s) out.push(Object.assign({key:k}, s, {name:s.name || s.label || s.title || k, active:s.active !== false}));
+      });
+    }
+    return out.filter(s=>s && s.active !== false);
+  }
+  function findOfficialSubcat(activityId, subcategoryId){
+    const cat = officialCategories && officialCategories[String(activityId || '')];
+    if(!cat) return null;
+    const wanted = String(subcategoryId || '');
+    return categorySubcats(cat).find(s=>String(s.key || '') === wanted) || null;
+  }
+  function officialSubcatInfo(activityId, subcategoryId){
+    const sub = findOfficialSubcat(activityId, subcategoryId);
+    if(!sub) return null;
+    const ss = (sub && sub.season) || {};
+    const title = ss.title || sub.title || sub.name || sub.label || sub.key || subcategoryId || '';
+    const day = ss.day || ss.jour || '';
+    const time = ss.time || ss.horaire || ss.hours || '';
+    const level = ss.level || ss.niveau || '';
+    const age = ss.age || ss.ages || '';
+    const note = ss.note || ss.description || '';
+    const price = ss.price || ss.tarif || '';
+    const maxSeats = Math.max(0, Number(ss.maxSeats || ss.placesMax || ss.capacity || 0) || 0);
+    const direct = ss.seasonDetail || ss.detail || ss.details || ss.saisonDetail || '';
+    const seasonDetail = String(direct || [day,time,level,age,note].filter(Boolean).join(' · ')).trim();
+    const allowedOffers = Array.isArray(ss.allowedOffers) ? ss.allowedOffers : String(ss.allowedOffers || ss.offers || ss.formules || ss.parcours || '').split(',').map(x=>x.trim()).filter(Boolean);
+    return {subcategoryName:title, subcategoryTitle:title, subcategoryDay:day, subcategoryTime:time, subcategoryLevel:level, subcategoryAge:age, subcategoryNote:note, subcategoryPrice:price, subcategoryMaxSeats:maxSeats, subcategorySeasonDetail:seasonDetail, subcategoryAllowedOffers:allowedOffers};
+  }
+  function enrichReservationLine(parent, line){
+    const merged = Object.assign({}, parent, line, {
+      id: parent.id,
+      type: line.type || parent.type,
+      parentType: parent.type,
+      reservationParentId: parent.id,
+      status: parent.status,
+      globalPaymentStatus: parent.globalPaymentStatus,
+      provider: parent.provider,
+      paymentPlan: parent.paymentPlan,
+      payer: parent.payer,
+      userName: parent.userName,
+      userEmail: parent.userEmail,
+      payerPhone: parent.payerPhone,
+      installments: parent.installments,
+      createdAt: parent.createdAt,
+      updatedAt: parent.updatedAt,
+      amountCents: line.amountCents || 0,
+      totalAmount: line.amountCents || 0,
+      itemName: line.itemName || parent.itemName || '',
+      source: parent.source
+    });
+    const isLinked = line && line.kind && line.kind !== 'main';
+    const official = officialSubcatInfo(line.activityId || merged.activityId, line.subcategoryId || merged.subcategoryId);
+    if(official){
+      Object.assign(merged, official);
+    }else if(isLinked){
+      // Les lignes liées anciennes n'ont parfois que activityId/subcategoryId.
+      // On efface les détails hérités du cours principal pour ne pas afficher un faux horaire.
+      ['subcategoryDay','subcategoryTime','subcategoryLevel','subcategoryAge','subcategoryNote','subcategoryPrice','subcategorySeasonDetail'].forEach(k=>{
+        if(!Object.prototype.hasOwnProperty.call(line, k)) merged[k] = '';
+      });
+      if(!Object.prototype.hasOwnProperty.call(line, 'subcategoryMaxSeats')) merged.subcategoryMaxSeats = 0;
+      if(!Object.prototype.hasOwnProperty.call(line, 'subcategoryAllowedOffers')) merged.subcategoryAllowedOffers = [];
+    }
+    return merged;
+  }
   function offerTokenLabel(t){ return ({loisir:'Loisir',perf:'Performance',performance:'Performance',option:'Option',inclus:'Inclus'}[String(t||'').toLowerCase()] || t); }
   function subcategoryAllowedOffersLabel(o){
     const raw = Array.isArray(o.subcategoryAllowedOffers) ? o.subcategoryAllowedOffers : [];
@@ -125,27 +202,7 @@
 
   function reservationLines(o){ return Array.isArray(o && o.reservationLines) ? o.reservationLines.filter(l=>l && l.type === 'season_registration') : []; }
   function orderFromReservationLine(parent, line){
-    return Object.assign({}, parent, line, {
-      id: parent.id,
-      type: line.type || parent.type,
-      parentType: parent.type,
-      reservationParentId: parent.id,
-      status: parent.status,
-      globalPaymentStatus: parent.globalPaymentStatus,
-      provider: parent.provider,
-      paymentPlan: parent.paymentPlan,
-      payer: parent.payer,
-      userName: parent.userName,
-      userEmail: parent.userEmail,
-      payerPhone: parent.payerPhone,
-      installments: parent.installments,
-      createdAt: parent.createdAt,
-      updatedAt: parent.updatedAt,
-      amountCents: line.amountCents || 0,
-      totalAmount: line.amountCents || 0,
-      itemName: line.itemName || parent.itemName || '',
-      source: parent.source
-    });
+    return enrichReservationLine(parent, line);
   }
   function expandSeasonReservations(rows){
     const out=[];
@@ -197,28 +254,11 @@
     }).join('')}</div>`;
   }
   function orderFromCartLine(parent, line){
-    return Object.assign({}, parent, line, {
-      id: parent.id,
-      type: line.type || parent.type,
-      parentType: parent.type,
-      cartParentId: parent.id,
-      status: parent.status,
-      globalPaymentStatus: parent.globalPaymentStatus,
-      provider: parent.provider,
-      paymentPlan: parent.paymentPlan,
-      payer: parent.payer,
-      userName: parent.userName,
-      userEmail: parent.userEmail,
-      payerPhone: parent.payerPhone,
-      installments: parent.installments,
-      createdAt: parent.createdAt,
-      updatedAt: parent.updatedAt,
-      amountCents: line.amountCents || 0,
-      totalAmount: line.amountCents || 0,
-      paidAmount: statusKind(parent.status)==='paid' ? (line.amountCents || 0) : 0,
-      remainingAmount: statusKind(parent.status)==='paid' ? 0 : (line.amountCents || 0),
-      itemName: line.itemName || parent.itemName
-    });
+    const merged = enrichReservationLine(parent, line);
+    merged.cartParentId = parent.id;
+    merged.paidAmount = statusKind(parent.status)==='paid' ? (line.amountCents || 0) : 0;
+    merged.remainingAmount = statusKind(parent.status)==='paid' ? 0 : (line.amountCents || 0);
+    return merged;
   }
   function itemLabel(o){ return cartLinesDetailedLabel(o) || o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
@@ -522,6 +562,7 @@
     if(!orderId) return;
     fail('');
     try{
+      await loadOfficialCategories();
       const token = await firebase.auth().currentUser.getIdToken(true);
       const res = await fetch(paymentWorkerUrl() + '/admin/orders/pickup', {
         method:'POST',
@@ -570,6 +611,17 @@
   function paymentWorkerUrl(){
     const cfg = FTS.PAYMENT || {};
     return String(cfg.workerUrl || cfg.apiBase || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,'');
+  }
+
+  async function loadOfficialCategories(){
+    if(!db || officialCategories) return;
+    try{
+      const snap = await db.ref('fts_content/categories').once('value');
+      officialCategories = snap.exists() ? (snap.val() || {}) : {};
+    }catch(e){
+      console.warn('[FTS ventes admin] catégories officielles indisponibles', e);
+      officialCategories = {};
+    }
   }
 
   async function loadOrders(){
