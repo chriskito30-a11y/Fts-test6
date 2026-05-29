@@ -535,6 +535,43 @@ function renderLinkedOptionsInputs(containerId,item,offer,subcat,selections){
   (selections||[]).forEach(r=>(r.choices||[]).forEach(ch=>{selectedMap[(r.ruleId||r.id)+'|'+ch.categoryId+'|'+ch.subcategoryId]=true;}));
   return `<section class="fts-linked-options" data-linked-container="${esc(containerId)}"><div class="fts-pay-section-title">Options liées à cette inscription</div>${rules.map(rule=>{const max=Math.min(3,Math.max(1,Number(rule.maxChoices||1)||1));const inputType=(max===1&&rule.required)?'radio':'checkbox';return `<div class="fts-linked-rule" data-linked-rule="${esc(rule.id)}" data-required="${rule.required?'1':'0'}" data-max="${max}"><strong>${esc(rule.label||'Option liée')}</strong><small>${rule.required?'Obligatoire':'Facultatif'} · ${max===1?'1 choix':max+' choix maximum'}</small><div class="fts-linked-choice-list">${(rule.choices||[]).map((choice,idx)=>{const info=targetChoiceInfo(choice);if(!info)return'';const amount=linkedChoicePrice(rule,choice);const key=rule.id+'|'+info.categoryId+'|'+info.subcategoryId;const name=containerId+'_'+rule.id;const meta=linkedChoiceMeta(info);return `<label class="fts-linked-choice"><input type="${inputType}" name="${esc(name)}" value="${esc(info.categoryId+'|'+info.subcategoryId+'|'+info.offerKey)}" data-rule-id="${esc(rule.id)}" data-category-id="${esc(info.categoryId)}" data-subcategory-id="${esc(info.subcategoryId)}" data-offer-key="${esc(info.offerKey)}" data-label="${esc(info.label)}" data-amount-cents="${amount}" ${selectedMap[key]?'checked':''}> <span class="fts-linked-choice-main"><span class="fts-linked-choice-title">${esc(info.label)}</span>${meta?`<small class="fts-linked-choice-meta">${esc(meta)}</small>`:''}</span><em>${amount?('+'+esc(euroFromCents(amount))):'Inclus'}</em></label>`}).join('')}</div></div>`}).join('')}</section>`;
 }
+
+function enforceLinkedChoiceLimit(root,changedEl){
+  if(!root||!changedEl)return;
+  const ruleId=changedEl.getAttribute('data-rule-id');
+  if(!ruleId)return;
+  const ruleEl=changedEl.closest('.fts-linked-rule');
+  if(!ruleEl)return;
+  const max=Math.max(1,Number(ruleEl.getAttribute('data-max')||1)||1);
+  const inputs=Array.from(ruleEl.querySelectorAll('input[data-rule-id]'));
+  if(max===1){
+    if(changedEl.checked){
+      inputs.forEach(input=>{if(input!==changedEl)input.checked=false;});
+    }
+    inputs.forEach(input=>{input.disabled=false;});
+    return;
+  }
+  const checked=inputs.filter(input=>input.checked);
+  if(checked.length>max&&changedEl.checked){
+    changedEl.checked=false;
+  }
+  const after=inputs.filter(input=>input.checked);
+  inputs.forEach(input=>{input.disabled=!input.checked&&after.length>=max;});
+}
+function refreshLinkedChoiceLimits(root){
+  if(!root)return;
+  root.querySelectorAll('.fts-linked-rule').forEach(ruleEl=>{
+    const max=Math.max(1,Number(ruleEl.getAttribute('data-max')||1)||1);
+    if(max<=1){
+      ruleEl.querySelectorAll('input[data-rule-id]').forEach(input=>input.disabled=false);
+      return;
+    }
+    const inputs=Array.from(ruleEl.querySelectorAll('input[data-rule-id]'));
+    const checked=inputs.filter(input=>input.checked);
+    inputs.forEach(input=>{input.disabled=!input.checked&&checked.length>=max;});
+  });
+}
+
 function collectLinkedOptionsFrom(root,item,offer,subcat){
   const rules=applicableLinkedRules(item,offer,subcat);
   const out=[];
@@ -553,7 +590,10 @@ function updateDirectLinkedOptions(){
   const subcat=findSeasonSubcat(item,form.subcategoryId.value)||{key:'principal',name:'Groupe principal',title:'Groupe principal'};
   const box=document.getElementById('fts-pay-linked-options'); if(box)box.innerHTML=renderLinkedOptionsInputs('direct',item,offer,subcat,[]);
   const update=()=>{try{const selections=box?collectLinkedOptionsFrom(box,item,offer,subcat):[];updatePaymentSchedulePreview('fts-pay-schedule-preview',Number(form.amountCents.value||0)+linkedSelectionsTotal(selections),form.paymentPlan.value);}catch(e){updatePaymentSchedulePreview('fts-pay-schedule-preview',Number(form.amountCents.value||0),form.paymentPlan.value);}};
-  if(box)box.querySelectorAll('input').forEach(el=>el.addEventListener('change',update));
+  if(box){
+    refreshLinkedChoiceLimits(box);
+    box.querySelectorAll('input').forEach(el=>el.addEventListener('change',()=>{enforceLinkedChoiceLimit(box,el);update();}));
+  }
   update();
 }
 function updateCartLinkedOptions(lineId){
@@ -561,7 +601,12 @@ function updateCartLinkedOptions(lineId){
   const line=(ftsSeasonCart.season||[]).find(l=>String(l.id)===String(lineId)); if(!line)return;
   const item=seasonFindItem(line.activityId), offer=seasonFindOffer(item,line.offerKey), subcat=line.subcategory||{key:'principal'};
   const root=document.querySelector(`[data-cart-linked="${CSS.escape(String(lineId))}"]`);
-  if(root)line.linkedOptions=collectLinkedOptionsFrom(root,item,offer,subcat);
+  if(root){
+    const active=document.activeElement;
+    if(active&&root.contains(active)&&active.matches('input[data-rule-id]'))enforceLinkedChoiceLimit(root,active);
+    refreshLinkedChoiceLimits(root);
+    line.linkedOptions=collectLinkedOptionsFrom(root,item,offer,subcat);
+  }
   saveCart();renderSeasonCart();
 }
 function ensureSeasonPaymentModal(){
