@@ -737,6 +737,7 @@
         $('sales-loading').style.display='none';
         $('sales-shell').hidden=false;
         bindUi();
+        await loadOfficialCategories();
         await loadOrders();
       }catch(e){ console.warn('[FTS ventes admin]', e); fail('Impossible de charger les ventes. Vérifie les droits admin.'); }
     });
