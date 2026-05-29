@@ -208,9 +208,14 @@ function refreshSubcatOfferFilter(activityId){
   if(!item) return;
   const offer=activeOfferForItem(item);
   const subs=publicSeasonSubcats(item);
-  const visibleKeys=subs.filter(s=>subcatAllowsOffer(s,offer)).map(subcatKey);
+  const visibleSubs=subs.filter(s=>subcatAllowsOffer(s,offer));
+  const visibleKeys=visibleSubs.map(subcatKey);
   const selected=selectedSeasonSubcats[item.id]||'';
-  if(selected && !visibleKeys.includes(selected)) selectedSeasonSubcats[item.id]='';
+  if((!selected || !visibleKeys.includes(selected)) && visibleKeys.length===1){
+    selectedSeasonSubcats[item.id]=visibleKeys[0];
+  }else if(selected && !visibleKeys.includes(selected)){
+    selectedSeasonSubcats[item.id]='';
+  }
   const safeActivity=window.CSS&&CSS.escape?CSS.escape(activityId):String(activityId).replace(/[^a-zA-Z0-9_-]/g,'\\$&');
   document.querySelectorAll(`.season-subcat[data-activity="${safeActivity}"]`).forEach(btn=>{
     const key=btn.getAttribute('data-subcat')||'';
