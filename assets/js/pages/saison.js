@@ -553,7 +553,7 @@ function linkedChoiceMeta(info){
   return parts.join(' · ');
 }
 function renderLinkedOptionsInputs(containerId,item,offer,subcat,selections){
-  const rules=applicableLinkedRules(item,offer,subcat);
+  const rules=applicableLinkedRules(item,offer,subcat,selections||[]);
   if(!rules.length)return '';
   const selectedMap={};
   (selections||[]).forEach(r=>(r.choices||[]).forEach(ch=>{selectedMap[(r.ruleId||r.id)+'|'+ch.categoryId+'|'+ch.subcategoryId]=true;}));
