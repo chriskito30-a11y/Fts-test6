@@ -497,7 +497,31 @@ function seasonFindItem(activityId){return itemList().find(x=>String(x.id)===Str
 function seasonFindOffer(item,offerKey){return item&&(item.offers||[]).find(o=>String(o.key)===String(offerKey));}
 function seasonFindSubcatInfo(item,subcatId){return findSeasonSubcat(item,subcatId)||{key:subcatId||'principal',name:'Groupe principal',title:'Groupe principal',day:'',time:'',level:'',age:'',note:'',price:'',maxSeats:0,seasonDetail:'',allowedOffers:[]};}
 function optionRuleApplies(rule,subcat){if(!rule||rule.active===false)return false;const ids=Array.isArray(rule.subcategoryIds)?rule.subcategoryIds.filter(Boolean):[];if(!ids.length)return true;return ids.map(String).includes(String(subcat&&subcat.key||''));}
-function applicableLinkedRules(item,offer,subcat){return ((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat)&&Array.isArray(r.choices)&&r.choices.length);}
+function selectedCategoriesFromLinkedSelections(selections){
+  const set=new Set();
+  (selections||[]).forEach(rule=>(rule.choices||[]).forEach(choice=>{if(choice&&choice.categoryId)set.add(String(choice.categoryId));}));
+  return set;
+}
+function selectedCategoriesFromLinkedRoot(root){
+  const set=new Set();
+  if(!root)return set;
+  root.querySelectorAll('input[data-category-id]:checked').forEach(input=>{const id=input.getAttribute('data-category-id');if(id)set.add(String(id));});
+  return set;
+}
+function linkedRuleDependencyIds(rule){
+  const raw=rule&&(rule.dependsOnChoiceCategoryIds||rule.dependsOnCategoryIds||rule.showIfChoiceCategoryIds||rule.requiresSelectedCategoryIds||rule.requiresChoiceCategoryIds);
+  return Array.isArray(raw)?raw.map(x=>String(x||'').trim()).filter(Boolean):[];
+}
+function linkedRuleDependencyMet(rule,selectedCategories){
+  const deps=linkedRuleDependencyIds(rule);
+  if(!deps.length)return true;
+  const selected=selectedCategories||new Set();
+  return deps.some(id=>selected.has(id));
+}
+function applicableLinkedRules(item,offer,subcat,selections){
+  const selectedCategories=selectedCategoriesFromLinkedSelections(selections||[]);
+  return ((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat)&&Array.isArray(r.choices)&&r.choices.length&&linkedRuleDependencyMet(r,selectedCategories));
+}
 function targetChoiceInfo(choice){
   const item=seasonFindItem(choice.categoryId); if(!item)return null;
   const sub=seasonFindSubcatInfo(item,choice.subcategoryId||'principal');
@@ -573,7 +597,8 @@ function refreshLinkedChoiceLimits(root){
 }
 
 function collectLinkedOptionsFrom(root,item,offer,subcat){
-  const rules=applicableLinkedRules(item,offer,subcat);
+  const selectedCategories=selectedCategoriesFromLinkedRoot(root);
+  const rules=((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat)&&Array.isArray(r.choices)&&r.choices.length&&linkedRuleDependencyMet(r,selectedCategories));
   const out=[];
   for(const rule of rules){
     const max=Math.min(3,Math.max(1,Number(rule.maxChoices||1)||1));
@@ -588,13 +613,23 @@ function updateDirectLinkedOptions(){
   const form=document.getElementById('fts-pay-form'); if(!form||!ftsPaymentContext)return;
   const item=ftsPaymentContext.item, offer=ftsPaymentContext.offer;
   const subcat=findSeasonSubcat(item,form.subcategoryId.value)||{key:'principal',name:'Groupe principal',title:'Groupe principal'};
-  const box=document.getElementById('fts-pay-linked-options'); if(box)box.innerHTML=renderLinkedOptionsInputs('direct',item,offer,subcat,[]);
-  const update=()=>{try{const selections=box?collectLinkedOptionsFrom(box,item,offer,subcat):[];updatePaymentSchedulePreview('fts-pay-schedule-preview',Number(form.amountCents.value||0)+linkedSelectionsTotal(selections),form.paymentPlan.value);}catch(e){updatePaymentSchedulePreview('fts-pay-schedule-preview',Number(form.amountCents.value||0),form.paymentPlan.value);}};
-  if(box){
+  const box=document.getElementById('fts-pay-linked-options');
+  const update=(selections)=>{updatePaymentSchedulePreview('fts-pay-schedule-preview',Number(form.amountCents.value||0)+linkedSelectionsTotal(selections||[]),form.paymentPlan.value);};
+  const render=(selections)=>{
+    if(!box){update([]);return;}
+    box.innerHTML=renderLinkedOptionsInputs('direct',item,offer,subcat,selections||[]);
     refreshLinkedChoiceLimits(box);
-    box.querySelectorAll('input').forEach(el=>el.addEventListener('change',()=>{enforceLinkedChoiceLimit(box,el);update();}));
-  }
-  update();
+    box.querySelectorAll('input').forEach(el=>el.addEventListener('change',()=>{
+      enforceLinkedChoiceLimit(box,el);
+      let next=[];
+      try{next=collectLinkedOptionsFrom(box,item,offer,subcat);}catch(e){next=[];}
+      render(next);
+    }));
+    let current=[];
+    try{current=collectLinkedOptionsFrom(box,item,offer,subcat);}catch(e){current=selections||[];}
+    update(current);
+  };
+  render([]);
 }
 function updateCartLinkedOptions(lineId){
   loadCart();
