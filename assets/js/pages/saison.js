@@ -519,10 +519,12 @@ function lineBaseAmount(line){return Number(line&&line.amountCents||0)||0;}
 function lineTotalAmount(line){return lineBaseAmount(line)+linkedSelectionsTotal(line&&line.linkedOptions||[]);}
 function linkedChoiceMeta(info){
   const sub=info&&info.sub||{};
-  const slot=[sub.day,sub.time].map(cleanText).filter(Boolean).join(' · ');
+  const txt=v=>String(v||'').replace(/\s+/g,' ').trim();
+  const slot=[sub.day,sub.time].map(txt).filter(Boolean).join(' · ');
   const parts=[];
   if(slot)parts.push(slot);
-  if(cleanText(sub.level))parts.push(cleanText(sub.level));
+  const level=txt(sub.level);
+  if(level)parts.push(level);
   if(Number(sub.maxSeats||0)>0)parts.push(Number(sub.maxSeats||0)+' places max');
   return parts.join(' · ');
 }
@@ -531,7 +533,7 @@ function renderLinkedOptionsInputs(containerId,item,offer,subcat,selections){
   if(!rules.length)return '';
   const selectedMap={};
   (selections||[]).forEach(r=>(r.choices||[]).forEach(ch=>{selectedMap[(r.ruleId||r.id)+'|'+ch.categoryId+'|'+ch.subcategoryId]=true;}));
-  return `<section class="fts-linked-options" data-linked-container="${esc(containerId)}"><div class="fts-pay-section-title">Options liées à cette inscription</div>${rules.map(rule=>{const max=Math.min(3,Math.max(1,Number(rule.maxChoices||1)||1));const inputType=(max===1&&rule.required)?'radio':'checkbox';return `<div class="fts-linked-rule" data-linked-rule="${esc(rule.id)}" data-required="${rule.required?'1':'0'}" data-max="${max}"><strong>${esc(rule.label||'Option liée')}</strong><small>${rule.required?'Obligatoire':'Facultatif'} · ${max===1?'1 choix':max+' choix maximum'}</small><div class="fts-linked-choice-list">${(rule.choices||[]).map((choice,idx)=>{const info=targetChoiceInfo(choice);if(!info)return'';const amount=linkedChoicePrice(rule,choice);const key=rule.id+'|'+info.categoryId+'|'+info.subcategoryId;const name=containerId+'_'+rule.id;const meta=linkedChoiceMeta(info);const validChoices=(rule.choices||[]).filter(c=>targetChoiceInfo(c));const autoCheck=rule.required&&max===1&&validChoices.length===1;const checked=selectedMap[key]||autoCheck;return `<label class="fts-linked-choice"><input type="${inputType}" name="${esc(name)}" value="${esc(info.categoryId+'|'+info.subcategoryId+'|'+info.offerKey)}" data-rule-id="${esc(rule.id)}" data-category-id="${esc(info.categoryId)}" data-subcategory-id="${esc(info.subcategoryId)}" data-offer-key="${esc(info.offerKey)}" data-label="${esc(info.label)}" data-amount-cents="${amount}" ${checked?'checked':''}> <span class="fts-linked-choice-main"><span class="fts-linked-choice-title">${esc(info.label)}</span>${meta?`<small class="fts-linked-choice-meta">${esc(meta)}</small>`:''}</span><em>${amount?('+'+esc(euroFromCents(amount))):'Inclus'}</em></label>`}).join('')}</div></div>`}).join('')}</section>`;
+  return `<section class="fts-linked-options" data-linked-container="${esc(containerId)}"><div class="fts-pay-section-title">Options liées à cette inscription</div>${rules.map(rule=>{const max=Math.min(3,Math.max(1,Number(rule.maxChoices||1)||1));const inputType=(max===1&&rule.required)?'radio':'checkbox';return `<div class="fts-linked-rule" data-linked-rule="${esc(rule.id)}" data-required="${rule.required?'1':'0'}" data-max="${max}"><strong>${esc(rule.label||'Option liée')}</strong><small>${rule.required?'Obligatoire':'Facultatif'} · ${max===1?'1 choix':max+' choix maximum'}</small><div class="fts-linked-choice-list">${(rule.choices||[]).map((choice,idx)=>{const info=targetChoiceInfo(choice);if(!info)return'';const amount=linkedChoicePrice(rule,choice);const key=rule.id+'|'+info.categoryId+'|'+info.subcategoryId;const name=containerId+'_'+rule.id;const meta=linkedChoiceMeta(info);return `<label class="fts-linked-choice"><input type="${inputType}" name="${esc(name)}" value="${esc(info.categoryId+'|'+info.subcategoryId+'|'+info.offerKey)}" data-rule-id="${esc(rule.id)}" data-category-id="${esc(info.categoryId)}" data-subcategory-id="${esc(info.subcategoryId)}" data-offer-key="${esc(info.offerKey)}" data-label="${esc(info.label)}" data-amount-cents="${amount}" ${selectedMap[key]?'checked':''}> <span class="fts-linked-choice-main"><span class="fts-linked-choice-title">${esc(info.label)}</span>${meta?`<small class="fts-linked-choice-meta">${esc(meta)}</small>`:''}</span><em>${amount?('+'+esc(euroFromCents(amount))):'Inclus'}</em></label>`}).join('')}</div></div>`}).join('')}</section>`;
 }
 function collectLinkedOptionsFrom(root,item,offer,subcat){
   const rules=applicableLinkedRules(item,offer,subcat);
