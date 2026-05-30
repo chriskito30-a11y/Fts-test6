@@ -149,8 +149,7 @@ function eventMetaLine(opt){
 function upcomingEventButton(opt){
   if (isPayableOption(opt)) {
     const label = indexEventReservationLabel(opt, false);
-    const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : '';
-    return `<button type="button" class="upcoming-event-action" data-fts-click="openUpcomingEventPayment(${FTS.jsArg(opt.id)})">${label}${price} →</button>`;
+    return `<button type="button" class="upcoming-event-action" data-fts-click="openUpcomingEventPayment(${FTS.jsArg(opt.id)})">${label} →</button>`;
   }
   const href = FTS.safeUrl(opt.link || '#', '#');
   return `<a class="upcoming-event-action" href="${FTS.esc(href)}"${href === '#' ? '' : ' target="_blank" rel="noopener"'}>Voir le lien →</a>`;
@@ -508,7 +507,7 @@ function showDest() {
       <div class="dest-desc">${FTS.esc(opt.destDesc  || opt.desc)}</div>
       ${details ? '<div class="dest-details">' + details + '</div>' : ''}
       ${isPayableOption(opt)
-        ? `<button type="button" class="btn-helloasso" data-fts-click="openIndexPaymentByState()">${FTS.esc(indexEventReservationLabel(opt, true))}${opt.priceCents ? ' · ' + euro(opt.priceCents) : ''} →</button>`
+        ? `<button type="button" class="btn-helloasso" data-fts-click="openIndexPaymentByState()">${FTS.esc(indexEventReservationLabel(opt, true))} →</button>`
         : `<a href="${FTS.esc(FTS.safeUrl(opt.link, '#'))}" class="btn-helloasso" target="_blank" rel="noopener">Ouvrir le lien sécurisé →</a>`}
       <button class="btn-ghost" data-fts-click="restart()">Recommencer depuis le début</button>
     </div>`;
