@@ -11,7 +11,7 @@ const CFG = {
   name:    "Fais Ton Show",
   eyebrow: "École des arts de la scène",
   slogan:  "On est pas là pour faire semblant, on est là pour faire le Show !",
-  footer:  `Fais Ton Show · <a href="confidentialite.html">Confidentialité</a> · <a href="mailto:contact@faistonshow.fr?subject=Probl%C3%A8me%20rencontr%C3%A9%20sur%20l%27application&body=Bonjour%2C%0A%0AJe%20rencontre%20un%20probl%C3%A8me%20sur%20l%27application%20Fais%20Ton%20Show.%0A%0A1.%20Qui%20%C3%AAtes-vous%20%3F%0ANom%20/%20pr%C3%A9nom%20%3A%0ACompte%20utilis%C3%A9%20%28parent%2C%20%C3%A9l%C3%A8ve%2C%20professeur%2C%20admin%29%20%3A%0A%0A2.%20O%C3%B9%20est%20le%20probl%C3%A8me%20%3F%0APage%20concern%C3%A9e%20%28Accueil%2C%20Membres%2C%20Saison%2C%20Paiement%2C%20Messages%2C%20Forum%2C%20Boutique...%29%20%3A%0A%0A3.%20Que%20s%27est-il%20pass%C3%A9%20%3F%0AD%C3%A9crivez%20le%20probl%C3%A8me%20%3A%0A%0A4.%20Que%20vouliez-vous%20faire%20%3F%0A%0A5.%20Message%20d%27erreur%20affich%C3%A9%2C%20si%20pr%C3%A9sent%20%3A%0A%0A6.%20Appareil%20utilis%C3%A9%20%3A%0AT%C3%A9l%C3%A9phone%20/%20ordinateur%20%3A%0AAndroid%20/%20iPhone%20/%20Windows%20/%20Mac%20%3A%0ANavigateur%20ou%20application%20install%C3%A9e%20%3A%0A%0A7.%20Moment%20du%20probl%C3%A8me%20%3A%0ADate%20et%20heure%20approximative%20%3A%0A%0AVous%20pouvez%20aussi%20ajouter%20une%20capture%20d%27%C3%A9cran%20si%20possible.%0A%0AMerci.%0A">Signaler un problème</a>`,
+  footer:  `Fais Ton Show · <a href="cgv.html">CGV</a> · <a href="confidentialite.html">Confidentialité</a> · <a href="mailto:contact@faistonshow.fr?subject=Probl%C3%A8me%20rencontr%C3%A9%20sur%20l%27application&body=Bonjour%2C%0A%0AJe%20rencontre%20un%20probl%C3%A8me%20sur%20l%27application%20Fais%20Ton%20Show.%0A%0A1.%20Qui%20%C3%AAtes-vous%20%3F%0ANom%20/%20pr%C3%A9nom%20%3A%0ACompte%20utilis%C3%A9%20%28parent%2C%20%C3%A9l%C3%A8ve%2C%20professeur%2C%20admin%29%20%3A%0A%0A2.%20O%C3%B9%20est%20le%20probl%C3%A8me%20%3F%0APage%20concern%C3%A9e%20%28Accueil%2C%20Membres%2C%20Saison%2C%20Paiement%2C%20Messages%2C%20Forum%2C%20Boutique...%29%20%3A%0A%0A3.%20Que%20s%27est-il%20pass%C3%A9%20%3F%0AD%C3%A9crivez%20le%20probl%C3%A8me%20%3A%0A%0A4.%20Que%20vouliez-vous%20faire%20%3F%0A%0A5.%20Message%20d%27erreur%20affich%C3%A9%2C%20si%20pr%C3%A9sent%20%3A%0A%0A6.%20Appareil%20utilis%C3%A9%20%3A%0AT%C3%A9l%C3%A9phone%20/%20ordinateur%20%3A%0AAndroid%20/%20iPhone%20/%20Windows%20/%20Mac%20%3A%0ANavigateur%20ou%20application%20install%C3%A9e%20%3A%0A%0A7.%20Moment%20du%20probl%C3%A8me%20%3A%0ADate%20et%20heure%20approximative%20%3A%0A%0AVous%20pouvez%20aussi%20ajouter%20une%20capture%20d%27%C3%A9cran%20si%20possible.%0A%0AMerci.%0A">Signaler un problème</a>`,
 
   step1: {
     question: "C'est ta première fois avec nous ?",
@@ -84,19 +84,13 @@ function ensurePublicPaymentModal(){
   document.getElementById('index-payment-form').addEventListener('submit', submitIndexPayment);
 }
 let currentIndexPaymentOption=null;
-function indexEventReservationLabel(opt, longLabel){
-  const nature = String((opt && (opt.paymentNature || opt.eventNature || opt.paymentType)) || '');
-  const label = String((opt && (opt.paymentNatureLabel || opt.eventNatureLabel)) || '').toLowerCase();
-  if((opt && opt.paymentType === 'stage_registration') || nature === 'stage_registration' || label.includes('stage')) return longLabel ? 'Réserver le stage' : 'Réserver';
-  if(nature === 'trial_lesson' || label.includes('essai')) return longLabel ? 'Réserver le cours d’essai' : 'Réserver';
-  return 'Réserver';
-}
 function closeIndexPayment(){ const m=document.getElementById('index-payment-modal'); if(m) m.classList.remove('open'); }
 function openIndexPayment(opt){
   currentIndexPaymentOption=opt;
   ensurePublicPaymentModal();
-  document.getElementById('index-payment-title').textContent = indexEventReservationLabel(opt, true);
-  const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : ' · Gratuit';
+  const isStage = (opt.paymentType === 'stage_registration') || /stage/i.test(String(opt.desc || opt.title || ''));
+  document.getElementById('index-payment-title').textContent = isStage ? 'Réserver le stage' : 'Acheter une place';
+  const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : '';
   document.getElementById('index-payment-summary').textContent = (opt.title || 'Événement Fais Ton Show') + price;
   const form=document.getElementById('index-payment-form'); form.reset(); form.quantity.value='1';
   document.getElementById('index-payment-msg').textContent='';
@@ -148,8 +142,9 @@ function eventMetaLine(opt){
 
 function upcomingEventButton(opt){
   if (isPayableOption(opt)) {
-    const label = indexEventReservationLabel(opt, false);
-    return `<button type="button" class="upcoming-event-action" data-fts-click="openUpcomingEventPayment(${FTS.jsArg(opt.id)})">${label} →</button>`;
+    const label = opt.paymentType === 'stage_registration' ? 'Réserver' : 'Acheter ma place';
+    const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : '';
+    return `<button type="button" class="upcoming-event-action" data-fts-click="openUpcomingEventPayment(${FTS.jsArg(opt.id)})">${label}${price} →</button>`;
   }
   const href = FTS.safeUrl(opt.link || '#', '#');
   return `<a class="upcoming-event-action" href="${FTS.esc(href)}"${href === '#' ? '' : ' target="_blank" rel="noopener"'}>Voir le lien →</a>`;
@@ -272,8 +267,6 @@ async function loadUpcomingEventOptions(db) {
       const paymentEnabled = v.paymentEnabled === true || v.payEnabled === true;
       const priceCents = moneyCents(v.priceCents || v.amountCents || 0);
       const paymentType = v.paymentType || v.saleType || (String(v.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
-      const paymentNature = v.paymentNature || v.eventNature || v.paymentKind || v.paymentType || v.saleType || '';
-      const paymentNatureLabel = v.paymentNatureLabel || v.eventNatureLabel || '';
       const link  = paymentEnabled ? '#payment-' + child.key : (v.url || v.link || v.lien || v.u || '#');
 
       if (!title || (!date && !ts)) return;
@@ -289,7 +282,7 @@ async function loadUpcomingEventOptions(db) {
         icon: v.icon || (paymentType === 'stage_registration' ? '🎓' : '🎪'),
         title,
         desc: v.description || v.desc || v.type || '',
-        paymentEnabled, payEnabled:paymentEnabled, paymentType, paymentNature, paymentNatureLabel, priceCents, maxSeats:Number(v.maxSeats || v.capacity || 0) || 0,
+        paymentEnabled, payEnabled:paymentEnabled, paymentType, priceCents, maxSeats:Number(v.maxSeats || v.capacity || 0) || 0,
         detail,
         link,
         destTitle: title,
@@ -507,7 +500,7 @@ function showDest() {
       <div class="dest-desc">${FTS.esc(opt.destDesc  || opt.desc)}</div>
       ${details ? '<div class="dest-details">' + details + '</div>' : ''}
       ${isPayableOption(opt)
-        ? `<button type="button" class="btn-helloasso" data-fts-click="openIndexPaymentByState()">${FTS.esc(indexEventReservationLabel(opt, true))} →</button>`
+        ? `<button type="button" class="btn-helloasso" data-fts-click="openIndexPaymentByState()">${opt.paymentType === 'stage_registration' ? 'Réserver le stage' : 'Acheter ma place'}${opt.priceCents ? ' · ' + euro(opt.priceCents) : ''} →</button>`
         : `<a href="${FTS.esc(FTS.safeUrl(opt.link, '#'))}" class="btn-helloasso" target="_blank" rel="noopener">Ouvrir le lien sécurisé →</a>`}
       <button class="btn-ghost" data-fts-click="restart()">Recommencer depuis le début</button>
     </div>`;
