@@ -144,6 +144,7 @@
       type: line.type || parent.type,
       parentType: parent.type,
       reservationParentId: parent.id,
+      parentTotalAmount: amount(parent),
       status: parent.status,
       globalPaymentStatus: parent.globalPaymentStatus,
       provider: parent.provider,
@@ -707,20 +708,54 @@
       updateBulkUi();
     }));
   }
+  function exportCsvRows(baseRows){
+    const out = [];
+    baseRows.forEach(o=>{
+      const type = typeKey(o);
+      if(type === 'season_registration'){
+        const lines = expandSeasonReservations([o]);
+        if(lines.length) lines.forEach(line=>out.push(line));
+        else out.push(o);
+        return;
+      }
+      if(type === 'mixed_cart'){
+        let added = false;
+        cartSeasonLines(o).forEach(line=>{ out.push(orderFromCartLine(o, line)); added = true; });
+        cartShopLines(o).forEach(line=>{ out.push(orderFromCartLine(o, line)); added = true; });
+        if(!added) out.push(o);
+        return;
+      }
+      out.push(o);
+    });
+    return out;
+  }
+  function csvLineAmount(o){ return amount(o); }
+  function csvLinePaidAmount(o){
+    const a = csvLineAmount(o);
+    if(statusKind(o.status) === 'paid') return a;
+    return 0;
+  }
+  function csvLineRemainingAmount(o){
+    const a = csvLineAmount(o);
+    if(statusKind(o.status) === 'paid' || statusKind(o.status) === 'refused') return 0;
+    return a;
+  }
   function exportCsv(){
-    const rows = filteredOrders();
-    const head = ['reference','type','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formules_autorisees','formule','participant_prenom','participant_nom','participant','payeur','email','telephone','telephone_urgence','produit','variante','quantite','plan','montant','paye','restant','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
+    const rows = exportCsvRows(filteredOrders());
+    const head = ['reference_commande','reference_ligne','type_commande','type_ligne','statut','saison','activite','groupe','detail_groupe','jour','horaire','niveau','age','note','places_max','formules_autorisees','formule','option','participant_prenom','participant_nom','participant','payeur','email','telephone','telephone_urgence','produit','variante','quantite','plan','montant_ligne','paye_ligne','restant_ligne','montant_commande','echeances_total','echeances_payees','echeances_restantes','echeances_refusees','date_creation'];
     const lines = [head.join(';')];
     rows.forEach(o=>{
       const sum = installmentSummary(o);
-      const row = [o.id,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',subcategoryAllowedOffersLabel(o),o.offerLabel,participantFirstName(o),participantLastName(o),studentName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.productName||'',variantInfo(o),o.quantity||'',o.paymentPlan,amount(o)/100,paidAmount(o)/100,remainingAmount(o)/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
+      const parentRef = o.reservationParentId || o.cartParentId || o.id || '';
+      const lineRef = o.lineId || o.cartLineId || o.reservationLineId || o.id || '';
+      const row = [parentRef,lineRef,o.parentType || o.type,o.type,statusLabel(o.status),o.season,o.activityName,o.subcategoryName || o.subcategoryTitle,subcategoryDetail(o),o.subcategoryDay,o.subcategoryTime,o.subcategoryLevel,o.subcategoryAge,o.subcategoryNote,subcategoryMaxSeats(o)||'',subcategoryAllowedOffersLabel(o),o.offerLabel,o.optionRuleLabel || o.linkedOptionLabel || (o.kind && o.kind !== 'main' ? o.kind : ''),participantFirstName(o),participantLastName(o),studentName(o),payerName(o),payerEmail(o),payerPhone(o),emergencyPhone(o),o.productName||'',variantInfo(o),o.quantity||'',o.paymentPlan,csvLineAmount(o)/100,csvLinePaidAmount(o)/100,csvLineRemainingAmount(o)/100,(o.parentTotalAmount || amount(o))/100,sum.total,sum.paid,sum.remaining,sum.refused,dateLabel(o.createdAt)];
       lines.push(row.map(v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"').join(';'));
     });
     const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'fts-ventes-' + new Date().toISOString().slice(0,10) + '.csv';
+    a.download = 'fts-ventes-detaillees-' + new Date().toISOString().slice(0,10) + '.csv';
     document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
   function fail(msg){ const e=$('sales-error'); if(e) e.textContent=msg; }
