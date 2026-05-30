@@ -1,4 +1,4 @@
-const CACHE = 'fts-v205-footer-no-image-rights';
+const CACHE = 'fts-v206-cgv';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -26,6 +26,7 @@ const FILES = [
   './paiements-admin.html',
   './ventes-admin.html',
   './confidentialite.html',
+  './cgv.html',
   './enjoy.html',
   './assets/css/fts-chat.css',
   './assets/css/fts.css',
