@@ -89,7 +89,7 @@ function indexEventReservationLabel(opt, longLabel){
   const label = String((opt && (opt.paymentNatureLabel || opt.eventNatureLabel)) || '').toLowerCase();
   if((opt && opt.paymentType === 'stage_registration') || nature === 'stage_registration' || label.includes('stage')) return longLabel ? 'Réserver le stage' : 'Réserver';
   if(nature === 'trial_lesson' || label.includes('essai')) return longLabel ? 'Réserver le cours d’essai' : 'Réserver';
-  return longLabel ? 'Réserver / acheter une place' : 'Réserver';
+  return 'Réserver';
 }
 function closeIndexPayment(){ const m=document.getElementById('index-payment-modal'); if(m) m.classList.remove('open'); }
 function openIndexPayment(opt){
