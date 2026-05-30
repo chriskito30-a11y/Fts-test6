@@ -3659,3 +3659,29 @@ button.profile-pill:focus-visible {
   .welcome-card.smart-hero .account-actions .member-season-quick .quick-title{ font-size:.66rem !important; }
   .welcome-card.smart-hero .account-actions .member-season-quick .quick-ico{ font-size:.92rem !important; }
 }
+
+
+/* V106 — Ressources avec Assistant répétition : empêcher les boutons de masquer le titre */
+.doc-file-row--rehearsal {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+.doc-file-row--rehearsal .doc-link {
+  width: 100%;
+}
+.doc-file-row--rehearsal .doc-actions {
+  width: 100%;
+  justify-content: flex-start;
+}
+@media (min-width: 641px) {
+  .doc-file-row--rehearsal .doc-actions {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 640px) {
+  .doc-file-row--rehearsal .doc-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
