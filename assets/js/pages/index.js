@@ -84,13 +84,19 @@ function ensurePublicPaymentModal(){
   document.getElementById('index-payment-form').addEventListener('submit', submitIndexPayment);
 }
 let currentIndexPaymentOption=null;
+function indexEventReservationLabel(opt, longLabel){
+  const nature = String((opt && (opt.paymentNature || opt.eventNature || opt.paymentType)) || '');
+  const label = String((opt && (opt.paymentNatureLabel || opt.eventNatureLabel)) || '').toLowerCase();
+  if((opt && opt.paymentType === 'stage_registration') || nature === 'stage_registration' || label.includes('stage')) return longLabel ? 'Réserver le stage' : 'Réserver';
+  if(nature === 'trial_lesson' || label.includes('essai')) return longLabel ? 'Réserver le cours d’essai' : 'Réserver';
+  return longLabel ? 'Réserver / acheter une place' : 'Réserver';
+}
 function closeIndexPayment(){ const m=document.getElementById('index-payment-modal'); if(m) m.classList.remove('open'); }
 function openIndexPayment(opt){
   currentIndexPaymentOption=opt;
   ensurePublicPaymentModal();
-  const isStage = (opt.paymentType === 'stage_registration') || /stage/i.test(String(opt.desc || opt.title || ''));
-  document.getElementById('index-payment-title').textContent = isStage ? 'Réserver le stage' : 'Acheter une place';
-  const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : '';
+  document.getElementById('index-payment-title').textContent = indexEventReservationLabel(opt, true);
+  const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : ' · Gratuit';
   document.getElementById('index-payment-summary').textContent = (opt.title || 'Événement Fais Ton Show') + price;
   const form=document.getElementById('index-payment-form'); form.reset(); form.quantity.value='1';
   document.getElementById('index-payment-msg').textContent='';
@@ -142,7 +148,7 @@ function eventMetaLine(opt){
 
 function upcomingEventButton(opt){
   if (isPayableOption(opt)) {
-    const label = opt.paymentType === 'stage_registration' ? 'Réserver' : 'Acheter ma place';
+    const label = indexEventReservationLabel(opt, false);
     const price = opt.priceCents ? ' · ' + euro(opt.priceCents) : '';
     return `<button type="button" class="upcoming-event-action" data-fts-click="openUpcomingEventPayment(${FTS.jsArg(opt.id)})">${label}${price} →</button>`;
   }
@@ -267,6 +273,8 @@ async function loadUpcomingEventOptions(db) {
       const paymentEnabled = v.paymentEnabled === true || v.payEnabled === true;
       const priceCents = moneyCents(v.priceCents || v.amountCents || 0);
       const paymentType = v.paymentType || v.saleType || (String(v.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
+      const paymentNature = v.paymentNature || v.eventNature || v.paymentKind || v.paymentType || v.saleType || '';
+      const paymentNatureLabel = v.paymentNatureLabel || v.eventNatureLabel || '';
       const link  = paymentEnabled ? '#payment-' + child.key : (v.url || v.link || v.lien || v.u || '#');
 
       if (!title || (!date && !ts)) return;
@@ -282,7 +290,7 @@ async function loadUpcomingEventOptions(db) {
         icon: v.icon || (paymentType === 'stage_registration' ? '🎓' : '🎪'),
         title,
         desc: v.description || v.desc || v.type || '',
-        paymentEnabled, payEnabled:paymentEnabled, paymentType, priceCents, maxSeats:Number(v.maxSeats || v.capacity || 0) || 0,
+        paymentEnabled, payEnabled:paymentEnabled, paymentType, paymentNature, paymentNatureLabel, priceCents, maxSeats:Number(v.maxSeats || v.capacity || 0) || 0,
         detail,
         link,
         destTitle: title,
@@ -500,7 +508,7 @@ function showDest() {
       <div class="dest-desc">${FTS.esc(opt.destDesc  || opt.desc)}</div>
       ${details ? '<div class="dest-details">' + details + '</div>' : ''}
       ${isPayableOption(opt)
-        ? `<button type="button" class="btn-helloasso" data-fts-click="openIndexPaymentByState()">${opt.paymentType === 'stage_registration' ? 'Réserver le stage' : 'Acheter ma place'}${opt.priceCents ? ' · ' + euro(opt.priceCents) : ''} →</button>`
+        ? `<button type="button" class="btn-helloasso" data-fts-click="openIndexPaymentByState()">${FTS.esc(indexEventReservationLabel(opt, true))}${opt.priceCents ? ' · ' + euro(opt.priceCents) : ''} →</button>`
         : `<a href="${FTS.esc(FTS.safeUrl(opt.link, '#'))}" class="btn-helloasso" target="_blank" rel="noopener">Ouvrir le lien sécurisé →</a>`}
       <button class="btn-ghost" data-fts-click="restart()">Recommencer depuis le début</button>
     </div>`;

@@ -34,7 +34,8 @@ function ensureEventPaymentFields(){
         <div class="target-help">Active la réservation pour les événements gratuits, payants ou hors ligne. Les places max restent privées et ne sont pas affichées au public.</div>
         <div class="form-grid">
           <div class="field"><label>Réservation / paiement activé</label><select id="e-payment-enabled"><option value="false">Non</option><option value="true">Oui</option></select></div>
-          <div class="field"><label>Nature</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option></select></div>
+          <div class="field"><label>Nature</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option><option value="trial_lesson">Cours d’essai</option><option value="custom">Saisie manuelle</option></select></div>
+          <div class="field" id="e-payment-custom-field" style="display:none"><label>Nature personnalisée</label><input id="e-payment-custom-label" placeholder="Ex : Audition, masterclass, sortie…"/></div>
           <div class="field"><label>Prix en €</label><input id="e-price" type="number" min="0" step="0.01" placeholder="0 = gratuit"/></div>
           <div class="field"><label>Places max privées</label><input id="e-max-seats" type="number" min="0" step="1" placeholder="0 = illimité"/></div>
         </div>
@@ -60,13 +61,13 @@ function bindPaymentPromoContextHandlers(){
   const typeEl = $('e-payment-type');
   if(typeEl && !typeEl.__ftsPromoContextBound){
     typeEl.__ftsPromoContextBound = true;
-    typeEl.addEventListener('change', updateCalendarPromoContext);
+    typeEl.addEventListener('change', () => { togglePaymentCustomField(); updateCalendarPromoContext(); });
   }
 }
 function updateCalendarPromoContext(){
   const section = document.querySelector('[data-promo-calendar="true"]');
   if(!section) return;
-  const scope = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
+  const scope = normalizePaymentTypeForCheckout(($('e-payment-type') && $('e-payment-type').value) || 'event_ticket');
   const eventId = currentCalendarEventId();
   section.setAttribute('data-promo-scope', scope);
   section.setAttribute('data-current-event-id', eventId);
@@ -81,6 +82,29 @@ function centsFromEuroInput(id){
 function euroInputFromCents(v){
   const n=Number(v||0); return n>0 ? String((n/100).toFixed(2)).replace('.',',') : '';
 }
+function normalizePaymentTypeForCheckout(value){
+  return String(value || '') === 'stage_registration' ? 'stage_registration' : 'event_ticket';
+}
+function paymentNatureLabel(value, customLabel){
+  const custom = String(customLabel || '').trim();
+  if(String(value || '') === 'stage_registration') return 'Stage';
+  if(String(value || '') === 'trial_lesson') return 'Cours d’essai';
+  if(String(value || '') === 'custom') return custom || 'Événement';
+  return 'Place spectacle / événement';
+}
+function setPaymentNatureSelect(rawValue, customLabel){
+  const select = $('e-payment-type');
+  if(!select) return;
+  const value = String(rawValue || 'event_ticket');
+  const knownValues = Array.from(select.options || []).map(o => o.value);
+  select.value = knownValues.includes(value) ? value : 'custom';
+  if($('e-payment-custom-label')) $('e-payment-custom-label').value = customLabel || (knownValues.includes(value) ? '' : value);
+  togglePaymentCustomField();
+}
+function togglePaymentCustomField(){
+  const field = $('e-payment-custom-field');
+  if(field) field.style.display = ($('e-payment-type') && $('e-payment-type').value === 'custom') ? '' : 'none';
+}
 function isoFromTs(ts){
   const n=Number(ts||0); if(!n) return '';
   try{return new Date(n).toISOString().slice(0,10);}catch(e){return '';}
@@ -89,18 +113,34 @@ function applyPaymentFieldsToForm(e){
   ensureEventPaymentFields();
   if($('e-end-date')) $('e-end-date').value = e ? (e.endDateIso || e.dateEndIso || isoFromTs(e.endDateTs) || '') : '';
   if($('e-payment-enabled')) $('e-payment-enabled').value = String(!!(e && (e.paymentEnabled===true || e.payEnabled===true)));
-  if($('e-payment-type')) $('e-payment-type').value = (e && (e.paymentType || e.saleType)) || (String(e && e.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
+  setPaymentNatureSelect((e && (e.paymentNature || e.eventNature || e.paymentKind || e.paymentType || e.saleType)) || (String(e && e.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket'), e && (e.paymentNatureLabel || e.eventNatureLabel || ''));
   if($('e-price')) $('e-price').value = euroInputFromCents(e && (e.priceCents || e.amountCents || e.price || e.tarif));
   if($('e-max-seats')) $('e-max-seats').value = e && (e.maxSeats || e.capacity) ? String(e.maxSeats || e.capacity) : '';
 }
 function collectPaymentFieldsForSave(){
   ensureEventPaymentFields();
   const paymentEnabled = $('e-payment-enabled') && $('e-payment-enabled').value === 'true';
-  const paymentType = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
+  const paymentNature = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
+  const customNatureLabel = ($('e-payment-custom-label') && $('e-payment-custom-label').value.trim()) || '';
+  const paymentType = normalizePaymentTypeForCheckout(paymentNature);
   const priceCents = centsFromEuroInput('e-price');
   const maxSeats = Math.max(0, Number(($('e-max-seats') && $('e-max-seats').value) || 0) || 0);
-  if(paymentEnabled && !priceCents) throw new Error('Prix requis si le paiement est activé');
-  return { paymentEnabled, payEnabled: paymentEnabled, paymentType, saleType: paymentType, priceCents, maxSeats, capacity:maxSeats };
+  if(paymentEnabled && paymentNature === 'custom' && !customNatureLabel){
+    throw new Error('Nature personnalisée requise');
+  }
+  return {
+    paymentEnabled,
+    payEnabled: paymentEnabled,
+    paymentType,
+    saleType: paymentType,
+    paymentNature,
+    eventNature: paymentNature,
+    paymentNatureLabel: paymentNatureLabel(paymentNature, customNatureLabel),
+    eventNatureLabel: paymentNatureLabel(paymentNature, customNatureLabel),
+    priceCents,
+    maxSeats,
+    capacity:maxSeats
+  };
 }
 function collectEndDateForSave(){
   ensureEventPaymentFields();
@@ -427,6 +467,10 @@ async function loadEventsFromAllSources(){
         payEnabled: v.paymentEnabled === true || v.payEnabled === true,
         paymentType: v.paymentType || v.saleType || '',
         saleType: v.saleType || v.paymentType || '',
+        paymentNature: v.paymentNature || v.eventNature || '',
+        eventNature: v.eventNature || v.paymentNature || '',
+        paymentNatureLabel: v.paymentNatureLabel || v.eventNatureLabel || '',
+        eventNatureLabel: v.eventNatureLabel || v.paymentNatureLabel || '',
         priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
         maxSeats: Number(v.maxSeats || v.capacity || 0) || 0,
         dateTs: v.dateTs || v.startTs || v.ts || v.order || 0,
@@ -476,6 +520,10 @@ function normalizeEvent(key, v){
     payEnabled:v.paymentEnabled===true || v.payEnabled===true,
     paymentType:v.paymentType||v.saleType||'',
     saleType:v.saleType||v.paymentType||'',
+    paymentNature:v.paymentNature||v.eventNature||v.paymentKind||v.paymentType||v.saleType||'',
+    eventNature:v.eventNature||v.paymentNature||v.paymentKind||v.paymentType||v.saleType||'',
+    paymentNatureLabel:v.paymentNatureLabel||v.eventNatureLabel||'',
+    eventNatureLabel:v.eventNatureLabel||v.paymentNatureLabel||'',
     priceCents:Number(v.priceCents||v.amountCents||0)||0,
     maxSeats:Number(v.maxSeats||v.capacity||0)||0,
     dateTs:Number(v.dateTs||v.startTs||v.ts||0),
@@ -497,7 +545,7 @@ function renderList(){
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
     return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
-      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-payment">Paiement</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.endDateLabel?' → '+FTS.esc(e.endDateLabel):''}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}${e.paymentEnabled&&e.priceCents?' · '+FTS.esc(String((Number(e.priceCents)/100).toFixed(2)).replace('.',','))+' €':''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
+      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-payment">Paiement</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.endDateLabel?' → '+FTS.esc(e.endDateLabel):''}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}${e.paymentEnabled?' · '+FTS.esc(e.paymentNatureLabel || paymentNatureLabel(e.paymentNature || e.paymentType, '')):''}${e.paymentEnabled?' · '+(e.priceCents ? FTS.esc(String((Number(e.priceCents)/100).toFixed(2)).replace('.',','))+' €' : 'Gratuit'):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
     </div>`;
   }).join('');
 }
@@ -505,11 +553,11 @@ function renderList(){
 function newEvent(){
   selectedKey='';
   ensureEventPaymentFields();
-  ['e-key','e-name','e-type','e-date','e-end-date','e-hour','e-location','e-url','e-desc','e-price','e-max-seats'].forEach(id=>{ if($(id)) $(id).value=''; });
+  ['e-key','e-name','e-type','e-date','e-end-date','e-hour','e-location','e-url','e-desc','e-price','e-max-seats','e-payment-custom-label'].forEach(id=>{ if($(id)) $(id).value=''; });
   $('e-active').value='true';
   if($('e-important')) $('e-important').value='false';
   if($('e-payment-enabled')) $('e-payment-enabled').value='false';
-  if($('e-payment-type')) $('e-payment-type').value='event_ticket';
+  setPaymentNatureSelect('event_ticket', '');
   updateCalendarPromoContext();
   resetTargetSelection();
   renderList();
@@ -566,12 +614,15 @@ function eventToQuestionnaireOption(key, data){
   const endDate = data.endDateLabel || data.dateEndLabel || '';
   const paymentEnabled = data.paymentEnabled === true || data.payEnabled === true;
   const priceCents = Number(data.priceCents || data.amountCents || 0) || 0;
-  const paymentType = data.paymentType || data.saleType || (String(data.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
+  const paymentNature = data.paymentNature || data.eventNature || data.paymentKind || data.paymentType || data.saleType || (String(data.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
+  const paymentType = normalizePaymentTypeForCheckout(data.paymentType || data.saleType || paymentNature);
+  const paymentNatureText = data.paymentNatureLabel || data.eventNatureLabel || paymentNatureLabel(paymentNature, '');
   const details = [];
   if(date) details.push({ key:'Date', value: hour ? date + ' · ' + hour : date });
   if(endDate) details.push({ key:'Fin', value: endDate });
   if(location) details.push({ key:'Lieu', value: location });
-  if(paymentEnabled && priceCents) details.push({ key:'Prix', value: String((priceCents/100).toFixed(2)).replace('.', ',') + ' €' });
+  if(paymentEnabled && paymentNatureText) details.push({ key:'Nature', value: paymentNatureText });
+  if(paymentEnabled) details.push({ key:'Prix', value: priceCents ? String((priceCents/100).toFixed(2)).replace('.', ',') + ' €' : 'Gratuit' });
   return {
     source:'fts_events',
     eventKey:key,
@@ -604,6 +655,10 @@ function eventToQuestionnaireOption(key, data){
     payEnabled:paymentEnabled,
     paymentType,
     saleType:paymentType,
+    paymentNature,
+    eventNature:paymentNature,
+    paymentNatureLabel:paymentNatureText,
+    eventNatureLabel:paymentNatureText,
     priceCents,
     maxSeats:Number(data.maxSeats || data.capacity || 0) || 0,
     endDateLabel:endDate,

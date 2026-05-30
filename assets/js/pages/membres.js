@@ -1400,6 +1400,8 @@ async function loadEvts() {
           paymentEnabled: v.paymentEnabled === true || v.payEnabled === true,
           payEnabled: v.paymentEnabled === true || v.payEnabled === true,
           paymentType: v.paymentType || v.saleType || (String(v.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket'),
+          paymentNature: v.paymentNature || v.eventNature || v.paymentKind || v.paymentType || v.saleType || '',
+          paymentNatureLabel: v.paymentNatureLabel || v.eventNatureLabel || '',
           priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
           maxSeats: Number(v.maxSeats || v.capacity || 0) || 0,
           eventEndDate: v.endDateLabel || v.dateEndLabel || '',
@@ -1432,6 +1434,13 @@ async function loadEvts() {
 function eventPriceLabel(cents){
   const n=Number(cents||0); return n ? (n/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'}) : '';
 }
+function memberEventReservationLabel(e, longLabel){
+  const nature = String((e && (e.paymentNature || e.eventNature || e.paymentType)) || '');
+  const label = String((e && (e.paymentNatureLabel || e.eventNatureLabel)) || '').toLowerCase();
+  if((e && e.paymentType === 'stage_registration') || nature === 'stage_registration' || label.includes('stage')) return longLabel ? 'Réserver le stage' : 'Réserver';
+  if(nature === 'trial_lesson' || label.includes('essai')) return longLabel ? 'Réserver le cours d’essai' : 'Réserver';
+  return longLabel ? 'Réserver / acheter une place' : 'Réserver';
+}
 function showEvts(es) {
   const el = document.getElementById('evts');
   if (!es.length) {
@@ -1439,17 +1448,16 @@ function showEvts(es) {
     return;
   }
   el.innerHTML = es.map(e => {
-    const payable = !!(e.paymentEnabled && e.priceCents);
-    const isStage = e.paymentType === 'stage_registration';
+    const payable = !!e.paymentEnabled;
     return `
     <div class="evt" id="evt-${FTS.esc(e.id || '')}">
       <div class="evt-info">
         <div class="evt-name">${FTS.esc(e.n)}</div>
-        <div class="evt-meta">${FTS.esc(e.d)}${e.eventEndDate?' → '+FTS.esc(e.eventEndDate):''}${e.h?' — '+FTS.esc(e.h):''}${e.l?' — '+FTS.esc(e.l):''}${payable?' — '+FTS.esc(eventPriceLabel(e.priceCents)):''}</div>
+        <div class="evt-meta">${FTS.esc(e.d)}${e.eventEndDate?' → '+FTS.esc(e.eventEndDate):''}${e.h?' — '+FTS.esc(e.h):''}${e.l?' — '+FTS.esc(e.l):''}${payable&&e.priceCents?' — '+FTS.esc(eventPriceLabel(e.priceCents)):payable?' — Gratuit':''}</div>
       </div>
       ${e.important?`<span class="evt-type important">Important</span>`:''}
       ${e.t?`<span class="evt-type">${FTS.esc(e.t)}</span>`:''}
-      ${payable?`<button type="button" class="evt-link evt-pay-link" data-event-pay="${FTS.esc(e.id)}">${isStage?'Réserver le stage':'Acheter ma place'}</button>`:(e.u?`<a href="${FTS.esc(FTS.safeUrl(e.u, '#'))}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:'')}
+      ${payable?`<button type="button" class="evt-link evt-pay-link" data-event-pay="${FTS.esc(e.id)}">${FTS.esc(memberEventReservationLabel(e, false))}</button>`:(e.u?`<a href="${FTS.esc(FTS.safeUrl(e.u, '#'))}" target="_blank" rel="noopener" class="evt-link">S'inscrire</a>`:'')}
     </div>`;
   }).join('');
   el.querySelectorAll('[data-event-pay]').forEach(btn=>btn.addEventListener('click',()=>openMemberEventPayment(btn.getAttribute('data-event-pay'))));
@@ -1490,8 +1498,8 @@ function openMemberEventPayment(id){
   if(!currentMemberPaymentEvent) return;
   ensureMemberPaymentModal();
   const e=currentMemberPaymentEvent;
-  document.getElementById('member-pay-title').textContent = e.paymentType === 'stage_registration' ? 'Réserver le stage' : 'Acheter une place';
-  document.getElementById('member-pay-summary').textContent = (e.n || 'Événement') + (e.priceCents ? ' · ' + eventPriceLabel(e.priceCents) : '');
+  document.getElementById('member-pay-title').textContent = memberEventReservationLabel(e, true);
+  document.getElementById('member-pay-summary').textContent = (e.n || 'Événement') + (e.priceCents ? ' · ' + eventPriceLabel(e.priceCents) : ' · Gratuit');
   const form=document.getElementById('member-pay-form'); form.reset(); form.quantity.value='1';
   try{
     const u=firebase.auth().currentUser;
