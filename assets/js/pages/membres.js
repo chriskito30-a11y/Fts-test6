@@ -1440,7 +1440,7 @@ function memberEventReservationLabel(e, longLabel){
   const nature = String((e && (e.paymentNature || e.eventNature || e.paymentType)) || '').toLowerCase();
   const label = String((e && (e.paymentNatureLabel || e.eventNatureLabel || e.t || e.n)) || '').toLowerCase();
   if((e && e.paymentType === 'stage_registration') || nature === 'stage_registration' || label.includes('stage')) return longLabel ? 'Réserver le stage' : 'Réserver';
-  if(nature === 'trial_lesson' || label.includes('cours d’essai') || label.includes('cours d'essai') || label.includes('essai')) return longLabel ? 'Réserver le cours d’essai' : 'Réserver';
+  if(nature === 'trial_lesson' || label.includes('cours d’essai') || label.includes("cours d'essai") || label.includes('essai')) return longLabel ? 'Réserver le cours d’essai' : 'Réserver';
   return longLabel ? 'Réserver' : 'Réserver';
 }
 function showEvts(es) {
