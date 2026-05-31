@@ -1,4 +1,4 @@
-const CACHE = 'fts-v206-cgv';
+const CACHE = 'fts-v207-membres-reserver';
 const FILES = [
   './manifest.json',
   './index.html',
