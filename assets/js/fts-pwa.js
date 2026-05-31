@@ -8,7 +8,7 @@
   if (!('serviceWorker' in navigator)) return;
 
   const SW_URL = './sw.js';
-  const RELOAD_KEY = 'fts-sw-reload-v49-profil-admin-infos';
+  const RELOAD_KEY = 'fts-sw-reload-v50-auth-access-fix';
   let refreshing = false;
 
 
