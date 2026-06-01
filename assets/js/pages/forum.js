@@ -88,7 +88,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     try{
       const snap = await db.ref('fts_users/'+uid).once('value');
       userProfile = snap.val();
-      if(!userProfile || userProfile.status === 'pending'){
+      if(!userProfile || userProfile.status !== 'active'){
         await auth.signOut(); location.href='auth.html'; return;
       }
       if(userProfile.role === 'admin'){
@@ -180,7 +180,7 @@ async function loadCategoryStructure(){
 function buildForumItems(){
   if(!userData && !userProfile) return;
   const isAdmin = userProfile?.role === 'admin';
-  const isActive = userData?.status === 'active' || isAdmin;
+  const isActive = userData?.status === 'active';
   const userGroupNorms = isAdmin ? null : getForumGroups().map(norm);
   const userSubNorms = isAdmin ? null : getForumSubgroups().map(norm);
   const items = [{

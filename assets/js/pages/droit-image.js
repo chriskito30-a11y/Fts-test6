@@ -78,6 +78,8 @@
       try{
         const profile=(await db.ref('fts_users/'+user.uid).once('value')).val()||{};
         const role=String(profile.role||'').toLowerCase();
+        const status=String(profile.status||'').toLowerCase();
+        if(status!=='active') { await auth.signOut(); location.href='auth.html'; return; }
         if(role!=='admin' && role!=='prof') { showError('Accès réservé aux administrateurs et professeurs.'); return; }
         document.getElementById('image-rights-shell').hidden=false;
         await load();

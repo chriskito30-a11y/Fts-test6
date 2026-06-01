@@ -768,6 +768,7 @@
       try{
         const snap = await db.ref('fts_users/' + currentUser.uid).once('value');
         profile = snap.val() || {};
+        if(String(profile.status||'').toLowerCase() !== 'active'){ await firebase.auth().signOut(); location.href='auth.html'; return; }
         if(String(profile.role||'').toLowerCase() !== 'admin'){ location.href='membres.html'; return; }
         $('sales-loading').style.display='none';
         $('sales-shell').hidden=false;

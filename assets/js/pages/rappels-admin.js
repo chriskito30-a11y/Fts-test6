@@ -41,7 +41,14 @@
       try{
         const snap = await db.ref('fts_users/' + user.uid).once('value');
         currentProfile = snap.val();
-        if(!currentProfile || currentProfile.role !== 'admin'){
+        const role = String(currentProfile && currentProfile.role || '').toLowerCase();
+        const status = String(currentProfile && currentProfile.status || '').toLowerCase();
+        if(!currentProfile || status !== 'active'){
+          await auth.signOut();
+          location.href = 'auth.html';
+          return;
+        }
+        if(role !== 'admin'){
           location.href = 'membres.html';
           return;
         }

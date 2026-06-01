@@ -210,7 +210,10 @@ function init(){
     if(!user){ location.href='auth.html'; return; }
     const snap=await db.ref('fts_users/'+user.uid).once('value');
     const p=snap.val();
-    if(!p || p.role!=='admin'){ location.href='membres.html'; return; }
+    const role = String(p && p.role || '').toLowerCase();
+    const status = String(p && p.status || '').toLowerCase();
+    if(!p || status !== 'active'){ await auth.signOut(); location.href='auth.html'; return; }
+    if(role !== 'admin'){ location.href='membres.html'; return; }
     $('auth-loading').style.display='none';
     $('admin-shell').style.display='block';
     bindPreviewInputs();

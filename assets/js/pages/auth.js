@@ -203,23 +203,25 @@ window.addEventListener('DOMContentLoaded', async () => {
         return;
       }
 
-      const role = String(profile.role || '').toLowerCase();
       const status = String(profile.status || '').toLowerCase();
-      const isAdminAccount = role === 'admin' || String(user.email || '').toLowerCase() === ADMIN_EMAIL.toLowerCase();
-      const isAllowed = isAdminAccount || role === 'prof' || status === 'active';
-
-      if (status === 'pending' && !isAdminAccount) {
+      if (status === 'pending') {
         showPendingScreen(user.email);
         return;
       }
 
-      if (isAllowed) {
-        window.location.href = 'membres.html';
+      if (status === 'refused') {
+        showRefusedScreen(user.email);
         return;
       }
 
-      // Profil existant mais statut inattendu : on évite une boucle silencieuse.
-      showPendingScreen(user.email);
+      if (status !== 'active') {
+        showInactiveScreen(user.email);
+        return;
+      }
+
+      window.location.href = 'membres.html';
+      return;
+
 
     } catch(e) {
       console.warn('[FTS Auth] Erreur lecture profil :', e);
@@ -568,11 +570,41 @@ function setBtn(id, text, disabled) {
   b.classList.toggle('loading', disabled);
 }
 
-function showPendingScreen(email) {
+function showAccountStatusScreen(email, options) {
+  options = options || {};
   document.getElementById('auth-tabs').style.display    = 'none';
   document.getElementById('auth-body').style.display    = 'none';
   document.getElementById('pending-screen').style.display = 'block';
+  const icon = document.querySelector('#pending-screen .pending-icon');
+  const title = document.querySelector('#pending-screen .pending-title');
+  const desc = document.querySelector('#pending-screen .pending-desc');
+  if (icon && options.icon !== undefined) icon.textContent = options.icon || '';
+  if (title) title.textContent = options.title || '';
+  if (desc) desc.innerHTML = options.desc || '';
   if (email) document.getElementById('pending-email-display').textContent = email;
+}
+
+function showPendingScreen(email) {
+  showAccountStatusScreen(email, {
+    title: 'Demande envoyée !',
+    desc: "Ton compte est en cours de validation par l'équipe FTS.<br/>Tu recevras un e-mail dès que ton accès sera activé."
+  });
+}
+
+function showRefusedScreen(email) {
+  showAccountStatusScreen(email, {
+    icon: '!',
+    title: 'Compte non activé',
+    desc: "Ce compte a été refusé ou révoqué. Contacte l'équipe FTS si tu penses qu'il s'agit d'une erreur."
+  });
+}
+
+function showInactiveScreen(email) {
+  showAccountStatusScreen(email, {
+    icon: '!',
+    title: 'Accès non activé',
+    desc: "Ce compte n'est pas activé. Contacte l'équipe FTS pour vérifier ton accès."
+  });
 }
 
 /* ── CONNEXION ─────────────────────────────────────────────────── */

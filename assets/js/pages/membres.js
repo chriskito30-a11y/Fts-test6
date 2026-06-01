@@ -223,9 +223,7 @@ function awardMemberDailyLoginXp(memberUid) {
       userProfile = snap.val();
       currentUid = user.uid;
 
-      const role = String(userProfile && userProfile.role || '').toLowerCase();
       const status = String(userProfile && userProfile.status || '').toLowerCase();
-      const isAdminAccount = role === 'admin' || String(user.email || '').toLowerCase() === 'contact@faistonshow.fr';
 
       if (!userProfile) {
         // Profil absent : session invalide → déconnexion propre.
@@ -234,7 +232,7 @@ function awardMemberDailyLoginXp(memberUid) {
         return;
       }
 
-      if (status === 'pending' && !isAdminAccount) {
+      if (status !== 'active') {
         // Compte en attente → retour auth.
         await auth.signOut();
         window.location.href = 'auth.html';

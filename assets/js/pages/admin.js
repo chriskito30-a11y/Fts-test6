@@ -69,7 +69,13 @@ window.addEventListener('DOMContentLoaded',()=>{
     try{
       const snap=await db.ref('fts_users/'+user.uid).once('value');
       const profile=snap.val();
-      if(!profile || profile.role!=='admin'){
+      const role = String(profile && profile.role || '').toLowerCase();
+      const status = String(profile && profile.status || '').toLowerCase();
+      if(!profile || status !== 'active'){
+        await auth.signOut();
+        location.href='auth.html'; return;
+      }
+      if(role !== 'admin'){
         location.href='membres.html'; return;
       }
       document.getElementById('admin-name').textContent=profile.firstName || profile.name || user.email || 'admin';

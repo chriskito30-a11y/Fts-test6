@@ -159,7 +159,10 @@ function init(){
     try{
       const snap=await db.ref('fts_users/'+user.uid).once('value');
       const profile=snap.val();
-      if(!profile || profile.role!=='admin'){ location.href='membres.html'; return; }
+      const role = String(profile && profile.role || '').toLowerCase();
+      const status = String(profile && profile.status || '').toLowerCase();
+      if(!profile || status !== 'active'){ await auth.signOut(); location.href='auth.html'; return; }
+      if(role !== 'admin'){ location.href='membres.html'; return; }
       $('auth-loading').style.display='none';
       $('admin-shell').style.display='block';
       await loadTargetCategories();

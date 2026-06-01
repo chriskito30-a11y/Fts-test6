@@ -144,7 +144,14 @@ window.addEventListener('DOMContentLoaded', function(){
     try{
       const profileSnap = await rgpdDb.ref('fts_users/' + user.uid).once('value');
       const profile = profileSnap.val();
-      if(!profile || profile.role !== 'admin'){
+      const role = String(profile && profile.role || '').toLowerCase();
+      const status = String(profile && profile.status || '').toLowerCase();
+      if(!profile || status !== 'active'){
+        await rgpdAuth.signOut();
+        location.href = 'auth.html';
+        return;
+      }
+      if(role !== 'admin'){
         location.href = 'membres.html';
         return;
       }

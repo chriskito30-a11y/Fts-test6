@@ -142,8 +142,16 @@ document.addEventListener("DOMContentLoaded", function() {
       // Vérifier le rôle admin dans RTDB
       const snap    = await db.ref("fts_users/" + user.uid).once("value");
       const profile = snap.val();
+      const role = String(profile && profile.role || "").toLowerCase();
+      const status = String(profile && profile.status || "").toLowerCase();
 
-      if (!profile || profile.role !== "admin") {
+      if (!profile || status !== "active") {
+        await firebase.auth().signOut();
+        window.location.href = "auth.html";
+        return;
+      }
+
+      if (role !== "admin") {
         // Connecté mais pas admin → espace membre
         window.location.href = "membres.html";
         return;

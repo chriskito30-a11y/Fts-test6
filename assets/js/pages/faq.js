@@ -214,7 +214,8 @@
 
   function updateRoleUi(profile){
     const role = profile && profile.role;
-    state.canSeeProf = role === 'prof' || role === 'admin';
+    const status = String(profile && profile.status || '').toLowerCase();
+    state.canSeeProf = status === 'active' && (role === 'prof' || role === 'admin');
     state.roleLoaded = true;
 
     if (els.profTab) els.profTab.hidden = !state.canSeeProf;

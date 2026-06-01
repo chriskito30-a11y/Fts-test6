@@ -424,8 +424,8 @@
     if (!profile) return false;
     const status = String(profile.status || '').toLowerCase();
     const role = String(profile.role || '').toLowerCase();
+    if (status !== 'active') return false;
     if (role === 'admin') return true;
-    if (status && status !== 'active') return false;
 
     const targetCat = norm(resource.cat || resource.category || resource.group || '');
     const targetSub = norm(resource.subcat || resource.subcategory || resource.subgroup || resource.section || '');
