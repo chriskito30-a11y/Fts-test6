@@ -463,7 +463,7 @@ function urlBase64ToUint8Array(b64){ const pad='='.repeat((4-b64.length%4)%4); c
 async function getSubscription(){ if(!('serviceWorker' in navigator)) return null; const reg=await navigator.serviceWorker.ready; return reg.pushManager.getSubscription(); }
 async function checkNotifStatus(){ const sub=await getSubscription(); updateNotifBtn(!!sub); }
 function updateNotifBtn(on){ const btn=document.getElementById('btn-notif'); if(!btn) return; btn.textContent = on ? '🔔 Notifs activées' : '🔕 Activer les notifs'; btn.classList.toggle('on', on); }
-async function toggleNotifications(){ const sub=await getSubscription(); if(sub){ await sub.unsubscribe(); fetch(FTS.PUSH.workerUrl+'/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:myUid})}).catch(()=>{}); updateNotifBtn(false); } else await subscribePush(); }
+async function toggleNotifications(){ const sub=await getSubscription(); if(sub){ await sub.unsubscribe(); FTS.pushRequest('/unsubscribe',{uid:myUid}).catch(()=>{}); updateNotifBtn(false); } else await subscribePush(); }
 async function subscribePush(){
   try{
     const perm=await Notification.requestPermission();
@@ -472,7 +472,7 @@ async function subscribePush(){
     const sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlBase64ToUint8Array(FTS.PUSH.vapidPublicKey)});
     const groups = (me?.group || me?.disciplines?.join(', ') || '').split(',').map(x=>x.trim()).filter(Boolean);
     const subgroups = (me?.subgroup || '').split(',').map(x=>x.trim()).filter(Boolean);
-    await fetch(FTS.PUSH.workerUrl+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:myUid, subscription:sub.toJSON(), group:groups.join(', '), subgroup:subgroups.join(', '), groups, subgroups})});
+    await FTS.pushRequest('/subscribe',{uid:myUid, subscription:sub.toJSON(), group:groups.join(', '), subgroup:subgroups.join(', '), groups, subgroups});
     updateNotifBtn(true);
   }catch(e){ alert('Erreur notifications : '+e.message); }
 }
@@ -526,7 +526,7 @@ function notifyDirectMessage(convId, convData, recipients, text, msgId){
       + (msgId ? '&msg=' + encodeURIComponent(msgId) : '')
       + '&recipientUid=' + encodeURIComponent(uid);
 
-    fetch(FTS.PUSH.workerUrl+'/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    FTS.pushRequest('/notify',{
       type:isGroup ? 'dm_group' : 'dm_direct',
       uid,
       expectedUid:uid,
@@ -543,7 +543,7 @@ function notifyDirectMessage(convId, convData, recipients, text, msgId){
       tag:baseKey + '-' + uid,
       notificationKey:baseKey + '-' + uid,
       collapseKey:'dm-' + convId + '-' + uid
-    })}).catch(()=>{});
+    }).catch(()=>{});
   });
 }
 function openMessageDeepLink(){

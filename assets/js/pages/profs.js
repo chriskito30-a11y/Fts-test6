@@ -932,17 +932,15 @@ async function notifyNewResource(data) {
     };
 
     await Promise.allSettled(recipientUids.map(uid =>
-      fetch(FTS.PUSH.workerUrl + "/notify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...pushPayloadBase,
-          uid,
-          uids: [uid],
-          recipientUids: [uid],
-          recipients: [uid],
-          tag: "resource-" + (data.key || Date.now()) + "-" + uid
-        })
+      FTS.pushRequest("/notify", {
+        ...pushPayloadBase,
+        uid,
+        uids: [uid],
+        recipientUids: [uid],
+        recipients: [uid],
+        notificationKey: "resource-" + (data.key || Date.now()),
+        tag: "resource-" + (data.key || Date.now()) + "-" + uid,
+        collapseKey: "resource-" + (data.key || Date.now()) + "-" + uid
       })
     ));
   } catch(e) {

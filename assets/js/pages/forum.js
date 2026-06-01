@@ -694,7 +694,7 @@ function urlBase64ToUint8Array(b64){ const pad='='.repeat((4-b64.length%4)%4); c
 async function getSubscription(){ if(!('serviceWorker' in navigator)) return null; const reg=await navigator.serviceWorker.ready; return reg.pushManager.getSubscription(); }
 async function checkNotifStatus(){ const sub=await getSubscription(); updateNotifBtn(!!sub); }
 function updateNotifBtn(on){ const btn=document.getElementById('btn-notif'); if(!btn) return; btn.textContent = on ? '🔔 Notifs activées' : '🔕 Activer les notifs'; btn.classList.toggle('on', on); }
-async function toggleNotifications(){ const sub=await getSubscription(); if(sub){ await sub.unsubscribe(); fetch(FTS.PUSH.workerUrl+'/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid})}).catch(()=>{}); updateNotifBtn(false); } else await subscribePush(); }
+async function toggleNotifications(){ const sub=await getSubscription(); if(sub){ await sub.unsubscribe(); FTS.pushRequest('/unsubscribe',{uid}).catch(()=>{}); updateNotifBtn(false); } else await subscribePush(); }
 async function subscribePush(){
   try{
     const perm=await Notification.requestPermission();
@@ -703,11 +703,11 @@ async function subscribePush(){
     const sub=await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlBase64ToUint8Array(FTS.PUSH.vapidPublicKey)});
     const groups = getForumGroups();
     const subgroups = getForumSubgroups();
-    await fetch(FTS.PUSH.workerUrl+'/subscribe',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    await FTS.pushRequest('/subscribe',{
       uid, subscription:sub.toJSON(),
       group:groups.join(', '), subgroup:subgroups.join(', '),
       groups, subgroups
-    })});
+    });
     updateNotifBtn(true);
   }catch(e){ alert('Erreur notifications : '+e.message); }
 }
@@ -874,10 +874,7 @@ async function notifyChannel(channel, body, msgId){
 
   // Envoi forcé par UID pour éviter les doublons catégorie + sous-catégorie + admin.
   await Promise.allSettled(recipients.map(recipientUid =>
-    fetch(FTS.PUSH.workerUrl+'/notify',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
+    FTS.pushRequest('/notify',{
         type: basePayload.type,
         channel: basePayload.channel,
         title: basePayload.title,
@@ -895,7 +892,6 @@ async function notifyChannel(channel, body, msgId){
         excludeUids: [uid],
         tag: notificationKey + '-' + recipientUid,
         collapseKey: notificationKey + '-' + recipientUid
-      })
     }).catch(()=>{})
   ));
 }

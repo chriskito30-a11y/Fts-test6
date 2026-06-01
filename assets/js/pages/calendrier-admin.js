@@ -738,10 +738,7 @@ async function notifyNewEvent(key, data){
     }
 
     const pushResults = await Promise.allSettled(recipientUids.map(uid =>
-      fetch(FTS.PUSH.workerUrl + '/notify', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
+      FTS.pushRequest('/notify', {
           type:'event',
           eventId:key,
           notificationKey,
@@ -756,7 +753,6 @@ async function notifyNewEvent(key, data){
           tag:notificationKey + '-' + uid,
           collapseKey:notificationKey + '-' + uid,
           forceUid:true
-        })
       }).catch(err => ({ ok:false, status:0, error:err && err.message ? err.message : String(err) }))
     ));
 

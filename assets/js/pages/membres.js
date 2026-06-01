@@ -2183,7 +2183,7 @@ async function toggleNotifications(){
     const existing = await getSubscription();
     if(existing){
       await existing.unsubscribe();
-      await fetch(FTS.PUSH.workerUrl + '/unsubscribe', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({uid: currentUid})}).catch(()=>{});
+      await FTS.pushRequest('/unsubscribe', {uid: currentUid}).catch(()=>{});
       updateNotifBtn(false); return;
     }
     const perm = await Notification.requestPermission();
@@ -2192,10 +2192,7 @@ async function toggleNotifications(){
     const sub = await reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:urlBase64ToUint8Array(FTS.PUSH.vapidPublicKey)});
     const groups = memberNotificationGroups();
     const subgroups = memberNotificationSubgroups();
-    await fetch(FTS.PUSH.workerUrl + '/subscribe', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({uid: currentUid, subscription: sub.toJSON(), group: groups.join(', '), subgroup: subgroups.join(', '), groups, subgroups, source:'membres'})
-    });
+    await FTS.pushRequest('/subscribe', {uid: currentUid, subscription: sub.toJSON(), group: groups.join(', '), subgroup: subgroups.join(', '), groups, subgroups, source:'membres'});
     updateNotifBtn(true);
     try { markFirstStepDone('notifs'); } catch(e) {}
   }catch(e){ alert('Erreur notifications : ' + (e && e.message ? e.message : e)); }
@@ -3052,7 +3049,7 @@ async function deleteMyAccount() {
     try {
       const sub = await getSubscription();
       if (sub) await sub.unsubscribe();
-      if (FTS.PUSH && FTS.PUSH.workerUrl) await fetch(FTS.PUSH.workerUrl + '/unsubscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ uid }) }).catch(()=>{});
+      if (FTS.PUSH && FTS.PUSH.workerUrl) await FTS.pushRequest('/unsubscribe', { uid }).catch(()=>{});
     } catch(e) {}
     await deleteOwnForumAndDmMessages(uid);
     await removeUserDatabaseTraces(uid);

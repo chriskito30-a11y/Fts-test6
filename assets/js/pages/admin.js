@@ -38,18 +38,14 @@ async function ftsEnsureAdminPushChannel(user, profile){
       .concat(profile.subgroups || [])
       .concat(String(profile.subgroup || profile.subcategories || '').split(',')));
 
-    await fetch(FTS.PUSH.workerUrl + '/subscribe', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        uid:user.uid,
-        subscription:sub.toJSON(),
-        group:groups.join(', '),
-        subgroup:subgroups.join(', '),
-        role:'admin',
-        admin:true,
-        adminChannel:true
-      })
+    await FTS.pushRequest('/subscribe', {
+      uid:user.uid,
+      subscription:sub.toJSON(),
+      group:groups.join(', '),
+      subgroup:subgroups.join(', '),
+      role:'admin',
+      admin:true,
+      adminChannel:true
     }).catch(function(){});
   }catch(e){
     console.warn('[FTS Admin Push] Canal admin non initialisé', e);

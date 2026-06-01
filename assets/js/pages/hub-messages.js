@@ -187,6 +187,10 @@
     }
     db.ref('fts_users/' + user.uid).once('value').then(function(snap){
       currentProfile = snap.val() || {};
+      if (currentProfile.status !== 'active') {
+        firebase.auth().signOut().finally(function(){ location.href = 'auth.html'; });
+        return;
+      }
       var loader = document.getElementById('auth-loading');
       var page = document.getElementById('page-content');
       if (loader) loader.style.display = 'none';
@@ -196,14 +200,7 @@
       listenPollUnread(user.uid);
       if (window.FTSNav) window.FTSNav.updateBadges();
     }).catch(function(){
-      var loader = document.getElementById('auth-loading');
-      var page = document.getElementById('page-content');
-      if (loader) loader.style.display = 'none';
-      if (page) page.classList.remove('u-initial-hidden');
-      listenPrivateUnread(user.uid);
-      listenForumUnread(user.uid, {});
-      listenPollUnread(user.uid);
-      if (window.FTSNav) window.FTSNav.updateBadges();
+      firebase.auth().signOut().finally(function(){ location.href = 'auth.html'; });
     });
   });
 })();

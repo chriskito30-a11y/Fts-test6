@@ -480,11 +480,8 @@ async function notifyAnnouncementSaved(key, data, kind){
       return;
     }
 
-    await Promise.allSettled(recipientUids.map(uid =>
-      fetch(FTS.PUSH.workerUrl + '/notify', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
+    const pushResults = await Promise.allSettled(recipientUids.map(uid =>
+      FTS.pushRequest('/notify', {
           type:'announcement',
           announcementId:key,
           announcementKind:kind,
@@ -497,14 +494,14 @@ async function notifyAnnouncementSaved(key, data, kind){
           recipientUids:[uid],
           recipients:[uid],
           forceUid:true,
+          notificationKey,
           tag:notificationKey + '-' + uid,
           collapseKey:notificationKey + '-' + uid
-        })
-      }).catch(()=>{})
+      }).catch(err => ({ ok:false, status:0, error:err && err.message ? err.message : String(err) }))
     ));
 
     await db.ref('fts_debug_notifications/' + notificationKey).set({
-      ok:true,
+      ok:pushResults.every(r => r.status === 'fulfilled' && r.value && r.value.ok !== false),
       type:'announcement',
       announcementId:key,
       announcementKind:kind,

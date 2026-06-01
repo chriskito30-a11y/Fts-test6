@@ -48,18 +48,14 @@ async function ftsEnsureAdminPushChannel(user, profile){
       .concat(profile.subgroups || [])
       .concat(String(profile.subgroup || profile.subcategories || '').split(',')));
 
-    await fetch(FTS.PUSH.workerUrl + '/subscribe', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
-        uid:user.uid,
-        subscription:sub.toJSON(),
-        group:groups.join(', '),
-        subgroup:subgroups.join(', '),
-        role:'admin',
-        admin:true,
-        adminChannel:true
-      })
+    await FTS.pushRequest('/subscribe', {
+      uid:user.uid,
+      subscription:sub.toJSON(),
+      group:groups.join(', '),
+      subgroup:subgroups.join(', '),
+      role:'admin',
+      admin:true,
+      adminChannel:true
     }).catch(function(){});
   }catch(e){
     console.warn('[FTS Admin Push] Canal admin non initialisé', e);
@@ -1354,11 +1350,7 @@ async function deleteUserCompletely(id) {
     // Nettoyage non bloquant de l'abonnement push KV, si le Worker push le permet.
     try {
       if (window.FTS && FTS.PUSH && FTS.PUSH.workerUrl) {
-        await fetch(FTS.PUSH.workerUrl + '/unsubscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: id, adminDelete: true })
-        });
+        await FTS.pushRequest('/unsubscribe', { uid: id, adminDelete: true });
       }
     } catch(pushErr) {
       console.warn('[FTS RGPD] Nettoyage push admin non bloquant', pushErr);

@@ -1345,11 +1345,7 @@
       notificationKey:'dm-' + convId + '-' + msgId + '-' + uid,
       collapseKey:'dm-' + convId + '-' + uid
     };
-    await fetch(FTS.PUSH.workerUrl + '/notify', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    }).catch(e => console.warn('[FTS Rappels Admin] push test non bloquant', e));
+    await FTS.pushRequest('/notify', payload).catch(e => console.warn('[FTS Rappels Admin] push test non bloquant', e));
   }
 
   async function copyReminderText(id){

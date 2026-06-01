@@ -80,10 +80,7 @@ async function notifyAdminsNewSignup(profile){
     const pendingCount = pendingSnap && pendingSnap.exists && pendingSnap.exists() ? pendingSnap.numChildren() : 1;
     const name = profile && profile.name ? profile.name : 'Nouvelle personne';
     const cats = Array.isArray(profile && profile.disciplines) ? profile.disciplines.join(', ') : (profile && profile.group ? profile.group : '');
-    fetch(FTS.PUSH.workerUrl + '/notify', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({
+    FTS.pushRequest('/notify', {
         group:'__admin__',
         type:'admin_pending_signup',
         title:'FTS — Nouvelle inscription',
@@ -95,9 +92,7 @@ async function notifyAdminsNewSignup(profile){
         pendingCount:pendingCount,
         signupUid:profile && profile.uid ? profile.uid : '',
         categories:cats || ''
-      }),
-      keepalive:true
-    }).catch(function(){});
+    }, { keepalive:true }).catch(function(){});
   }catch(e){
     console.warn('[FTS Auth] Notification admin inscription non envoyée', e);
   }
