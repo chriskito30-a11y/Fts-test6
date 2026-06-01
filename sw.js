@@ -1,4 +1,4 @@
-const CACHE = 'fts-v208-auth-access-fix';
+const CACHE = 'fts-v209-push-helper-cache-bust';
 const FILES = [
   './manifest.json',
   './index.html',
