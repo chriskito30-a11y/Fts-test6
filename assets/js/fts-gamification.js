@@ -209,10 +209,7 @@
     // Push réelle : même logique que forum.js, forcée par UID.
     if(window.FTS && FTS.PUSH && FTS.PUSH.workerUrl && window.fetch){
       Promise.allSettled(recipients.map(uid =>
-        fetch(FTS.PUSH.workerUrl + '/notify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        FTS.pushRequest('/notify', {
             type: 'forum',
             channel: 'general',
             title: 'FTS — Forum',
@@ -225,9 +222,9 @@
             recipientUids: [uid],
             recipients: [uid],
             forceUid: true,
+            notificationKey,
             tag: notificationKey + '-' + uid,
             collapseKey: notificationKey + '-' + uid
-          })
         }).catch(() => {})
       )).catch(() => {});
     }
@@ -269,11 +266,7 @@
     }catch(e){}
 
     if(window.FTS && FTS.PUSH && FTS.PUSH.workerUrl && window.fetch){
-      const endpoint = String(FTS.PUSH.workerUrl || '').replace(/\/+$/, '') + '/notify';
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      FTS.pushRequest('/notify', {
           type: meta.type || 'reward',
           title: title || 'FTS — Récompense',
           body: body || 'Tu as reçu une nouvelle récompense Fais Ton Show.',
@@ -284,9 +277,9 @@
           recipientUids: [uid],
           recipients: [uid],
           forceUid: true,
+          notificationKey: keyBase,
           tag: keyBase,
           collapseKey: keyBase
-        })
       }).catch(() => {});
     }
   }

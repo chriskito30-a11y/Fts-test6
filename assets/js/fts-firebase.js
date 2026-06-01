@@ -90,3 +90,45 @@ FTS.initFirebase = function() {
   }
   return firebase.database();
 };
+
+FTS.getAuthToken = async function(forceRefresh) {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.auth) return '';
+    const user = firebase.auth().currentUser;
+    if (!user || !user.getIdToken) return '';
+    return await user.getIdToken(forceRefresh === true);
+  } catch (e) {
+    console.warn('[FTS] Token Firebase indisponible', e);
+    return '';
+  }
+};
+
+FTS.authJsonHeaders = async function(headers, options) {
+  const out = Object.assign({ 'Content-Type': 'application/json' }, headers || {});
+  const token = await FTS.getAuthToken(options && options.forceRefresh === true);
+  if (token) out.Authorization = 'Bearer ' + token;
+  return out;
+};
+
+FTS.pushRequest = async function(path, payload, options) {
+  if (!FTS.PUSH || !FTS.PUSH.workerUrl) {
+    throw new Error('Worker push non configurÃ©.');
+  }
+  const opts = Object.assign({}, options || {});
+  const workerUrl = String(FTS.PUSH.workerUrl || '').replace(/\/+$/, '');
+  const target = /^https?:\/\//i.test(String(path || ''))
+    ? String(path)
+    : workerUrl + '/' + String(path || '').replace(/^\/+/, '');
+  const allowHttpError = opts.allowHttpError === true;
+  delete opts.allowHttpError;
+  opts.method = opts.method || 'POST';
+  opts.headers = await FTS.authJsonHeaders(opts.headers || {}, opts);
+  if (payload !== undefined && opts.body === undefined) opts.body = JSON.stringify(payload);
+  const res = await fetch(target, opts);
+  if (!res.ok && !allowHttpError) {
+    let detail = '';
+    try { detail = await res.text(); } catch (e) {}
+    throw new Error('Worker push HTTP ' + res.status + (detail ? ' - ' + detail.slice(0, 160) : ''));
+  }
+  return res;
+};
