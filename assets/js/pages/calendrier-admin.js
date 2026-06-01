@@ -758,7 +758,7 @@ async function notifyEventChange(key, data, mode){
     };
     if(isUpdate){
       notif.title = displayTitle;
-      notif.body = (data.name || data.title || displayTitle) + (details ? ' Â· ' + details : '');
+      notif.body = (data.name || data.title || displayTitle) + (details ? ' · ' + details : '');
     }
     const fanout = {};
     recipientUids.forEach(uid => {
@@ -792,7 +792,7 @@ async function notifyEventChange(key, data, mode){
           collapseKey:notificationKey + '-' + uid,
           forceUid:true,
           title:pushTitle,
-          body:(data.name || data.title || displayTitle) + (details ? ' Â· ' + details : '')
+          body:(data.name || data.title || displayTitle) + (details ? ' · ' + details : '')
       }).catch(err => ({ ok:false, status:0, error:err && err.message ? err.message : String(err) }))
     ));
 
