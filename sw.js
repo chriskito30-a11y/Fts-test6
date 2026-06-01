@@ -1,4 +1,4 @@
-const CACHE = 'fts-v210-event-update-notify';
+const CACHE = 'fts-v211-event-notif-encoding';
 const FILES = [
   './manifest.json',
   './index.html',
