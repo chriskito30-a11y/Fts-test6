@@ -326,11 +326,7 @@
       notificationKey:'dm-' + convId + '-' + msgId + '-' + uid,
       collapseKey:'dm-' + convId + '-' + uid
     };
-    await fetch(FTS.PUSH.workerUrl + '/notify', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(payload)
-    }).catch(() => {});
+    await FTS.pushRequest('/notify', payload).catch(() => {});
   }
 
   async function finalizeReminder(id, sentRows){
