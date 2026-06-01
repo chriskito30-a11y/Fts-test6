@@ -1,4 +1,4 @@
-const CACHE = 'fts-v209-push-helper-cache-bust';
+const CACHE = 'fts-v210-event-update-notify';
 const FILES = [
   './manifest.json',
   './index.html',
