@@ -702,19 +702,53 @@ async function getEventRecipientUids(excludeUid, eventData){
   });
   return uids;
 }
-async function notifyNewEvent(key, data){
+function eventStableTargets(value){
+  const groups = (value && typeof value === 'object' && !Array.isArray(value)) ? value : {};
+  return Object.keys(groups).sort().map(cat => ({
+    cat:FTS.norm(cat),
+    subs:normArray(groups[cat]).map(FTS.norm).sort()
+  }));
+}
+function eventNotifySignature(e){
+  e = e || {};
+  return JSON.stringify({
+    active:e.active !== false && e.status !== 'inactive',
+    name:String(e.name || e.title || e.n || ''),
+    type:String(e.type || e.t || ''),
+    dateIso:String(e.dateIso || ''),
+    date:String(e.date || e.dateLabel || e.d || ''),
+    hour:String(e.hour || e.h || ''),
+    location:String(e.location || e.l || ''),
+    url:String(e.url || e.u || ''),
+    description:String(e.description || ''),
+    important:e.important === true || e.priority === 'important',
+    targets:eventStableTargets(e.targetGroups),
+    paymentEnabled:e.paymentEnabled === true || e.payEnabled === true,
+    priceCents:Number(e.priceCents || 0) || 0,
+    endDate:String(e.endDateIso || e.dateEndIso || e.dateEndLabel || e.endDateLabel || '')
+  });
+}
+function shouldNotifyEventUpdate(previous, next){
+  if(!previous || !next || next.active === false || next.status === 'inactive') return false;
+  const wasActive = previous.active !== false && previous.status !== 'inactive';
+  return !wasActive || eventNotifySignature(previous) !== eventNotifySignature(next);
+}
+async function notifyEventChange(key, data, mode){
   try{
     if(!key || !data || data.active === false || data.status === 'inactive') return;
     const currentUser = auth && auth.currentUser ? auth.currentUser.uid : '';
     const recipientUids = await getEventRecipientUids(currentUser, data);
     if(!recipientUids.length) return;
 
+    const isUpdate = mode === 'update';
+    const displayTitle = isUpdate ? '\u00c9v\u00e9nement mis \u00e0 jour' : 'Nouvel \u00e9v\u00e9nement';
+    const pushTitle = isUpdate ? 'FTS \u2014 \u00c9v\u00e9nement mis \u00e0 jour' : 'FTS \u2014 Nouvel \u00e9v\u00e9nement';
     const dateText = data.dateLabel || data.date || data.d || '';
     const hourText = data.hour || data.h || '';
     const locationText = data.location || data.l || '';
     const details = [dateText + (hourText ? ' · ' + hourText : ''), locationText].filter(Boolean).join(' · ');
     const url = './membres.html?event=' + encodeURIComponent(key);
-    const notificationKey = 'event-' + key;
+    const notificationKey = isUpdate ? ('event-update-' + key + '-' + Number(data.updatedAt || Date.now())) : ('event-' + key);
 
     // Trace interne utile pour audit / fallback local côté membres.
     const notif = {
@@ -722,6 +756,10 @@ async function notifyNewEvent(key, data){
       body:(data.name || data.title || 'Nouvel événement') + (details ? ' · ' + details : ''),
       url, read:false, createdAt:Date.now(), authorUid:currentUser
     };
+    if(isUpdate){
+      notif.title = displayTitle;
+      notif.body = (data.name || data.title || displayTitle) + (details ? ' Â· ' + details : '');
+    }
     const fanout = {};
     recipientUids.forEach(uid => {
       const nref = db.ref('fts_user_notifications/' + uid).push();
@@ -752,7 +790,9 @@ async function notifyNewEvent(key, data){
           recipients:[uid],
           tag:notificationKey + '-' + uid,
           collapseKey:notificationKey + '-' + uid,
-          forceUid:true
+          forceUid:true,
+          title:pushTitle,
+          body:(data.name || data.title || displayTitle) + (details ? ' Â· ' + details : '')
       }).catch(err => ({ ok:false, status:0, error:err && err.message ? err.message : String(err) }))
     ));
 
@@ -767,6 +807,8 @@ async function notifyNewEvent(key, data){
     }).catch(()=>{});
   }catch(e){ console.warn('[FTS Calendrier] Notification événement non envoyée', e); }
 }
+async function notifyNewEvent(key, data){ return notifyEventChange(key, data, 'new'); }
+async function notifyUpdatedEvent(key, data){ return notifyEventChange(key, data, 'update'); }
 async function saveEvent(){
   if(isSavingEvent) return;
   const saveBtn = $('btn-save-event');
@@ -816,10 +858,12 @@ async function saveEvent(){
       ...paymentFields
     };
     const isNewEvent = !$('e-key').value && !(selected && selected.eventKey);
+    const notifyUpdate = !isNewEvent && shouldNotifyEventUpdate(selected, data);
     if(isNewEvent) data.createdAt=Date.now();
     await db.ref('fts_events/'+key).set(data);
     await syncEventToQuestionnaire(key, data);
     if(isNewEvent) await notifyNewEvent(key, data);
+    else if(notifyUpdate) await notifyUpdatedEvent(key, data);
     // Si l’événement venait d’une ancienne option du questionnaire, on supprime l’ancienne entrée
     // après migration pour éviter les doublons.
     if(selected && selected.qKey && selected.qKey !== questionEventKey(key)){
