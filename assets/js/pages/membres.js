@@ -298,20 +298,19 @@ function updateRepetitionShortcutVisibility() {
   const card = document.getElementById('member-repetition-shortcut');
   if (!card) return;
 
-  const strip = document.getElementById('member-utility-actions') || card.closest('.member-utility-actions');
+  const actions = document.getElementById('member-account-actions') || card.closest('.account-actions');
   const allowed = new Set(['theatre', 'comedie musicale', 'singer show'].map(FTS.norm));
   const disciplines = userDisciplines().map(FTS.norm);
   const hasAllowedDiscipline = profileIsAdmin() || disciplines.some(d => allowed.has(d));
 
-  // Ne pas se contenter de l'attribut hidden : la carte a display:grid en CSS.
-  // On force donc aussi le display inline pour éviter qu'un style de carte ne la rende visible.
+  // Masquage réel : la bulle est dans la grille des actions du bloc Bienvenue.
   card.hidden = !hasAllowedDiscipline;
   card.setAttribute('aria-hidden', hasAllowedDiscipline ? 'false' : 'true');
   card.style.display = hasAllowedDiscipline ? '' : 'none';
 
-  if (strip) {
-    strip.classList.toggle('is-shop-only', !hasAllowedDiscipline);
-    strip.classList.toggle('has-repetition', hasAllowedDiscipline);
+  if (actions) {
+    actions.classList.toggle('member-tools-shop-only', !hasAllowedDiscipline);
+    actions.classList.toggle('member-tools-has-repetition', hasAllowedDiscipline);
   }
 }
 
