@@ -183,6 +183,13 @@ function bridgeBlockedStatus(value) {
 function bridgeSeasonLines(order) {
   order = order || {};
   const lines = [];
+  if (Array.isArray(order.reservationLines)) {
+    order.reservationLines.forEach(line => {
+      if (!line) return;
+      const type = String(line.type || '').toLowerCase();
+      if (type === 'season_registration' || line.activityId || line.offerKey || line.subcategoryId) lines.push(line);
+    });
+  }
   if (Array.isArray(order.cartLines)) {
     order.cartLines.forEach(line => {
       if (!line) return;
