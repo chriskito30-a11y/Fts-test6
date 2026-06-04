@@ -554,11 +554,29 @@ function applicableLinkedRules(item,offer,subcat,selections,amountCents){
   return uniqueLinkedRules(((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat,amountCents)&&Array.isArray(r.choices)&&r.choices.length&&linkedRuleDependencyMet(r,selectedCategories)));
 }
 function targetChoiceInfo(choice){
-  const item=seasonFindItem(choice.categoryId); if(!item)return null;
+  const item=seasonFindItem(choice.categoryId); 
+  if(!item)return null;
+
   const sub=seasonFindSubcatInfo(item,choice.subcategoryId||'principal');
   const offerKey=choice.offerKey||'option';
   let offer=seasonFindOffer(item,offerKey)||((item.offers||[]).find(o=>String(o.key)==='option')||(item.offers||[])[0]);
-  return {item,offer,sub,categoryId:item.id,subcategoryId:sub.key,offerKey:offer&&offer.key||'',label:[item.name,sub.title||sub.name].filter(Boolean).join(' — ')};
+
+  const offerLabel=String((offer&&offer.label)||'').trim();
+  const subLabel=String(sub.title||sub.name||'').trim();
+  const parts=[item.name];
+
+  if(offerLabel)parts.push(offerLabel);
+  if(subLabel && !offerLabel.toLowerCase().includes(subLabel.toLowerCase()))parts.push(subLabel);
+
+  return {
+    item,
+    offer,
+    sub,
+    categoryId:item.id,
+    subcategoryId:sub.key,
+    offerKey:offer&&offer.key||'',
+    label:parts.filter(Boolean).join(' — ')
+  };
 }
 function linkedChoicePrice(rule,choice){
   const mode=rule.pricingMode||'free';
