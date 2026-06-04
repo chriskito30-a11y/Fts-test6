@@ -1,4 +1,4 @@
-const CACHE = 'fts-v211-event-notif-encoding';
+const CACHE = 'fts-v214-xp-rewards';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -22,6 +22,7 @@ const FILES = [
   './saison-admin.html',
   './boutique.html',
   './boutique-admin.html',
+  './xp-rewards-admin.html',
   './paiement.html',
   './paiements-admin.html',
   './ventes-admin.html',
@@ -45,6 +46,7 @@ const FILES = [
   './assets/css/pages/saison.css',
   './assets/css/pages/boutique.css',
   './assets/css/pages/boutique-admin.css',
+  './assets/css/pages/xp-rewards-admin.css',
   './assets/css/pages/paiement.css',
   './assets/css/pages/ventes-admin.css',
   './assets/css/fts-enjoy.css',
@@ -89,6 +91,7 @@ const FILES = [
   './assets/js/pages/saison.js',
   './assets/js/pages/boutique.js',
   './assets/js/pages/boutique-admin.js',
+  './assets/js/pages/xp-rewards-admin.js',
   './assets/js/fts-paiement.js',
   './assets/js/pages/ventes-admin.js',
   './assets/js/fts-promo-admin.js',
