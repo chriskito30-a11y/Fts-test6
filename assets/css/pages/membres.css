@@ -3677,3 +3677,60 @@ button.profile-pill:focus-visible {
 
 /* XP Rewards — codes promo envoyés par le robot Fais Ton Show */
 .member-xp-rewards-panel{margin-top:18px}.member-xp-rewards-list{display:grid;gap:10px}.member-xp-reward-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:22px;padding:14px;box-shadow:0 12px 28px rgba(0,0,0,.14)}.member-xp-reward-card strong{display:block}.member-xp-reward-card small,.member-xp-reward-card span{display:block;color:rgba(255,255,255,.68);margin-top:4px}.member-xp-code{display:inline-flex!important;width:max-content;margin-top:10px;border-radius:999px;background:#ffd666;color:#111!important;font-weight:900;padding:8px 12px;letter-spacing:.04em}.member-news-xp_reward{background:rgba(255,214,102,.16)!important;color:#ffd666!important}
+
+
+/* V223 — Boutique / Assistant alignés sous les 4 bulles du bloc Bienvenue */
+.welcome-card.smart-hero .account-actions .member-tool-btn{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  gap:.35rem !important;
+  width:100% !important;
+  min-width:0 !important;
+  text-align:center !important;
+  text-decoration:none !important;
+  white-space:nowrap !important;
+}
+.welcome-card.smart-hero .account-actions .member-tool-repetition{
+  grid-column:1 !important;
+  grid-row:3 !important;
+}
+.welcome-card.smart-hero .account-actions .member-tool-shop{
+  grid-column:2 !important;
+  grid-row:3 !important;
+  border-color:rgba(248,231,2,.26) !important;
+  background:rgba(248,231,2,.10) !important;
+}
+.welcome-card.smart-hero .account-actions.member-tools-shop-only .member-tool-shop{
+  grid-column:1 / -1 !important;
+  grid-row:3 !important;
+}
+.welcome-card.smart-hero .account-actions .member-tool-repetition[hidden]{
+  display:none !important;
+}
+.welcome-card.smart-hero .account-actions .member-tool-btn:hover,
+.welcome-card.smart-hero .account-actions .member-tool-btn:focus-visible{
+  color:var(--gold) !important;
+  border-color:rgba(248,231,2,.55) !important;
+  background:rgba(248,231,2,.10) !important;
+}
+.welcome-card.smart-hero .account-actions .member-tool-btn .quick-ico{
+  flex:0 0 auto !important;
+  font-size:1.02rem !important;
+  line-height:1 !important;
+}
+.welcome-card.smart-hero .account-actions .member-tool-btn .quick-title{
+  display:inline-block !important;
+  min-width:0 !important;
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+  white-space:nowrap !important;
+  font-size:.74rem !important;
+  font-weight:700 !important;
+  line-height:1 !important;
+}
+@media (max-width:380px){
+  .welcome-card.smart-hero .account-actions .member-tool-btn{ gap:.25rem !important; }
+  .welcome-card.smart-hero .account-actions .member-tool-btn .quick-title{ font-size:.66rem !important; }
+  .welcome-card.smart-hero .account-actions .member-tool-btn .quick-ico{ font-size:.92rem !important; }
+}
