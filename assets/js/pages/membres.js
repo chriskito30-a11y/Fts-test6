@@ -940,7 +940,12 @@ async function loadMemberXpRewards() {
     const rows = Object.entries(data)
       .map(([threshold, r]) => Object.assign({ threshold }, r || {}))
       .filter(r => r && r.code)
-      .filter(r => String(r.status || '').toLowerCase() !== 'used')
+      .filter(r => !['used','consumed','expired','inactive'].includes(String(r.status || '').toLowerCase()))
+      .filter(r => !r.usedAt && !r.consumedAt)
+      .filter(r => {
+        const endsAt = Number(r.endsAt || 0) || 0;
+        return !endsAt || Date.now() <= endsAt;
+      })
       .filter(r => !usedCodes.has(normalizePromoCodeForMember(r.code)))
       .sort((a,b) => Number(b.sentAt || b.createdAt || 0) - Number(a.sentAt || a.createdAt || 0));
 

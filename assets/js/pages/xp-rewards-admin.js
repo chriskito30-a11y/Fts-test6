@@ -139,6 +139,44 @@
     renderConfigEditor();
   }
 
+  function promoIsUnavailable(p){
+    if(!p) return false;
+    const now = Date.now();
+    const active = p.active !== false;
+    const usedCount = Number(p.usedCount || 0) || 0;
+    const maxUses = Number(p.maxUses || 0) || 0;
+    const endsAt = Number(p.endsAt || 0) || 0;
+    return !active || (maxUses > 0 && usedCount >= maxUses) || (endsAt > 0 && now > endsAt);
+  }
+  async function syncUsedXpRewardsFromPromoCodes(currentRewards){
+    try{
+      const res = await api('/admin/promo-codes');
+      const byCode = {};
+      (res.codes || []).forEach(p => { byCode[String(p.code || '').trim().toUpperCase()] = p; });
+      const updates = {};
+      Object.entries(currentRewards || {}).forEach(([uid, byThreshold]) => {
+        Object.entries(byThreshold || {}).forEach(([threshold, reward]) => {
+          const code = String(reward && reward.code || '').trim().toUpperCase();
+          if(!code) return;
+          if(String(reward.status || '').toLowerCase() === 'used') return;
+          const promo = byCode[code];
+          if(!promo || !promoIsUnavailable(promo)) return;
+          const now = Date.now();
+          updates['fts_xp_rewards/' + uid + '/' + threshold + '/status'] = 'used';
+          updates['fts_xp_rewards/' + uid + '/' + threshold + '/usedAt'] = now;
+          updates['fts_xp_rewards/' + uid + '/' + threshold + '/updatedAt'] = now;
+          updates['fts_xp_rewards/' + uid + '/' + threshold + '/usedReason'] = promo.active === false ? 'promo_inactive' : ((Number(promo.maxUses || 0) > 0 && Number(promo.usedCount || 0) >= Number(promo.maxUses || 0)) ? 'promo_max_uses_reached' : 'promo_expired');
+        });
+      });
+      if(Object.keys(updates).length){
+        await db.ref().update(updates);
+        return true;
+      }
+    }catch(e){
+      console.warn('[FTS] Synchronisation codes XP utilisés impossible :', e);
+    }
+    return false;
+  }
   function renderAll(){ renderPending(); renderHistory(); }
   async function loadAll(){
     const [us, fus, rew] = await Promise.all([
@@ -146,7 +184,12 @@
       db.ref('fts_forum/users').once('value').then(s=>s.val() || {}).catch(()=>({})),
       db.ref('fts_xp_rewards').once('value').then(s=>s.val() || {}).catch(()=>({}))
     ]);
-    users = us || {}; forumUsers = fus || {}; rewards = rew || {}; renderAll();
+    users = us || {}; forumUsers = fus || {}; rewards = rew || {};
+    const synced = await syncUsedXpRewardsFromPromoCodes(rewards);
+    if(synced){
+      rewards = await db.ref('fts_xp_rewards').once('value').then(s=>s.val() || {}).catch(()=>rewards || {});
+    }
+    renderAll();
   }
   function openAward(uid, threshold){
     const u = users[uid] || {};
@@ -239,7 +282,8 @@
       showMsg('Création du code promo…');
       const promoRes = await api('/admin/promo-codes/save', { method:'POST', body:JSON.stringify({
         code, label, kind, scope, active:true, publicVisible:false, value, startsAt:0, endsAt, maxUses,
-        productIds:[], eventIds:[], activityIds:[], offerKeys:[], subcategoryIds:[]
+        productIds:[], eventIds:[], activityIds:[], offerKeys:[], subcategoryIds:[],
+        xpReward:true, xpRewardUid:uid, xpRewardThreshold:String(threshold)
       }) });
       const now = Date.now();
       const notifRef = db.ref('fts_user_notifications/' + uid).push();
