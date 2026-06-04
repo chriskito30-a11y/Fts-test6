@@ -1,4 +1,4 @@
-const CACHE = 'fts-v215-xp-rewards-member';
+const CACHE = 'fts-v217-xp-promo-dm';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -373,4 +373,4 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-// FTS cache bump V109 — contrôles répétition collés à la bottom nav
+// FTS cache bump V216 — codes promo XP : libellé + masquage des codes utilisés
