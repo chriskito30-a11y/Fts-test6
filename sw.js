@@ -1,4 +1,4 @@
-const CACHE = 'fts-v220-repetition-target-display';
+const CACHE = 'fts-v221-tools-buttons';
 const FILES = [
   './manifest.json',
   './index.html',
