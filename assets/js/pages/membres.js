@@ -898,6 +898,33 @@ function xpRewardDateLabel(ms) {
   const d = new Date(Number(ms));
   return Number.isFinite(d.getTime()) ? d.toLocaleDateString('fr-FR') : '';
 }
+function normalizePromoCodeForMember(value) {
+  return String(value || '').trim().toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9_-]/g, '');
+}
+function orderHasConsumedPromo(order) {
+  if (!order) return false;
+  const status = String(order.status || '').toLowerCase();
+  const paymentStatus = String(order.globalPaymentStatus || '').toLowerCase();
+  if (order.promoUsageCounted === true || order.promoUsedAt) return true;
+  if (['paid', 'free_confirmed', 'offline_pending'].includes(status)) return true;
+  if (['paid', 'free', 'offline_pending'].includes(paymentStatus)) return true;
+  return false;
+}
+async function loadUsedPromoCodesForCurrentMember() {
+  const used = new Set();
+  if (!currentUid || !db) return used;
+  try {
+    const snap = await db.ref('fts_orders').orderByChild('uid').equalTo(currentUid).once('value');
+    snap.forEach(ch => {
+      const order = ch.val() || {};
+      const code = normalizePromoCodeForMember(order.promoCode || order.codePromo || order.specialCode || '');
+      if (code && orderHasConsumedPromo(order)) used.add(code);
+    });
+  } catch(e) {
+    console.warn('[FTS] Lecture commandes promo impossible :', e);
+  }
+  return used;
+}
 async function loadMemberXpRewards() {
   const panel = document.getElementById('mes-recompenses');
   const list = document.getElementById('member-xp-rewards-list');
@@ -905,11 +932,16 @@ async function loadMemberXpRewards() {
   if (!panel || !list || !currentUid || !db) return;
 
   try {
-    const snap = await db.ref('fts_xp_rewards/' + currentUid).once('value');
-    const data = snap.val() || {};
+    const [rewardSnap, usedCodes] = await Promise.all([
+      db.ref('fts_xp_rewards/' + currentUid).once('value'),
+      loadUsedPromoCodesForCurrentMember()
+    ]);
+    const data = rewardSnap.val() || {};
     const rows = Object.entries(data)
       .map(([threshold, r]) => Object.assign({ threshold }, r || {}))
       .filter(r => r && r.code)
+      .filter(r => String(r.status || '').toLowerCase() !== 'used')
+      .filter(r => !usedCodes.has(normalizePromoCodeForMember(r.code)))
       .sort((a,b) => Number(b.sentAt || b.createdAt || 0) - Number(a.sentAt || a.createdAt || 0));
 
     if (!rows.length) {
@@ -921,7 +953,7 @@ async function loadMemberXpRewards() {
 
     panel.classList.remove('u-initial-hidden');
     panel.style.display = 'block';
-    if (hint) hint.textContent = rows.length === 1 ? '1 récompense disponible' : rows.length + ' récompenses disponibles';
+    if (hint) hint.textContent = rows.length === 1 ? '1 code disponible' : rows.length + ' codes disponibles';
 
     list.innerHTML = rows.map(r => {
       const value = xpRewardValueLabel(r);
@@ -934,7 +966,7 @@ async function loadMemberXpRewards() {
         sent ? 'Envoyé le ' + sent : ''
       ].filter(Boolean).join(' · ');
       return `<article class="member-xp-reward-card">
-        <strong>${FTS.esc(r.rewardLabel || 'Récompense XP Fais Ton Show')}</strong>
+        <strong>${FTS.esc(r.rewardLabel || 'Code promo Fais Ton Show')}</strong>
         <span class="member-xp-code">${FTS.esc(r.code)}</span>
         <small>${FTS.esc(meta)}</small>
       </article>`;
@@ -957,7 +989,7 @@ async function collectUnreadXpRewardItems(uid) {
       type:'xp_reward',
       icon:'🎁',
       title:n.title || '🤖 Fais Ton Show',
-      meta:n.code ? ('Code promo : ' + n.code) : (n.rewardLabel || 'Récompense XP disponible'),
+      meta:n.code ? ('Code promo : ' + n.code) : (n.rewardLabel || 'Code promo disponible'),
       ts:Number(n.createdAt || 0) || Date.now(),
       action:'xp_reward',
       key:ch.key,

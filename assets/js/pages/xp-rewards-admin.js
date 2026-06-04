@@ -168,6 +168,57 @@
     const txt = String($('xp-message').value || '').trim();
     return txt || '🎉 Bravo ! Tu as débloqué une récompense Fais Ton Show.';
   }
+  function xpRobotConversationId(uid){
+    return 'xp_robot_' + cleanKey(uid);
+  }
+  function xpRobotMessagePreview(text){
+    return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Nouveau code promo Fais Ton Show';
+  }
+  function buildXpRobotDmUpdates(uid, threshold, code, label, message, now, notifKey){
+    const convId = xpRobotConversationId(uid);
+    const msgRef = db.ref('fts_dm/messages/' + convId).push();
+    const msgId = msgRef.key;
+    const parts = {};
+    parts[uid] = true;
+    parts[me.uid] = true;
+    const text = message || ('🎉 Bravo ! Ton code promo Fais Ton Show est : ' + code);
+    const updates = {};
+    updates['fts_dm/conversations/' + convId] = {
+      type:'group',
+      name:'🤖 Fais Ton Show',
+      participants:parts,
+      system:true,
+      bot:true,
+      botLabel:'Robot Fais Ton Show',
+      xpReward:true,
+      targetUid:uid,
+      createdBy:me.uid,
+      updatedBy:me.uid,
+      lastMessage:xpRobotMessagePreview(text),
+      lastSenderName:'Fais Ton Show',
+      lastTs:now,
+      createdAt:now,
+      updatedAt:now,
+      unread:{ [uid]:1, [me.uid]:0 }
+    };
+    updates['fts_dm/messages/' + convId + '/' + msgId] = {
+      senderId:'system',
+      senderName:'Fais Ton Show',
+      text,
+      ts:now,
+      bot:true,
+      robot:true,
+      system:true,
+      messageType:'xp-reward',
+      botLabel:'Robot Fais Ton Show',
+      code,
+      threshold,
+      rewardLabel:label
+    };
+    updates['fts_dm/userConvs/' + uid + '/' + convId] = true;
+    updates['fts_dm/userConvs/' + me.uid + '/' + convId] = true;
+    return { convId, msgId, updates };
+  }
   async function sendReward(){
     if(!selected) return;
     const uid = selected.uid;
@@ -213,32 +264,40 @@
         notificationId:notifRef.key,
         source:'xp_rewards_admin'
       };
+      const notifKey = 'xp-reward-' + uid + '-' + threshold;
+      const dm = buildXpRobotDmUpdates(uid, threshold, code, label, message, now, notifKey);
+      rewardPayload.notificationId = notifRef.key;
+      rewardPayload.dmConversationId = dm.convId;
+      rewardPayload.dmMessageId = dm.msgId;
       const notification = {
         type:'xp_reward',
         title:'🤖 Fais Ton Show',
         body:message,
-        url:'./membres.html#mes-recompenses',
+        url:'./messages.html?conv=' + encodeURIComponent(dm.convId) + '&msg=' + encodeURIComponent(dm.msgId),
         code,
         rewardLabel:label,
         threshold,
+        conversationId:dm.convId,
+        msgId:dm.msgId,
         senderUid:'system',
         senderName:'Robot Fais Ton Show',
         robot:true,
         read:false,
         createdAt:now,
-        notificationKey:'xp-reward-' + uid + '-' + threshold
+        notificationKey:notifKey
       };
-      const updates = {};
+      const updates = Object.assign({}, dm.updates);
       updates['fts_xp_rewards/' + uid + '/' + threshold] = rewardPayload;
       updates['fts_user_notifications/' + uid + '/' + notifRef.key] = notification;
       await db.ref().update(updates);
       db.ref('fts_forum/rewardHistory').push(Object.assign({}, rewardPayload, { type:'xp_promo_code', message })).catch(()=>{});
       if(window.FTS && FTS.PUSH && FTS.PUSH.workerUrl){
         FTS.pushRequest('/notify', {
-          type:'xp_reward', uid, recipientUid:uid, expectedUid:uid, requiresUidMatch:true,
-          senderUid:'system', title:'🤖 Fais Ton Show', body:'Tu as débloqué une récompense XP. Code : ' + code,
-          url:'./membres.html#mes-recompenses', notificationKey:'xp-reward-' + uid + '-' + threshold,
-          tag:'xp-reward-' + uid + '-' + threshold, collapseKey:'xp-reward-' + uid + '-' + threshold
+          type:'dm_group', uid, recipientUid:uid, expectedUid:uid, requiresUidMatch:true,
+          senderUid:'system', conversationId:dm.convId, msgId:dm.msgId,
+          title:'🤖 Fais Ton Show', body:'Tu as débloqué un code promo : ' + code,
+          url:'./messages.html?conv=' + encodeURIComponent(dm.convId) + '&msg=' + encodeURIComponent(dm.msgId), notificationKey:notifKey,
+          tag:notifKey, collapseKey:notifKey
         }).catch(()=>{});
       }
       showMsg('Récompense envoyée par le robot Fais Ton Show.', true);
