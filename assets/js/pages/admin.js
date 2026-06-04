@@ -292,6 +292,26 @@ function adminParseDateTs(v){
   return 0;
 }
 function adminCountChildren(u){ return Array.isArray(u && u.enfants) ? u.enfants.length : 0; }
+function adminSeasonAccessRequestPending(r){
+  return r && String(r.status || '') === 'pending_admin_review';
+}
+function adminPendingSeasonAccessCount(users){
+  let count = 0;
+  Object.values(users || {}).forEach(u=>{
+    if(!u) return;
+    const requests = (u.seasonAccessRequests && typeof u.seasonAccessRequests === 'object') ? u.seasonAccessRequests : {};
+    Object.values(requests).forEach(r=>{ if(adminSeasonAccessRequestPending(r)) count += 1; });
+    const last = u.lastSeasonAccessRequest;
+    if(!adminSeasonAccessRequestPending(last)) return;
+    const lastOrderId = last.paymentOrderId || (last.paymentAttachment && last.paymentAttachment.paymentOrderId) || '';
+    const alreadyListed = lastOrderId && Object.values(requests).some(r=>{
+      const orderId = r && (r.paymentOrderId || (r.paymentAttachment && r.paymentAttachment.paymentOrderId));
+      return adminSeasonAccessRequestPending(r) && String(orderId || '') === String(lastOrderId);
+    });
+    if(!alreadyListed) count += 1;
+  });
+  return count;
+}
 function adminDisplayName(u){
   return [u && (u.firstName || u.firstname || u.prenom), u && (u.lastName || u.lastname || u.nom)].filter(Boolean).join(' ').trim() || (u && (u.name || u.displayName || u.email)) || 'Membre';
 }
@@ -423,16 +443,18 @@ loadAdminOverview = async function(){
       children += adminCountChildren(u);
       adminCollectPeopleFromUser(u).forEach(person=>adminAddPersonToStats(categoryStats, person, meta));
     });
+    const pendingSeasonAccess = adminPendingSeasonAccessCount(users);
+    const pendingTotal = pending + pendingSeasonAccess;
     const setText=(id,value)=>{ const el=document.getElementById(id); if(el) el.textContent=String(value); };
-    setText('stat-pending', pending);
-    setText('stat-pending-simple', pending);
+    setText('stat-pending', pendingTotal);
+    setText('stat-pending-simple', pendingTotal);
     setText('stat-active', active);
     setText('stat-staff', staff);
     setText('stat-children', children);
     adminRenderCategorySummary(categoryStats);
     adminInitSearch();
     adminRenderSearchResults(document.getElementById('admin-global-search')?.value || '');
-    adminLoadTodaySignals(users, pending);
+    adminLoadTodaySignals(users, pendingTotal);
   }catch(e){
     console.warn('[FTS Admin Overview V79]', e);
     const grid = document.getElementById('category-summary-grid');

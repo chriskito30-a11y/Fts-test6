@@ -19,6 +19,7 @@ let currentMsgChannel = "general";
 let currentAdminUser = null;
 let currentAdminProfile = null;
 const adminBusyActions = {};
+let adminCurrentSeasonAccessEdit = null;
 
 
 /* ── PUSH ADMIN : canal interne nouvelles inscriptions ───────────
@@ -466,7 +467,7 @@ function renderSeasonAccessPendingCard(entry) {
         ${adminPaymentLinkHtml(view)}
       </div>
       <div class="user-actions">
-        <button class="btn-action btn-modify" data-fts-click="openModModal(${FTS.jsArg(entry.uid)})">Ouvrir fiche</button>
+        <button class="btn-action btn-modify" data-fts-click="openModModal(${FTS.jsArg(entry.uid)}, ${FTS.jsArg(entry.requestId || '')})">Ouvrir fiche</button>
       </div>
     </div>`;
 }
@@ -1664,10 +1665,11 @@ function renderLegacyAccessNotice(rawUser, visibleUser) {
     </div>`;
 }
 
-function openModModal(id) {
+function openModModal(id, seasonAccessRequestId) {
   const u = allUsers[id];
   if (!u) return;
   const rawUser = allRawUsers[id] || u;
+  adminCurrentSeasonAccessEdit = seasonAccessRequestId ? { uid:id, requestId:seasonAccessRequestId } : null;
 
   const uCats = normList(rawUser.disciplines || rawUser.group || u.disciplines || u.group);
   const uSubs = normList(rawUser.subgroups || rawUser.subcategories || rawUser.subgroup || u.subgroups || u.subgroup);
@@ -1869,6 +1871,46 @@ function buildSubgroupsByCat(cats, subs) {
   return result;
 }
 
+function seasonAccessOrderId(r) {
+  return r && (r.paymentOrderId || (r.paymentAttachment && r.paymentAttachment.paymentOrderId)) || '';
+}
+
+function closeSeasonAccessRequestData(uid, rawUser, requestId) {
+  rawUser = rawUser || {};
+  const edit = adminCurrentSeasonAccessEdit || {};
+  if (!requestId || edit.uid !== uid) return {};
+  const now = Date.now();
+  const reviewer = currentAdminUser && currentAdminUser.uid ? currentAdminUser.uid : '';
+  const reviewed = r => Object.assign({}, r || {}, {
+    status: 'approved',
+    reviewedAt: now,
+    approvedAt: now,
+    reviewedByUid: reviewer,
+    approvedByUid: reviewer
+  });
+  const updates = {};
+  const requests = (rawUser.seasonAccessRequests && typeof rawUser.seasonAccessRequests === 'object') ? Object.assign({}, rawUser.seasonAccessRequests) : {};
+  const closeAllPending = requestId === 'lastSeasonAccessRequest';
+  const closedOrderIds = [];
+
+  Object.entries(requests).forEach(([key, request]) => {
+    if (!request || String(request.status || '') !== 'pending_admin_review') return;
+    if (!closeAllPending && String(key) !== String(requestId)) return;
+    requests[key] = reviewed(request);
+    const orderId = seasonAccessOrderId(request);
+    if (orderId) closedOrderIds.push(String(orderId));
+  });
+  if (Object.keys(requests).length) updates.seasonAccessRequests = requests;
+
+  const last = rawUser.lastSeasonAccessRequest;
+  if (last && String(last.status || '') === 'pending_admin_review') {
+    const lastOrderId = seasonAccessOrderId(last);
+    const closeLast = closeAllPending || (lastOrderId && closedOrderIds.includes(String(lastOrderId)));
+    if (closeLast) updates.lastSeasonAccessRequest = reviewed(last);
+  }
+  return updates;
+}
+
 async function saveModification() {
   const id = document.getElementById("mod-uid").value;
   if (!id) return;
@@ -1937,7 +1979,9 @@ async function saveModification() {
   };
 
   try {
-    const nextUser = { ...(allRawUsers[id] || {}), ...userUpdate };
+    const rawUserForSave = allRawUsers[id] || {};
+    const seasonAccessUpdate = closeSeasonAccessRequestData(id, rawUserForSave, adminCurrentSeasonAccessEdit && adminCurrentSeasonAccessEdit.uid === id ? adminCurrentSeasonAccessEdit.requestId : '');
+    const nextUser = { ...rawUserForSave, ...userUpdate, ...seasonAccessUpdate };
     const nextForumUser = { ...(allRawForumUsers[id] || {}), ...forumUpdate };
 
     // set() volontaire : on remplace l'objet profil avec la liste d'accès reconstruite,
@@ -1954,6 +1998,7 @@ async function saveModification() {
     renderPending();
     renderMembers();
     renderCategorySummary();
+    adminCurrentSeasonAccessEdit = null;
     closeModModal();
   } catch (e) {
     console.warn("[FTS Admin] Sauvegarde accès impossible", e);
@@ -1961,7 +2006,10 @@ async function saveModification() {
   }
 }
 
-function closeModModal() { document.getElementById("mod-modal").classList.add("hidden"); }
+function closeModModal() {
+  adminCurrentSeasonAccessEdit = null;
+  document.getElementById("mod-modal").classList.add("hidden");
+}
 
 
 /* ── RÉCOMPENSES / GAMIFICATION ─────────────────────────────── */
