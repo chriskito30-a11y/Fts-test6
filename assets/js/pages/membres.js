@@ -272,6 +272,7 @@ function awardMemberDailyLoginXp(memberUid) {
       loadAnnonce();
       loadRecentDocs();
       loadMemberNews();
+      loadMemberXpRewards();
       initNextCoursePanel(user.uid);
       handleResourceDeepLink();
 
@@ -845,6 +846,7 @@ function newsItemId(item) {
   if (type === 'event' && key) return 'event|' + key;
   if (type === 'announcement') return 'announcement|' + String(item.source || 'current') + '|' + String(key || 'current') + '|' + String(item.ts || '0').trim();
   if (type === 'messages') return 'messages|unread';
+  if (type === 'xp_reward' && key) return 'xp_reward|' + key;
 
   const base = key || item.action || item.title || '';
   return [type, base].map(v => String(v || '').trim()).join('|');
@@ -877,6 +879,98 @@ function markNewsSeen(itemOrId) {
 function recentNewsSince() {
   // Pas de lecture/écriture Firebase : on limite juste les nouveautés anciennes côté navigateur.
   return Date.now() - 14 * 24 * 60 * 60 * 1000;
+}
+
+
+/* ── RÉCOMPENSES XP / CODES PROMO ROBOT ─────────────────────── */
+function xpRewardValueLabel(r) {
+  if (!r) return '';
+  if (r.valueLabel) return String(r.valueLabel);
+  const kind = String(r.kind || '').toLowerCase();
+  const value = Number(r.value || 0) || 0;
+  if (kind === 'fixed') return (value / 100).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
+  if (kind === 'percent') return value + '%';
+  if (kind === 'free') return 'Gratuité';
+  return '';
+}
+function xpRewardDateLabel(ms) {
+  if (!ms) return '';
+  const d = new Date(Number(ms));
+  return Number.isFinite(d.getTime()) ? d.toLocaleDateString('fr-FR') : '';
+}
+async function loadMemberXpRewards() {
+  const panel = document.getElementById('mes-recompenses');
+  const list = document.getElementById('member-xp-rewards-list');
+  const hint = document.getElementById('member-xp-rewards-hint');
+  if (!panel || !list || !currentUid || !db) return;
+
+  try {
+    const snap = await db.ref('fts_xp_rewards/' + currentUid).once('value');
+    const data = snap.val() || {};
+    const rows = Object.entries(data)
+      .map(([threshold, r]) => Object.assign({ threshold }, r || {}))
+      .filter(r => r && r.code)
+      .sort((a,b) => Number(b.sentAt || b.createdAt || 0) - Number(a.sentAt || a.createdAt || 0));
+
+    if (!rows.length) {
+      list.innerHTML = '';
+      panel.classList.add('u-initial-hidden');
+      panel.style.display = 'none';
+      return;
+    }
+
+    panel.classList.remove('u-initial-hidden');
+    panel.style.display = 'block';
+    if (hint) hint.textContent = rows.length === 1 ? '1 récompense disponible' : rows.length + ' récompenses disponibles';
+
+    list.innerHTML = rows.map(r => {
+      const value = xpRewardValueLabel(r);
+      const end = xpRewardDateLabel(r.endsAt);
+      const sent = xpRewardDateLabel(r.sentAt || r.createdAt);
+      const meta = [
+        'Palier ' + String(r.threshold || '') + ' XP',
+        value ? 'Avantage : ' + value : '',
+        end ? 'Valable jusqu’au ' + end : '',
+        sent ? 'Envoyé le ' + sent : ''
+      ].filter(Boolean).join(' · ');
+      return `<article class="member-xp-reward-card">
+        <strong>${FTS.esc(r.rewardLabel || 'Récompense XP Fais Ton Show')}</strong>
+        <span class="member-xp-code">${FTS.esc(r.code)}</span>
+        <small>${FTS.esc(meta)}</small>
+      </article>`;
+    }).join('');
+  } catch(e) {
+    console.warn('[FTS] Récompenses XP indisponibles :', e);
+    list.innerHTML = '';
+    panel.classList.add('u-initial-hidden');
+    panel.style.display = 'none';
+  }
+}
+async function collectUnreadXpRewardItems(uid) {
+  if (!uid || !db) return [];
+  const snap = await db.ref('fts_user_notifications/' + uid).limitToLast(30).once('value');
+  const rows = [];
+  snap.forEach(ch => {
+    const n = ch.val() || {};
+    if (n.type !== 'xp_reward' || n.read === true) return;
+    rows.push({
+      type:'xp_reward',
+      icon:'🎁',
+      title:n.title || '🤖 Fais Ton Show',
+      meta:n.code ? ('Code promo : ' + n.code) : (n.rewardLabel || 'Récompense XP disponible'),
+      ts:Number(n.createdAt || 0) || Date.now(),
+      action:'xp_reward',
+      key:ch.key,
+      notificationId:ch.key,
+      skipSeenFilter:true
+    });
+  });
+  rows.sort((a,b) => Number(b.ts || 0) - Number(a.ts || 0));
+  return rows;
+}
+function markXpRewardNotificationRead(notificationId) {
+  if (!notificationId || !currentUid || !db) return;
+  db.ref('fts_user_notifications/' + currentUid + '/' + notificationId).update({ read:true, readAt:Date.now() }).catch(() => {});
 }
 
 function itemTs(obj) {
@@ -1205,12 +1299,13 @@ async function loadMemberNews() {
   try {
     await loadSeenNewsMap();
 
-    const [resources, events, announcement, unread, polls] = await Promise.all([
+    const [resources, events, announcement, unread, polls, xpRewards] = await Promise.all([
       collectNewResources(sinceTs).catch(() => []),
       collectNewEvents(sinceTs).catch(() => []),
       collectNewAnnouncement(sinceTs).catch(() => []),
       getUnreadMessageCount(currentUid),
-      collectUnreadPollItems(currentUid).catch(() => [])
+      collectUnreadPollItems(currentUid).catch(() => []),
+      collectUnreadXpRewardItems(currentUid).catch(() => [])
     ]);
 
     latestUnreadMessages = unread;
@@ -1228,7 +1323,7 @@ async function loadMemberNews() {
         skipSeenFilter: true
       });
     }
-    items.push(...(polls || []), ...resources, ...events, ...announcement);
+    items.push(...(xpRewards || []), ...(polls || []), ...resources, ...events, ...announcement);
 
     const unique = [];
     const seenIds = new Set();
@@ -1330,6 +1425,13 @@ function openMemberNewsItem(btn) {
     } else if (section) {
       section.scrollIntoView({ behavior:'smooth', block:'start' });
     }
+    return;
+  }
+  if (action === 'xp_reward') {
+    markXpRewardNotificationRead(btn.dataset.newsKey || '');
+    loadMemberXpRewards();
+    const panel = document.getElementById('mes-recompenses');
+    if (panel) panel.scrollIntoView({ behavior:'smooth', block:'center' });
     return;
   }
   if (action === 'resource') {
@@ -3638,9 +3740,9 @@ if (document.readyState === 'loading') {
 // Quand l'utilisateur revient sur l'espace membre après avoir lu un MP, un forum,
 // un sondage ou une ressource dans une autre page, le bloc dynamique doit se nettoyer
 // sans obliger à recharger manuellement.
-window.addEventListener('focus', function(){ scheduleMemberNewsRefresh(250); });
+window.addEventListener('focus', function(){ scheduleMemberNewsRefresh(250); loadMemberXpRewards(); });
 document.addEventListener('visibilitychange', function(){
-  if (!document.hidden) scheduleMemberNewsRefresh(250);
+  if (!document.hidden) { scheduleMemberNewsRefresh(250); loadMemberXpRewards(); }
 });
 
 /* ── DÉCONNEXION ─────────────────────────────────────────────── */
