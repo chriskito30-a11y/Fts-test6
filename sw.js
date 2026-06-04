@@ -1,4 +1,4 @@
-const CACHE = 'fts-v217-xp-promo-dm';
+const CACHE = 'fts-v218-xp-used-source';
 const FILES = [
   './manifest.json',
   './index.html',
