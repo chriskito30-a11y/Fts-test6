@@ -3458,82 +3458,76 @@ button.profile-pill:focus-visible {
 }
 
 
-/* ── V221 — Accès utiles intégrés comme boutons membres ───── */
+/* ── V222 — Accès Assistant/Boutique en bulles membres ───── */
 
-.member-utility-actions {
-  display: flex;
+.welcome-card.smart-hero .member-utility-actions {
+  display: grid;
+  grid-template-columns: minmax(0, min(260px, 100%));
   justify-content: center;
-  align-items: stretch;
-  gap: .75rem;
-  margin: 1rem 0 1.25rem;
+  gap: .55rem;
+  margin: .85rem auto .2rem;
   padding: 0;
+  width: 100%;
 }
 
-.member-utility-actions [hidden] {
+.welcome-card.smart-hero .member-utility-actions.has-repetition {
+  grid-template-columns: repeat(2, minmax(0, 210px));
+}
+
+.welcome-card.smart-hero .member-utility-actions.is-shop-only {
+  grid-template-columns: minmax(0, min(230px, 100%));
+}
+
+.welcome-card.smart-hero .member-utility-actions [hidden] {
   display: none !important;
 }
 
-.member-utility-actions.has-repetition {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 220px));
+.welcome-card.smart-hero .member-tool-btn.btn-account {
+  display: inline-flex;
+  align-items: center;
   justify-content: center;
-}
-
-.member-utility-actions.is-shop-only {
-  display: flex;
-  justify-content: center;
-}
-
-.member-tool-btn.quick-card {
+  gap: .35rem;
+  min-height: 38px;
   width: 100%;
-  max-width: 270px;
-  min-height: 74px;
   margin: 0;
-  justify-content: flex-start;
-  background: rgba(20,20,20,.92);
-  border-color: rgba(255,255,255,.10);
-  box-shadow: 0 10px 24px rgba(0,0,0,.18);
+  padding: .46rem .72rem;
+  text-decoration: none;
+  white-space: nowrap;
 }
 
-.member-tool-btn.quick-card:hover,
-.member-tool-btn.quick-card:focus-visible {
-  border-color: rgba(248,231,2,.45);
-  transform: translateY(-1px);
+.welcome-card.smart-hero .member-tool-btn.btn-account .quick-ico {
+  font-size: .98rem;
+  line-height: 1;
+}
+
+.welcome-card.smart-hero .member-tool-btn.btn-account .quick-title {
+  font-size: .72rem;
+  font-weight: 900;
+  letter-spacing: .035em;
+  text-transform: uppercase;
+}
+
+.welcome-card.smart-hero .member-tool-shop.btn-account {
+  border-color: rgba(248,231,2,.26);
+  background: rgba(248,231,2,.10);
+}
+
+.welcome-card.smart-hero .member-tool-shop.btn-account:hover,
+.welcome-card.smart-hero .member-tool-shop.btn-account:focus-visible,
+.welcome-card.smart-hero .member-tool-repetition.btn-account:hover,
+.welcome-card.smart-hero .member-tool-repetition.btn-account:focus-visible {
+  border-color: var(--gold);
+  background: rgba(248,231,2,.13);
+  color: var(--white);
   outline: none;
 }
 
-.member-tool-btn .quick-ico {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 14px;
-  background: rgba(255,255,255,.06);
-  border: 1px solid rgba(255,255,255,.08);
-  flex: 0 0 auto;
-}
-
-.member-tool-btn .quick-title,
-.member-tool-btn .quick-sub {
-  display: block;
-}
-
-.member-tool-shop .quick-ico {
-  background: rgba(248,231,2,.10);
-  border-color: rgba(248,231,2,.18);
-}
-
 @media (max-width: 620px) {
-  .member-utility-actions,
-  .member-utility-actions.has-repetition,
-  .member-utility-actions.is-shop-only {
-    display: grid;
+  .welcome-card.smart-hero .member-utility-actions,
+  .welcome-card.smart-hero .member-utility-actions.has-repetition,
+  .welcome-card.smart-hero .member-utility-actions.is-shop-only {
     grid-template-columns: minmax(0, 1fr);
-    justify-items: center;
-  }
-
-  .member-tool-btn.quick-card {
-    max-width: 360px;
+    max-width: 280px;
   }
 }
 
