@@ -1,4 +1,4 @@
-const CACHE = 'fts-v222-bubble-tools';
+const CACHE = 'fts-v223-bubbles-aligned';
 const FILES = [
   './manifest.json',
   './index.html',
