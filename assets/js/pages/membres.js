@@ -293,6 +293,18 @@ function awardMemberDailyLoginXp(memberUid) {
 
 
 /* ── TABLEAU DE BORD ─────────────────────────────────────────── */
+
+function updateRepetitionShortcutVisibility() {
+  const card = document.getElementById('member-repetition-shortcut');
+  if (!card) return;
+
+  const allowed = new Set(['theatre', 'comedie musicale', 'singer show'].map(FTS.norm));
+  const hasAllowedDiscipline = profileIsAdmin() || userDisciplines().some(d => allowed.has(FTS.norm(d)));
+
+  card.hidden = !hasAllowedDiscipline;
+  card.setAttribute('aria-hidden', hasAllowedDiscipline ? 'false' : 'true');
+}
+
 function renderDashboard(profile, email) {
   const displayName = profile.firstName || profile.name || email || 'membre';
 
@@ -335,6 +347,8 @@ function renderDashboard(profile, email) {
       ? 'Retrouve tes ressources, tes événements et tes espaces d’échange en un seul endroit.'
       : 'Ton compte est actif, mais aucune discipline n’est encore associée à ton profil.';
   }
+
+  updateRepetitionShortcutVisibility();
 }
 
 
