@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Récompenses XP — Fais Ton Show</title>
+<link href="./manifest.json" rel="manifest"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/fts-nav.css?v=214-ios-nav" rel="stylesheet"/>
+<link href="assets/css/pages/xp-rewards-admin.css?v=2" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-glow">
+<div class="xp-admin-loading" id="xp-admin-loading"><div class="xp-logo">XP <span>REWARDS</span></div><div class="xp-sub">Vérification accès admin…</div><div id="xp-admin-error" class="xp-error"></div></div>
+<div class="xp-admin-shell" id="xp-admin-shell" hidden>
+  <header class="xp-admin-head">
+    <div>
+      <a href="admin.html" class="xp-back">← Retour admin</a>
+      <div class="xp-kicker">Gamification</div>
+      <h1>Récompenses XP</h1>
+      <p>Lis les XP existants, repère les paliers franchis, crée un code promo via le Worker HelloAsso et envoie automatiquement le message du robot Fais Ton Show.</p>
+    </div>
+    <div class="xp-actions"><button class="xp-btn ghost" id="xp-refresh" type="button">Actualiser</button></div>
+  </header>
+  <section class="xp-card xp-config-card">
+    <div class="xp-card-title">
+      <div>
+        <h2>Paliers XP configurables</h2>
+        <small>Modifie ici les seuils à atteindre et le libellé proposé automatiquement au moment d’attribuer le code.</small>
+      </div>
+      <div class="xp-actions"><button class="xp-btn ghost" id="xp-add-threshold" type="button">Ajouter un palier</button><button class="xp-btn" id="xp-save-thresholds" type="button">Enregistrer les paliers</button></div>
+    </div>
+    <div class="xp-thresholds-editor" id="xp-thresholds-editor"><div class="xp-empty">Chargement des paliers…</div></div>
+    <div class="xp-msg" id="xp-config-msg"></div>
+  </section>
+  <main class="xp-grid">
+    <section class="xp-card">
+      <div class="xp-card-title"><div><h2>À traiter</h2><small>Un membre apparaît uniquement si son palier n’a pas déjà été récompensé.</small></div><span class="xp-pill" id="xp-pending-count">—</span></div>
+      <div class="xp-tools"><input id="xp-search" type="search" placeholder="Rechercher un membre…"><select id="xp-filter"><option value="0">Tous les paliers</option></select></div>
+      <div class="xp-list" id="xp-pending-list"><div class="xp-empty">Chargement…</div></div>
+    </section>
+    <aside class="xp-card">
+      <div class="xp-card-title"><div><h2>Envoyées</h2><small>Historique simple des codes attribués.</small></div><span class="xp-pill" id="xp-sent-count">—</span></div>
+      <div class="xp-history" id="xp-history-list"><div class="xp-empty">Chargement…</div></div>
+    </aside>
+  </main>
+</div>
+<div class="xp-modal-backdrop" id="xp-modal-backdrop" hidden></div>
+<section class="xp-modal" id="xp-modal" hidden role="dialog" aria-modal="true" aria-labelledby="xp-modal-title">
+  <div class="xp-modal-head"><div><div class="xp-kicker">Robot Fais Ton Show</div><h2 id="xp-modal-title">Attribuer une récompense</h2><p class="xp-muted" id="xp-target-name">—</p></div><button class="xp-close" id="xp-close" type="button" aria-label="Fermer">×</button></div>
+  <div class="xp-modal-grid">
+    <label>Code promo<input id="xp-code" placeholder="FTS-..."/></label>
+    <label>Utilisable pour<input id="xp-label" placeholder="-5€ sur les goodies"/></label>
+    <label>Type<select id="xp-kind"><option value="fixed">Montant fixe €</option><option value="percent">Pourcentage</option><option value="free">Gratuité</option></select></label>
+    <label>Valeur<input id="xp-value" type="number" step="0.01" placeholder="5"/></label>
+    <label>Contexte<select id="xp-scope"><option value="shop_order">Boutique / goodies</option><option value="event_ticket">Spectacle / événement</option><option value="stage_registration">Stage</option><option value="season_registration">Saison / inscription</option><option value="all">Tout</option></select></label>
+    <label>Utilisations max<input id="xp-max" type="number" min="1" step="1" value="1"/></label>
+    <label>Date limite<input id="xp-end" type="date"/></label>
+    <textarea id="xp-message" aria-label="Message automatique"></textarea>
+  </div>
+  <div class="xp-modal-actions"><button class="xp-btn" id="xp-send" type="button">Créer le code + envoyer</button><button class="xp-btn ghost" id="xp-cancel" type="button">Annuler</button></div>
+  <div class="xp-msg" id="xp-modal-msg"></div>
+</section>
+<script src="assets/js/fts-utils.js?v=209"></script>
+<script src="assets/js/fts-firebase.js?v=209"></script>
+<script src="assets/js/pages/xp-rewards-admin.js?v=2"></script>
+</body>
+</html>
