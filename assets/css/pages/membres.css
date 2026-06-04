@@ -3685,3 +3685,6 @@ button.profile-pill:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* XP Rewards — codes promo envoyés par le robot Fais Ton Show */
+.member-xp-rewards-panel{margin-top:18px}.member-xp-rewards-list{display:grid;gap:10px}.member-xp-reward-card{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);border-radius:22px;padding:14px;box-shadow:0 12px 28px rgba(0,0,0,.14)}.member-xp-reward-card strong{display:block}.member-xp-reward-card small,.member-xp-reward-card span{display:block;color:rgba(255,255,255,.68);margin-top:4px}.member-xp-code{display:inline-flex!important;width:max-content;margin-top:10px;border-radius:999px;background:#ffd666;color:#111!important;font-weight:900;padding:8px 12px;letter-spacing:.04em}.member-news-xp_reward{background:rgba(255,214,102,.16)!important;color:#ffd666!important}
