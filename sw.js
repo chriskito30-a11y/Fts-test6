@@ -1,4 +1,4 @@
-const CACHE = 'fts-v214-xp-rewards';
+const CACHE = 'fts-v215-xp-rewards-member';
 const FILES = [
   './manifest.json',
   './index.html',
