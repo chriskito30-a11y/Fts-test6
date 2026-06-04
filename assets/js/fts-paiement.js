@@ -39,6 +39,85 @@
     if(['abandoned'].includes(s)) return 'Paiement abandonné';
     return 'Paiement en attente';
   }
+  function isActiveAccount(){
+    return !!(state.user && state.profile && String(state.profile.status || '').toLowerCase() === 'active');
+  }
+  function blockedBridgeStatus(status){
+    return ['refused','failed','error','canceled','cancelled','abandoned'].includes(String(status || '').toLowerCase());
+  }
+  function seasonLinesFromOrder(order){
+    order = order || {};
+    const lines = [];
+    if(Array.isArray(order.cartLines)){
+      order.cartLines.forEach(line => {
+        if(!line) return;
+        const type = String(line.type || line.kind || '').toLowerCase();
+        if(type === 'season_registration' || line.activityId || line.offerKey || line.subcategoryId){
+          lines.push(line);
+        }
+      });
+    }
+    if(!lines.length && (String(order.type || '').toLowerCase() === 'season_registration' || Number(order.seasonLineCount || 0) > 0)){
+      lines.push(order);
+    }
+    return lines;
+  }
+  function isSeasonOrder(order){
+    order = order || {};
+    return String(order.type || '').toLowerCase() === 'season_registration'
+      || Number(order.seasonLineCount || 0) > 0
+      || seasonLinesFromOrder(order).length > 0;
+  }
+  function compactLineParts(parts){
+    return (parts || []).map(v => String(v || '').trim()).filter(Boolean);
+  }
+  function lineStudentName(line){
+    return line && (line.studentName || [line.studentFirstName, line.studentLastName].filter(Boolean).join(' ')) || '';
+  }
+  function renderSeasonLines(order){
+    const lines = seasonLinesFromOrder(order);
+    if(!lines.length) return '';
+    return `<div class="payment-season-lines">
+      <strong>Inscription saison</strong>
+      ${lines.map(line => {
+        const title = compactLineParts([line.activityName, line.subcategoryName || line.subcategoryTitle, line.offerLabel]).join(' - ') || line.itemName || 'Ligne saison';
+        const meta = compactLineParts([
+          lineStudentName(line) ? 'Eleve : ' + lineStudentName(line) : '',
+          line.season ? 'Saison : ' + line.season : ''
+        ]).join(' - ');
+        return `<div class="payment-season-line"><span>${esc(title)}</span>${meta ? `<small>${esc(meta)}</small>` : ''}</div>`;
+      }).join('')}
+    </div>`;
+  }
+  function renderMemberBridge(order, orderId){
+    if(!isSeasonOrder(order)) return '';
+    const status = String(order.status || '').toLowerCase();
+    const globalStatus = String(order.globalPaymentStatus || '').toLowerCase();
+    if(blockedBridgeStatus(status) || blockedBridgeStatus(globalStatus)){
+      return '<div class="payment-account-note is-blocked">Cette commande ne permet pas de creer un compte membre depuis ce retour. Reprenez le paiement ou contactez Fais Ton Show.</div>';
+    }
+    if(isActiveAccount()){
+      return `<div class="payment-account-note">
+        <strong>Compte deja actif</strong>
+        <span>Vous etes deja connecte avec un compte valide. Le paiement ne cree pas un nouveau compte.</span>
+        <div class="payment-return-actions">
+          <a class="payment-secondary" href="membres.html">Espace membres</a>
+          <a class="payment-secondary" href="saison.html">Retour Saison</a>
+        </div>
+      </div>`;
+    }
+    const orderKey = encodeURIComponent(order.id || orderId || '');
+    const href = 'auth?tab=register&orderId=' + orderKey;
+    const loginHref = 'auth?tab=login&orderId=' + orderKey;
+    return `<div class="payment-account-note">
+      <strong>Finaliser la demande membre</strong>
+      <span>Le paiement ou la reservation ne donne pas encore acces aux espaces internes. L'equipe FTS validera le compte apres verification.</span>
+      <div class="payment-return-actions">
+        <a class="payment-primary payment-account-cta" href="${esc(href)}">Creer mon compte membre</a>
+        <a class="payment-secondary" href="${esc(loginHref)}">J'ai deja un compte</a>
+      </div>
+    </div>`;
+  }
   function setGuard(title, body){
     const panel = $('payment-guard-panel');
     if(!panel) return;
@@ -113,7 +192,7 @@
       const payload = {
         itemId: item.id,
         source: 'paiement.html',
-        returnPath: 'paiement.html',
+        returnPath: 'paiement',
         userAgent: navigator.userAgent || ''
       };
       const data = await api('/checkout', { method:'POST', body: JSON.stringify(payload) });
@@ -163,6 +242,8 @@
         const status = String(order.status || '').toLowerCase();
         const globalStatus = String(order.globalPaymentStatus || '').toLowerCase();
         const itemName = order.itemName || order.itemTitle || 'Fais Ton Show';
+        const seasonHtml = renderSeasonLines(order);
+        const bridgeHtml = renderMemberBridge(order, orderId);
         let detail = '';
         if(status === 'free_confirmed' || globalStatus === 'free'){
           setConfirmationMode('free');
@@ -176,6 +257,9 @@
           detail = '<p>Le paiement hors ligne a été marqué comme reçu par l’administration.</p>';
         }
         box.innerHTML = `<div class="payment-status-pill ${cls}">${esc(statusLabel(order.status))}</div><p>${esc(itemName)}</p>${detail}<small>Référence : ${esc(order.id || orderId)}</small>`;
+        if(seasonHtml || bridgeHtml){
+          box.innerHTML = `<div class="payment-status-pill ${cls}">${esc(statusLabel(order.status))}</div><p>${esc(itemName)}</p>${seasonHtml}${detail}<small>Reference : ${esc(order.id || orderId)}</small>${bridgeHtml}`;
+        }
       }catch(e){
         if(result === 'free') box.innerHTML = '<div class="payment-status-pill pending">Réservation en cours de confirmation</div><p>La réservation gratuite a été demandée, mais le statut n’a pas pu être relu pour le moment.</p>';
         else if(result === 'offline') box.innerHTML = '<div class="payment-status-pill pending">Paiement hors ligne enregistré</div><p>La commande a été créée, mais le statut n’a pas pu être relu pour le moment.</p>';
