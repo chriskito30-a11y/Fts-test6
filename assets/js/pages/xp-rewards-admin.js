@@ -310,6 +310,16 @@
       };
       const notifKey = 'xp-reward-' + uid + '-' + threshold;
       const dm = buildXpRobotDmUpdates(uid, threshold, code, label, message, now, notifKey);
+      // Important : les rules RTDB de fts_dm/userConvs vérifient la conversation
+      // déjà existante dans root.child('fts_dm/conversations/...').
+      // On crée donc d'abord la conversation robot, puis seulement ensuite
+      // on écrit le message, les index userConvs, la notification et la récompense.
+      const dmConvPath = 'fts_dm/conversations/' + dm.convId;
+      const dmConversationPayload = dm.updates[dmConvPath];
+      if(dmConversationPayload){
+        await db.ref(dmConvPath).set(dmConversationPayload);
+        delete dm.updates[dmConvPath];
+      }
       rewardPayload.notificationId = notifRef.key;
       rewardPayload.dmConversationId = dm.convId;
       rewardPayload.dmMessageId = dm.msgId;
