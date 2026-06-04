@@ -298,11 +298,18 @@ function updateRepetitionShortcutVisibility() {
   const card = document.getElementById('member-repetition-shortcut');
   if (!card) return;
 
+  const strip = card.closest('.member-shortcuts-strip');
   const allowed = new Set(['theatre', 'comedie musicale', 'singer show'].map(FTS.norm));
-  const hasAllowedDiscipline = profileIsAdmin() || userDisciplines().some(d => allowed.has(FTS.norm(d)));
+  const disciplines = userDisciplines().map(FTS.norm);
+  const hasAllowedDiscipline = profileIsAdmin() || disciplines.some(d => allowed.has(d));
 
+  // Ne pas se contenter de l'attribut hidden : la carte a display:grid en CSS.
+  // On force donc aussi le display inline pour éviter qu'un style de carte ne la rende visible.
   card.hidden = !hasAllowedDiscipline;
   card.setAttribute('aria-hidden', hasAllowedDiscipline ? 'false' : 'true');
+  card.style.display = hasAllowedDiscipline ? '' : 'none';
+
+  if (strip) strip.classList.toggle('is-shop-only', !hasAllowedDiscipline);
 }
 
 function renderDashboard(profile, email) {
