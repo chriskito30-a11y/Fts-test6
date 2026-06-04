@@ -48,6 +48,15 @@
   function seasonLinesFromOrder(order){
     order = order || {};
     const lines = [];
+    if(Array.isArray(order.reservationLines)){
+      order.reservationLines.forEach(line => {
+        if(!line) return;
+        const type = String(line.type || '').toLowerCase();
+        if(type === 'season_registration' || line.activityId || line.offerKey || line.subcategoryId){
+          lines.push(line);
+        }
+      });
+    }
     if(Array.isArray(order.cartLines)){
       order.cartLines.forEach(line => {
         if(!line) return;
@@ -61,6 +70,107 @@
       lines.push(order);
     }
     return lines;
+  }
+  function paymentDbKey(value){
+    return String(value || '').trim().replace(/[.#$\[\]\/]/g, '_') || ('order_' + Date.now());
+  }
+  function payerEmailFromOrder(order){
+    order = order || {};
+    return String((order.payer && order.payer.email) || order.userEmail || order.email || '').trim();
+  }
+  function payerPhoneFromOrder(order){
+    order = order || {};
+    return String((order.payer && (order.payer.phone || order.payer.tel || order.payer.telephone)) || order.payerPhone || '').trim();
+  }
+  function buildSeasonAccessAttachment(order, orderId, accountEmail){
+    order = order || {};
+    const lines = seasonLinesFromOrder(order);
+    const firstLine = lines[0] || order;
+    const payerEmail = payerEmailFromOrder(order);
+    const cleanAccountEmail = String(accountEmail || '').trim();
+    const emailMismatch = !!(payerEmail && cleanAccountEmail && payerEmail.toLowerCase() !== cleanAccountEmail.toLowerCase());
+    return {
+      registrationSource: 'payment_return',
+      paymentOrderId: order.id || orderId || '',
+      paymentType: order.type || '',
+      paymentStatus: order.status || '',
+      paymentGlobalStatus: order.globalPaymentStatus || '',
+      paymentLinkStatus: emailMismatch ? 'email_mismatch' : 'linked',
+      paymentEmailMismatch: emailMismatch,
+      accountEmail: cleanAccountEmail,
+      season: firstLine.season || order.season || '',
+      activityId: firstLine.activityId || order.activityId || '',
+      activityName: firstLine.activityName || order.activityName || '',
+      offerKey: firstLine.offerKey || order.offerKey || '',
+      offerLabel: firstLine.offerLabel || order.offerLabel || '',
+      subcategoryId: firstLine.subcategoryId || order.subcategoryId || '',
+      subcategoryName: firstLine.subcategoryName || firstLine.subcategoryTitle || order.subcategoryName || order.subcategoryTitle || '',
+      studentFirstName: firstLine.studentFirstName || order.studentFirstName || '',
+      studentLastName: firstLine.studentLastName || order.studentLastName || '',
+      studentName: lineStudentName(firstLine) || lineStudentName(order),
+      payerEmail,
+      payerPhone: payerPhoneFromOrder(order),
+      seasonLines: lines.slice(0, 12).map(line => ({
+        activityId: line.activityId || '',
+        activityName: line.activityName || '',
+        offerKey: line.offerKey || '',
+        offerLabel: line.offerLabel || '',
+        subcategoryId: line.subcategoryId || '',
+        subcategoryName: line.subcategoryName || line.subcategoryTitle || '',
+        studentFirstName: line.studentFirstName || '',
+        studentLastName: line.studentLastName || '',
+        studentName: lineStudentName(line),
+        amountCents: Number(line.amountCents || 0),
+        itemName: line.itemName || ''
+      })),
+      paymentLinkedAt: Date.now()
+    };
+  }
+  function requestForOrder(profile, orderId){
+    const key = paymentDbKey(orderId);
+    const requests = (profile && profile.seasonAccessRequests && typeof profile.seasonAccessRequests === 'object') ? profile.seasonAccessRequests : {};
+    if(requests[key]) return requests[key];
+    const last = profile && profile.lastSeasonAccessRequest;
+    if(last && String(last.paymentOrderId || '') === String(orderId || '')) return last;
+    return null;
+  }
+  async function ensureActiveSeasonAccessRequest(order, orderId){
+    if(!isActiveAccount() || !isSeasonOrder(order)) return null;
+    const status = String(order && order.status || '').toLowerCase();
+    const globalStatus = String(order && order.globalPaymentStatus || '').toLowerCase();
+    if(blockedBridgeStatus(status) || blockedBridgeStatus(globalStatus)) return null;
+    const cleanOrderId = order && (order.id || orderId) || orderId || '';
+    if(!cleanOrderId) return null;
+    const db = FTS.initFirebase ? FTS.initFirebase() : null;
+    if(!db || !state.user || !state.user.uid) return null;
+    const snap = await db.ref('fts_users/' + state.user.uid).once('value');
+    const profile = snap && snap.val ? (snap.val() || state.profile || {}) : (state.profile || {});
+    const existing = requestForOrder(profile, cleanOrderId);
+    if(existing){
+      state.profile = profile;
+      return { status:String(existing.status || ''), existing:true };
+    }
+    const attachment = buildSeasonAccessAttachment(order, cleanOrderId, state.user.email || profile.email || '');
+    const key = paymentDbKey(attachment.paymentOrderId);
+    const request = Object.assign({}, attachment, {
+      requestType: 'season_access_update',
+      existingAccount: true,
+      status: 'pending_admin_review',
+      requestedAt: Date.now(),
+      currentDisciplines: Array.isArray(profile.disciplines) ? profile.disciplines : [],
+      currentSubgroups: Array.isArray(profile.subgroups) ? profile.subgroups : []
+    });
+    const updates = {};
+    updates['seasonAccessRequests/' + key] = request;
+    updates.lastSeasonAccessRequest = request;
+    updates.updatedAt = Date.now();
+    await db.ref('fts_users/' + state.user.uid).update(updates);
+    state.profile = Object.assign({}, profile, {
+      seasonAccessRequests: Object.assign({}, profile.seasonAccessRequests || {}, { [key]: request }),
+      lastSeasonAccessRequest: request,
+      updatedAt: updates.updatedAt
+    });
+    return { status:'pending_admin_review', created:true };
   }
   function isSeasonOrder(order){
     order = order || {};
@@ -89,7 +199,7 @@
       }).join('')}
     </div>`;
   }
-  function renderMemberBridge(order, orderId){
+  function renderMemberBridge(order, orderId, activeRequestResult){
     if(!isSeasonOrder(order)) return '';
     const status = String(order.status || '').toLowerCase();
     const globalStatus = String(order.globalPaymentStatus || '').toLowerCase();
@@ -97,9 +207,29 @@
       return '<div class="payment-account-note is-blocked">Cette commande ne permet pas de creer un compte membre depuis ce retour. Reprenez le paiement ou contactez Fais Ton Show.</div>';
     }
     if(isActiveAccount()){
+      if(activeRequestResult && (activeRequestResult.created || activeRequestResult.status === 'pending_admin_review')){
+        return `<div class="payment-account-note">
+          <strong>Demande d'ajout envoyee</strong>
+          <span>Votre compte est deja actif. Cette nouvelle inscription saison est en attente de verification admin avant ajout aux acces.</span>
+          <div class="payment-return-actions">
+            <a class="payment-secondary" href="membres.html">Espace membres</a>
+            <a class="payment-secondary" href="saison.html">Retour Saison</a>
+          </div>
+        </div>`;
+      }
+      if(activeRequestResult && activeRequestResult.error){
+        return `<div class="payment-account-note is-blocked">
+          <strong>Rattachement a verifier</strong>
+          <span>La commande est enregistree, mais la demande d'ajout saison n'a pas pu etre creee automatiquement. Gardez la reference et contactez Fais Ton Show.</span>
+          <div class="payment-return-actions">
+            <a class="payment-secondary" href="membres.html">Espace membres</a>
+            <a class="payment-secondary" href="saison.html">Retour Saison</a>
+          </div>
+        </div>`;
+      }
       return `<div class="payment-account-note">
         <strong>Compte deja actif</strong>
-        <span>Vous etes deja connecte avec un compte valide. Le paiement ne cree pas un nouveau compte.</span>
+        <span>Vous etes deja connecte avec un compte valide. Cette commande saison sera verifiee par l'administration avant ajout aux acces.</span>
         <div class="payment-return-actions">
           <a class="payment-secondary" href="membres.html">Espace membres</a>
           <a class="payment-secondary" href="saison.html">Retour Saison</a>
@@ -243,7 +373,14 @@
         const globalStatus = String(order.globalPaymentStatus || '').toLowerCase();
         const itemName = order.itemName || order.itemTitle || 'Fais Ton Show';
         const seasonHtml = renderSeasonLines(order);
-        const bridgeHtml = renderMemberBridge(order, orderId);
+        let activeRequestResult = null;
+        try {
+          activeRequestResult = await ensureActiveSeasonAccessRequest(order, orderId);
+        } catch(bridgeErr) {
+          console.warn('[FTS Paiement] Demande ajout saison non enregistree', bridgeErr);
+          activeRequestResult = { error: bridgeErr && bridgeErr.message ? bridgeErr.message : String(bridgeErr) };
+        }
+        const bridgeHtml = renderMemberBridge(order, orderId, activeRequestResult);
         let detail = '';
         if(status === 'free_confirmed' || globalStatus === 'free'){
           setConfirmationMode('free');
