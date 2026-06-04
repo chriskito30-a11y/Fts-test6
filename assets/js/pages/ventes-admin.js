@@ -14,6 +14,7 @@
   let activeTab = 'groups';
   const selectedOrderIds = new Set();
   let officialCategories = null;
+  let dashboardDetails = new Map();
 
   const $ = id => document.getElementById(id);
   const esc = v => FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c]));
@@ -261,6 +262,52 @@
     merged.remainingAmount = statusKind(parent.status)==='paid' ? 0 : (line.amountCents || 0);
     return merged;
   }
+  function shopLineVariantLabel(line){
+    if(line && line.variantLabel) return line.variantLabel;
+    if(line && line.variants && typeof line.variants === 'object') return Object.entries(line.variants).map(([k,v])=>`${k}: ${v}`).join(' · ');
+    return '';
+  }
+  function shopLineAmount(line){
+    const direct = cents(line && (line.amountCents || line.totalAmountCents || line.totalAmount || line.amount));
+    if(direct) return direct;
+    return cents(line && line.unitPriceCents) * Math.max(1, Number(line && line.quantity || 1) || 1);
+  }
+  function orderFromCartShopLine(parent, line){
+    const lineCents = shopLineAmount(line);
+    const merged = orderFromCartLine(parent, Object.assign({}, line, {amountCents:lineCents}));
+    merged.type = 'shop_order';
+    merged.parentType = parent.type;
+    merged.cartParentId = parent.id;
+    merged.lineId = line.id || line.cartLineId || line.productId || '';
+    merged.productName = line.productName || line.itemName || merged.productName || 'Article boutique';
+    merged.variantLabel = shopLineVariantLabel(line);
+    merged.quantity = Math.max(1, Number(line.quantity || 1) || 1);
+    merged.amountCents = lineCents;
+    merged.totalAmount = lineCents;
+    merged.paidAmount = statusKind(parent.status)==='paid' ? lineCents : 0;
+    merged.remainingAmount = statusKind(parent.status)==='paid' ? 0 : lineCents;
+    return merged;
+  }
+  function mixedCartShopOrders(list){
+    const out = [];
+    list.filter(o=>typeKey(o)==='mixed_cart').forEach(o=>{
+      cartShopLines(o).forEach(line=>out.push(orderFromCartShopLine(o, line)));
+    });
+    return out;
+  }
+  function combinedShopOrders(list){
+    return list.filter(o=>typeKey(o)==='shop_order').concat(mixedCartShopOrders(list));
+  }
+  function mixedCartSeasonOrders(list){
+    const out = [];
+    list.filter(o=>typeKey(o)==='mixed_cart').forEach(o=>{
+      cartSeasonLines(o).forEach(line=>out.push(orderFromCartLine(o, line)));
+    });
+    return out;
+  }
+  function combinedSeasonOrders(list){
+    return expandSeasonReservations(list.filter(o=>typeKey(o)==='season_registration')).concat(mixedCartSeasonOrders(list));
+  }
   function itemLabel(o){ return cartLinesDetailedLabel(o) || o.itemName || o.eventTitle || o.stageTitle || o.productName || o.label || typeLabel(typeKey(o)); }
   function amount(o){ return cents(o.totalAmount || o.totalAmountCents || o.amountCents || o.amount || 0); }
   function paidAmount(o){
@@ -278,7 +325,24 @@
     return !!(o.shopPickedUpAt || o.pickedUpAt || (o.fulfillment && o.fulfillment.pickedUpAt) || String(o.fulfillmentStatus || '') === 'picked_up');
   }
   function shopTodoOrders(list){
-    return list.filter(o=>typeKey(o)==='shop_order' && statusKind(o.status)==='paid' && !isShopPickedUp(o));
+    return list.filter(o=>{
+      if(statusKind(o.status)!=='paid' || isShopPickedUp(o)) return false;
+      return typeKey(o)==='shop_order' || (typeKey(o)==='mixed_cart' && cartShopLines(o).length > 0);
+    });
+  }
+  function shopTodoQuantity(o){
+    if(typeKey(o)==='mixed_cart') return cartShopLines(o).reduce((sum,line)=>sum + Math.max(1, Number(line.quantity || 1) || 1), 0);
+    return Math.max(1, Number(o.quantity || 1) || 1);
+  }
+  function shopTodoTitle(o){
+    if(typeKey(o)==='mixed_cart') return 'Panier boutique + inscription';
+    return o.productName || itemLabel(o);
+  }
+  function shopTodoDetail(o){
+    if(typeKey(o)==='mixed_cart'){
+      return cartShopLines(o).map(line=>[line.productName || line.itemName || 'Article boutique', shopLineVariantLabel(line), 'Qté ' + Math.max(1, Number(line.quantity || 1) || 1)].filter(Boolean).join(' · ')).join(' + ');
+    }
+    return [o.variantLabel || variantInfo(o) || 'Aucune variante', 'Qté ' + Math.max(1, Number(o.quantity || 1) || 1)].join(' · ');
   }
   function installmentSummary(o){
     const list = Array.isArray(o.installments) ? o.installments : [];
@@ -475,29 +539,80 @@
 
   function renderMixedCartType(list){
     const seasonOrders = [];
-    const shopRows = [];
     list.forEach(o=>{
       cartSeasonLines(o).forEach(line=>seasonOrders.push(orderFromCartLine(o, line)));
-      cartShopLines(o).forEach(line=>shopRows.push(orderFromCartLine(o, line)));
     });
     const meta = TYPE_META.mixed_cart;
     const intro = `<section class="sales-type-block sales-mixed-overview">
-      <div class="sales-section-head"><div><h2>${esc(meta.icon)} Paniers mixtes détaillés</h2><p>Les paniers sont éclatés ci-dessous par activité, groupe et formule pour retrouver facilement qui est inscrit où.</p></div>${badgesFor(list)}</div>
+      <div class="sales-section-head"><div><h2>${esc(meta.icon)} Paniers mixtes · inscriptions</h2><p>Les inscriptions des paniers mixtes sont rangées par activité. Les articles boutique sont regroupés dans la section Boutique unique.</p></div>${badgesFor(list)}</div>
     </section>`;
     const seasonHtml = seasonOrders.length ? renderSeasonType(seasonOrders) : '';
-    const shopHtml = shopRows.length ? renderGenericType('shop_order', shopRows) : '';
-    const rawHtml = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>🧾 Commandes panier complètes</h2><p>Vue originale par commande pour contrôler le paiement groupé et les échéances.</p></div></div><div class="sales-generic-list">${list.map(orderPersonLine).join('')}</div></section>`;
-    return intro + seasonHtml + shopHtml + rawHtml;
+    const rawHtml = `<section class="sales-type-block"><div class="sales-section-head"><div><h2>🧾 Commandes panier complètes</h2><p>Un bloc par paiement groupé, avec toutes les lignes du panier.</p></div></div><div class="sales-generic-list">${list.map(renderMixedCartOrderCard).join('')}</div></section>`;
+    return intro + seasonHtml + rawHtml;
+  }
+
+  function renderMixedCartOrderCard(o){
+    const sum = installmentSummary(o);
+    const inst = Array.isArray(o.installments) ? o.installments.map(x=>`<span class="sales-installment ${installmentKind(x.status)}">#${esc(x.number||'?')} · ${euro(x.amount)} · ${esc(x.date||'')} · ${esc(x.status||'')}</span>`).join('') : '';
+    return `<article class="sales-order-card sales-mixed-card">
+      <div class="sales-order-head"><div><div class="sales-order-title">${esc(payerName(o))}</div><div class="sales-order-meta">${esc(o.id || '')} · ${esc(dateLabel(o.createdAt))}</div></div><span class="sales-status ${statusKind(o.status)}">${esc(statusLabel(o.status))}</span></div>
+      <div class="sales-order-grid">
+        <div class="sales-mini"><span>Payeur</span><strong>${esc(payerName(o))}</strong><small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small></div>
+        <div class="sales-mini"><span>Pour</span><strong>${esc(studentName(o))}</strong><small>${esc(cartLinesDetailedLabel(o) || cartLinesLabel(o))}</small></div>
+        <div class="sales-mini"><span>Montants</span><strong>${euro(amount(o))}</strong><small>Payé : ${euro(paidAmount(o))} · Restant : ${euro(remainingAmount(o))}</small></div>
+        <div class="sales-mini"><span>Échéances</span><strong>${sum.paid}/${sum.total} payée(s)</strong><small>${sum.remaining} restante(s) · ${sum.refused} refusée(s)</small></div>
+      </div>
+      ${renderCartLinesMini(o)}
+      ${inst ? `<div class="sales-installment-list">${inst}</div>` : ''}
+    </article>`;
+  }
+
+  function dashboardSubtitle(rows, fallback){
+    const seasons = [...new Set(rows.map(o=>String(o.season || '').trim()).filter(Boolean))];
+    const seasonText = seasons.length === 1 ? seasons[0] : seasons.length > 1 ? seasons.length + ' saisons' : '';
+    return [seasonText, fallback].filter(Boolean).join(' · ');
+  }
+  function renderDashboardCard(title, subtitle, icon, rows, detailHtml, cls){
+    const s = summarize(rows);
+    const id = 'sales-detail-' + (dashboardDetails.size + 1);
+    dashboardDetails.set(id, {title, html:detailHtml});
+    return `<button type="button" class="sales-dashboard-card ${esc(cls || '')}" data-sales-detail="${esc(id)}">
+      <span class="sales-dashboard-icon">${esc(icon || '💳')}</span>
+      <span class="sales-dashboard-main"><strong>${esc(title)}</strong><small>${esc(subtitle || '')}</small></span>
+      <span class="sales-dashboard-metrics">
+        <span><b>${esc(String(s.total))}</b><small>lignes</small></span>
+        <span><b>${esc(String(s.pending))}</b><small>attente</small></span>
+        <span><b>${euro(s.revenue)}</b><small>encaissé</small></span>
+      </span>
+    </button>`;
   }
 
   function renderGroups(list){
     if(!list.length){ $('sales-groups').innerHTML = '<div class="sales-empty">Aucune commande ne correspond aux filtres.</div>'; return; }
-    const types = sortTypeEntries(Array.from(byMap(list, typeKey).entries()));
-    $('sales-groups').innerHTML = types.map(([type, rows])=>{
-      if(type === 'season_registration') return renderSeasonType(expandSeasonReservations(rows));
-      if(type === 'mixed_cart') return renderMixedCartType(rows);
-      return renderGenericType(type, rows);
-    }).join('');
+    dashboardDetails = new Map();
+    const grouped = byMap(list, typeKey);
+    const parts = [];
+    const mixedRows = grouped.get('mixed_cart') || [];
+    if(mixedRows.length){
+      parts.push(renderDashboardCard('Paniers mixtes', 'Paiements groupés inscription + boutique', TYPE_META.mixed_cart.icon, mixedRows, renderMixedCartType(mixedRows), 'mixed'));
+    }
+    const seasonRows = combinedSeasonOrders(list);
+    sortAlphaEntries(Array.from(byMap(seasonRows, o=>o.activityName || o.activityId || 'Activité non renseignée').entries())).forEach(([activity, rows])=>{
+      const groupsCount = byMap(rows, subgroupKey).size;
+      parts.push(renderDashboardCard(activity, dashboardSubtitle(rows, groupsCount + ' groupe(s)'), TYPE_META.season_registration.icon, rows, renderSeasonType(rows), 'season'));
+    });
+    const shopRows = combinedShopOrders(list);
+    if(shopRows.length){
+      parts.push(renderDashboardCard('Boutique', 'Articles seuls + paniers mixtes', TYPE_META.shop_order.icon, shopRows, renderGenericType('shop_order', shopRows), 'shop'));
+    }
+    ['event_ticket','stage_registration','membership','one_off','other'].forEach(type=>{
+      const rows = grouped.get(type) || [];
+      if(rows.length) parts.push(renderDashboardCard(typeLabel(type), TYPE_META[type].hint, TYPE_META[type].icon, rows, renderGenericType(type, rows), type));
+    });
+    $('sales-groups').innerHTML = `<section class="sales-dashboard">
+      <div class="sales-section-head"><div><h2>Vue pilotage</h2><p>Clique sur une carte pour ouvrir le détail complet sans allonger la page.</p></div>${badgesFor(list)}</div>
+      <div class="sales-dashboard-grid">${parts.join('')}</div>
+    </section>`;
   }
 
   function renderOrders(list){
@@ -535,7 +650,7 @@
       $('sales-shop').innerHTML = '<div class="sales-empty">Aucune commande boutique à traiter.</div>';
       return;
     }
-    const totalQty = rows.reduce((sum,o)=>sum + Math.max(1, Number(o.quantity || 1) || 1), 0);
+    const totalQty = rows.reduce((sum,o)=>sum + shopTodoQuantity(o), 0);
     $('sales-shop').innerHTML = `<section class="sales-type-block">
       <div class="sales-section-head"><div><h2>🛍️ Boutique à traiter</h2><p>${rows.length} commande(s) · ${totalQty} article(s) à remettre.</p></div></div>
       <div class="sales-shop-list">${rows.map(renderShopTodoCard).join('')}</div>
@@ -545,8 +660,8 @@
     const id = String(o.id || '');
     return `<article class="sales-shop-card">
       <div>
-        <strong>${esc(o.productName || itemLabel(o))}</strong>
-        <small>${esc(o.variantLabel || 'Aucune variante')} · Qté ${esc(o.quantity || 1)}</small>
+        <strong>${esc(shopTodoTitle(o))}</strong>
+        <small>${esc(shopTodoDetail(o))}</small>
       </div>
       <div>
         <strong>${esc(payerName(o))}</strong>
@@ -558,6 +673,35 @@
       </div>
       <button type="button" class="sales-btn small sales-pickup-btn" data-order-id="${esc(id)}">Marquer récupérée</button>
     </article>`;
+  }
+  function ensureSalesDetailModal(){
+    if(document.getElementById('sales-detail-modal')) return;
+    const modal = document.createElement('div');
+    modal.id = 'sales-detail-modal';
+    modal.className = 'sales-detail-modal';
+    modal.hidden = true;
+    modal.innerHTML = `<div class="sales-detail-panel" role="dialog" aria-modal="true" aria-labelledby="sales-detail-title">
+      <header class="sales-detail-head"><h2 id="sales-detail-title"></h2><button type="button" class="sales-detail-close" data-sales-detail-close>×</button></header>
+      <div class="sales-detail-body" id="sales-detail-body"></div>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', e=>{
+      if(e.target === modal || (e.target && e.target.closest && e.target.closest('[data-sales-detail-close]'))) closeSalesDetail();
+    });
+  }
+  function openSalesDetail(id){
+    const detail = dashboardDetails.get(id);
+    if(!detail) return;
+    ensureSalesDetailModal();
+    $('sales-detail-title').textContent = detail.title || 'Détail';
+    $('sales-detail-body').innerHTML = detail.html || '';
+    $('sales-detail-modal').hidden = false;
+    document.body.classList.add('sales-modal-open');
+  }
+  function closeSalesDetail(){
+    const modal = $('sales-detail-modal');
+    if(modal) modal.hidden = true;
+    document.body.classList.remove('sales-modal-open');
   }
   async function markShopPickedUp(orderId){
     if(!orderId) return;
@@ -701,6 +845,13 @@
       btn.disabled = true;
       markShopPickedUp(String(btn.getAttribute('data-order-id') || ''));
     });
+    const groupsView = $('sales-groups'); if(groupsView) groupsView.addEventListener('click', e=>{
+      const card = e.target && e.target.closest ? e.target.closest('[data-sales-detail]') : null;
+      if(!card) return;
+      e.preventDefault();
+      openSalesDetail(String(card.getAttribute('data-sales-detail') || ''));
+    });
+    document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeSalesDetail(); });
     document.querySelectorAll('[data-sales-tab]').forEach(btn=>btn.addEventListener('click',()=>{
       activeTab = btn.getAttribute('data-sales-tab') || 'groups';
       document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active', b===btn));
