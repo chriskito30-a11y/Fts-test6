@@ -298,7 +298,7 @@ function updateRepetitionShortcutVisibility() {
   const card = document.getElementById('member-repetition-shortcut');
   if (!card) return;
 
-  const strip = card.closest('.member-shortcuts-strip');
+  const strip = document.getElementById('member-utility-actions') || card.closest('.member-utility-actions');
   const allowed = new Set(['theatre', 'comedie musicale', 'singer show'].map(FTS.norm));
   const disciplines = userDisciplines().map(FTS.norm);
   const hasAllowedDiscipline = profileIsAdmin() || disciplines.some(d => allowed.has(d));
@@ -309,7 +309,10 @@ function updateRepetitionShortcutVisibility() {
   card.setAttribute('aria-hidden', hasAllowedDiscipline ? 'false' : 'true');
   card.style.display = hasAllowedDiscipline ? '' : 'none';
 
-  if (strip) strip.classList.toggle('is-shop-only', !hasAllowedDiscipline);
+  if (strip) {
+    strip.classList.toggle('is-shop-only', !hasAllowedDiscipline);
+    strip.classList.toggle('has-repetition', hasAllowedDiscipline);
+  }
 }
 
 function renderDashboard(profile, email) {
