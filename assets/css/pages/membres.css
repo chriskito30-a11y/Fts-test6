@@ -3459,6 +3459,16 @@ button.profile-pill:focus-visible {
 
 
 /* ── V105/V218 — Accès rapides intégrés : répétition + boutique ───── */
+
+/* Ciblage UX : l'assistant répétition est masqué pour les disciplines non concernées. */
+.member-shortcuts-strip [hidden] { display: none !important; }
+.member-shortcuts-strip.is-shop-only {
+  grid-template-columns: minmax(0, 420px);
+}
+.member-shortcuts-strip.is-shop-only .member-shop-card {
+  max-width: 420px;
+}
+
 .member-shortcuts-strip,
 .member-repetition-shortcut {
   display: grid;
