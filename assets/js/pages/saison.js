@@ -534,9 +534,24 @@ function linkedRuleDependencyMet(rule,selectedCategories){
   const selected=selectedCategories||new Set();
   return deps.some(id=>selected.has(id));
 }
+function linkedRuleDedupeKey(rule,index){
+  const id=String(rule&&rule.id||'').trim();
+  if(id)return 'id:'+id;
+  const choices=(rule&&Array.isArray(rule.choices)?rule.choices:[]).map(choice=>[choice&&choice.categoryId,choice&&choice.offerKey,choice&&choice.subcategoryId||'principal'].map(v=>String(v||'')).join(':')).sort().join(',');
+  return ['rule',rule&&rule.label,rule&&rule.type,rule&&rule.pricingMode,rule&&rule.required?'1':'0',rule&&rule.maxChoices,choices||index].map(v=>String(v||'')).join('|');
+}
+function uniqueLinkedRules(rules){
+  const seen=new Set();
+  return (rules||[]).filter((rule,index)=>{
+    const key=linkedRuleDedupeKey(rule,index);
+    if(seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
 function applicableLinkedRules(item,offer,subcat,selections,amountCents){
   const selectedCategories=selectedCategoriesFromLinkedSelections(selections||[]);
-  return ((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat,amountCents)&&Array.isArray(r.choices)&&r.choices.length&&linkedRuleDependencyMet(r,selectedCategories));
+  return uniqueLinkedRules(((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat,amountCents)&&Array.isArray(r.choices)&&r.choices.length&&linkedRuleDependencyMet(r,selectedCategories)));
 }
 function targetChoiceInfo(choice){
   const item=seasonFindItem(choice.categoryId); if(!item)return null;
@@ -623,7 +638,7 @@ function refreshLinkedChoiceLimits(root){
 
 function collectLinkedOptionsFrom(root,item,offer,subcat,amountCents){
   const selectedCategories=selectedCategoriesFromLinkedRoot(root);
-  const rules=((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat,amountCents)&&Array.isArray(r.choices)&&r.choices.length&&linkedRuleDependencyMet(r,selectedCategories));
+  const rules=uniqueLinkedRules(((offer&&offer.linkedOptions)||[]).filter(r=>optionRuleApplies(r,subcat,amountCents)&&Array.isArray(r.choices)&&r.choices.length&&linkedRuleDependencyMet(r,selectedCategories)));
   const out=[];
   for(const rule of rules){
     const max=Math.min(3,Math.max(1,Number(rule.maxChoices||1)||1));
