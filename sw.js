@@ -1,4 +1,4 @@
-const CACHE = 'fts-v218-xp-used-source';
+const CACHE = 'fts-v218-boutique-shortcut';
 const FILES = [
   './manifest.json',
   './index.html',
