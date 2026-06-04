@@ -1,4 +1,4 @@
-const CACHE = 'fts-v219-repetition-target';
+const CACHE = 'fts-v220-repetition-target-display';
 const FILES = [
   './manifest.json',
   './index.html',
