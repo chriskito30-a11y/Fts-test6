@@ -297,6 +297,12 @@ function normalizeAdminUser(id, u) {
     stats: u.stats || {},
     ts: u.createdAt || u.ts || Date.now(),
     reminderPrefs: u.reminderPrefs || {},
+    paymentOrderId: u.paymentOrderId || (u.paymentAttachment && u.paymentAttachment.paymentOrderId) || "",
+    paymentLinkStatus: u.paymentLinkStatus || (u.paymentAttachment && u.paymentAttachment.paymentLinkStatus) || "",
+    paymentEmailMismatch: u.paymentEmailMismatch === true || !!(u.paymentAttachment && u.paymentAttachment.paymentEmailMismatch === true),
+    paymentAttachment: u.paymentAttachment || null,
+    seasonAccessRequests: u.seasonAccessRequests || {},
+    lastSeasonAccessRequest: u.lastSeasonAccessRequest || null,
   };
 }
 
@@ -323,6 +329,148 @@ function childInfoHtml(e) {
 }
 
 /* ── ÉCOUTE TEMPS RÉEL ───────────────────────────────────────── */
+function adminPaymentAttachment(u) {
+  u = u || {};
+  const p = u.paymentAttachment && typeof u.paymentAttachment === 'object' ? u.paymentAttachment : {};
+  const orderId = p.paymentOrderId || u.paymentOrderId || '';
+  if (!orderId) return null;
+  return Object.assign({}, p, {
+    paymentOrderId: orderId,
+    paymentLinkStatus: p.paymentLinkStatus || u.paymentLinkStatus || 'linked',
+    paymentEmailMismatch: p.paymentEmailMismatch === true || u.paymentEmailMismatch === true,
+    accountEmail: p.accountEmail || u.email || '',
+    payerEmail: p.payerEmail || u.payerEmail || '',
+    payerPhone: p.payerPhone || u.payerPhone || '',
+    paymentStatus: p.paymentStatus || u.paymentStatus || '',
+    seasonLines: Array.isArray(p.seasonLines) ? p.seasonLines : []
+  });
+}
+
+function adminPaymentStatusLabel(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'order_unreadable') return 'Commande introuvable ou illisible';
+  if (s === 'email_mismatch') return 'Email paiement different';
+  if (s === 'linked') return 'Commande liee';
+  return status || 'Commande liee';
+}
+
+function adminPaymentLineLabel(line) {
+  line = line || {};
+  return [line.activityName, line.subcategoryName || line.subcategoryTitle, line.offerLabel].map(v => String(v || '').trim()).filter(Boolean).join(' - ') || line.itemName || 'Inscription saison';
+}
+
+function adminPaymentStudent(line) {
+  line = line || {};
+  return line.studentName || [line.studentFirstName, line.studentLastName].filter(Boolean).join(' ');
+}
+
+function adminPaymentLinkHtml(u) {
+  const p = adminPaymentAttachment(u);
+  if (!p) {
+    return '<div class="user-payment-link is-empty"><strong>Aucun paiement lie</strong><span>Demande classique sans commande saison rattachee.</span></div>';
+  }
+  const mismatch = p.paymentEmailMismatch === true || (!!p.payerEmail && !!p.accountEmail && String(p.payerEmail).toLowerCase() !== String(p.accountEmail).toLowerCase());
+  const lines = p.seasonLines && p.seasonLines.length ? p.seasonLines : [p];
+  return `<div class="user-payment-link ${mismatch ? 'has-warning' : ''} ${p.paymentLinkStatus === 'order_unreadable' ? 'is-incomplete' : ''}">
+    <div class="user-payment-head"><strong>${FTS.esc(adminPaymentStatusLabel(mismatch ? 'email_mismatch' : p.paymentLinkStatus))}</strong><span>${FTS.esc(p.paymentOrderId || '')}${p.paymentStatus ? ' - ' + FTS.esc(p.paymentStatus) : ''}</span></div>
+    ${mismatch ? `<div class="user-payment-warning">Alerte : email compte ${FTS.esc(p.accountEmail || u.email || '')} different de l'email paiement ${FTS.esc(p.payerEmail || '')}. Validation possible apres verification admin.</div>` : ''}
+    <div class="user-payment-lines">${lines.map(line => `<span>${FTS.esc(adminPaymentLineLabel(line))}${adminPaymentStudent(line) ? ' - Eleve : ' + FTS.esc(adminPaymentStudent(line)) : ''}</span>`).join('')}</div>
+    <small>${FTS.esc([p.season ? 'Saison ' + p.season : '', p.payerEmail ? 'Payeur ' + p.payerEmail : '', p.payerPhone ? 'Tel ' + p.payerPhone : ''].filter(Boolean).join(' - '))}</small>
+  </div>`;
+}
+
+function adminSeasonAccessRequestsHtml(u) {
+  const requests = Object.values((u && u.seasonAccessRequests) || {}).filter(Boolean);
+  if (!requests.length) return '';
+  const pending = requests.filter(r => String(r.status || '') === 'pending_admin_review');
+  const rows = (pending.length ? pending : requests).slice(-3).reverse();
+  return `<div class="user-payment-link has-warning"><div class="user-payment-head"><strong>Ajout d acces saison a verifier</strong><span>${pending.length || requests.length} demande(s)</span></div>
+    <div class="user-payment-lines">${rows.map(r => `<span>${FTS.esc(r.paymentOrderId || '')} - ${FTS.esc((r.seasonLines && r.seasonLines[0] && adminPaymentLineLabel(r.seasonLines[0])) || adminPaymentLineLabel(r))}</span>`).join('')}</div>
+  </div>`;
+}
+
+function adminSeasonAccessRequestTime(r) {
+  const value = r && (r.updatedAt || r.createdAt || r.requestedAt || r.ts);
+  if (!value) return 0;
+  if (typeof value === 'number') return value;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function adminPendingSeasonAccessEntries() {
+  const entries = [];
+  const seen = new Set();
+  Object.entries(allUsers || {}).forEach(([uid, u]) => {
+    const requests = (u && u.seasonAccessRequests && typeof u.seasonAccessRequests === 'object') ? u.seasonAccessRequests : {};
+    Object.entries(requests).forEach(([requestId, request]) => {
+      if (!request || String(request.status || '') !== 'pending_admin_review') return;
+      const key = uid + ':' + (requestId || request.paymentOrderId || adminSeasonAccessRequestTime(request) || entries.length);
+      if (seen.has(key)) return;
+      seen.add(key);
+      entries.push({ uid, requestId, user: u, request });
+    });
+
+    const last = u && u.lastSeasonAccessRequest;
+    if (!last || String(last.status || '') !== 'pending_admin_review') return;
+    const lastOrderId = last.paymentOrderId || (last.paymentAttachment && last.paymentAttachment.paymentOrderId) || '';
+    const duplicate = entries.some(entry =>
+      entry.uid === uid &&
+      lastOrderId &&
+      (entry.request.paymentOrderId || (entry.request.paymentAttachment && entry.request.paymentAttachment.paymentOrderId)) === lastOrderId
+    );
+    if (!duplicate) entries.push({ uid, requestId: 'lastSeasonAccessRequest', user: u, request: last });
+  });
+  return entries.sort((a, b) => adminSeasonAccessRequestTime(b.request) - adminSeasonAccessRequestTime(a.request));
+}
+
+function adminSeasonAccessPaymentView(u, r) {
+  const raw = Object.assign({}, (r && r.paymentAttachment) || {}, r || {});
+  const paymentOrderId = raw.paymentOrderId || '';
+  const accountEmail = raw.accountEmail || (u && u.email) || '';
+  const payerEmail = raw.payerEmail || '';
+  const mismatch = raw.paymentEmailMismatch === true || (!!payerEmail && !!accountEmail && payerEmail.toLowerCase() !== accountEmail.toLowerCase());
+  return Object.assign({}, u || {}, {
+    paymentOrderId,
+    paymentLinkStatus: raw.paymentLinkStatus || (mismatch ? 'email_mismatch' : 'linked'),
+    paymentEmailMismatch: mismatch,
+    paymentAttachment: Object.assign({}, raw, {
+      paymentOrderId,
+      paymentLinkStatus: raw.paymentLinkStatus || (mismatch ? 'email_mismatch' : 'linked'),
+      paymentEmailMismatch: mismatch,
+      accountEmail,
+      payerEmail,
+      payerPhone: raw.payerPhone || '',
+      paymentStatus: raw.paymentStatus || '',
+      season: raw.season || '',
+      seasonLines: Array.isArray(raw.seasonLines) ? raw.seasonLines : []
+    })
+  });
+}
+
+function renderSeasonAccessPendingCard(entry) {
+  const u = entry.user || {};
+  const r = entry.request || {};
+  const view = adminSeasonAccessPaymentView(u, r);
+  const name = u.name || [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email || 'Membre';
+  const ts = adminSeasonAccessRequestTime(r);
+  const dateText = ts ? ' - demande ' + FTS.esc(fmtDate(ts)) : '';
+  return `<div class="user-card">
+      <div class="user-avatar pending">+</div>
+      <div class="user-info">
+        <div class="user-name">
+          ${FTS.esc(name)}
+          <span class="role-badge role-member">Ajout saison</span>
+        </div>
+        <div class="user-meta">${FTS.esc(u.email || '')}${u.telephone ? ' - tel ' + FTS.esc(u.telephone) : ''}${dateText}</div>
+        <div class="user-group">Compte deja actif - acces saison a verifier</div>
+        ${adminPaymentLinkHtml(view)}
+      </div>
+      <div class="user-actions">
+        <button class="btn-action btn-modify" data-fts-click="openModModal(${FTS.jsArg(entry.uid)})">Ouvrir fiche</button>
+      </div>
+    </div>`;
+}
+
 function listenUsers() {
   // Source officielle : fts_users.
   // Les nouveaux inscrits pending y sont créés immédiatement, même si la synchro forum est bloquée par les règles.
@@ -369,10 +517,11 @@ async function refreshAdminUsersOnce() {
 /* ── RENDU : EN ATTENTE ──────────────────────────────────────── */
 function renderPending() {
   const pending = Object.entries(allUsers).filter(([id, u]) => u.status === "pending");
-  document.getElementById("badge-pending").textContent = pending.length;
+  const seasonPending = adminPendingSeasonAccessEntries();
+  document.getElementById("badge-pending").textContent = pending.length + seasonPending.length;
   const list = document.getElementById("pending-list");
 
-  if (!pending.length) {
+  if (!pending.length && !seasonPending.length) {
     list.innerHTML = '<div class="empty-msg">Aucune demande en attente.</div>';
     return;
   }
@@ -393,13 +542,14 @@ function renderPending() {
         ${u.hasEnfant && u.enfants.length ? u.enfants.map(e =>
           `<span class="enfant-tag">🎩 ${FTS.esc(e.prenom||'')} ${FTS.esc(e.nom||'')}${childInfoHtml(e)}${e.disciplines && e.disciplines.length ? ' · ' + FTS.esc(e.disciplines.join(', ')) : ''}</span>`
         ).join('') : ''}
+        ${adminPaymentLinkHtml(u)}
       </div>
       <div class="user-actions">
         <button class="btn-action btn-approve" data-fts-click="approveUser('${id}')">✓ Valider</button>
         <button class="btn-action btn-modify"  data-fts-click="openModModal(${FTS.jsArg(id)})">✎ Modifier</button>
         <button class="btn-action btn-refuse"  data-fts-click="refuseUser('${id}')">✕ Refuser</button>
       </div>
-    </div>`).join("");
+    </div>`).join("") + seasonPending.map(renderSeasonAccessPendingCard).join("");
 }
 
 /* ── RENDU : MEMBRES ACTIFS ──────────────────────────────────── */
@@ -1195,6 +1345,10 @@ function openApprovalReviewModal(uid, user){
         <div class="approval-kv"><span>Statut actuel</span><strong>${FTS.esc(u.status || 'pending')}</strong></div>
         <div class="approval-kv"><span>Profil enfant ?</span><strong>${FTS.esc(adminBoolLabel(u.hasEnfant || (Array.isArray(u.enfants) && u.enfants.length)))}</strong></div>
       </div>
+    </section>
+    <section class="approval-review-section">
+      <h4>Paiement / commande saison</h4>
+      ${adminPaymentLinkHtml(u)}
     </section>
     <section class="approval-review-section">
       <h4>2. Enfant(s)</h4>

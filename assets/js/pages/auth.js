@@ -14,6 +14,8 @@ const FTS_PRIVACY_VERSION = '2026-05';
 const FTS_IMAGE_RIGHTS_VERSION = '2026-05-droit-image-v2';
 const FTS_IMAGE_RIGHTS_NOTICE = 'Autorisation photos/videos FTS : cours, repetitions, stages, spectacles, evenements, communication association interne/externe. Images non vendues, non cedees a des tiers pour usage commercial externe.';
 const ADMIN_EMAIL = "contact@faistonshow.fr";
+const FTS_PAYMENT_WORKER_URL = String((window.FTS && FTS.PAYMENT && FTS.PAYMENT.workerUrl) || window.FTS_PAYMENTS_WORKER_URL || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/, '');
+const paymentBridgeState = { orderId:'', order:null, status:'none', error:'', existingAccountHandled:false };
 
 
 /* ── EMAILS AUTOMATIQUES ───────────────────────────────────────
@@ -167,7 +169,336 @@ function bindAuthDynamicSelectionHandlers() {
   });
 }
 
+function bridgeNorm(value) {
+  if (window.FTS && typeof FTS.norm === 'function') return FTS.norm(value || '');
+  return String(value || '').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function bridgeBlockedStatus(value) {
+  return ['refused','failed','error','canceled','cancelled','abandoned'].includes(String(value || '').toLowerCase());
+}
+
+function bridgeSeasonLines(order) {
+  order = order || {};
+  const lines = [];
+  if (Array.isArray(order.cartLines)) {
+    order.cartLines.forEach(line => {
+      if (!line) return;
+      const type = String(line.type || line.kind || '').toLowerCase();
+      if (type === 'season_registration' || line.activityId || line.offerKey || line.subcategoryId) lines.push(line);
+    });
+  }
+  if (!lines.length && (String(order.type || '').toLowerCase() === 'season_registration' || Number(order.seasonLineCount || 0) > 0)) {
+    lines.push(order);
+  }
+  return lines;
+}
+
+function bridgeIsSeasonOrder(order) {
+  order = order || {};
+  return String(order.type || '').toLowerCase() === 'season_registration'
+    || Number(order.seasonLineCount || 0) > 0
+    || bridgeSeasonLines(order).length > 0;
+}
+
+function bridgeStudentName(line) {
+  line = line || {};
+  return line.studentName || [line.studentFirstName, line.studentLastName].filter(Boolean).join(' ');
+}
+
+function bridgePayerEmail(order) {
+  order = order || {};
+  return String(order.userEmail || (order.payer && order.payer.email) || '').trim();
+}
+
+function bridgePayerPhone(order) {
+  order = order || {};
+  return String(order.payerPhone || (order.payer && order.payer.phone) || '').trim();
+}
+
+function bridgeSplitName(first, last, full) {
+  first = String(first || '').trim();
+  last = String(last || '').trim();
+  if (first || last) return { first, last };
+  const parts = String(full || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return { first:'', last:'' };
+  return { first:parts[0] || '', last:parts.slice(1).join(' ') };
+}
+
+function bridgeSetInput(id, value) {
+  const el = document.getElementById(id);
+  if (!el || !value || String(el.value || '').trim()) return;
+  el.value = value;
+  el.dispatchEvent(new Event('input', { bubbles:true }));
+}
+
+function bridgeKnownCategoryName(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const key = bridgeNorm(raw);
+  const match = (loadedCategories || []).find(c => bridgeNorm(c && c.name) === key);
+  return match ? match.name : raw;
+}
+
+function bridgeKnownSubcategoryName(cat, value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const catData = (loadedCategories || []).find(c => bridgeNorm(c && c.name) === bridgeNorm(cat));
+  const subs = catData && Array.isArray(catData.subs) ? catData.subs : [];
+  const match = subs.map(s => typeof s === 'string' ? s : (s && s.name)).filter(Boolean)
+    .find(s => bridgeNorm(s) === bridgeNorm(raw));
+  return match || raw;
+}
+
+function bridgeApplyParentCourse(line) {
+  line = line || {};
+  const cat = bridgeKnownCategoryName(line.activityName);
+  const sub = bridgeKnownSubcategoryName(cat, line.subcategoryName || line.subcategoryTitle);
+  if (cat) {
+    selectedDisc.add(cat);
+    document.querySelectorAll('#disc-grid .pill').forEach(p => {
+      if (bridgeNorm(p.getAttribute('data-id') || p.textContent) === bridgeNorm(cat)) p.classList.add('active');
+    });
+  }
+  if (cat && sub) {
+    if (!selectedSubcats[cat]) selectedSubcats[cat] = new Set();
+    selectedSubcats[cat].add(sub);
+  }
+  updateParentSubcats();
+  renderReminderPrefs();
+}
+
+function bridgeEnsureChildBlock() {
+  const checked = document.getElementById('r-has-enfant');
+  if (!checked) return null;
+  if (!checked.checked) {
+    checked.checked = true;
+    toggleEnfantSection();
+  } else if (!document.querySelector('.enfant-block')) {
+    addEnfantField();
+  }
+  return document.querySelector('.enfant-block');
+}
+
+function bridgeApplyChildCourse(line) {
+  const block = bridgeEnsureChildBlock();
+  if (!block) return;
+  line = line || {};
+  const names = bridgeSplitName(line.studentFirstName, line.studentLastName, bridgeStudentName(line));
+  bridgeSetInputFromElement(block.querySelector('.e-first'), names.first);
+  bridgeSetInputFromElement(block.querySelector('.e-last'), names.last);
+  const idx = parseInt(block.id.replace('enfant-block-', ''), 10);
+  const cat = bridgeKnownCategoryName(line.activityName);
+  const sub = bridgeKnownSubcategoryName(cat, line.subcategoryName || line.subcategoryTitle);
+  if (cat) {
+    if (!enfantDiscs[idx]) enfantDiscs[idx] = new Set();
+    enfantDiscs[idx].add(cat);
+    document.querySelectorAll('#enfant-disc-' + idx + ' .pill').forEach(p => {
+      if (bridgeNorm(p.getAttribute('data-id') || p.textContent) === bridgeNorm(cat)) p.classList.add('active');
+    });
+    updateEnfantSubcats(idx);
+  }
+  if (cat && sub) {
+    if (!enfantSubcatsMap[idx]) enfantSubcatsMap[idx] = {};
+    if (!enfantSubcatsMap[idx][cat]) enfantSubcatsMap[idx][cat] = new Set();
+    enfantSubcatsMap[idx][cat].add(sub);
+    updateEnfantSubcats(idx);
+  }
+  renderReminderPrefs();
+}
+
+function bridgeSetInputFromElement(el, value) {
+  if (!el || !value || String(el.value || '').trim()) return;
+  el.value = value;
+  el.dispatchEvent(new Event('input', { bubbles:true }));
+}
+
+function bridgeLineLabel(line) {
+  line = line || {};
+  return [line.activityName, line.subcategoryName || line.subcategoryTitle, line.offerLabel].map(v => String(v || '').trim()).filter(Boolean).join(' - ') || line.itemName || 'Inscription saison';
+}
+
+function renderPaymentBridgeNotice() {
+  if (!paymentBridgeState.orderId) return;
+  let box = document.getElementById('payment-bridge-box');
+  const form = document.getElementById('form-register');
+  if (!box && form) {
+    box = document.createElement('div');
+    box.id = 'payment-bridge-box';
+    box.className = 'payment-bridge-box';
+    form.insertBefore(box, form.firstChild);
+  }
+  if (!box) return;
+  const order = paymentBridgeState.order || {};
+  const lines = bridgeSeasonLines(order);
+  if (paymentBridgeState.status === 'loading') {
+    box.innerHTML = '<strong>Rattachement paiement</strong><p>Lecture de la commande en cours...</p>';
+    return;
+  }
+  if (paymentBridgeState.status === 'linked' || paymentBridgeState.status === 'email_mismatch') {
+    box.innerHTML = `<strong>Paiement saison detecte</strong>
+      <p>Complete ton compte avec ton mot de passe. Le compte restera en attente de validation admin avant tout acces interne.</p>
+      <div class="payment-bridge-lines">${lines.map(line => `<span>${FTS.esc(bridgeLineLabel(line))}${bridgeStudentName(line) ? ' - Eleve : ' + FTS.esc(bridgeStudentName(line)) : ''}</span>`).join('')}</div>`;
+    box.innerHTML += '<p class="payment-bridge-existing">Tu as deja un compte FTS ? <button type="button" class="payment-bridge-login" data-payment-bridge-login>Connecte-toi pour demander l ajout de ce cours a ton compte existant.</button></p>';
+    const loginBtn = box.querySelector('[data-payment-bridge-login]');
+    if (loginBtn) loginBtn.addEventListener('click', function(){ switchTab('login'); });
+    return;
+  }
+  if (paymentBridgeState.status === 'not_eligible') {
+    box.innerHTML = '<strong>Commande non eligible</strong><p>Cette commande ne permet pas de rattachement automatique a une demande membre.</p>';
+    return;
+  }
+  if (paymentBridgeState.status === 'not_season') {
+    box.innerHTML = '<strong>Commande lue</strong><p>Cette commande ne correspond pas a une inscription saison. Le compte peut etre cree sans rattachement paiement.</p>';
+    return;
+  }
+  box.innerHTML = '<strong>Rattachement non confirme</strong><p>La commande n a pas pu etre relue. Tu peux creer le compte, mais l admin verra que le rattachement est incomplet.</p>';
+}
+
+function bridgePrefillForm(order) {
+  order = order || {};
+  const payer = order.payer || {};
+  const payerName = bridgeSplitName(payer.firstName, payer.lastName, order.userName);
+  bridgeSetInput('r-first', payerName.first);
+  bridgeSetInput('r-last', payerName.last);
+  bridgeSetInput('r-email', bridgePayerEmail(order));
+  bridgeSetInput('r-tel', bridgePayerPhone(order));
+
+  const line = bridgeSeasonLines(order)[0] || order;
+  const student = bridgeStudentName(line);
+  const payerFull = [payerName.first, payerName.last].filter(Boolean).join(' ');
+  const studentLooksDifferent = student && payerFull && bridgeNorm(student) !== bridgeNorm(payerFull);
+  if (studentLooksDifferent) bridgeApplyChildCourse(line);
+  else bridgeApplyParentCourse(line);
+}
+
+async function initPaymentBridgeFromUrl() {
+  const params = new URLSearchParams(location.search);
+  const requestedTab = String(params.get('tab') || params.get('mode') || '').toLowerCase();
+  const orderId = params.get('orderId') || params.get('order') || params.get('localOrderId') || '';
+  if (requestedTab === 'login') switchTab('login');
+  else if (requestedTab === 'register' || orderId) switchTab('register');
+  if (!orderId) return;
+  paymentBridgeState.orderId = orderId;
+  paymentBridgeState.status = 'loading';
+  renderPaymentBridgeNotice();
+  try {
+    const res = await fetch(FTS_PAYMENT_WORKER_URL + '/payment-status?orderId=' + encodeURIComponent(orderId), {
+      method:'GET',
+      headers:{ 'Content-Type':'application/json' }
+    });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || data.ok === false || !data.order) throw new Error((data && data.error) || ('HTTP ' + res.status));
+    const order = data.order || {};
+    paymentBridgeState.order = order;
+    if (!bridgeIsSeasonOrder(order)) paymentBridgeState.status = 'not_season';
+    else if (bridgeBlockedStatus(order.status) || bridgeBlockedStatus(order.globalPaymentStatus)) paymentBridgeState.status = 'not_eligible';
+    else {
+      paymentBridgeState.status = 'linked';
+      bridgePrefillForm(order);
+    }
+  } catch(e) {
+    console.warn('[FTS Auth] Rattachement paiement illisible', e);
+    paymentBridgeState.status = 'unreadable';
+    paymentBridgeState.error = e && e.message ? e.message : String(e);
+  }
+  renderPaymentBridgeNotice();
+}
+
+function buildPaymentAttachmentForProfile(accountEmail) {
+  if (!paymentBridgeState.orderId) return null;
+  const order = paymentBridgeState.order || null;
+  if (!order) {
+    return {
+      registrationSource: 'payment_return',
+      paymentOrderId: paymentBridgeState.orderId,
+      paymentLinkStatus: 'order_unreadable',
+      paymentLinkError: paymentBridgeState.error || '',
+      paymentLinkedAt: Date.now()
+    };
+  }
+  if (!bridgeIsSeasonOrder(order) || paymentBridgeState.status === 'not_eligible') return null;
+  const lines = bridgeSeasonLines(order);
+  const firstLine = lines[0] || order;
+  const payerEmail = bridgePayerEmail(order);
+  const cleanAccountEmail = String(accountEmail || '').trim();
+  const emailMismatch = !!(payerEmail && cleanAccountEmail && payerEmail.toLowerCase() !== cleanAccountEmail.toLowerCase());
+  return {
+    registrationSource: 'payment_return',
+    paymentOrderId: order.id || paymentBridgeState.orderId,
+    paymentType: order.type || '',
+    paymentStatus: order.status || '',
+    paymentGlobalStatus: order.globalPaymentStatus || '',
+    paymentLinkStatus: emailMismatch ? 'email_mismatch' : 'linked',
+    paymentEmailMismatch: emailMismatch,
+    accountEmail: cleanAccountEmail,
+    season: firstLine.season || order.season || '',
+    activityId: firstLine.activityId || order.activityId || '',
+    activityName: firstLine.activityName || order.activityName || '',
+    offerKey: firstLine.offerKey || order.offerKey || '',
+    offerLabel: firstLine.offerLabel || order.offerLabel || '',
+    subcategoryId: firstLine.subcategoryId || order.subcategoryId || '',
+    subcategoryName: firstLine.subcategoryName || firstLine.subcategoryTitle || order.subcategoryName || order.subcategoryTitle || '',
+    studentFirstName: firstLine.studentFirstName || order.studentFirstName || '',
+    studentLastName: firstLine.studentLastName || order.studentLastName || '',
+    studentName: bridgeStudentName(firstLine) || bridgeStudentName(order),
+    payerEmail,
+    payerPhone: bridgePayerPhone(order),
+    seasonLines: lines.slice(0, 12).map(line => ({
+      activityId: line.activityId || '',
+      activityName: line.activityName || '',
+      offerKey: line.offerKey || '',
+      offerLabel: line.offerLabel || '',
+      subcategoryId: line.subcategoryId || '',
+      subcategoryName: line.subcategoryName || line.subcategoryTitle || '',
+      studentFirstName: line.studentFirstName || '',
+      studentLastName: line.studentLastName || '',
+      studentName: bridgeStudentName(line),
+      amountCents: Number(line.amountCents || 0),
+      itemName: line.itemName || ''
+    })),
+    paymentLinkedAt: Date.now()
+  };
+}
+
 /* ── INIT ──────────────────────────────────────────────────────── */
+function bridgeDbKey(value) {
+  return String(value || '').trim().replace(/[.#$\[\]\/]/g, '_') || ('order_' + Date.now());
+}
+
+async function attachPaymentBridgeToActiveProfile(user, profile) {
+  if (!user || !user.uid || !profile || paymentBridgeState.existingAccountHandled) return null;
+  if (!paymentBridgeState.orderId || !paymentBridgeState.order || paymentBridgeState.status !== 'linked') return null;
+  const attachment = buildPaymentAttachmentForProfile(user.email || profile.email || '');
+  if (!attachment || !attachment.paymentOrderId) return null;
+  paymentBridgeState.existingAccountHandled = true;
+  const key = bridgeDbKey(attachment.paymentOrderId);
+  const request = Object.assign({}, attachment, {
+    requestType: 'season_access_update',
+    existingAccount: true,
+    status: 'pending_admin_review',
+    requestedAt: Date.now(),
+    currentDisciplines: Array.isArray(profile.disciplines) ? profile.disciplines : [],
+    currentSubgroups: Array.isArray(profile.subgroups) ? profile.subgroups : []
+  });
+  const updates = {};
+  updates['seasonAccessRequests/' + key] = request;
+  updates['lastSeasonAccessRequest'] = request;
+  updates.updatedAt = Date.now();
+  await db.ref('fts_users/' + user.uid).update(updates);
+  return request;
+}
+
+function showExistingAccountBridgeScreen(email) {
+  showAccountStatusScreen(email, {
+    icon: 'OK',
+    title: 'Demande d ajout envoyee',
+    desc: "Ton compte FTS reste actif. L'equipe verifiera la nouvelle inscription saison avant d'ajouter les disciplines ou groupes a ton compte.<br/><a href=\"membres.html\">Aller a mon espace membre</a>"
+  });
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
 
   db   = FTS.initFirebase();
@@ -187,6 +518,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       ${c.icon || FTS.catIcon(c.name)} ${FTS.esc(c.name)}
     </div>`
   ).join('');
+  await initPaymentBridgeFromUrl();
 
   // Écoute de l'état de connexion
   auth.onAuthStateChanged(async user => {
@@ -205,7 +537,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
       const status = String(profile.status || '').toLowerCase();
       if (status === 'pending') {
-        showPendingScreen(user.email);
+        showPendingScreen(user.email, profile);
         return;
       }
 
@@ -216,6 +548,23 @@ window.addEventListener('DOMContentLoaded', async () => {
 
       if (status !== 'active') {
         showInactiveScreen(user.email);
+        return;
+      }
+
+      let activeRequest = null;
+      try {
+        activeRequest = await attachPaymentBridgeToActiveProfile(user, profile);
+      } catch(linkErr) {
+        console.warn('[FTS Auth] Demande ajout saison non enregistree', linkErr);
+        showAccountStatusScreen(user.email, {
+          icon: '!',
+          title: 'Rattachement a verifier',
+          desc: "Ton compte FTS reste actif, mais la demande d'ajout n'a pas pu etre enregistree automatiquement. Garde la reference de commande et contacte Fais Ton Show.<br/><a href=\"membres.html\">Aller a mon espace membre</a>"
+        });
+        return;
+      }
+      if (activeRequest) {
+        showExistingAccountBridgeScreen(user.email);
         return;
       }
 
@@ -584,11 +933,15 @@ function showAccountStatusScreen(email, options) {
   if (email) document.getElementById('pending-email-display').textContent = email;
 }
 
-function showPendingScreen(email) {
+function showPendingScreen(email, profile) {
   showAccountStatusScreen(email, {
     title: 'Demande envoyée !',
     desc: "Ton compte est en cours de validation par l'équipe FTS.<br/>Tu recevras un e-mail dès que ton accès sera activé."
   });
+  if (profile && profile.paymentOrderId) {
+    const desc = document.querySelector('#pending-screen .pending-desc');
+    if (desc) desc.innerHTML += "<br/>Ton paiement saison est rattache a la demande. L'equipe FTS verifiera le paiement, la personne et le groupe avant activation.";
+  }
 }
 
 function showRefusedScreen(email) {
@@ -709,6 +1062,7 @@ async function doRegister() {
       delete copy._authIdx;
       return copy;
     });
+    const paymentAttachment = isAdmin ? null : buildPaymentAttachmentForProfile(email);
 
     /* Structure Firebase :
        fts_users/{uid}
@@ -753,6 +1107,10 @@ async function doRegister() {
         }
       },
     };
+    if (paymentAttachment) {
+      Object.assign(profile, paymentAttachment);
+      profile.paymentAttachment = paymentAttachment;
+    }
 
     await db.ref('fts_users/' + uid).set(profile);
     try { await FTS.syncPublicProfile(db, uid, profile); } catch(e) { console.warn('[FTS Auth] Profil public non bloquant :', e); }
@@ -859,7 +1217,7 @@ function friendlyError(code) {
     'auth/user-not-found':         'Aucun compte avec cet e-mail.',
     'auth/wrong-password':         'Mot de passe incorrect.',
     'auth/invalid-credential':     'E-mail ou mot de passe incorrect.',
-    'auth/email-already-in-use':   'Un compte existe déjà avec cet e-mail.',
+    'auth/email-already-in-use':   'Un compte existe deja avec cet e-mail. Connecte-toi, utilise mot de passe oublie ou contacte Fais Ton Show.',
     'auth/weak-password':          'Mot de passe trop faible (8 car. min).',
     'auth/too-many-requests':      'Trop de tentatives. Réessaie dans quelques minutes.',
     'auth/network-request-failed': 'Problème réseau. Vérifie ta connexion.',

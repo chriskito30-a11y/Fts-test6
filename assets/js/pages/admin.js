@@ -522,6 +522,34 @@ function adminV80Row(title, meta, right){
   return `<div class="fts-member-row"><div><strong>${adminV80Html(title || 'Sans titre')}</strong>${meta ? `<span>${adminV80Html(meta)}</span>` : ''}</div>${right ? `<small>${adminV80Html(right)}</small>` : ''}</div>`;
 }
 function adminV80Empty(text){ return `<div class="fts-member-empty">${adminV80Html(text || 'Aucune donnée trouvée.')}</div>`; }
+function adminV80PaymentLineLabel(line){
+  line = line || {};
+  return [line.activityName, line.subcategoryName || line.subcategoryTitle, line.offerLabel].map(v=>String(v||'').trim()).filter(Boolean).join(' - ') || line.itemName || 'Inscription saison';
+}
+function adminV80PaymentStudent(line){
+  line = line || {};
+  return line.studentName || [line.studentFirstName, line.studentLastName].filter(Boolean).join(' ');
+}
+function adminV80PaymentSection(u){
+  u = u || {};
+  const p = u.paymentAttachment || (u.paymentOrderId ? u : null);
+  if(!p) return '';
+  const mismatch = p.paymentEmailMismatch === true || (!!p.payerEmail && !!(p.accountEmail || u.email) && String(p.payerEmail).toLowerCase() !== String(p.accountEmail || u.email).toLowerCase());
+  const lines = Array.isArray(p.seasonLines) && p.seasonLines.length ? p.seasonLines : [p];
+  return `<section class="fts-member-read-card full"><h3>Paiement rattache a la demande</h3>
+    ${adminV80Row('Reference commande', p.paymentOrderId || u.paymentOrderId || '-', p.paymentStatus || '')}
+    ${mismatch ? adminV80Row('Alerte email', `Email compte ${p.accountEmail || u.email || '-'} different de l'email paiement ${p.payerEmail || '-'}`, 'a verifier') : ''}
+    ${adminV80Row('Payeur', [p.payerEmail || '', p.payerPhone || ''].filter(Boolean).join(' - ') || '-', p.paymentLinkStatus || 'lie')}
+    <div class="fts-member-list">${lines.map(line=>adminV80Row(adminV80PaymentLineLabel(line), adminV80PaymentStudent(line) ? 'Eleve : ' + adminV80PaymentStudent(line) : '', line.season || p.season || '')).join('')}</div>
+  </section>`;
+}
+function adminV80SeasonRequestsSection(u){
+  const requests = Object.values((u && u.seasonAccessRequests) || {}).filter(Boolean);
+  if(!requests.length) return '';
+  return `<section class="fts-member-read-card full"><h3>Demandes d ajout saison</h3>
+    <div class="fts-member-list">${requests.slice().reverse().map(r=>adminV80Row(r.paymentOrderId || 'Commande sans reference', (r.seasonLines || [r]).map(adminV80PaymentLineLabel).join(' | '), r.status || 'pending_admin_review')).join('')}</div>
+  </section>`;
+}
 async function adminV80Read(uid){
   const refs = [
     ['user', 'fts_users/' + uid],
@@ -583,6 +611,8 @@ function adminV80RenderNormal(data){
     </div>
   </div>
   <div class="fts-member-read-grid">
+    ${adminV80PaymentSection(u)}
+    ${adminV80SeasonRequestsSection(u)}
     <section class="fts-member-read-card"><h3>Accès du compte</h3><div class="fts-member-read-meta">${adminV80Badges(adminV80UserCats(u),'Aucune discipline')}</div><div class="fts-member-read-meta">${adminV80Badges(adminV80UserSubs(u),'Aucun groupe')}</div></section>
     <section class="fts-member-read-card"><h3>Résumé rapide</h3>
       ${adminV80Row('Enfants renseignés', children.length ? children.map((c,i)=>adminV80ChildName(c,i)).join(', ') : 'Aucun', String(children.length))}
@@ -606,6 +636,8 @@ function adminV80RenderAdmin(data){
   const d = adminV80BuildDerived(data);
   const rawProfile = JSON.stringify({ uid, fts_users:data.user || null, fts_forum_user:data.forumUser || null }, null, 2);
   return `<div class="fts-member-read-grid">
+    ${adminV80PaymentSection(u)}
+    ${adminV80SeasonRequestsSection(u)}
     <section class="fts-member-read-card full"><h3>Lecture admin — identité complète</h3>
       ${adminV80Row('UID Firebase', uid, '')}
       ${adminV80Row('Création / mise à jour profil', `createdAt : ${adminV80Date(u.createdAt)} · updatedAt : ${adminV80Date(u.updatedAt)}`, '')}
