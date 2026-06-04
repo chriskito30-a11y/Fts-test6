@@ -3458,8 +3458,12 @@ button.profile-pill:focus-visible {
 }
 
 
-/* ── V105 — Accès rapide Assistant répétition ───────────────────── */
+/* ── V105/V218 — Accès rapides intégrés : répétition + boutique ───── */
+.member-shortcuts-strip,
 .member-repetition-shortcut {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, .85fr);
+  gap: .8rem;
   padding: 0;
   border: 0;
   background: transparent;
@@ -3467,32 +3471,47 @@ button.profile-pill:focus-visible {
   margin-top: .9rem;
 }
 
-.member-repetition-card {
+.member-repetition-card,
+.member-shop-card {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: .9rem;
   width: 100%;
+  min-height: 100%;
   padding: .95rem 1rem;
   border-radius: var(--r-lg, 22px);
-  border: 1px solid rgba(248,231,2,.24);
-  background:
-    radial-gradient(circle at 10% 0%, rgba(248,231,2,.15), transparent 32%),
-    linear-gradient(135deg, rgba(191,22,34,.22), rgba(18,18,18,.94));
   color: var(--white);
   text-decoration: none;
   box-shadow: 0 14px 34px rgba(0,0,0,.28);
   transition: transform .18s ease, border-color .18s ease, background .18s ease;
 }
 
+.member-repetition-card {
+  border: 1px solid rgba(248,231,2,.24);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(248,231,2,.15), transparent 32%),
+    linear-gradient(135deg, rgba(191,22,34,.22), rgba(18,18,18,.94));
+}
+
+.member-shop-card {
+  border: 1px solid rgba(255,255,255,.12);
+  background:
+    radial-gradient(circle at 10% 0%, rgba(248,231,2,.10), transparent 34%),
+    linear-gradient(135deg, rgba(255,255,255,.075), rgba(12,12,12,.94));
+}
+
 .member-repetition-card:hover,
-.member-repetition-card:focus-visible {
+.member-repetition-card:focus-visible,
+.member-shop-card:hover,
+.member-shop-card:focus-visible {
   transform: translateY(-1px);
   border-color: rgba(248,231,2,.55);
   outline: none;
 }
 
-.member-repetition-icon {
+.member-repetition-icon,
+.member-shop-icon {
   display: grid;
   place-items: center;
   width: 46px;
@@ -3503,24 +3522,33 @@ button.profile-pill:focus-visible {
   font-size: 1.45rem;
 }
 
-.member-repetition-copy {
+.member-shop-icon {
+  background: rgba(248,231,2,.10);
+  border-color: rgba(248,231,2,.20);
+}
+
+.member-repetition-copy,
+.member-shop-copy {
   display: flex;
   flex-direction: column;
   gap: .16rem;
   min-width: 0;
 }
 
-.member-repetition-copy strong {
+.member-repetition-copy strong,
+.member-shop-copy strong {
   font-size: 1rem;
   letter-spacing: .01em;
 }
 
-.member-repetition-copy small {
+.member-repetition-copy small,
+.member-shop-copy small {
   color: rgba(255,255,255,.74);
   line-height: 1.35;
 }
 
-.member-repetition-action {
+.member-repetition-action,
+.member-shop-action {
   padding: .48rem .72rem;
   border-radius: 999px;
   background: rgba(248,231,2,.13);
@@ -3531,11 +3559,26 @@ button.profile-pill:focus-visible {
   white-space: nowrap;
 }
 
+.member-shop-action {
+  background: rgba(255,255,255,.06);
+  border-color: rgba(255,255,255,.12);
+  color: rgba(255,255,255,.86);
+}
+
+@media (max-width: 760px) {
+  .member-shortcuts-strip,
+  .member-repetition-shortcut {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 620px) {
-  .member-repetition-card {
+  .member-repetition-card,
+  .member-shop-card {
     grid-template-columns: auto 1fr;
   }
-  .member-repetition-action {
+  .member-repetition-action,
+  .member-shop-action {
     grid-column: 1 / -1;
     justify-self: stretch;
     text-align: center;
