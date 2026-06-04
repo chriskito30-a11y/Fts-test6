@@ -1,4 +1,4 @@
-const CACHE = 'fts-v218-boutique-shortcut';
+const CACHE = 'fts-v219-repetition-target';
 const FILES = [
   './manifest.json',
   './index.html',
