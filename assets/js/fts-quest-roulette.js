@@ -6,7 +6,7 @@
   const storage = data.storageKeys || {};
   const $ = (sel, root=document) => root.querySelector(sel);
   const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-  const state = { packId: 'theatre_impro', reels: [], result: {}, spinning: false, custom: {}, saved: [] };
+  const state = { packId: 'theatre_impro', reels: [], result: {}, spinning: false, custom: {}, saved: [], leverTimer: null };
 
   function readJSON(key, fallback){ try { return JSON.parse(localStorage.getItem(key) || 'null') || fallback; } catch(e){ return fallback; } }
   function writeJSON(key, value){ try { localStorage.setItem(key, JSON.stringify(value)); } catch(e){} }
@@ -55,12 +55,19 @@
     machine.style.setProperty('--reel-count', Math.min(state.reels.length, 6));
     machine.innerHTML = state.reels.map(id => {
       const value = state.result[id] || '—';
-      return `<article class="slot-reel" data-reel="${id}">
+      return `<article class="slot-reel" data-reel="${id}" role="button" tabindex="0" aria-label="Relancer ${bankLabel(id)}">
         <div class="slot-reel-top"><span>${bankLabel(id)}</span><button type="button" data-reroll="${id}" aria-label="Relancer ${bankLabel(id)}">↻</button></div>
         <div class="slot-window"><div class="slot-value">${value}</div></div>
       </article>`;
     }).join('');
-    $$('[data-reroll]', machine).forEach(btn => btn.addEventListener('click', () => spin([btn.dataset.reroll])));
+    $$('[data-reroll]', machine).forEach(btn => btn.addEventListener('click', (event) => { event.stopPropagation(); pullLever([btn.dataset.reroll]); }));
+    $$('.slot-reel', machine).forEach(reel => {
+      const relaunch = () => pullLever([reel.dataset.reel]);
+      reel.addEventListener('click', relaunch);
+      reel.addEventListener('keydown', (event) => {
+        if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); relaunch(); }
+      });
+    });
     updateMeta();
   }
 
@@ -72,6 +79,26 @@
     if(desc) desc.textContent = pack.description;
     if(count) count.textContent = formatBig(countTotalPossibilities(pack));
     if(reels) reels.textContent = state.reels.length;
+  }
+
+  function pullLever(reels){
+    if(state.spinning) return;
+    const lever = $('#slotLever') || $('.slot-lever');
+    const machine = $('#slotMachine');
+    if(lever){
+      lever.classList.remove('pulled');
+      void lever.offsetWidth;
+      lever.classList.add('pulled');
+      clearTimeout(state.leverTimer);
+      state.leverTimer = setTimeout(() => lever.classList.remove('pulled'), 650);
+    }
+    if(machine){
+      machine.classList.remove('machine-fired');
+      void machine.offsetWidth;
+      machine.classList.add('machine-fired');
+      setTimeout(() => machine.classList.remove('machine-fired'), 720);
+    }
+    spin(reels);
   }
 
   function spin(reels){
@@ -195,12 +222,19 @@
     renderSaved();
     renderCustomTools();
     setupForm();
-    const spinBtn = $('#spinRoulette'); if(spinBtn) spinBtn.addEventListener('click', () => spin());
+    const spinBtn = $('#spinRoulette'); if(spinBtn) spinBtn.addEventListener('click', () => pullLever());
+    const leverBtn = $('#slotLever'); if(leverBtn) leverBtn.addEventListener('click', () => pullLever());
+    const machine = $('#slotMachine'); if(machine) machine.addEventListener('dblclick', () => pullLever());
+    const machineWrap = $('.slot-machine-wrap');
+    if(machineWrap) machineWrap.addEventListener('click', (event) => {
+      if(event.target.closest('.slot-reel') || event.target.closest('#slotLever') || event.target.closest('[data-reroll]')) return;
+      pullLever();
+    });
     const saveBtn = $('#saveSpin'); if(saveBtn) saveBtn.addEventListener('click', saveCurrent);
     const copyBtn = $('#copySpin'); if(copyBtn) copyBtn.addEventListener('click', copyCurrent);
     const clearBtn = $('#clearSaved'); if(clearBtn) clearBtn.addEventListener('click', () => { state.saved=[]; writeJSON(storage.saved, []); renderSaved(); });
     if(!Object.keys(state.result).length) spin();
-    log('🎲 Roulette impro initialisée en mode bandit manchot.');
+    log('🎲 Roulette impro initialisée : clique sur le bras ou sur un rouleau pour relancer.');
   }
 
   document.addEventListener('DOMContentLoaded', () => { try { init(); } catch(err){ console.error(err); log('Erreur roulette : ' + err.message); } });
