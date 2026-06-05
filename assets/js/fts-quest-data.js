@@ -1,13 +1,14 @@
 'use strict';
 
 window.FTSQuestData = {
-  version: '0.3.0-codes-secrets',
+  version: '0.4.0-defis-bingo',
   storageKeys: {
     player: 'ftsQuest.player.v2',
     avatar: 'ftsQuest.avatar.v2',
     log: 'ftsQuest.log.v3',
     codesHistory: 'ftsQuest.codes.history.v1',
-    playerProgress: 'ftsQuest.player.progress.v1'
+    playerProgress: 'ftsQuest.player.progress.v1',
+    challengesState: 'ftsQuest.challenges.state.v1'
   },
   player: {
     name: 'Artiste FTS',
@@ -112,7 +113,7 @@ window.FTSQuestData = {
     { id: 'hub', title: 'Mon aventure', href: 'quest.html', status: 'Brique 1', description: 'Hub autonome, carte profil, XP, modules et design commun.' },
     { id: 'avatar', title: 'Avatar Lab', href: 'quest-avatar.html', status: 'Brique 2', description: 'Créateur d’avatar premium : couleurs, yeux, accessoires, cadre.' },
     { id: 'codes', title: 'Codes secrets', href: 'quest-codes.html', status: 'Brique 3', description: 'Récompenses par codes prof/admin, historique, limites et aperçu admin.' },
-    { id: 'defis', title: 'Défis & bingo', href: '#', status: 'À venir', description: 'Défis rentrée, checklists, bingo spectacle.' },
+    { id: 'defis', title: 'Défis & bingo', href: 'quest-defis.html', status: 'Brique 4', description: 'Défis rentrée, checklists, bingo spectacle et préparation utile.' },
     { id: 'roulette', title: 'Roulette impro', href: '#', status: 'À venir', description: 'Mode membre + mode prof pour générer personnages et situations.' },
     { id: 'aventure', title: 'Livre-jeu', href: '#', status: 'Gros module', description: 'Aventure illustrée, roleplay, choix, inventaire et fins multiples.' }
   ],
@@ -142,5 +143,87 @@ window.FTSQuestData = {
       reward: 'Titre prototype : Gardien des Coulisses', type: 'Aventure', rarity: 'Mythique',
       description: 'Prépare le futur livre-jeu illustré et roleplay.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
     }
-  }
+  },
+  challengePacks: [
+    {
+      id: 'rentree-fts',
+      type: 'checklist',
+      icon: '🚀',
+      title: 'Défi rentrée FTS',
+      subtitle: 'Installer les bons réflexes app dès le début de saison.',
+      audience: 'Tous les membres / parents',
+      difficulty: 'Facile',
+      rewardXp: 120,
+      color: 'gold',
+      steps: [
+        { id: 'install-pwa', label: 'Installer la PWA sur mon téléphone', help: 'Objectif : accès rapide sans chercher le lien.' },
+        { id: 'notifications', label: 'Activer les notifications importantes', help: 'Pour ne pas manquer rappels, annonces et spectacles.' },
+        { id: 'planning', label: 'Consulter mon planning / mes cours', help: 'Vérifier son groupe, ses horaires et ses infos.' },
+        { id: 'forum', label: 'Ouvrir mon forum de groupe', help: 'Savoir où retrouver les infos collectives.' },
+        { id: 'ressources', label: 'Consulter au moins une ressource', help: 'Texte, musique, vidéo ou document utile.' },
+        { id: 'profil', label: 'Vérifier mes infos de profil', help: 'Nom, catégorie, sous-catégorie et accès.' }
+      ]
+    },
+    {
+      id: 'spectacle-ready',
+      type: 'checklist',
+      icon: '🎭',
+      title: 'Préparation spectacle',
+      subtitle: 'La checklist anti-oubli avant répétition ou représentation.',
+      audience: 'Élèves / parents',
+      difficulty: 'Normal',
+      rewardXp: 160,
+      color: 'red',
+      steps: [
+        { id: 'horaire', label: 'J’ai vérifié l’horaire et le lieu', help: 'Évite les messages de dernière minute.' },
+        { id: 'message-prof', label: 'J’ai lu le message du professeur', help: 'Consignes, tenue, arrivée, matériel.' },
+        { id: 'costume', label: 'Costume / tenue prêt(e)', help: 'À adapter selon le spectacle.' },
+        { id: 'sac', label: 'Sac préparé', help: 'Eau, chaussures, partitions, accessoires.' },
+        { id: 'texte-musique', label: 'Texte, musique ou choré relu(e)', help: 'Dernière vérification avant le show.' },
+        { id: 'billet', label: 'Billet / QR code retrouvé si besoin', help: 'Pour les événements avec billetterie.' }
+      ]
+    },
+    {
+      id: 'bingo-artiste',
+      type: 'bingo',
+      icon: '🏆',
+      title: 'Bingo artiste',
+      subtitle: 'Une grille ludique pour encourager les bons comportements.',
+      audience: 'Tous les artistes',
+      difficulty: 'Fun',
+      rewardXp: 200,
+      color: 'violet',
+      gridSize: 9,
+      steps: [
+        { id: 'read-resource', label: 'Ressource consultée', help: 'Texte, partition, vidéo ou audio.' },
+        { id: 'encourage', label: 'Encouragement envoyé', help: 'Un message positif dans le groupe.' },
+        { id: 'code-secret', label: 'Code secret trouvé', help: 'Code donné en cours ou événement.' },
+        { id: 'repeat', label: 'J’ai répété 10 min', help: 'Même une petite répétition compte.' },
+        { id: 'question', label: 'Question préparée', help: 'Une question utile pour le prochain cours.' },
+        { id: 'warmup', label: 'Échauffement fait', help: 'Corps, voix ou instrument.' },
+        { id: 'planning-check', label: 'Planning vérifié', help: 'Je sais où et quand venir.' },
+        { id: 'help-friend', label: 'J’ai aidé quelqu’un', help: 'Esprit d’équipe FTS.' },
+        { id: 'ready-show', label: 'Prêt pour le show', help: 'Mentalité spectacle.' }
+      ]
+    },
+    {
+      id: 'mini-defis-scene',
+      type: 'cards',
+      icon: '✨',
+      title: 'Mini-défis scène',
+      subtitle: 'Petites missions artistiques à valider quand on veut.',
+      audience: 'Élèves motivés',
+      difficulty: 'Variable',
+      rewardXp: 90,
+      color: 'blue',
+      steps: [
+        { id: 'emotion-3', label: 'Jouer une phrase avec 3 émotions', help: 'Colère, joie, peur, tristesse, surprise…' },
+        { id: 'song-intention', label: 'Chanter avec une intention claire', help: 'À qui je parle ? Pourquoi ?' },
+        { id: 'dance-freeze', label: 'Créer une pose finale', help: 'Une fin lisible, forte, scénique.' },
+        { id: 'tempo-slow', label: 'Travailler lentement puis au tempo', help: 'Musique / chant / danse.' },
+        { id: 'character', label: 'Inventer un personnage', help: 'Nom, objectif, secret, énergie.' },
+        { id: 'backstage', label: 'Imaginer un objet de coulisses', help: 'À réutiliser plus tard dans le livre-jeu.' }
+      ]
+    }
+  ]
 };
