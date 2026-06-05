@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05030b" />
+  <title>FTS Quest · Mon aventure</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=4-defis" />
+</head>
+<body class="quest-body">
+  <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
+  <main class="quest-shell" id="ftsQuestApp">
+    <header class="quest-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="../membres.html" aria-label="Retour espace membre"><span>‹</span> Retour</a>
+        <div class="quest-brand"><img src="../fts192.png" alt="Fais Ton Show" /><strong>FTS Quest</strong></div>
+        <a class="quest-icon-btn" href="quest-avatar.html" aria-label="Avatar Lab">✦</a>
+      </nav>
+      <section class="hero-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">L’aventure des artistes</p>
+          <h1>FTS<br><span>Quest</span></h1>
+          <p class="hero-lead">Un module jeu séparé, premium et mobile first : avatar, carte artiste, titres, défis, codes secrets et futurs modules pédagogiques.</p>
+          <div class="hero-actions">
+            <a href="quest-avatar.html" class="quest-btn quest-btn-primary">Créer mon avatar</a>
+            <a href="quest-codes.html" class="quest-btn quest-btn-ghost">Codes secrets</a>
+            <a href="quest-defis.html" class="quest-btn quest-btn-ghost">Défis & bingo</a>
+            <a href="#quest-dashboard" class="quest-btn quest-btn-ghost">Voir le hub</a>
+          </div>
+        </div>
+        <aside class="hero-card" aria-label="Carte artiste FTS Quest">
+          <div class="hero-card-glow"></div>
+          <div id="questProfileCard"></div>
+        </aside>
+      </section>
+    </header>
+
+    <section class="quest-dashboard" id="quest-dashboard" data-reveal>
+      <div class="section-head">
+        <p class="quest-kicker">Briques 1 → 4</p>
+        <h2>Hub autonome prêt à déployer</h2>
+        <p>Ce livrable ajoute maintenant les défis/checklists/bingo en local, sans Firebase, sans rules, sans worker et sans modification des pages existantes.</p>
+      </div>
+      <div class="dashboard-grid">
+        <article class="command-card">
+          <div class="card-head"><div><p class="mini-label">État joueur</p><h3>Mon aventure</h3></div><span class="status-chip">Local mock</span></div>
+          <div class="stats-grid" id="statsGrid"></div>
+        </article>
+        <article class="command-card">
+          <div class="card-head compact"><div><p class="mini-label">Prototype</p><h3>Code secret</h3></div><span class="card-icon">⌁</span></div>
+          <div class="secret-form">
+            <a class="quest-btn quest-btn-primary" href="quest-codes.html">Ouvrir le module Codes secrets</a>
+            <p class="form-feedback">Cette brique dispose maintenant d’une page complète avec historique local, récompenses et aperçu admin.</p>
+          </div>
+          <form class="secret-form" id="secretCodeForm">
+            <label for="secretCode">Entre un code test</label>
+            <div class="input-row"><input id="secretCode" name="secretCode" autocomplete="off" placeholder="IMPRO-ETOILE" /><button type="submit">OK</button></div>
+            <p class="form-feedback" id="codeFeedback">Exemples : IMPRO-ETOILE, SHOWTIME, FTS-QUEST</p>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section class="quest-tabs" data-reveal>
+      <div class="tabbar" role="tablist" aria-label="Modules FTS Quest">
+        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-tab="avatars">Avatars</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="titles">Titres</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="missions">Défis</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="modules">Modules</button>
+      </div>
+      <div class="tab-panel active" id="tab-avatars" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Identité visuelle</p><h2>Avatars premium</h2><p>Le hub lit l’avatar sauvegardé dans Avatar Lab. Les avatars sont en CSS/SVG-like pour être légers et recolorables.</p></div>
+        <div class="avatar-strip" id="avatarStrip"></div>
+      </div>
+      <div class="tab-panel" id="tab-titles" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Progression</p><h2>Titres débloquables</h2><p>Des statuts valorisants sans classement public agressif.</p></div>
+        <div class="title-grid" id="titleGrid"></div>
+      </div>
+      <div class="tab-panel" id="tab-missions" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Défis utiles</p><h2>Checklists & bingo</h2><p>Des défis qui servent vraiment l’organisation : rentrée, spectacle, préparation et infos importantes.</p></div>
+        <div class="mission-grid" id="missionGrid"></div>
+      </div>
+      <div class="tab-panel" id="tab-modules" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Architecture séparée</p><h2>Modules HTML</h2><p>Chaque module reste autonome avant intégration progressive dans membres/profs/admin.</p></div>
+        <div class="module-grid" id="moduleGrid"></div>
+      </div>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · journal local</strong></div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="../assets/js/fts-quest-data.js?v=4-defis"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=4-defis"></script>
+  <script src="../assets/js/fts-quest-core.js?v=4-defis"></script>
+</body>
+</html>

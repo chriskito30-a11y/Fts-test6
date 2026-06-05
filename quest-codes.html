@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05030b" />
+  <title>FTS Quest · Codes secrets</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=4-defis" />
+</head>
+<body class="quest-body quest-codes-page">
+  <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
+  <main class="quest-shell" id="ftsQuestCodesApp">
+    <header class="quest-hero codes-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="quest.html" aria-label="Retour FTS Quest"><span>‹</span> FTS Quest</a>
+        <div class="quest-brand"><img src="../fts192.png" alt="Fais Ton Show" /><strong>Codes secrets</strong></div>
+        <a class="quest-icon-btn" href="quest-avatar.html" aria-label="Avatar Lab">✦</a>
+      </nav>
+      <section class="codes-hero-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">Brique 3 · récompenses</p>
+          <h1>Codes<br><span>secrets</span></h1>
+          <p class="hero-lead">Un module autonome pour tester les codes prof/admin : validation locale, récompense, historique, journal et aperçu de gestion. Aucun Firebase, aucune règle, aucun worker.</p>
+          <div class="hero-actions">
+            <a href="#code-console" class="quest-btn quest-btn-primary">Entrer un code</a>
+            <a href="#code-admin-preview" class="quest-btn quest-btn-ghost">Voir l’aperçu admin</a>
+          </div>
+        </div>
+        <aside class="code-console-card" id="code-console" aria-label="Console de code secret">
+          <div class="console-ring"></div>
+          <p class="mini-label">Console de validation</p>
+          <h2>Débloquer une récompense</h2>
+          <form class="mega-code-form" id="questCodeForm">
+            <label for="questCodeInput">Code secret</label>
+            <div class="mega-code-input"><input id="questCodeInput" autocomplete="off" placeholder="IMPRO-ETOILE" /><button type="submit">Valider</button></div>
+            <p class="form-feedback" id="questCodeFeedback">Codes test : IMPRO-ETOILE, SHOWTIME, FTS-QUEST, AVATAR-LAB, COULISSES</p>
+          </form>
+          <div class="reward-preview" id="rewardPreview"></div>
+        </aside>
+      </section>
+    </header>
+
+    <section class="codes-layout" data-reveal>
+      <article class="command-card">
+        <div class="card-head"><div><p class="mini-label">Progression locale</p><h3>Récompenses obtenues</h3></div><span class="status-chip">Mock local</span></div>
+        <div class="codes-progress" id="codesProgress"></div>
+      </article>
+      <article class="command-card">
+        <div class="card-head compact"><div><p class="mini-label">Historique</p><h3>Derniers codes</h3></div><span class="card-icon">⌁</span></div>
+        <div class="history-list" id="codesHistory"></div>
+      </article>
+    </section>
+
+    <section class="quest-tabs codes-tabs" data-reveal>
+      <div class="tabbar" role="tablist" aria-label="Codes FTS Quest">
+        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-tab="available">Codes disponibles</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="rules">Règles</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="admin">Aperçu admin</button>
+      </div>
+      <div class="tab-panel active" id="tab-available" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Prototype testable</p><h2>Catalogue de codes</h2><p>En production, cette liste sera masquée côté membre. Ici elle sert aux tests avant branchement Firebase.</p></div>
+        <div class="codes-grid" id="codesGrid"></div>
+      </div>
+      <div class="tab-panel" id="tab-rules" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Sécurité douce</p><h2>Règles prévues</h2><p>Le module est conçu pour rester fun, sans compétition agressive et sans risque de spam.</p></div>
+        <div class="rule-grid" id="rulesGrid"></div>
+      </div>
+      <div class="tab-panel" id="tab-admin" role="tabpanel">
+        <div class="section-head left" id="code-admin-preview"><p class="quest-kicker">Plus tard</p><h2>Aperçu admin/prof</h2><p>Ce n’est pas encore branché : c’est un wireframe visuel pour préparer la future page de gestion.</p></div>
+        <div class="admin-preview-grid">
+          <article class="admin-preview-card"><span>01</span><strong>Créer un code</strong><p>Nom, code, XP, récompense, catégorie ciblée, date d’expiration.</p></article>
+          <article class="admin-preview-card"><span>02</span><strong>Cibler un groupe</strong><p>Public, activité, sous-catégorie, prof, événement ou bêta testeurs.</p></article>
+          <article class="admin-preview-card"><span>03</span><strong>Limiter l’usage</strong><p>Une fois par membre, quota total, période active, désactivation rapide.</p></article>
+          <article class="admin-preview-card"><span>04</span><strong>Analyser</strong><p>Nombre d’utilisations, historique, récompenses distribuées, erreurs.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest Codes · journal local</strong></div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="../assets/js/fts-quest-data.js?v=4-defis"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=4-defis"></script>
+  <script src="../assets/js/fts-quest-codes.js?v=4-defis"></script>
+</body>
+</html>
