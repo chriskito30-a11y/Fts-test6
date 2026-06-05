@@ -1,7 +1,7 @@
 'use strict';
 
 window.FTSQuestData = {
-  version: '0.4.0-defis-bingo',
+  version: '0.5.0-roulette-bandit',
   storageKeys: {
     player: 'ftsQuest.player.v2',
     avatar: 'ftsQuest.avatar.v2',
@@ -114,7 +114,7 @@ window.FTSQuestData = {
     { id: 'avatar', title: 'Avatar Lab', href: 'quest-avatar.html', status: 'Brique 2', description: 'Créateur d’avatar premium : couleurs, yeux, accessoires, cadre.' },
     { id: 'codes', title: 'Codes secrets', href: 'quest-codes.html', status: 'Brique 3', description: 'Récompenses par codes prof/admin, historique, limites et aperçu admin.' },
     { id: 'defis', title: 'Défis & bingo', href: 'quest-defis.html', status: 'Brique 4', description: 'Défis rentrée, checklists, bingo spectacle et préparation utile.' },
-    { id: 'roulette', title: 'Roulette impro', href: '#', status: 'À venir', description: 'Mode membre + mode prof pour générer personnages et situations.' },
+    { id: 'roulette', title: 'Roulette impro', href: 'quest-roulette.html', status: 'Brique 5', description: 'Bandit manchot pédagogique : impro, chant, danse, musique et comédie musicale.' },
     { id: 'aventure', title: 'Livre-jeu', href: '#', status: 'Gros module', description: 'Aventure illustrée, roleplay, choix, inventaire et fins multiples.' }
   ],
   codes: {
