@@ -1,156 +1,115 @@
 'use strict';
+
 (function(){
-  const data = window.FTSQuestData;
+  const D = window.FTSQuestData;
   const UI = window.FTSQuestUI;
-  if (!data || !UI) return;
 
   function renderStats(){
-    const grid = UI.el('#statsGrid');
-    grid.innerHTML = data.player.stats.map(stat => `
-      <div class="stat-card">
-        <i>${UI.escape(stat.icon)}</i>
-        <strong>${UI.escape(stat.value)}</strong>
-        <span>${UI.escape(stat.label)}</span>
-      </div>
+    const target = UI.$('#statsGrid');
+    if (!target) return;
+    const player = D.player;
+    const stats = [
+      { icon: '⚡', label: 'XP', value: player.xp },
+      { icon: '🏆', label: 'Titres', value: player.titles },
+      { icon: '◆', label: 'Badges', value: player.badges },
+      { icon: '✓', label: 'Défis', value: player.challenges }
+    ];
+    target.innerHTML = stats.map(stat => `
+      <div class="stat-tile"><span>${stat.icon}</span><strong>${stat.value}</strong><small>${UI.escape(stat.label)}</small></div>
     `).join('');
   }
 
-  function renderAvatars(){
-    const grid = UI.el('#avatarGrid');
-    grid.innerHTML = data.avatars.map(avatar => `
-      <article class="avatar-card ${avatar.id === data.player.activeAvatar ? 'active' : ''} ${avatar.unlocked ? '' : 'locked'}" data-avatar-id="${UI.escape(avatar.id)}">
-        <span class="rarity">${UI.escape(avatar.rarity)} · ${UI.escape(avatar.family)}</span>
-        <div class="mini-avatar">${UI.avatarMarkup(avatar.className)}</div>
-        <h3>${UI.escape(avatar.name)}</h3>
-        <p>${UI.escape(avatar.description)}</p>
-      </article>
-    `).join('');
+  function renderAvatarStrip(){
+    const target = UI.$('#avatarStrip');
+    if (!target) return;
+    const active = UI.loadAvatar();
+    target.innerHTML = D.bases.slice(0,4).map(base => {
+      const cfg = { ...active, base: base.id };
+      return `<article class="mini-avatar-card"><div>${UI.renderAvatar(cfg, { size:'small' })}</div><strong>${UI.escape(base.label)}</strong><span>${UI.escape(base.rarity)}</span></article>`;
+    }).join('');
   }
 
   function renderTitles(){
-    const grid = UI.el('#titleGrid');
-    grid.innerHTML = data.titles.map(title => `
-      <article class="title-card ${title.unlocked ? 'unlocked' : 'locked'}">
-        <span class="rarity">${title.unlocked ? 'Débloqué' : 'À gagner'}</span>
-        <h3>${UI.escape(title.name)}</h3>
+    const target = UI.$('#titleGrid');
+    if (!target) return;
+    target.innerHTML = D.titles.map(title => `
+      <article class="reward-card ${title.unlocked ? 'unlocked' : 'locked'}">
+        <span class="reward-icon">${title.unlocked ? '🏆' : '🔒'}</span>
+        <strong>${UI.escape(title.label)}</strong>
         <p>${UI.escape(title.description)}</p>
-      </article>
-    `).join('');
+      </article>`).join('');
   }
 
   function renderMissions(){
-    const grid = UI.el('#missionGrid');
-    grid.innerHTML = data.missions.map(mission => `
+    const target = UI.$('#missionGrid');
+    if (!target) return;
+    target.innerHTML = D.missions.map(mission => `
       <article class="mission-card">
-        <h3>${UI.escape(mission.title)}</h3>
+        <div class="mission-head"><strong>${UI.escape(mission.title)}</strong><span>${mission.percent}%</span></div>
         <p>${UI.escape(mission.description)}</p>
+        <div class="xp-track sm"><span style="width:${mission.percent}%"></span></div>
         <ul>${mission.steps.map(step => `<li>${UI.escape(step)}</li>`).join('')}</ul>
-        <div class="mission-progress">
-          <div class="rings" style="--p:${Number(mission.percent)}%">${Number(mission.percent)}%</div>
-          <p>Progression prototype</p>
-        </div>
-      </article>
-    `).join('');
+      </article>`).join('');
   }
 
   function renderModules(){
-    const grid = UI.el('#moduleGrid');
-    grid.innerHTML = data.modules.map(module => `
-      <article class="module-card">
-        <span class="rarity">${UI.escape(module.status)}</span>
-        <h3>${UI.escape(module.title)}</h3>
-        <p>${UI.escape(module.description)}</p>
-        <strong>HTML séparé</strong>
-      </article>
-    `).join('');
+    const target = UI.$('#moduleGrid');
+    if (!target) return;
+    target.innerHTML = D.modules.map(mod => `
+      <a class="module-card" href="${UI.escape(mod.href)}" ${mod.href === '#' ? 'aria-disabled="true"' : ''}>
+        <span>${UI.escape(mod.status)}</span>
+        <strong>${UI.escape(mod.title)}</strong>
+        <p>${UI.escape(mod.description)}</p>
+      </a>`).join('');
   }
 
-  function bindTabs(){
-    UI.els('.tab-btn').forEach(btn => {
+  function initTabs(){
+    UI.$$('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        UI.els('.tab-btn').forEach(b => { b.classList.toggle('active', b === btn); b.setAttribute('aria-selected', b === btn ? 'true' : 'false'); });
-        UI.els('.tab-panel').forEach(panel => panel.classList.toggle('active', panel.id === `tab-${tab}`));
-        UI.log(`<em>Navigation</em> · onglet ${UI.escape(btn.textContent.trim())}`);
+        UI.$$('.tab-btn').forEach(item => item.classList.remove('active'));
+        UI.$$('.tab-panel').forEach(item => item.classList.remove('active'));
+        btn.classList.add('active');
+        const panel = UI.$(`#tab-${btn.dataset.tab}`);
+        if (panel) panel.classList.add('active');
       });
     });
   }
 
-  function bindAvatars(){
-    UI.el('#avatarGrid').addEventListener('click', event => {
-      const card = event.target.closest('.avatar-card');
-      if (!card) return;
-      const avatar = data.avatars.find(a => a.id === card.dataset.avatarId);
-      if (!avatar) return;
-      if (!avatar.unlocked) {
-        UI.log(`<em>Avatar verrouillé</em> · ${UI.escape(avatar.name)} sera débloqué plus tard.`);
-        return;
-      }
-      data.player.activeAvatar = avatar.id;
-      UI.els('.avatar-card').forEach(c => c.classList.toggle('active', c === card));
-      UI.el('#activeAvatarFrame').innerHTML = UI.avatarMarkup(avatar.className);
-      UI.log(`<em>Avatar actif</em> · ${UI.escape(avatar.name)}`);
-    });
-  }
-
-  function bindSecretCodes(){
-    UI.el('#secretCodeForm').addEventListener('submit', event => {
+  function initCodes(){
+    const form = UI.$('#secretCodeForm');
+    if (!form) return;
+    form.addEventListener('submit', event => {
       event.preventDefault();
-      const input = UI.el('#secretCode');
-      const feedback = UI.el('#codeFeedback');
-      const code = input.value.trim().toUpperCase();
-      const reward = data.codes[code];
-      feedback.className = 'form-feedback';
-      if (!reward) {
-        feedback.textContent = 'Code inconnu dans le prototype. Essaie IMPRO-ETOILE, SHOWTIME ou FTS-QUEST.';
-        feedback.classList.add('error');
-        UI.log(`<em>Code refusé</em> · ${UI.escape(code || 'vide')}`);
-        return;
-      }
-      data.player.xp += reward.xp;
-      const pct = Math.min(100, Math.round((data.player.xp / data.player.nextXp) * 100));
-      UI.el('#xpText').textContent = `${data.player.xp} / ${data.player.nextXp} XP`;
-      UI.el('#xpFill').style.width = `${pct}%`;
-      feedback.textContent = `Bravo ! +${reward.xp} XP · ${reward.reward}`;
-      feedback.classList.add('success');
-      input.value = '';
-      UI.log(`<em>Code validé</em> · ${UI.escape(code)} · +${reward.xp} XP`);
-    });
-  }
-
-  function bindPanels(){
-    UI.els('[data-close-panel]').forEach(btn => btn.addEventListener('click', () => UI.closePanel()));
-    UI.els('[data-open-panel]').forEach(btn => btn.addEventListener('click', () => {
-      const type = btn.dataset.openPanel;
-      if (type === 'roadmap') {
-        UI.openPanel('Modules prévus', `<p>Le calendrier de l’avent est sorti du socle : il restera un événement saisonnier à activer plus tard.</p><ul><li>Core autonome</li><li>Avatars premium</li><li>Codes secrets</li><li>Défis / checklists / bingo</li><li>Roulette impro membre + prof</li><li>Livre-jeu interactif illustré</li></ul>`);
+      const input = UI.$('#secretCode');
+      const feedback = UI.$('#codeFeedback');
+      const code = String(input.value || '').trim().toUpperCase();
+      const result = D.codes[code];
+      if (!code) return;
+      if (result) {
+        feedback.textContent = `Code accepté : +${result.xp} XP · ${result.reward}`;
+        feedback.classList.add('success');
+        UI.log(`Code ${code} accepté : ${result.reward}`);
       } else {
-        UI.openPanel('Options prototype', `<p>Cette brique est volontairement non connectée à Firebase. Elle sert à valider le design, les composants et la logique générale avant intégration.</p><ul><li>Aucune écriture RTDB</li><li>Aucune modification de membres.html</li><li>Aucun worker nécessaire</li></ul>`);
+        feedback.textContent = 'Code inconnu dans ce prototype.';
+        feedback.classList.remove('success');
+        UI.log(`Code ${code} refusé : inconnu.`);
       }
-    }));
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') UI.closePanel(); });
-  }
-
-  function revealOnScroll(){
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
-    }, { threshold:.12 });
-    UI.els('[data-reveal]').forEach(el => obs.observe(el));
+      input.value = '';
+    });
   }
 
   function init(){
+    const card = UI.$('#questProfileCard');
+    if (card) UI.renderPlayerCard(card, UI.loadAvatar());
     renderStats();
-    renderAvatars();
+    renderAvatarStrip();
     renderTitles();
     renderMissions();
     renderModules();
-    bindTabs();
-    bindAvatars();
-    bindSecretCodes();
-    bindPanels();
-    revealOnScroll();
-    UI.log('<em>FTS Quest Core</em> initialisé en mode prototype autonome.');
-    UI.log('<em>Calendrier de l’avent</em> retiré du socle permanent.');
+    initTabs();
+    initCodes();
+    UI.renderLog();
+    UI.initReveal();
   }
 
   document.addEventListener('DOMContentLoaded', init);
