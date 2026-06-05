@@ -1,11 +1,13 @@
 'use strict';
 
 window.FTSQuestData = {
-  version: '0.2.0-avatar-lab',
+  version: '0.3.0-codes-secrets',
   storageKeys: {
     player: 'ftsQuest.player.v2',
     avatar: 'ftsQuest.avatar.v2',
-    log: 'ftsQuest.log.v2'
+    log: 'ftsQuest.log.v3',
+    codesHistory: 'ftsQuest.codes.history.v1',
+    playerProgress: 'ftsQuest.player.progress.v1'
   },
   player: {
     name: 'Artiste FTS',
@@ -109,14 +111,36 @@ window.FTSQuestData = {
   modules: [
     { id: 'hub', title: 'Mon aventure', href: 'quest.html', status: 'Brique 1', description: 'Hub autonome, carte profil, XP, modules et design commun.' },
     { id: 'avatar', title: 'Avatar Lab', href: 'quest-avatar.html', status: 'Brique 2', description: 'Créateur d’avatar premium : couleurs, yeux, accessoires, cadre.' },
-    { id: 'codes', title: 'Codes secrets', href: '#', status: 'À venir', description: 'Récompenses par codes prof/admin et historique.' },
+    { id: 'codes', title: 'Codes secrets', href: 'quest-codes.html', status: 'Brique 3', description: 'Récompenses par codes prof/admin, historique, limites et aperçu admin.' },
     { id: 'defis', title: 'Défis & bingo', href: '#', status: 'À venir', description: 'Défis rentrée, checklists, bingo spectacle.' },
     { id: 'roulette', title: 'Roulette impro', href: '#', status: 'À venir', description: 'Mode membre + mode prof pour générer personnages et situations.' },
     { id: 'aventure', title: 'Livre-jeu', href: '#', status: 'Gros module', description: 'Aventure illustrée, roleplay, choix, inventaire et fins multiples.' }
   ],
   codes: {
-    'IMPRO-ETOILE': { xp: 50, reward: 'Titre prototype : Maître de l’impro' },
-    'SHOWTIME': { xp: 80, reward: 'Badge prototype : Prêt pour le show' },
-    'FTS-QUEST': { xp: 120, reward: 'Cadre prototype : Légendaire or' }
+    'IMPRO-ETOILE': {
+      id: 'impro-etoile', code: 'IMPRO-ETOILE', title: 'Étoile d’impro', xp: 50,
+      reward: 'Titre prototype : Maître de l’impro', type: 'Cours', rarity: 'Rare',
+      description: 'Code donné par un prof après un exercice d’impro.', target: 'Théâtre / Impro', expires: 'Permanent', maxUse: '1 fois par membre'
+    },
+    'SHOWTIME': {
+      id: 'showtime', code: 'SHOWTIME', title: 'Prêt pour le show', xp: 80,
+      reward: 'Badge prototype : Prêt pour le show', type: 'Spectacle', rarity: 'Épique',
+      description: 'Code événementiel pour valoriser la préparation spectacle.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
+    },
+    'FTS-QUEST': {
+      id: 'fts-quest', code: 'FTS-QUEST', title: 'Fondateur FTS Quest', xp: 120,
+      reward: 'Cadre prototype : Légendaire or', type: 'Prototype', rarity: 'Légendaire',
+      description: 'Code de lancement pour tester le module sans Firebase.', target: 'Bêta testeurs', expires: 'Permanent', maxUse: '1 fois par membre'
+    },
+    'AVATAR-LAB': {
+      id: 'avatar-lab', code: 'AVATAR-LAB', title: 'Créateur d’identité', xp: 65,
+      reward: 'Badge prototype : Avatar personnalisé', type: 'Avatar', rarity: 'Rare',
+      description: 'Récompense les tests du créateur d’avatar.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
+    },
+    'COULISSES': {
+      id: 'coulisses', code: 'COULISSES', title: 'Gardien des coulisses', xp: 90,
+      reward: 'Titre prototype : Gardien des Coulisses', type: 'Aventure', rarity: 'Mythique',
+      description: 'Prépare le futur livre-jeu illustré et roleplay.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
+    }
   }
 };
