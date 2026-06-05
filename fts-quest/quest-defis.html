@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05030b" />
+  <title>FTS Quest · Défis & Bingo</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=4-defis" />
+</head>
+<body class="quest-body">
+  <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
+  <main class="quest-shell" id="ftsQuestChallengesApp">
+    <header class="quest-hero defis-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="quest.html" aria-label="Retour FTS Quest"><span>‹</span> Hub</a>
+        <div class="quest-brand"><img src="../fts192.png" alt="Fais Ton Show" /><strong>FTS Quest</strong></div>
+        <a class="quest-icon-btn" href="quest-codes.html" aria-label="Codes secrets">⌁</a>
+      </nav>
+      <section class="hero-grid defis-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">Brique 4 · Défis utiles</p>
+          <h1>Défis<br><span>& Bingo</span></h1>
+          <p class="hero-lead">Des missions ludiques mais concrètes : rentrée, spectacle, bingo artiste et mini-défis de scène. Tout reste local pour valider l’UX avant Firebase.</p>
+          <div class="hero-actions">
+            <a href="#defis-board" class="quest-btn quest-btn-primary">Commencer</a>
+            <button class="quest-btn quest-btn-ghost" type="button" id="resetChallengesBtn">Réinitialiser prototype</button>
+          </div>
+        </div>
+        <aside class="command-card challenge-summary-card" aria-label="Résumé des défis">
+          <div class="card-head"><div><p class="mini-label">Progression locale</p><h3>Tableau de mission</h3></div><span class="status-chip">Mock</span></div>
+          <div class="challenge-score" id="challengeScore"></div>
+          <div class="reward-pills" id="challengePills"></div>
+        </aside>
+      </section>
+    </header>
+
+    <section class="quest-dashboard" id="defis-board" data-reveal>
+      <div class="section-head">
+        <p class="quest-kicker">Choisir un pack</p>
+        <h2>Un système unique pour checklists, bingo et mini-défis</h2>
+        <p>Chaque pack peut plus tard être ciblé par catégorie/sous-catégorie, validé automatiquement, déclaré par l’élève ou confirmé par un prof.</p>
+      </div>
+      <div class="challenge-pack-grid" id="challengePackGrid"></div>
+    </section>
+
+    <section class="quest-tabs" data-reveal>
+      <div class="section-head left">
+        <p class="quest-kicker" id="activePackKicker">Pack actif</p>
+        <h2 id="activePackTitle">Défis</h2>
+        <p id="activePackSubtitle">Sélectionne un pack pour voir les missions.</p>
+      </div>
+      <div class="challenge-toolbar">
+        <button class="quest-btn quest-btn-primary" type="button" id="completeVisibleBtn">Valider tout le pack</button>
+        <button class="quest-btn quest-btn-ghost" type="button" id="clearVisibleBtn">Vider ce pack</button>
+      </div>
+      <div class="active-challenge-board" id="activeChallengeBoard"></div>
+    </section>
+
+    <section class="quest-dashboard" data-reveal>
+      <div class="section-head left">
+        <p class="quest-kicker">Préparation Firebase future</p>
+        <h2>Ce que cette brique prépare</h2>
+        <p>Le prototype local sert à valider le vocabulaire, l’UX mobile, les formats de missions et la logique de progression avant branchement réel.</p>
+      </div>
+      <div class="rule-grid">
+        <article class="rule-card"><span>1</span><strong>Déclaratif</strong><p>L’élève ou le parent coche une action faite : sac prêt, planning vérifié, ressource lue.</p></article>
+        <article class="rule-card"><span>2</span><strong>Automatique</strong><p>Plus tard : consulter une ressource, entrer un code ou activer les notifications pourra valider une étape.</p></article>
+        <article class="rule-card"><span>3</span><strong>Validation prof</strong><p>Pour les défis artistiques sensibles : texte su, chanson prête, chorégraphie travaillée.</p></article>
+      </div>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · journal défis</strong></div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="../assets/js/fts-quest-data.js?v=4-defis"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=4-defis"></script>
+  <script src="../assets/js/fts-quest-defis.js?v=4-defis"></script>
+</body>
+</html>
