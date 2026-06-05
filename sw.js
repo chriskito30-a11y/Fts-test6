@@ -1,4 +1,4 @@
-const CACHE = 'fts-v223-bubbles-aligned';
+const CACHE = 'fts-v219-rappels-schedule-list';
 const FILES = [
   './manifest.json',
   './index.html',

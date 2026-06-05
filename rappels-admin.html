@@ -237,6 +237,17 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
           <div class="list-count" id="reminder-count">—</div>
         </div>
 
+        <div class="list-head" style="margin-top:.9rem">
+          <div>
+            <div class="mini-title">Plannings visibles côté membre</div>
+            <div class="hint">Liste issue de <code>fts_schedules</code>. C’est cette source qui alimente la tuile <b>Mon prochain cours</b>. Les plannings de groupe apparaissent ici même s’ils n’ont pas encore de rappel 24h/1h futur.</div>
+          </div>
+          <div class="list-count" id="schedule-count">—</div>
+        </div>
+        <div class="reminder-list" id="schedule-list" style="margin-bottom:1rem">
+          <div class="empty">Chargement des plannings…</div>
+        </div>
+
         <div class="filters" aria-label="Filtres de statut">
           <button class="filter-chip active" data-filter-status="all" type="button">Tous</button>
           <button class="filter-chip" data-filter-status="standby" type="button">En pause</button>
@@ -285,9 +296,9 @@ Utile pour vacances, jours fériés, absence prof…"></textarea>
 <script src="assets/js/services/users.service.js?v=1"></script>
 <script src="assets/js/services/reminders.service.js?v=69"></script>
 <script src="assets/js/services/calendar-exclusions.service.js?v=74"></script>
-<script src="assets/js/services/schedules.service.js?v=69"></script>
+<script src="assets/js/services/schedules.service.js?v=70"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=209"></script>
-<script src="assets/js/pages/rappels-admin.js?v=212"></script>
+<script src="assets/js/pages/rappels-admin.js?v=213-schedule-list"></script>
 
 <script src="assets/js/fts-enjoy.js?v=6"></script>
 <script>
