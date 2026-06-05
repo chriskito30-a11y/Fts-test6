@@ -1,8 +1,13 @@
 'use strict';
 
 (function(){
-  const D = window.FTSQuestData;
+  const D = window.FTSQuestData || {};
   const UI = {};
+  D.storageKeys = D.storageKeys || { avatar: 'ftsQuest.avatar.v2', log: 'ftsQuest.log.v2' };
+  D.avatarDefault = D.avatarDefault || { base:'showrunner', primary:'#e7354f', secondary:'#ffd166', skin:'#f3b284', hair:'#23131f', eyes:'#7de3ff', eyeStyle:'spark', accessory:'director_hat', frame:'legendary', aura:'spotlight' };
+  D.bases = D.bases || [{ id:'showrunner', label:'Showrunner', family:'FTS', rarity:'Prototype' }];
+  D.accessories = D.accessories || [{ id:'none', label:'Sans accessoire' }];
+  D.frames = D.frames || [{ id:'classic', label:'Classique', rarity:'Commun' }];
 
   UI.$ = (selector, root=document) => root.querySelector(selector);
   UI.$$ = (selector, root=document) => Array.from(root.querySelectorAll(selector));

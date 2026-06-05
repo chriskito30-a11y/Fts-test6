@@ -184,5 +184,10 @@
     refresh();
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', function(){
+    try { init(); } catch(err) {
+      console.error('FTS Quest Avatar init error:', err);
+      if (window.FTSQuestUI && window.FTSQuestUI.log) window.FTSQuestUI.log('Erreur init Avatar : ' + err.message);
+    }
+  });
 })();
