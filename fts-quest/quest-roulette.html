@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05030b" />
+  <title>FTS Quest · Roulette impro</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=5-roulette" />
+</head>
+<body class="quest-body roulette-body">
+  <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
+  <main class="quest-shell" id="ftsQuestRouletteApp">
+    <header class="quest-hero compact-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="quest.html" aria-label="Retour FTS Quest"><span>‹</span> FTS Quest</a>
+        <div class="quest-brand"><img src="../fts192.png" alt="Fais Ton Show" /><strong>Roulette impro</strong></div>
+        <a class="quest-icon-btn" href="quest-defis.html" aria-label="Défis">✓</a>
+      </nav>
+      <section class="hero-grid roulette-hero-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">Brique 5 · outil prof & membre</p>
+          <h1>Roulette<br><span>Bandit scénique</span></h1>
+          <p class="hero-lead">Un générateur premium façon machine à sous : thèmes, lieux, catégories d’impro, styles, personnages, contraintes et variantes pour chant, danse, musique et comédie musicale.</p>
+          <div class="hero-actions">
+            <button class="quest-btn quest-btn-primary" id="spinRoulette" type="button">🎰 Lancer la roulette</button>
+            <button class="quest-btn quest-btn-ghost" id="saveSpin" type="button">Sauvegarder</button>
+            <button class="quest-btn quest-btn-ghost" id="copySpin" type="button">Copier</button>
+          </div>
+        </div>
+        <aside class="command-card roulette-panel">
+          <div class="card-head"><div><p class="mini-label">Banque intégrée</p><h3>Contenu pédagogique</h3></div><span class="status-chip">Local</span></div>
+          <div class="roulette-metrics"><div><strong id="rouletteCount">—</strong><span>combinaisons</span></div><div><strong id="rouletteReelsCount">—</strong><span>rouleaux actifs</span></div></div>
+          <p id="roulettePackDesc" class="form-feedback">Choisis un pack pour générer une consigne.</p>
+        </aside>
+      </section>
+    </header>
+
+    <section class="quest-dashboard" data-reveal>
+      <div class="section-head left"><p class="quest-kicker">Packs pédagogiques</p><h2>Choisis ton mode</h2><p>Chaque pack active un nombre différent de rouleaux. Le prof peut ensuite désactiver certains rouleaux pour simplifier l’exercice.</p></div>
+      <div class="roulette-pack-grid" id="roulettePacks"></div>
+      <div class="reel-toggle-wrap" id="reelToggles"></div>
+    </section>
+
+    <section class="slot-machine-wrap" data-reveal aria-label="Machine à sous improvisation">
+      <div class="slot-machine-top"><span></span><strong>FTS QUEST SLOT ENGINE</strong><span></span></div>
+      <div class="slot-machine" id="slotMachine"></div>
+      <div class="slot-lever" aria-hidden="true"><span></span></div>
+    </section>
+
+    <section class="dashboard-grid roulette-lower" data-reveal>
+      <article class="command-card">
+        <div class="card-head"><div><p class="mini-label">Résultat</p><h3>Consigne générée</h3></div><span class="card-icon">🎲</span></div>
+        <div id="rouletteResultText" class="roulette-result-text"></div>
+      </article>
+      <article class="command-card admin-extension-card">
+        <div class="card-head"><div><p class="mini-label">Prof / Admin prototype</p><h3>Ajouter des possibilités</h3></div><span class="status-chip">localStorage</span></div>
+        <form id="customForm" class="secret-form">
+          <label for="customBank">Banque à enrichir</label>
+          <select id="customBank"></select>
+          <label for="customValue">Nouvelle proposition</label>
+          <div class="input-row"><input id="customValue" placeholder="Ex : une scène sous l’eau" /><button type="submit">Ajouter</button></div>
+          <p class="form-feedback">Prototype local : les ajouts restent sur ce navigateur. Plus tard, ils iront dans Firebase avec rôles prof/admin.</p>
+        </form>
+        <div id="customList" class="custom-list"></div>
+        <button class="quest-btn quest-btn-ghost danger-soft" id="resetCustoms" type="button">Réinitialiser les ajouts locaux</button>
+      </article>
+    </section>
+
+    <section class="quest-dashboard" data-reveal>
+      <div class="section-head left"><p class="quest-kicker">Historique local</p><h2>Tirages sauvegardés</h2><p>Utile pour préparer un cours, garder une idée ou transformer plus tard un tirage en défi.</p></div>
+      <div id="savedSpins" class="saved-spins"></div>
+      <button class="quest-btn quest-btn-ghost danger-soft" id="clearSaved" type="button">Vider l’historique</button>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · journal roulette</strong></div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="../assets/js/fts-quest-data.js?v=5-roulette"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=5-roulette"></script>
+  <script src="../assets/js/fts-quest-roulette-data.js?v=5-roulette"></script>
+  <script src="../assets/js/fts-quest-roulette.js?v=5-roulette"></script>
+</body>
+</html>
