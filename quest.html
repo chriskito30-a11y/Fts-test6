@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#08050f" />
+  <title>FTS Quest · L’aventure des artistes Fais Ton Show</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=1" />
+</head>
+<body class="quest-body">
+  <div class="quest-stage" aria-hidden="true">
+    <span class="orb orb-a"></span>
+    <span class="orb orb-b"></span>
+    <span class="orb orb-c"></span>
+    <span class="scanlines"></span>
+  </div>
+
+  <main class="quest-shell" id="ftsQuestApp">
+    <header class="quest-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="../membres.html" aria-label="Retour espace membre">
+          <span>‹</span> Retour
+        </a>
+        <div class="quest-brand">
+          <img src="../fts192.png" alt="Fais Ton Show" />
+          <strong>FTS Quest</strong>
+        </div>
+        <button class="quest-icon-btn" type="button" data-open-panel="settings" aria-label="Options">
+          ⚙
+        </button>
+      </nav>
+
+      <section class="hero-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">L’aventure des artistes</p>
+          <h1>Entre dans<br><span>les coulisses</span></h1>
+          <p class="hero-lead">
+            Crée ton identité d’artiste, débloque des titres, valide des défis et prépare ton prochain show.
+          </p>
+          <div class="hero-actions">
+            <a href="#quest-dashboard" class="quest-btn quest-btn-primary">Commencer</a>
+            <button class="quest-btn quest-btn-ghost" type="button" data-open-panel="roadmap">Voir les modules</button>
+          </div>
+        </div>
+
+        <aside class="hero-card" aria-label="Carte artiste">
+          <div class="hero-card-glow"></div>
+          <div class="profile-card legendary" id="questProfileCard">
+            <div class="profile-rarity">Prototype V1</div>
+            <div class="avatar-frame" id="activeAvatarFrame">
+              <div class="avatar-art avatar-theatre" aria-hidden="true">
+                <span class="avatar-face"></span>
+                <span class="avatar-mask"></span>
+                <span class="avatar-aura"></span>
+              </div>
+            </div>
+            <div class="profile-meta">
+              <p class="profile-label">Carte artiste</p>
+              <h2 id="playerName">Chris</h2>
+              <p class="profile-title" id="activeTitle">Explorateur de scène</p>
+            </div>
+            <div class="xp-block">
+              <div class="xp-top"><span>Acte II · Je m’entraîne</span><strong id="xpText">320 / 500 XP</strong></div>
+              <div class="xp-track"><span id="xpFill" style="width:64%"></span></div>
+            </div>
+          </div>
+        </aside>
+      </section>
+    </header>
+
+    <section class="quest-dashboard" id="quest-dashboard" data-reveal>
+      <div class="section-head">
+        <p class="quest-kicker">Brique 1 · Core</p>
+        <h2>Hub autonome</h2>
+        <p>Cette page est isolée : aucune écriture Firebase, aucune modification de l’app existante.</p>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="command-card span-2">
+          <div class="card-head">
+            <div>
+              <p class="mini-label">État joueur</p>
+              <h3>Mon aventure</h3>
+            </div>
+            <span class="status-chip">Mock local</span>
+          </div>
+          <div class="stats-grid" id="statsGrid"></div>
+        </article>
+
+        <article class="command-card">
+          <div class="card-head compact">
+            <div>
+              <p class="mini-label">Accès rapide</p>
+              <h3>Code secret</h3>
+            </div>
+            <span class="card-icon">⌁</span>
+          </div>
+          <form class="secret-form" id="secretCodeForm">
+            <label for="secretCode">Entre un code test</label>
+            <div class="input-row">
+              <input id="secretCode" name="secretCode" autocomplete="off" placeholder="IMPRO-ETOILE" />
+              <button type="submit">OK</button>
+            </div>
+            <p class="form-feedback" id="codeFeedback">Exemples : IMPRO-ETOILE, SHOWTIME, FTS-QUEST</p>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <section class="quest-tabs" data-reveal>
+      <div class="tabbar" role="tablist" aria-label="Modules FTS Quest">
+        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-tab="avatars">Avatars</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="titles">Titres</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="missions">Défis</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="modules">Modules</button>
+      </div>
+
+      <div class="tab-panel active" id="tab-avatars" role="tabpanel">
+        <div class="section-head left">
+          <p class="quest-kicker">Identité visuelle</p>
+          <h2>Avatars premium</h2>
+          <p>Prototype visuel avec cartes rares, cadres et silhouettes stylisées. Les vraies illustrations pourront remplacer ces avatars CSS/SVG.</p>
+        </div>
+        <div class="avatar-grid" id="avatarGrid"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-titles" role="tabpanel">
+        <div class="section-head left">
+          <p class="quest-kicker">Progression</p>
+          <h2>Titres débloquables</h2>
+          <p>Les titres donnent un statut visible sans créer de classement agressif entre élèves.</p>
+        </div>
+        <div class="title-grid" id="titleGrid"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-missions" role="tabpanel">
+        <div class="section-head left">
+          <p class="quest-kicker">Défis utiles</p>
+          <h2>Checklists & bingo</h2>
+          <p>Les missions doivent aider réellement : rentrée, spectacle, préparation, lecture des infos importantes.</p>
+        </div>
+        <div class="mission-grid" id="missionGrid"></div>
+      </div>
+
+      <div class="tab-panel" id="tab-modules" role="tabpanel">
+        <div class="section-head left">
+          <p class="quest-kicker">Architecture séparée</p>
+          <h2>Futurs modules HTML</h2>
+          <p>Chaque module aura sa page autonome, puis pourra être intégré à membres/profs/admin plus tard.</p>
+        </div>
+        <div class="module-grid" id="moduleGrid"></div>
+      </div>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head">
+        <span></span><span></span><span></span>
+        <strong>FTS Quest Core · journal prototype</strong>
+      </div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <aside class="side-panel" id="questPanel" aria-hidden="true">
+    <div class="panel-backdrop" data-close-panel></div>
+    <div class="panel-card" role="dialog" aria-modal="true" aria-labelledby="panelTitle">
+      <button class="panel-close" type="button" data-close-panel aria-label="Fermer">×</button>
+      <p class="quest-kicker">FTS Quest</p>
+      <h2 id="panelTitle">Module</h2>
+      <div id="panelContent"></div>
+    </div>
+  </aside>
+
+  <script src="../assets/js/fts-quest-data.js?v=1"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=1"></script>
+  <script src="../assets/js/fts-quest-core.js?v=1"></script>
+</body>
+</html>
