@@ -8,7 +8,8 @@ window.FTSQuestData = {
     log: 'ftsQuest.log.v3',
     codesHistory: 'ftsQuest.codes.history.v1',
     playerProgress: 'ftsQuest.player.progress.v1',
-    challengesState: 'ftsQuest.challenges.state.v1'
+    challengesState: 'ftsQuest.challenges.state.v1',
+    trophiesState: 'ftsQuest.trophies.state.v1'
   },
   player: {
     name: 'Artiste FTS',
@@ -115,6 +116,7 @@ window.FTSQuestData = {
     { id: 'codes', title: 'Codes secrets', href: 'quest-codes.html', status: 'Brique 3', description: 'Récompenses par codes prof/admin, historique, limites et aperçu admin.' },
     { id: 'defis', title: 'Défis & bingo', href: 'quest-defis.html', status: 'Brique 4', description: 'Défis rentrée, checklists, bingo spectacle et préparation utile.' },
     { id: 'roulette', title: 'Roulette impro', href: 'quest-roulette.html', status: 'Brique 5', description: 'Bandit manchot pédagogique : impro, chant, danse, musique et comédie musicale.' },
+    { id: 'trophees', title: 'Salle des trophées', href: 'quest-trophees.html', status: 'Brique 6', description: 'Badges, titres, niveaux, raretés et progression globale FTS Quest.' },
     { id: 'aventure', title: 'Livre-jeu', href: '#', status: 'Gros module', description: 'Aventure illustrée, roleplay, choix, inventaire et fins multiples.' }
   ],
   codes: {
@@ -226,4 +228,38 @@ window.FTSQuestData = {
       ]
     }
   ]
+,
+  trophies: {
+    levelScale: [
+      { level: 1, act: 'Acte I', label: 'Je découvre', minXp: 0, maxXp: 149 },
+      { level: 2, act: 'Acte II', label: 'Je m’entraîne', minXp: 150, maxXp: 399 },
+      { level: 3, act: 'Acte III', label: 'Je progresse', minXp: 400, maxXp: 799 },
+      { level: 4, act: 'Acte IV', label: 'Je prépare la scène', minXp: 800, maxXp: 1299 },
+      { level: 5, act: 'Acte V', label: 'Je fais mon show', minXp: 1300, maxXp: 1999 },
+      { level: 6, act: 'Acte VI', label: 'Artiste confirmé', minXp: 2000, maxXp: 2999 },
+      { level: 7, act: 'Acte VII', label: 'Légende des coulisses', minXp: 3000, maxXp: 999999 }
+    ],
+    rewards: [
+      { id: 'first-step', type: 'badge', rarity: 'common', discipline: 'Général', icon: '🌟', title: 'Premier pas sur scène', condition: 'Découvrir FTS Quest', xp: 25, unlocked: true },
+      { id: 'avatar-maker', type: 'badge', rarity: 'common', discipline: 'Avatar', icon: '🎭', title: 'Créateur d’avatar', condition: 'Ouvrir Avatar Lab', xp: 40, unlocked: true },
+      { id: 'secret-code', type: 'badge', rarity: 'rare', discipline: 'Codes', icon: '🔐', title: 'Décodeur FTS', condition: 'Entrer un code secret valide', xp: 80, unlocked: true },
+      { id: 'challenge-start', type: 'badge', rarity: 'common', discipline: 'Défis', icon: '✅', title: 'Mission acceptée', condition: 'Cocher au moins un défi', xp: 50, unlocked: true },
+      { id: 'bingo-line', type: 'badge', rarity: 'rare', discipline: 'Bingo', icon: '🎟️', title: 'Bingo de scène', condition: 'Compléter une ligne de bingo', xp: 120, unlocked: false },
+      { id: 'roulette-first', type: 'badge', rarity: 'common', discipline: 'Impro', icon: '🎰', title: 'Premier tirage', condition: 'Lancer la roulette impro', xp: 60, unlocked: true },
+      { id: 'impro-card', type: 'badge', rarity: 'rare', discipline: 'Théâtre', icon: '🎲', title: 'Carton d’impro', condition: 'Sauvegarder un tirage théâtre complet', xp: 150, unlocked: false },
+      { id: 'singer-star', type: 'badge', rarity: 'rare', discipline: 'Chant', icon: '🎤', title: 'Interprète étoile', condition: 'Travailler une chanson tirée au sort', xp: 140, unlocked: false },
+      { id: 'dance-pulse', type: 'badge', rarity: 'rare', discipline: 'Danse', icon: '💃', title: 'Pulse scénique', condition: 'Créer une phrase chorégraphique', xp: 140, unlocked: false },
+      { id: 'band-ready', type: 'badge', rarity: 'rare', discipline: 'Musique', icon: '🎸', title: 'Esprit de groupe', condition: 'Faire un défi musique avec écoute des autres', xp: 140, unlocked: false },
+      { id: 'musical-bridge', type: 'badge', rarity: 'epic', discipline: 'Comédie musicale', icon: '🎬', title: 'Triple menace', condition: 'Relier jeu, chant et mouvement', xp: 250, unlocked: false },
+      { id: 'team-spirit', type: 'badge', rarity: 'common', discipline: 'Communauté', icon: '🤝', title: 'Esprit troupe', condition: 'Aider un autre élève', xp: 70, unlocked: false },
+      { id: 'backstage-key', type: 'badge', rarity: 'epic', discipline: 'Coulisses', icon: '🗝️', title: 'Clé des coulisses', condition: 'Trouver un futur secret du livre-jeu', xp: 260, unlocked: false },
+      { id: 'showtime', type: 'badge', rarity: 'legendary', discipline: 'Spectacle', icon: '🏆', title: 'Fais Ton Show', condition: 'Valider plusieurs modules FTS Quest', xp: 500, unlocked: false },
+      { id: 'mythic-artist', type: 'badge', rarity: 'mythic', discipline: 'Légende', icon: '👑', title: 'Légende FTS', condition: 'Récompense ultime prototype', xp: 1000, unlocked: false },
+      { id: 'title-explorer', type: 'title', rarity: 'common', discipline: 'Titre', icon: '🏷️', title: 'Explorateur de scène', condition: 'Titre de départ', xp: 0, unlocked: true },
+      { id: 'title-decodeur', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Décodeur des coulisses', condition: 'Débloqué via codes secrets', xp: 0, unlocked: true },
+      { id: 'title-improviser', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Improvisateur agile', condition: 'Utiliser la roulette théâtre', xp: 0, unlocked: false },
+      { id: 'title-showrunner', type: 'title', rarity: 'epic', discipline: 'Titre', icon: '🏷️', title: 'Showrunner FTS', condition: 'Compléter plusieurs missions', xp: 0, unlocked: false },
+      { id: 'title-legende', type: 'title', rarity: 'legendary', discipline: 'Titre', icon: '🏷️', title: 'Légende des planches', condition: 'Atteindre l’acte V', xp: 0, unlocked: false }
+    ]
+  }
 };
