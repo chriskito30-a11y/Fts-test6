@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05030b" />
+  <title>FTS Quest · Salle des trophées</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=10-trophees" />
+</head>
+<body class="quest-body trophies-body">
+  <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
+  <main class="quest-shell" id="ftsQuestTrophiesApp">
+    <header class="quest-hero compact-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="quest.html" aria-label="Retour FTS Quest"><span>‹</span> FTS Quest</a>
+        <div class="quest-brand"><img src="../fts192.png" alt="Fais Ton Show" /><strong>Salle des trophées</strong></div>
+        <a class="quest-icon-btn" href="quest-roulette.html" aria-label="Roulette impro">🎰</a>
+      </nav>
+      <section class="hero-grid trophies-hero-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">Brique 6 · progression globale</p>
+          <h1>Salle des<br><span>trophées</span></h1>
+          <p class="hero-lead">Badges, titres, niveaux, actes et récompenses FTS Quest. Cette page donne du sens aux codes secrets, défis, roulette, avatar et futures aventures.</p>
+          <div class="hero-actions">
+            <button class="quest-btn quest-btn-primary" id="simulateReward" type="button">🏆 Simuler un trophée</button>
+            <button class="quest-btn quest-btn-ghost" id="resetTrophies" type="button">Réinitialiser prototype</button>
+          </div>
+        </div>
+        <aside class="command-card trophy-profile-card">
+          <div class="card-head"><div><p class="mini-label">Profil joueur</p><h3 id="trophyPlayerName">Artiste FTS</h3></div><span class="status-chip" id="trophyActChip">Acte II</span></div>
+          <div class="trophy-xp-ring" id="trophyXpRing"><strong>0%</strong><span>progression</span></div>
+          <div class="trophy-profile-stats" id="trophyProfileStats"></div>
+        </aside>
+      </section>
+    </header>
+
+    <section class="quest-dashboard" data-reveal>
+      <div class="section-head left"><p class="quest-kicker">Progression</p><h2>Mes actes FTS Quest</h2><p>Prototype local : les récompenses sont stockées sur ce navigateur. Plus tard, elles seront liées au compte Firebase.</p></div>
+      <div class="act-track" id="actTrack"></div>
+    </section>
+
+    <section class="quest-dashboard" data-reveal>
+      <div class="section-head left"><p class="quest-kicker">Collection</p><h2>Badges & trophées</h2><p>Les trophées verrouillés montrent quoi faire pour les obtenir.</p></div>
+      <div class="trophy-filters" id="trophyFilters"></div>
+      <div class="trophy-grid" id="trophyGrid"></div>
+    </section>
+
+    <section class="dashboard-grid trophies-lower" data-reveal>
+      <article class="command-card">
+        <div class="card-head"><div><p class="mini-label">Titres</p><h3>Titres débloqués</h3></div><span class="card-icon">🏷️</span></div>
+        <div id="titleList" class="title-list"></div>
+      </article>
+      <article class="command-card">
+        <div class="card-head"><div><p class="mini-label">Historique</p><h3>Dernières récompenses</h3></div><span class="card-icon">📜</span></div>
+        <div id="rewardTimeline" class="reward-timeline"></div>
+      </article>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · journal trophées</strong></div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="../assets/js/fts-quest-data.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-trophees.js?v=10-trophees"></script>
+</body>
+</html>
