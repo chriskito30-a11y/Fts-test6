@@ -256,3 +256,184 @@
   .vintage-casino .slot-lever.pulled span{transform:translateY(64px) scale(.98)}
   .vintage-casino .slot-lever.pulled:after{transform:translateY(26px) scaleY(.82)}
 }
+
+
+/* ===== V9 slot polish: lever attachment + anti text overlap ===== */
+
+/* Make the casino machine reserve enough room for the lever and avoid text collision. */
+.vintage-casino.slot-machine-wrap{
+  overflow: visible;
+  padding-right: clamp(22px, 7vw, 96px);
+}
+
+.vintage-casino .slot-machine-crown{
+  z-index: 4;
+}
+
+.vintage-casino .slot-machine-jackpot{
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.vintage-casino .slot-machine-subtitle{
+  line-height: 1.35;
+  white-space: normal;
+}
+
+/* Better reel text handling: no more text overprint/collision inside windows. */
+.vintage-casino .slot-machine{
+  align-items: stretch;
+}
+
+.vintage-casino .slot-reel{
+  min-width: 0;
+}
+
+.vintage-casino .slot-reel-top{
+  min-height: 34px;
+  gap: 8px;
+}
+
+.vintage-casino .slot-reel-top span{
+  display: block;
+  min-width: 0;
+  max-width: calc(100% - 40px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vintage-casino .slot-window{
+  min-height: 170px;
+  overflow: hidden;
+}
+
+.vintage-casino .slot-value{
+  position: relative;
+  z-index: 2;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-align: center;
+  line-height: 1.16;
+  max-width: 100%;
+  word-break: normal;
+  overflow-wrap: anywhere;
+  padding: 0 4px;
+}
+
+/* Rebuild the lever as one connected mechanical object.
+   The grey rod and red ball now move together on the same vertical track. */
+.vintage-casino .slot-lever{
+  top: 152px;
+  right: -18px;
+  width: 112px;
+  height: 296px;
+  z-index: 8;
+  overflow: visible;
+}
+
+/* golden base fixed to the machine */
+.vintage-casino .slot-lever:before{
+  left: 18px;
+  bottom: 18px;
+  width: 76px;
+  height: 84px;
+  border-radius: 28px;
+  z-index: 1;
+}
+
+/* grey rod connected to ball: sits directly under the knob */
+.vintage-casino .slot-lever:after{
+  left: 50%;
+  top: 54px;
+  width: 14px;
+  height: 172px;
+  transform: translateX(-50%);
+  transform-origin: 50% 100%;
+  z-index: 2;
+}
+
+/* red ball centered exactly on the rod */
+.vintage-casino .slot-lever span{
+  left: 50%;
+  top: 12px;
+  width: 54px;
+  height: 54px;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+/* pulled state: rod and knob both go down on the same axis */
+.vintage-casino .slot-lever.pulled:after{
+  transform: translateX(-50%) translateY(34px);
+}
+
+.vintage-casino .slot-lever.pulled span{
+  transform: translateX(-50%) translateY(34px);
+}
+
+/* little connector collar between ball and rod */
+.vintage-casino .slot-lever span:after{
+  content:"";
+  position:absolute;
+  left:50%;
+  bottom:-12px;
+  width:18px;
+  height:18px;
+  transform:translateX(-50%);
+  border-radius:999px;
+  background:linear-gradient(180deg,#e9eef2,#8a97a5);
+  border:1px solid rgba(255,255,255,.38);
+  box-shadow:0 4px 8px rgba(0,0,0,.32), inset 0 1px 0 rgba(255,255,255,.3);
+}
+
+/* Better placement on tablets/mobile; prevent lever from covering reel text too much. */
+@media (max-width:900px){
+  .vintage-casino.slot-machine-wrap{
+    padding-right: 56px;
+  }
+  .vintage-casino .slot-lever{
+    top: 198px;
+    right: -22px;
+    transform: scale(.82);
+    transform-origin: top right;
+  }
+  .vintage-casino .slot-window{
+    min-height: 160px;
+  }
+}
+
+@media (max-width:640px){
+  .vintage-casino.slot-machine-wrap{
+    padding-right: 18px;
+    padding-bottom: 96px;
+  }
+  .vintage-casino .slot-machine-crown{
+    top: 24px;
+  }
+  .vintage-casino .slot-machine-jackpot{
+    font-size: clamp(1.24rem, 7vw, 1.68rem);
+    line-height: 1.05;
+  }
+  .vintage-casino .slot-machine-subtitle{
+    font-size: .58rem;
+  }
+  .vintage-casino .slot-window{
+    min-height: 148px;
+  }
+  .vintage-casino .slot-value{
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    font-size: .95rem;
+  }
+  .vintage-casino .slot-lever{
+    top: auto;
+    bottom: 0;
+    right: 8px;
+    transform: scale(.62);
+    transform-origin: bottom right;
+  }
+}
