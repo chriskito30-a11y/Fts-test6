@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#05030b" />
+  <title>FTS Quest · Les Mystères des Coulisses</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=11-aventure" />
+</head>
+<body class="quest-body adventure-body">
+  <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
+  <main class="quest-shell" id="ftsQuestAdventureApp">
+    <header class="quest-hero compact-hero adventure-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="quest.html" aria-label="Retour FTS Quest"><span>‹</span> FTS Quest</a>
+        <div class="quest-brand"><img src="../fts192.png" alt="Fais Ton Show" /><strong>Les Mystères des Coulisses</strong></div>
+        <a class="quest-icon-btn" href="quest-trophees.html" aria-label="Salle des trophées">🏆</a>
+      </nav>
+      <section class="hero-grid adventure-hero-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">Brique 7 · livre-jeu interactif</p>
+          <h1>Les Mystères<br><span>des Coulisses</span></h1>
+          <p class="hero-lead">Une aventure autonome Fais Ton Show : explore les salles, fais des choix, récupère des indices, gagne la confiance de la troupe et tente d’ouvrir le rideau avant le dernier rappel.</p>
+          <div class="hero-actions">
+            <button class="quest-btn quest-btn-primary" id="adventureStart" type="button">Commencer / continuer</button>
+            <button class="quest-btn quest-btn-ghost" id="adventureSave" type="button">Sauvegarder</button>
+            <button class="quest-btn quest-btn-ghost" id="adventureReset" type="button">Recommencer</button>
+          </div>
+        </div>
+        <aside class="command-card adventure-status-card" aria-label="Progression aventure">
+          <div class="card-head"><div><p class="mini-label">Progression</p><h3 id="adventureProgressTitle">Acte I</h3></div><span class="status-chip" id="adventureSceneCount">0/0</span></div>
+          <div class="adventure-progress-ring" id="adventureProgressRing"><strong>0%</strong><span>aventure</span></div>
+          <div class="adventure-mini-stats" id="adventureMiniStats"></div>
+        </aside>
+      </section>
+    </header>
+
+    <section class="adventure-layout" data-reveal>
+      <article class="adventure-scene-card" aria-live="polite">
+        <div class="scene-visual" id="sceneVisual"><span>🎭</span></div>
+        <div class="scene-chapter" id="sceneChapter">Chapitre 1</div>
+        <h2 id="sceneTitle">Chargement…</h2>
+        <div class="scene-text" id="sceneText"></div>
+        <div class="scene-reward" id="sceneReward" hidden></div>
+        <div class="choice-list" id="choiceList"></div>
+      </article>
+
+      <aside class="adventure-side">
+        <article class="command-card">
+          <div class="card-head compact"><div><p class="mini-label">Sac d’artiste</p><h3>Inventaire</h3></div><span class="card-icon">🎒</span></div>
+          <div class="inventory-list" id="inventoryList"></div>
+        </article>
+        <article class="command-card">
+          <div class="card-head compact"><div><p class="mini-label">Qualités</p><h3>Stats légères</h3></div><span class="card-icon">✨</span></div>
+          <div class="adventure-stats" id="adventureStats"></div>
+        </article>
+        <article class="command-card">
+          <div class="card-head compact"><div><p class="mini-label">Carnet</p><h3>Derniers choix</h3></div><span class="card-icon">📜</span></div>
+          <div class="adventure-history" id="adventureHistory"></div>
+        </article>
+      </aside>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · journal aventure</strong></div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+  <script src="../assets/js/fts-quest-data.js?v=11-aventure"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=11-aventure"></script>
+  <script src="../assets/js/fts-quest-aventure-data.js?v=11-aventure"></script>
+  <script src="../assets/js/fts-quest-aventure.js?v=11-aventure"></script>
+</body>
+</html>
