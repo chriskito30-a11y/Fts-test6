@@ -1,7 +1,7 @@
 'use strict';
 
 window.FTSQuestData = {
-  version: '0.5.0-roulette-bandit',
+  version: '0.6.0-aventure-coulisses',
   storageKeys: {
     player: 'ftsQuest.player.v2',
     avatar: 'ftsQuest.avatar.v2',
@@ -9,7 +9,8 @@ window.FTSQuestData = {
     codesHistory: 'ftsQuest.codes.history.v1',
     playerProgress: 'ftsQuest.player.progress.v1',
     challengesState: 'ftsQuest.challenges.state.v1',
-    trophiesState: 'ftsQuest.trophies.state.v1'
+    trophiesState: 'ftsQuest.trophies.state.v1',
+    adventureState: 'ftsQuest.aventure.state.v1'
   },
   player: {
     name: 'Artiste FTS',
@@ -117,7 +118,7 @@ window.FTSQuestData = {
     { id: 'defis', title: 'Défis & bingo', href: 'quest-defis.html', status: 'Brique 4', description: 'Défis rentrée, checklists, bingo spectacle et préparation utile.' },
     { id: 'roulette', title: 'Roulette impro', href: 'quest-roulette.html', status: 'Brique 5', description: 'Bandit manchot pédagogique : impro, chant, danse, musique et comédie musicale.' },
     { id: 'trophees', title: 'Salle des trophées', href: 'quest-trophees.html', status: 'Brique 6', description: 'Badges, titres, niveaux, raretés et progression globale FTS Quest.' },
-    { id: 'aventure', title: 'Livre-jeu', href: '#', status: 'Gros module', description: 'Aventure illustrée, roleplay, choix, inventaire et fins multiples.' }
+    { id: 'aventure', title: 'Les Mystères des Coulisses', href: 'quest-aventure.html', status: 'Brique 7', description: 'Livre-jeu interactif : scènes, choix, inventaire, stats et fins multiples.' }
   ],
   codes: {
     'IMPRO-ETOILE': {
@@ -252,14 +253,17 @@ window.FTSQuestData = {
       { id: 'band-ready', type: 'badge', rarity: 'rare', discipline: 'Musique', icon: '🎸', title: 'Esprit de groupe', condition: 'Faire un défi musique avec écoute des autres', xp: 140, unlocked: false },
       { id: 'musical-bridge', type: 'badge', rarity: 'epic', discipline: 'Comédie musicale', icon: '🎬', title: 'Triple menace', condition: 'Relier jeu, chant et mouvement', xp: 250, unlocked: false },
       { id: 'team-spirit', type: 'badge', rarity: 'common', discipline: 'Communauté', icon: '🤝', title: 'Esprit troupe', condition: 'Aider un autre élève', xp: 70, unlocked: false },
-      { id: 'backstage-key', type: 'badge', rarity: 'epic', discipline: 'Coulisses', icon: '🗝️', title: 'Clé des coulisses', condition: 'Trouver un futur secret du livre-jeu', xp: 260, unlocked: false },
+      { id: 'backstage-key', type: 'badge', rarity: 'epic', discipline: 'Coulisses', icon: '🗝️', title: 'Clé des coulisses', condition: 'Trouver la clé dorée dans le livre-jeu', xp: 260, unlocked: false },
+      { id: 'backstage-detective', type: 'badge', rarity: 'rare', discipline: 'Aventure', icon: '🔎', title: 'Détective de scène', condition: 'Terminer “Les Mystères des Coulisses”', xp: 180, unlocked: false },
+      { id: 'curtain-guardian', type: 'badge', rarity: 'legendary', discipline: 'Aventure', icon: '🎭', title: 'Gardien du rideau', condition: 'Obtenir la bonne fin du livre-jeu', xp: 360, unlocked: false },
       { id: 'showtime', type: 'badge', rarity: 'legendary', discipline: 'Spectacle', icon: '🏆', title: 'Fais Ton Show', condition: 'Valider plusieurs modules FTS Quest', xp: 500, unlocked: false },
       { id: 'mythic-artist', type: 'badge', rarity: 'mythic', discipline: 'Légende', icon: '👑', title: 'Légende FTS', condition: 'Récompense ultime prototype', xp: 1000, unlocked: false },
       { id: 'title-explorer', type: 'title', rarity: 'common', discipline: 'Titre', icon: '🏷️', title: 'Explorateur de scène', condition: 'Titre de départ', xp: 0, unlocked: true },
       { id: 'title-decodeur', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Décodeur des coulisses', condition: 'Débloqué via codes secrets', xp: 0, unlocked: true },
       { id: 'title-improviser', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Improvisateur agile', condition: 'Utiliser la roulette théâtre', xp: 0, unlocked: false },
       { id: 'title-showrunner', type: 'title', rarity: 'epic', discipline: 'Titre', icon: '🏷️', title: 'Showrunner FTS', condition: 'Compléter plusieurs missions', xp: 0, unlocked: false },
-      { id: 'title-legende', type: 'title', rarity: 'legendary', discipline: 'Titre', icon: '🏷️', title: 'Légende des planches', condition: 'Atteindre l’acte V', xp: 0, unlocked: false }
+      { id: 'title-legende', type: 'title', rarity: 'legendary', discipline: 'Titre', icon: '🏷️', title: 'Légende des planches', condition: 'Atteindre l’acte V', xp: 0, unlocked: false },
+      { id: 'title-backstage-guardian', type: 'title', rarity: 'epic', discipline: 'Titre', icon: '🏷️', title: 'Gardien des Coulisses', condition: 'Réussir le livre-jeu interactif', xp: 0, unlocked: false }
     ]
   }
 };
