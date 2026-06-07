@@ -17,8 +17,8 @@
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v9diag';
-  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v9diag';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v10';
+  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v10';
   const memoryAudioCache = new Map();
   const memoryManifestCache = new Map();
 
@@ -122,7 +122,8 @@
     options = options || {};
     await loadManifest();
     const voice = getVoice(voiceId);
-    const value = String(text || '').trim();
+    const rawValue = String(text || '').trim();
+    const value = normalizeTextForPiper(rawValue);
     if (!voice || !value) return { ok:false, cached:false, reason: !voice ? 'voice_not_found' : 'empty_text' };
     const cacheKey = options.cacheKey || buildGeneratedAudioKey(value, voiceId, options);
 
@@ -132,48 +133,94 @@
       if (allSegmentsReady) return { ok:true, cached:true, cacheKey, manifest:existingManifest };
     }
 
-    const chunks = splitTextIntoAudioChunks(value, 135);
+    const chunks = splitTextIntoAudioChunks(value, getChunkLimitForVoice(voice));
     if (!chunks.length) return { ok:false, cached:false, cacheKey, reason:'empty_chunks' };
-    const segments = [];
 
-    for (let i = 0; i < chunks.length; i += 1) {
-      const chunk = chunks[i];
-      const segmentKey = cacheKey + '-seg-' + (i + 1) + '-' + hashString(chunk);
-      if (typeof options.onProgress === 'function') {
-        try { options.onProgress({ status:'segment', done:i, total:chunks.length, segment:i + 1, segments:chunks.length, text:chunk }); } catch(e) {}
-      }
-      let blob = await getCachedAudioBlob(segmentKey);
-      if (!blob) {
-        const generated = await generateBlobWithRetry(chunk, voice, options);
-        blob = generated && generated.blob ? generated.blob : null;
-        if (!blob) return {
-          ok:false,
-          cached:false,
-          cacheKey,
-          reason:'generation_failed_segment_' + (i + 1),
-          segment:i + 1,
-          segments:chunks.length,
-          voiceId: voice && voice.id ? voice.id : voiceId,
-          model: voice && voice.model ? voice.model : '',
-          textPreview: previewText(chunk),
-          error: generated && generated.error ? generated.error : '',
-          firstError: generated && generated.firstError ? generated.firstError : '',
-          secondError: generated && generated.secondError ? generated.secondError : '',
-          diagnostics: generated && generated.diagnostics ? generated.diagnostics.map(compactDiagnostic) : []
-        };
-        const stored = await putCachedAudioBlob(segmentKey, blob);
-        if (!stored) return { ok:false, cached:false, cacheKey, reason:'cache_write_failed_segment_' + (i + 1), segment:i + 1, segments:chunks.length };
-      }
-      segments.push({ cacheKey: segmentKey, textHash: hashString(chunk) });
-      if (typeof options.onProgress === 'function') {
-        try { options.onProgress({ status:'segment-ready', done:i + 1, total:chunks.length, segment:i + 1, segments:chunks.length }); } catch(e) {}
-      }
-    }
+    const segmentResult = await prepareAudioSegmentsFromChunks(chunks, voice, cacheKey, options);
+    if (!segmentResult || !segmentResult.ok) return Object.assign({ ok:false, cached:false, cacheKey }, segmentResult || { reason:'generation_failed' });
 
-    const manifest = { version: 9, cacheKey, voiceId, textHash: hashString(value), segments, createdAt: Date.now() };
+    const segments = segmentResult.segments || [];
+    const manifest = { version: 10, cacheKey, voiceId, textHash: hashString(value), normalized:true, chunkLimit:getChunkLimitForVoice(voice), segments, createdAt: Date.now() };
     const manifestStored = await putCachedAudioManifest(cacheKey, manifest);
     if (!manifestStored) return { ok:false, cached:false, cacheKey, reason:'manifest_write_failed' };
     return { ok:true, cached:false, cacheKey, manifest };
+  }
+
+  async function prepareAudioSegmentsFromChunks(chunks, voice, cacheKey, options){
+    const segments = [];
+    const total = chunks.length || 1;
+
+    for (let i = 0; i < chunks.length; i += 1) {
+      const chunk = chunks[i];
+      if (typeof options.onProgress === 'function') {
+        try { options.onProgress({ status:'segment', done:i, total, segment:i + 1, segments:total, text:chunk, textPreview:previewText(chunk) }); } catch(e) {}
+      }
+
+      const prepared = await prepareSingleSegmentOrSplit(chunk, voice, cacheKey, i + 1, total, options, 0);
+      if (!prepared || !prepared.ok) {
+        return Object.assign({ ok:false, reason:'generation_failed_segment_' + (i + 1), segment:i + 1, segments:total }, prepared || {});
+      }
+      prepared.segments.forEach(segment => segments.push(segment));
+
+      if (typeof options.onProgress === 'function') {
+        try { options.onProgress({ status:'segment-ready', done:i + 1, total, segment:i + 1, segments:total, textPreview:previewText(chunk) }); } catch(e) {}
+      }
+    }
+
+    return { ok:true, segments };
+  }
+
+  async function prepareSingleSegmentOrSplit(chunk, voice, cacheKey, segmentNumber, segmentTotal, options, depth){
+    const cleanChunk = normalizeTextForPiper(chunk);
+    const segmentKey = cacheKey + '-seg-' + segmentNumber + '-d' + depth + '-' + hashString(cleanChunk);
+    let blob = await getCachedAudioBlob(segmentKey);
+    if (blob) return { ok:true, segments:[{ cacheKey:segmentKey, textHash:hashString(cleanChunk), textPreview:previewText(cleanChunk) }] };
+
+    const generated = await generateBlobWithRetry(cleanChunk, voice, options);
+    blob = generated && generated.blob ? generated.blob : null;
+    if (blob) {
+      const stored = await putCachedAudioBlob(segmentKey, blob);
+      if (!stored) return { ok:false, reason:'cache_write_failed_segment_' + segmentNumber, segment:segmentNumber, segments:segmentTotal, textPreview:previewText(cleanChunk) };
+      return { ok:true, segments:[{ cacheKey:segmentKey, textHash:hashString(cleanChunk), textPreview:previewText(cleanChunk) }] };
+    }
+
+    // V10 : si Piper timeout sur un segment encore long, on ne bloque pas tout de suite.
+    // On re-découpe localement ce segment en morceaux plus courts et on les génère l'un après l'autre.
+    const canSplitAgain = cleanChunk.length > 38 && depth < 2 && isTimeoutLike(generated);
+    if (canSplitAgain) {
+      const smaller = splitTextIntoAudioChunks(cleanChunk, Math.max(28, Math.floor(cleanChunk.length / 2)));
+      if (smaller.length > 1) {
+        const nested = [];
+        for (let j = 0; j < smaller.length; j += 1) {
+          if (typeof options.onProgress === 'function') {
+            try { options.onProgress({ status:'segment', done:segmentNumber - 1, total:segmentTotal, segment:segmentNumber, segments:segmentTotal, subSegment:j + 1, subSegments:smaller.length, text:smaller[j], textPreview:previewText(smaller[j]) }); } catch(e) {}
+          }
+          const sub = await prepareSingleSegmentOrSplit(smaller[j], voice, cacheKey + '-seg-' + segmentNumber + '-sub-' + (j + 1), j + 1, smaller.length, options, depth + 1);
+          if (!sub || !sub.ok) return Object.assign({ ok:false, reason:'generation_failed_segment_' + segmentNumber, segment:segmentNumber, segments:segmentTotal }, sub || {});
+          sub.segments.forEach(item => nested.push(item));
+        }
+        return { ok:true, segments:nested };
+      }
+    }
+
+    return {
+      ok:false,
+      reason:'generation_failed_segment_' + segmentNumber,
+      segment:segmentNumber,
+      segments:segmentTotal,
+      voiceId: voice && voice.id ? voice.id : '',
+      model: voice && voice.model ? voice.model : '',
+      textPreview: previewText(cleanChunk),
+      error: generated && generated.error ? generated.error : '',
+      firstError: generated && generated.firstError ? generated.firstError : '',
+      secondError: generated && generated.secondError ? generated.secondError : '',
+      diagnostics: generated && generated.diagnostics ? generated.diagnostics.map(compactDiagnostic) : []
+    };
+  }
+
+  function isTimeoutLike(result){
+    const text = [result && result.error, result && result.firstError, result && result.secondError].join(' ');
+    return /trop longue|timeout/i.test(text);
   }
 
   async function playPreparedAudio(cacheKey, options){
@@ -349,39 +396,90 @@
   }
 
   function splitTextIntoAudioChunks(text, maxLength){
-    const value = String(text || '').replace(/\s+/g, ' ').trim();
-    const limit = Math.max(80, Number(maxLength) || 135);
+    const value = normalizeTextForPiper(text);
+    const limit = Math.max(24, Number(maxLength) || 55);
     if (!value) return [];
     if (value.length <= limit) return [value];
 
     const chunks = [];
-    const sentences = value.match(/[^.!?;:]+[.!?;:]?|\S+/g) || [value];
+    const sentenceParts = value.match(/[^.!?;:]+[.!?;:]?|\S+/g) || [value];
     let current = '';
-    sentences.forEach(part => {
+
+    sentenceParts.forEach(part => {
       const piece = String(part || '').trim();
       if (!piece) return;
-      if ((current + ' ' + piece).trim().length <= limit) {
-        current = (current + ' ' + piece).trim();
+      pushPiece(piece);
+    });
+    flush();
+    return chunks.filter(Boolean);
+
+    function pushPiece(piece){
+      if (piece.length > limit) {
+        const commaParts = piece.split(/(?<=[,])\s+/).filter(Boolean);
+        if (commaParts.length > 1) {
+          commaParts.forEach(pushPiece);
+          return;
+        }
+        splitByWords(piece).forEach(part => add(part));
         return;
       }
-      if (current) chunks.push(current);
-      if (piece.length <= limit) {
-        current = piece;
+      add(piece);
+    }
+
+    function add(piece){
+      const candidate = (current + ' ' + piece).trim();
+      if (!current || candidate.length <= limit) {
+        current = candidate;
         return;
       }
-      const words = piece.split(/\s+/).filter(Boolean);
+      flush();
+      current = piece;
+    }
+
+    function flush(){
+      if (current) chunks.push(current.trim());
+      current = '';
+    }
+
+    function splitByWords(piece){
+      const words = String(piece || '').split(/\s+/).filter(Boolean);
+      const parts = [];
       let line = '';
       words.forEach(word => {
-        if ((line + ' ' + word).trim().length <= limit) line = (line + ' ' + word).trim();
-        else {
-          if (line) chunks.push(line);
+        const candidate = (line + ' ' + word).trim();
+        if (!line || candidate.length <= limit) {
+          line = candidate;
+        } else {
+          if (line) parts.push(line);
           line = word;
         }
       });
-      current = line;
-    });
-    if (current) chunks.push(current);
-    return chunks.filter(Boolean);
+      if (line) parts.push(line);
+      return parts;
+    }
+  }
+
+  function getChunkLimitForVoice(voice){
+    const id = String(voice && voice.id || '').toLowerCase();
+    const model = String(voice && voice.model || '').toLowerCase();
+    // Diagnostic V9 : fr_FR-gilles-low timeout sur ~100 caractères.
+    // V10 limite Gilles beaucoup plus bas pour obtenir de vrais petits fichiers audio.
+    if (id === 'gilles' || model.includes('gilles')) return 42;
+    if (model.includes('upmc-medium')) return 52;
+    return 56;
+  }
+
+  function normalizeTextForPiper(text){
+    let value = String(text || '');
+    if (value.normalize) value = value.normalize('NFKC');
+    return value
+      .replace(/[’‘`´]/g, "'")
+      .replace(/\s*'\s*/g, "'")
+      .replace(/\s+([!?;:,.])/g, '$1')
+      .replace(/([!?;:])(?=\S)/g, '$1 ')
+      .replace(/([,.])(?=\S)/g, '$1 ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   function cacheUrlForKey(key){
