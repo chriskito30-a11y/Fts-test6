@@ -2048,52 +2048,26 @@
   }
 
   async function prepareEmbeddedVoicesForCurrentScript(blocking){
+    // V7 : cette fonction ne doit plus bloquer le parcours.
+    // Le vrai critère de validation est la génération complète des audios des répliques
+    // dans prepareRehearsalAudioForCurrentScript().
     const piper = getPiperService();
-    if (!piper || !piper.prepare || !hasEmbeddedVoices()) return true;
-    const voiceIds = collectEmbeddedVoiceIdsForCurrentScript();
-    if (!voiceIds.length) return true;
-    const signature = voiceIds.slice().sort().join('|');
-    if (state.piperPrep.ready && state.piperPrep.signature === signature) return true;
-    if (state.piperPrep.promise && state.piperPrep.signature === signature) {
-      if (!blocking) return false;
-      try { await state.piperPrep.promise; return true; } catch(e) { return false; }
-    }
-
-    state.piperPrep.status = 'preparing';
-    state.piperPrep.ready = false;
-    state.piperPrep.signature = signature;
-    state.piperPrep.progress = 0;
-    if (els.repSpeechStatus) els.repSpeechStatus.textContent = 'Préparation des voix FTS…';
-    const previousStartDisabled = els.repStartBtn ? els.repStartBtn.disabled : false;
-    if (blocking && els.repStartBtn) els.repStartBtn.disabled = true;
-
-    state.piperPrep.promise = piper.prepare({
-      voiceIds,
-      onProgress(progress){
-        const percent = Number(progress && progress.percent) || 0;
-        state.piperPrep.progress = percent;
-        if (els.repSpeechStatus && progress && progress.label) {
-          els.repSpeechStatus.textContent = percent ? `${progress.label} ${Math.round(percent)}%` : progress.label;
-        }
-      }
-    }).then(() => {
-      state.piperPrep.ready = true;
+    if (!piper || !hasEmbeddedVoices()) return true;
+    try {
+      if (piper.loadManifest) await piper.loadManifest();
       state.piperPrep.status = 'ready';
+      state.piperPrep.ready = true;
       state.piperPrep.progress = 100;
-      updateSpeechStatus();
       return true;
-    }).catch(() => {
+    } catch(e) {
+      state.piperPrep.status = 'idle';
       state.piperPrep.ready = false;
-      state.piperPrep.status = 'error';
-      return false;
-    }).finally(() => {
-      state.piperPrep.promise = null;
-      if (blocking && els.repStartBtn) els.repStartBtn.disabled = previousStartDisabled;
+      state.piperPrep.progress = 0;
+      // On ne bloque pas ici : la génération réelle des répliques donnera l'erreur utile.
+      return true;
+    } finally {
       setButtons();
-    });
-
-    if (!blocking) return false;
-    return await state.piperPrep.promise;
+    }
   }
 
 
@@ -2214,8 +2188,10 @@
     const piper = getPiperService();
     if (!piper || !piper.prepareLineAudio || !hasEmbeddedVoices()) return true;
 
-    const voiceReady = await prepareEmbeddedVoicesForCurrentScript(blocking);
-    if (!voiceReady && blocking) return false;
+    // V7 : pas de pré-verrou sur les modèles/voix.
+    // On prépare seulement le manifeste si possible, puis on lance le vrai travail :
+    // générer et stocker chaque réplique.
+    await prepareEmbeddedVoicesForCurrentScript(false);
 
     const items = collectRehearsalAudioItems(true);
     if (!items.length) return true;
@@ -2243,12 +2219,16 @@
         const percent = Math.round((i / items.length) * 100);
         state.audioPrep.done = i;
         state.audioPrep.progress = percent;
-        setPreparationUi('preparing', percent, 'Génération des répliques', `${i + 1}/${items.length} · génération réelle en cours… ${percent}%`);
+        const speakerLabel = item.speaker ? ` · ${item.speaker}` : '';
+        setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · création du fichier audio… ${percent}%`);
         const result = await piper.prepareLineAudio(item.text, item.voiceId, {
           rate: item.rate,
           cacheKey: item.cacheKey
         });
-        if (!result || !result.ok) throw new Error('Réplique audio impossible');
+        if (!result || !result.ok) {
+          const reason = result && result.reason ? result.reason : 'generation_failed';
+          throw new Error(`Réplique audio impossible (${item.speaker || 'personnage inconnu'} · ligne ${item.lineIndex + 1} · ${reason})`);
+        }
         state.audioPrep.map[item.lineIndex] = {
           engine: 'piper-cache',
           cacheKey: item.cacheKey,
@@ -2265,7 +2245,8 @@
     })().catch(error => {
       state.audioPrep.ready = false;
       state.audioPrep.status = 'error';
-      setPreparationUi('error', 0, 'Préparation audio impossible', 'La répétition reste verrouillée : au moins une réplique n’a pas pu être générée. Vérifie la connexion, laisse l’écran ouvert, puis relance la préparation.');
+      state.audioPrep.error = error && error.message ? error.message : '';
+      setPreparationUi('error', 0, 'Préparation audio impossible', state.audioPrep.error ? `La répétition reste verrouillée : ${state.audioPrep.error}. Relance la préparation après avoir laissé l’écran ouvert.` : 'La répétition reste verrouillée : au moins une réplique n’a pas pu être générée. Vérifie la connexion, laisse l’écran ouvert, puis relance la préparation.');
       throw error;
     }).finally(() => {
       state.audioPrep.promise = null;
