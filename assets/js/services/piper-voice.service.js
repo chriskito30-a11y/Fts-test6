@@ -17,8 +17,10 @@
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v6';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v8';
+  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v8';
   const memoryAudioCache = new Map();
+  const memoryManifestCache = new Map();
 
   const state = {
     manifest: null,
@@ -121,20 +123,59 @@
     await loadManifest();
     const voice = getVoice(voiceId);
     const value = String(text || '').trim();
-    if (!voice || !value) return { ok:false, cached:false };
+    if (!voice || !value) return { ok:false, cached:false, reason: !voice ? 'voice_not_found' : 'empty_text' };
     const cacheKey = options.cacheKey || buildGeneratedAudioKey(value, voiceId, options);
-    const cached = await getCachedAudioBlob(cacheKey);
-    if (cached) return { ok:true, cached:true, cacheKey, blob:cached };
 
-    const blob = await generateBlobWithRetry(value, voice, options);
-    if (!blob) return { ok:false, cached:false, cacheKey, reason:'generation_failed' };
-    const stored = await putCachedAudioBlob(cacheKey, blob);
-    if (!stored) return { ok:false, cached:false, cacheKey, reason:'cache_write_failed' };
-    return { ok:true, cached:false, cacheKey, blob };
+    const existingManifest = await getCachedAudioManifest(cacheKey);
+    if (existingManifest && Array.isArray(existingManifest.segments) && existingManifest.segments.length) {
+      const allSegmentsReady = await areManifestSegmentsCached(existingManifest);
+      if (allSegmentsReady) return { ok:true, cached:true, cacheKey, manifest:existingManifest };
+    }
+
+    const chunks = splitTextIntoAudioChunks(value, 135);
+    if (!chunks.length) return { ok:false, cached:false, cacheKey, reason:'empty_chunks' };
+    const segments = [];
+
+    for (let i = 0; i < chunks.length; i += 1) {
+      const chunk = chunks[i];
+      const segmentKey = cacheKey + '-seg-' + (i + 1) + '-' + hashString(chunk);
+      if (typeof options.onProgress === 'function') {
+        try { options.onProgress({ status:'segment', done:i, total:chunks.length, segment:i + 1, segments:chunks.length, text:chunk }); } catch(e) {}
+      }
+      let blob = await getCachedAudioBlob(segmentKey);
+      if (!blob) {
+        blob = await generateBlobWithRetry(chunk, voice, options);
+        if (!blob) return { ok:false, cached:false, cacheKey, reason:'generation_failed_segment_' + (i + 1), segment:i + 1, segments:chunks.length };
+        const stored = await putCachedAudioBlob(segmentKey, blob);
+        if (!stored) return { ok:false, cached:false, cacheKey, reason:'cache_write_failed_segment_' + (i + 1), segment:i + 1, segments:chunks.length };
+      }
+      segments.push({ cacheKey: segmentKey, textHash: hashString(chunk) });
+      if (typeof options.onProgress === 'function') {
+        try { options.onProgress({ status:'segment-ready', done:i + 1, total:chunks.length, segment:i + 1, segments:chunks.length }); } catch(e) {}
+      }
+    }
+
+    const manifest = { version: 8, cacheKey, voiceId, textHash: hashString(value), segments, createdAt: Date.now() };
+    const manifestStored = await putCachedAudioManifest(cacheKey, manifest);
+    if (!manifestStored) return { ok:false, cached:false, cacheKey, reason:'manifest_write_failed' };
+    return { ok:true, cached:false, cacheKey, manifest };
   }
 
   async function playPreparedAudio(cacheKey, options){
     const token = nextToken();
+    const manifest = await getCachedAudioManifest(cacheKey);
+    if (token !== state.token) return { ok:false, cancelled:true };
+    if (manifest && Array.isArray(manifest.segments) && manifest.segments.length) {
+      for (let i = 0; i < manifest.segments.length; i += 1) {
+        if (token !== state.token) return { ok:false, cancelled:true };
+        const blob = await getCachedAudioBlob(manifest.segments[i].cacheKey);
+        if (!blob) return { ok:false, cancelled:false, reason:'missing_segment_' + (i + 1) };
+        const played = await playBlob(blob, token, Number(options && options.rate) || 1);
+        if (!played || !played.ok) return played || { ok:false, cancelled:false };
+      }
+      return { ok:true, cancelled:false };
+    }
+
     const blob = await getCachedAudioBlob(cacheKey);
     if (token !== state.token) return { ok:false, cancelled:true };
     if (!blob) return { ok:false, cancelled:false, reason:'missing_cache' };
@@ -200,6 +241,90 @@
     } catch(e) {
       return false;
     }
+  }
+
+
+  async function getCachedAudioManifest(cacheKey){
+    const key = String(cacheKey || '');
+    if (!key) return null;
+    if (memoryManifestCache.has(key)) return memoryManifestCache.get(key);
+    if (!window.caches || !caches.open) return null;
+    try {
+      const cache = await caches.open(GENERATED_MANIFEST_CACHE);
+      const response = await cache.match(manifestUrlForKey(key));
+      if (!response) return null;
+      const manifest = await response.json();
+      memoryManifestCache.set(key, manifest);
+      return manifest;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  async function putCachedAudioManifest(cacheKey, manifest){
+    const key = String(cacheKey || '');
+    if (!key || !manifest) return false;
+    if (!window.caches || !caches.open) return false;
+    try {
+      const cache = await caches.open(GENERATED_MANIFEST_CACHE);
+      const url = manifestUrlForKey(key);
+      await cache.put(url, new Response(JSON.stringify(manifest), { headers:{ 'Content-Type':'application/json' } }));
+      const verify = await cache.match(url);
+      if (!verify) return false;
+      memoryManifestCache.set(key, manifest);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
+  async function areManifestSegmentsCached(manifest){
+    if (!manifest || !Array.isArray(manifest.segments) || !manifest.segments.length) return false;
+    for (let i = 0; i < manifest.segments.length; i += 1) {
+      const blob = await getCachedAudioBlob(manifest.segments[i].cacheKey);
+      if (!blob) return false;
+    }
+    return true;
+  }
+
+  function manifestUrlForKey(key){
+    return new URL('/__fts_repetition_audio_manifest__/' + encodeURIComponent(String(key)) + '.json', window.location.origin).href;
+  }
+
+  function splitTextIntoAudioChunks(text, maxLength){
+    const value = String(text || '').replace(/\s+/g, ' ').trim();
+    const limit = Math.max(80, Number(maxLength) || 135);
+    if (!value) return [];
+    if (value.length <= limit) return [value];
+
+    const chunks = [];
+    const sentences = value.match(/[^.!?;:]+[.!?;:]?|\S+/g) || [value];
+    let current = '';
+    sentences.forEach(part => {
+      const piece = String(part || '').trim();
+      if (!piece) return;
+      if ((current + ' ' + piece).trim().length <= limit) {
+        current = (current + ' ' + piece).trim();
+        return;
+      }
+      if (current) chunks.push(current);
+      if (piece.length <= limit) {
+        current = piece;
+        return;
+      }
+      const words = piece.split(/\s+/).filter(Boolean);
+      let line = '';
+      words.forEach(word => {
+        if ((line + ' ' + word).trim().length <= limit) line = (line + ' ' + word).trim();
+        else {
+          if (line) chunks.push(line);
+          line = word;
+        }
+      });
+      current = line;
+    });
+    if (current) chunks.push(current);
+    return chunks.filter(Boolean);
   }
 
   function cacheUrlForKey(key){
@@ -289,12 +414,12 @@
 
   function getGenerateTimeout(text, isRetry){
     const length = String(text || '').length;
-    // V6 : génération volontairement plus patiente.
+    // V8 : timeout par segment audio, plus court car les répliques longues sont découpées.
     // Sur téléphone, la première génération Piper peut être très lente parce qu'elle charge le worker,
     // ONNX, le phonemizer et le modèle vocal. Il vaut mieux attendre pendant l'écran de préparation
     // que déclencher une fausse erreur puis laisser l'élève bloqué.
-    const base = isRetry ? 90000 : 60000;
-    return Math.max(base, Math.min(240000, base + length * 450));
+    const base = isRetry ? 45000 : 30000;
+    return Math.max(base, Math.min(90000, base + length * 260));
   }
 
   function resetEngine(){
