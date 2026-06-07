@@ -43,7 +43,8 @@
     sceneScope: null,
     openSceneGroupKey: '',
     currentView: 'library',
-    xpSession: { practice:0, own:0, difficult:0 }
+    xpSession: { practice:0, own:0, difficult:0 },
+    piperPrep: { status:'idle', ready:false, signature:'', promise:null, progress:0 }
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -108,7 +109,7 @@
     els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     els.repPause.addEventListener('change', saveCurrentScriptSettings);
     els.repRate.addEventListener('change', saveCurrentScriptSettings);
-    els.repVoice.addEventListener('change', saveCurrentScriptSettings);
+    els.repVoice.addEventListener('change', () => { state.piperPrep.ready = false; state.piperPrep.signature = ''; saveCurrentScriptSettings(); renderRoleReadControls(); updateSpeechStatus(); prepareEmbeddedVoicesForCurrentScript(false); });
     if (els.repResourceSelect) els.repResourceSelect.addEventListener('change', onResourceSelectChange);
     if (els.repLoadResourcePdfBtn) els.repLoadResourcePdfBtn.addEventListener('click', loadSelectedResourcePdf);
     if (els.repReloadAppPdfBtn) els.repReloadAppPdfBtn.addEventListener('click', () => loadAppDocumentsForCurrentUser(true));
@@ -155,6 +156,7 @@
       const active = target === next || (next === 'settings' && target === 'mode');
       btn.classList.toggle('is-active', active);
     });
+    if (next === 'mode' || next === 'rehearse') prepareEmbeddedVoicesForCurrentScript(false);
     if (next === 'rehearse') refreshPlayer(false);
     setButtons();
     scrollToTopSoft();
@@ -168,7 +170,7 @@
     return els.repRoleSelect ? els.repRoleSelect.value : '';
   }
 
-  function enterRehearsal(autoStart){
+  async function enterRehearsal(autoStart){
     if (!state.lines.length) {
       alert('Choisis d’abord un texte.');
       setView('library');
@@ -178,6 +180,12 @@
       alert('Choisis d’abord ton personnage.');
       setView('role');
       return;
+    }
+    if (usesEmbeddedVoicesForCurrentScript()) {
+      const prepared = await prepareEmbeddedVoicesForCurrentScript(true);
+      if (!prepared) {
+        els.repSpeechStatus.textContent = 'Voix FTS non préparées · secours navigateur disponible';
+      }
     }
     setView('rehearse');
     refreshPlayer();
@@ -195,12 +203,21 @@
       loadVoices(true);
       updateSpeechStatus();
       if (state.characters && state.characters.length) renderRoleReadControls();
+      prepareEmbeddedVoicesForCurrentScript(false);
+    });
+    window.addEventListener('FTS_PIPER_PREPARE_PROGRESS', event => {
+      const detail = event && event.detail ? event.detail : {};
+      state.piperPrep.status = detail.status || state.piperPrep.status || 'preparing';
+      state.piperPrep.progress = Number(detail.percent) || state.piperPrep.progress || 0;
+      if (detail.status === 'ready') state.piperPrep.ready = true;
+      if (els.repSpeechStatus && detail.label) els.repSpeechStatus.textContent = detail.percent ? `${detail.label} ${Math.round(detail.percent)}%` : detail.label;
     });
     const piper = getPiperService();
     if (piper && piper.loadManifest) {
       piper.loadManifest().then(() => {
         loadVoices(true);
         updateSpeechStatus();
+        prepareEmbeddedVoicesForCurrentScript(false);
       }).catch(() => updateSpeechStatus());
     }
   }
@@ -222,7 +239,13 @@
   function updateSpeechStatus(){
     const embeddedCount = hasEmbeddedVoices() ? getEmbeddedVoices().length : 0;
     if (embeddedCount) {
-      els.repSpeechStatus.textContent = `${embeddedCount} voix embarquÃ©es FTS Â· auto par rÃ´le`;
+      if (state.piperPrep && state.piperPrep.status === 'preparing') {
+        els.repSpeechStatus.textContent = `Préparation voix FTS ${Math.round(state.piperPrep.progress || 0)}%`;
+      } else if (state.piperPrep && state.piperPrep.ready) {
+        els.repSpeechStatus.textContent = `${embeddedCount} voix embarquées FTS · prêtes hors ligne`;
+      } else {
+        els.repSpeechStatus.textContent = `${embeddedCount} voix embarquées FTS · à préparer`;
+      }
       return;
     }
     if (!('speechSynthesis' in window)) {
@@ -1376,6 +1399,9 @@
         refreshPlayer();
         renderLineList();
         saveCurrentScriptSettings();
+        state.piperPrep.ready = false;
+        state.piperPrep.signature = '';
+        prepareEmbeddedVoicesForCurrentScript(false);
       });
     });
 
@@ -1385,7 +1411,10 @@
         if (!name) return;
         if (select.value) state.roleVoicePrefs[name] = select.value;
         else delete state.roleVoicePrefs[name];
+        state.piperPrep.ready = false;
+        state.piperPrep.signature = '';
         saveCurrentScriptSettings();
+        prepareEmbeddedVoicesForCurrentScript(false);
       });
     });
   }
@@ -1710,11 +1739,17 @@
     try { active.scrollIntoView({ behavior:'smooth', block:'center', inline:'nearest' }); } catch(e) {}
   }
 
-  function start(){
+  async function start(){
     if (!state.lines.length) return;
     if (els.repMode.value !== 'full' && !els.repRoleSelect.value) {
       alert('Choisis ton rôle avant de lancer la répétition.');
       return;
+    }
+    if (usesEmbeddedVoicesForCurrentScript()) {
+      const prepared = await prepareEmbeddedVoicesForCurrentScript(true);
+      if (!prepared) {
+        els.repSpeechStatus.textContent = 'Voix FTS lentes · lecture avec secours navigateur si besoin';
+      }
     }
     const piper = getPiperService();
     if (piper && piper.unlock) piper.unlock();
@@ -1933,6 +1968,90 @@
     utterance.onend = () => onEnd && onEnd();
     utterance.onerror = () => onEnd && onEnd();
     window.speechSynthesis.speak(utterance);
+  }
+
+
+  function usesEmbeddedVoicesForCurrentScript(){
+    if (!hasEmbeddedVoices()) return false;
+    const selected = els.repVoice ? String(els.repVoice.value || '') : '';
+    if (selected === 'browser-auto' || selected === 'default') return false;
+    if (selected !== '' && !selected.startsWith('piper:') && !selected.startsWith('piper-gender:')) return false;
+    return collectEmbeddedVoiceIdsForCurrentScript().length > 0;
+  }
+
+  function collectEmbeddedVoiceIdsForCurrentScript(){
+    const ids = new Set();
+    if (!hasEmbeddedVoices()) return [];
+    const role = getSelectedRole();
+    const selected = els.repVoice ? String(els.repVoice.value || '') : '';
+
+    if (selected.startsWith('piper:')) {
+      const voiceId = selected.replace('piper:', '');
+      if (voiceId) ids.add(voiceId);
+    }
+
+    (state.lines || []).forEach(line => {
+      if (!line || line.kind !== 'line' || !line.speaker) return;
+      if (role && line.speaker === role && els.repMode && els.repMode.value !== 'full') return;
+      if (isIgnoredSpeakerLine(line, role)) return;
+      const settings = resolveVoiceForSpeaker(line.speaker);
+      if (settings && settings.engine === 'piper' && settings.voiceId) ids.add(settings.voiceId);
+    });
+
+    if (!ids.size && selected === '') {
+      const first = getEmbeddedVoices()[0];
+      if (first && first.id) ids.add(first.id);
+    }
+    return Array.from(ids);
+  }
+
+  async function prepareEmbeddedVoicesForCurrentScript(blocking){
+    const piper = getPiperService();
+    if (!piper || !piper.prepare || !hasEmbeddedVoices()) return true;
+    const voiceIds = collectEmbeddedVoiceIdsForCurrentScript();
+    if (!voiceIds.length) return true;
+    const signature = voiceIds.slice().sort().join('|');
+    if (state.piperPrep.ready && state.piperPrep.signature === signature) return true;
+    if (state.piperPrep.promise && state.piperPrep.signature === signature) {
+      if (!blocking) return false;
+      try { await state.piperPrep.promise; return true; } catch(e) { return false; }
+    }
+
+    state.piperPrep.status = 'preparing';
+    state.piperPrep.ready = false;
+    state.piperPrep.signature = signature;
+    state.piperPrep.progress = 0;
+    if (els.repSpeechStatus) els.repSpeechStatus.textContent = 'Préparation des voix FTS…';
+    const previousStartDisabled = els.repStartBtn ? els.repStartBtn.disabled : false;
+    if (blocking && els.repStartBtn) els.repStartBtn.disabled = true;
+
+    state.piperPrep.promise = piper.prepare({
+      voiceIds,
+      onProgress(progress){
+        const percent = Number(progress && progress.percent) || 0;
+        state.piperPrep.progress = percent;
+        if (els.repSpeechStatus && progress && progress.label) {
+          els.repSpeechStatus.textContent = percent ? `${progress.label} ${Math.round(percent)}%` : progress.label;
+        }
+      }
+    }).then(() => {
+      state.piperPrep.ready = true;
+      state.piperPrep.status = 'ready';
+      state.piperPrep.progress = 100;
+      updateSpeechStatus();
+      return true;
+    }).catch(() => {
+      state.piperPrep.ready = false;
+      state.piperPrep.status = 'error';
+      return false;
+    }).finally(() => {
+      state.piperPrep.promise = null;
+      if (blocking && els.repStartBtn) els.repStartBtn.disabled = previousStartDisabled;
+      setButtons();
+    });
+
+    if (!blocking) return false;
+    return await state.piperPrep.promise;
   }
 
   function speakWithEmbeddedVoice(text, onEnd, voiceSettings){
