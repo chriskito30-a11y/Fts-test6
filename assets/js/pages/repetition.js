@@ -1,7 +1,18 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V137';
+  const REPETITION_VERSION = 'V138';
+
+  const AUTO_VOICE_PROFILES = [
+    { key:'neutral', label:'naturelle', pitch:1, rate:1 },
+    { key:'bright', label:'plus claire', pitch:1.16, rate:1.03 },
+    { key:'deep', label:'plus grave', pitch:.86, rate:.96 },
+    { key:'quick', label:'plus vive', pitch:1.06, rate:1.1 },
+    { key:'calm', label:'plus posee', pitch:.94, rate:.9 },
+    { key:'light', label:'plus legere', pitch:1.24, rate:.98 },
+    { key:'warm', label:'plus ronde', pitch:.9, rate:1.04 },
+    { key:'sharp', label:'plus nette', pitch:1.12, rate:1.14 }
+  ];
 
   const els = {};
   const state = {
@@ -183,7 +194,13 @@
       els.repSpeechStatus.textContent = 'Voix non compatible';
       return;
     }
-    els.repSpeechStatus.textContent = state.voices.length ? 'Voix disponible' : 'Voix du navigateur';
+    if (state.voices.length > 1) {
+      els.repSpeechStatus.textContent = `${state.voices.length} voix · auto par rôle`;
+    } else if (state.voices.length === 1) {
+      els.repSpeechStatus.textContent = '1 voix · variantes par rôle';
+    } else {
+      els.repSpeechStatus.textContent = 'Voix du navigateur';
+    }
   }
 
   function scheduleVoiceReloads(){
@@ -201,13 +218,13 @@
     const current = els.repVoice.value;
     const french = getFrenchVoices();
     const ordered = french.length ? french.concat(state.voices.filter(v => !french.includes(v))) : state.voices;
-    els.repVoice.innerHTML = '<option value="">Voix par défaut</option>' + ordered.map((voice)=>{
+    els.repVoice.innerHTML = '<option value="">Voix auto par personnage</option><option value="default">Voix unique du navigateur</option>' + ordered.map((voice)=>{
       const originalIndex = state.voices.indexOf(voice);
       const gender = inferVoiceGender(voice);
       const genderLabel = gender === 'female' ? ' · femme' : gender === 'male' ? ' · homme' : '';
       return `<option value="${originalIndex}">${escapeHtml(voice.name)}${voice.lang ? ' — ' + escapeHtml(voice.lang) : ''}${genderLabel}</option>`;
     }).join('');
-    if (current && state.voices[Number(current)]) els.repVoice.value = current;
+    if (current === 'default' || (current && state.voices[Number(current)])) els.repVoice.value = current;
     updateSpeechStatus();
     const nextSignature = (state.voices || []).map(v => `${v.name}|${v.lang}|${v.voiceURI}`).join('||');
     if (state.characters && state.characters.length && (!silent || previousSignature !== nextSignature)) renderRoleReadControls();
@@ -1280,8 +1297,8 @@
 
     els.repRoleReadControls.innerHTML = `
       <div class="rep-role-read-head">
-        <strong>Rôles à faire lire par l’app</strong>
-        <small>Décoche un faux rôle ou un rôle à ignorer : ses lignes seront passées.</small>
+        <strong>Rôles lus par l’app</strong>
+        <small>Comme dans une italienne, ton rôle s’arrête pour te laisser parler. Décoche seulement les faux rôles.</small>
       </div>
       <div class="rep-role-read-list">
         ${state.characters.map(name => {
@@ -1295,7 +1312,7 @@
       <details class="rep-role-voice-details">
         <summary>
           <span>Voix par rôle</span>
-          <small>Optionnel · français France homme/femme ou voix précise</small>
+          <small>Auto · voix ou variantes par personnage</small>
         </summary>
         <div class="rep-role-voice-list">
           ${state.characters.map(name => `
@@ -1307,7 +1324,7 @@
             </label>
           `).join('')}
         </div>
-        <p class="rep-role-voice-note">Selon le téléphone ou le navigateur, les voix homme/femme disponibles peuvent varier. Si aucune voix correspondante n’existe, l’app utilise la meilleure voix française disponible.</p>
+        <p class="rep-role-voice-note">Sur mobile, le navigateur peut ne fournir qu’une seule voix. Dans ce cas, l’app garde une voix par personnage en variant légèrement hauteur et vitesse. Pour de vraies voix différentes, active plusieurs voix françaises dans les réglages du téléphone.</p>
       </details>
     `;
 
@@ -1337,8 +1354,13 @@
     const frenchVoices = getFrenchVoices();
     const hasFemale = frenchVoices.some(v => inferVoiceGender(v) === 'female');
     const hasMale = frenchVoices.some(v => inferVoiceGender(v) === 'male');
+    const profileChoices = AUTO_VOICE_PROFILES.slice(1, 6).map(profile => ({
+      value:'profile:' + profile.key,
+      label:'Variante ' + profile.label
+    }));
     const choices = [
-      { value:'', label:'Voix automatique' },
+      { value:'', label:'Auto par personnage' },
+      ...profileChoices,
       { value:'fr-female', label: hasFemale ? 'Voix française femme' : 'Voix française femme — non détectée sur cet appareil', disabled: !hasFemale },
       { value:'fr-male', label: hasMale ? 'Voix française homme' : 'Voix française homme — non détectée sur cet appareil', disabled: !hasMale }
     ];
@@ -1383,15 +1405,16 @@
 
   function applyTrainingPreset(preset){
     const map = {
-      discover: { mode:'manual', ownLines:'show', pause:'4500', rate:'0.85' },
-      learn:    { mode:'manual', ownLines:'initials', pause:'4500', rate:'1' },
-      run:      { mode:'auto', ownLines:'hide', pause:'2500', rate:'1' }
+      discover: { mode:'manual', ownLines:'show', pause:'4500', rate:'0.85', readSpeakerName:'no' },
+      learn:    { mode:'manual', ownLines:'initials', pause:'4500', rate:'1', readSpeakerName:'no' },
+      run:      { mode:'auto', ownLines:'hide', pause:'2500', rate:'1', readSpeakerName:'no' }
     };
     const cfg = map[preset] || map.discover;
     if (els.repMode) els.repMode.value = cfg.mode;
     if (els.repOwnLines) els.repOwnLines.value = cfg.ownLines;
     if (els.repPause) els.repPause.value = cfg.pause;
     if (els.repRate) els.repRate.value = cfg.rate;
+    if (els.repReadSpeakerName) els.repReadSpeakerName.value = cfg.readSpeakerName || 'no';
     state.focusDifficultOnly = false;
     refreshPlayer();
     renderPresetState(preset);
@@ -1740,7 +1763,8 @@
 
     // renderCurrentLine a déjà mis à jour l'aperçu ci-dessus.
     if (line.kind === 'stage') {
-      speakLine(line, false, () => { if (token === state.playToken && state.playing) advance(); });
+      els.repProgressText.textContent = 'Didascalie affichée, non lue. L’app passe à la réplique.';
+      state.timeoutId = setTimeout(() => { if (token === state.playToken && state.playing) advance(); }, 650);
       return;
     }
 
@@ -1759,7 +1783,7 @@
 
     if (mode === 'auto') {
       const delay = computeSilentLineDelay(line);
-      els.repProgressText.textContent = `Réplique muette : à toi de parler, l’app enchaîne dans ${Math.round(delay/1000)} s.`;
+      els.repProgressText.textContent = `Filage muet : à toi de parler, l’app enchaîne dans ${Math.round(delay/1000)} s.`;
       state.timeoutId = setTimeout(() => { if (token === state.playToken && state.playing) advance(); }, delay);
       return;
     }
@@ -1838,16 +1862,17 @@
     // Dernière tentative de chargement : sur Android/iOS, getVoices() peut se remplir tardivement.
     if (!state.voices.length) loadVoices(true);
     const utterance = new SpeechSynthesisUtterance(text);
-    const selectedVoice = resolveVoiceForSpeaker(options && options.speaker ? options.speaker : '');
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
+    const voiceSettings = resolveVoiceForSpeaker(options && options.speaker ? options.speaker : '');
+    if (voiceSettings && voiceSettings.voice) {
+      utterance.voice = voiceSettings.voice;
       // Très important sur mobile : certains navigateurs ignorent la voix si lang reste fr-FR
       // alors que la voix réelle annonce fr_FR, fr-CA, fr-fr-x-..., etc.
-      utterance.lang = selectedVoice.lang || 'fr-FR';
+      utterance.lang = voiceSettings.voice.lang || 'fr-FR';
     } else {
       utterance.lang = 'fr-FR';
     }
-    utterance.rate = Number(els.repRate.value) || 1;
+    utterance.rate = clampVoiceNumber((Number(els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? voiceSettings.rate : 1), .65, 1.4);
+    utterance.pitch = clampVoiceNumber(voiceSettings && voiceSettings.pitch ? voiceSettings.pitch : 1, .5, 1.8);
     utterance.onend = () => onEnd && onEnd();
     utterance.onerror = () => onEnd && onEnd();
     window.speechSynthesis.speak(utterance);
@@ -1861,30 +1886,71 @@
     }
 
     const voiceIndex = els.repVoice.value;
-    if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) return state.voices[Number(voiceIndex)];
+    if (voiceIndex === 'default') return makeVoiceSettings(null, AUTO_VOICE_PROFILES[0]);
+    if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) return makeVoiceSettings(state.voices[Number(voiceIndex)], getAutoVoiceProfile(speaker));
 
-    const french = getFrenchVoices();
-    return french[0] || null;
+    return resolveAutomaticVoiceForSpeaker(speaker);
   }
 
   function voiceFromPreference(pref){
     if (!pref) return null;
+    if (String(pref).startsWith('profile:')) {
+      return makeVoiceSettings(null, getVoiceProfileByKey(String(pref).replace('profile:', '')) || AUTO_VOICE_PROFILES[0]);
+    }
     if (String(pref).startsWith('voice:')) {
       const index = Number(String(pref).replace('voice:', ''));
-      return state.voices[index] || null;
+      return state.voices[index] ? makeVoiceSettings(state.voices[index], AUTO_VOICE_PROFILES[0]) : null;
     }
 
     const french = getFrenchVoices();
     if (pref === 'fr-female') {
       // Ne pas faire semblant : si aucune voix femme n'est détectée sur le téléphone,
       // on retombe sur la voix française auto. L'option est normalement désactivée dans l'UI.
-      return french.find(v => inferVoiceGender(v) === 'female') || french[0] || null;
+      return makeVoiceSettings(french.find(v => inferVoiceGender(v) === 'female') || french[0] || null, AUTO_VOICE_PROFILES[0]);
     }
     if (pref === 'fr-male') {
       // Idem : Android/iOS ne fournissent parfois qu'une seule voix française.
-      return french.find(v => inferVoiceGender(v) === 'male') || french[0] || null;
+      return makeVoiceSettings(french.find(v => inferVoiceGender(v) === 'male') || french[0] || null, AUTO_VOICE_PROFILES[0]);
     }
     return null;
+  }
+
+  function resolveAutomaticVoiceForSpeaker(speaker){
+    const french = getFrenchVoices();
+    const voices = french.length ? french : (state.voices || []);
+    const profile = getAutoVoiceProfile(speaker);
+    if (!voices.length) return makeVoiceSettings(null, profile);
+    const index = getSpeakerIndex(speaker);
+    return makeVoiceSettings(voices[index % voices.length], profile);
+  }
+
+  function getSpeakerIndex(speaker){
+    const normalized = normalizeSpeaker(speaker || '');
+    const index = (state.characters || []).findIndex(name => normalizeSpeaker(name) === normalized);
+    return index >= 0 ? index : 0;
+  }
+
+  function getAutoVoiceProfile(speaker){
+    return AUTO_VOICE_PROFILES[getSpeakerIndex(speaker) % AUTO_VOICE_PROFILES.length] || AUTO_VOICE_PROFILES[0];
+  }
+
+  function getVoiceProfileByKey(key){
+    return AUTO_VOICE_PROFILES.find(profile => profile.key === key) || null;
+  }
+
+  function makeVoiceSettings(voice, profile){
+    profile = profile || AUTO_VOICE_PROFILES[0];
+    return {
+      voice: voice || null,
+      pitch: profile.pitch || 1,
+      rate: profile.rate || 1
+    };
+  }
+
+  function clampVoiceNumber(value, min, max){
+    value = Number(value);
+    if (!Number.isFinite(value)) return 1;
+    return Math.max(min, Math.min(max, value));
   }
 
   function advance(){
@@ -2121,7 +2187,7 @@
       : state.focusDifficultOnly
         ? 'Révision des répliques marquées : dis ta ligne, puis valide.'
       : isOwn
-        ? (mode === 'auto' ? 'Réplique muette : dis ta ligne, l’app enchaînera automatiquement.' : 'À toi : dis ta réplique, puis valide pour continuer.')
+        ? (mode === 'auto' ? 'Filage muet : dis ta ligne, l’app enchaînera automatiquement.' : 'À toi : dis ta réplique, puis valide pour continuer.')
         : (state.playing ? 'L’app donne la réplique.' : 'Prêt à lancer depuis cette réplique.');
   }
 
@@ -2183,8 +2249,8 @@
     state.difficultLines = new Set();
     state.focusDifficultOnly = false;
     state.focusOwnOnly = false;
-    state.sceneOnly = !!settings.sceneOnly;
-    state.sceneScope = settings.sceneScope || null;
+    state.sceneOnly = false;
+    state.sceneScope = null;
     state.roleVoicePrefs = {};
     state.xpSession = { practice:0, own:0, difficult:0 };
     state.currentScriptId = '';
