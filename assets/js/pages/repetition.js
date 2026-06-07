@@ -273,6 +273,8 @@
   function sanitizeVoicePreference(pref){
     const value = String(pref || '');
     if (!value) return '';
+    const lowered = value.toLowerCase();
+    if (/(^|[:/_-])(gilles|siwis|mls)(?:$|[:/_-])|fr_fr-(gilles|siwis|mls)/.test(lowered)) return '';
     const ids = getEmbeddedVoiceIds();
     if (value.startsWith('piper:')) {
       const embeddedId = value.replace('piper:', '').trim();
@@ -283,15 +285,16 @@
   }
 
   function sanitizeSavedVoicePreferences(){
+    let changed = false;
     if (els.repVoice) {
       const sanitized = sanitizeVoicePreference(els.repVoice.value);
       if (sanitized !== els.repVoice.value) {
         els.repVoice.value = sanitized;
+        changed = true;
         invalidatePreparedAudio('deprecated-global-voice');
       }
     }
     const nextPrefs = {};
-    let changed = false;
     Object.keys(state.roleVoicePrefs || {}).forEach(name => {
       const before = state.roleVoicePrefs[name];
       const after = sanitizeVoicePreference(before);
@@ -302,6 +305,7 @@
       state.roleVoicePrefs = nextPrefs;
       invalidatePreparedAudio('deprecated-role-voice');
     }
+    if (changed && state.currentScriptId) saveCurrentScriptSettings();
     return changed;
   }
 
@@ -2321,7 +2325,8 @@
         state.audioPrep.done = i;
         state.audioPrep.progress = percent;
         const speakerLabel = item.speaker ? ` · ${item.speaker}` : '';
-        setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · création du fichier audio… ${percent}%`);
+        const voiceUsage = formatVoiceUsageLine(item.voiceId, 'Piper');
+        setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · ${voiceUsage} · création du fichier audio… ${percent}%`);
         const result = await piper.prepareLineAudio(item.text, item.voiceId, {
           rate: item.rate,
           cacheKey: item.cacheKey,
@@ -2332,7 +2337,7 @@
             else if (progress && progress.status === 'piper-generate-start') progressLabel = `Piper tentative 1/2 · voix ${progress.voiceId || item.voiceId}`;
             else if (progress && progress.status === 'piper-generate-retry') progressLabel = `Piper tentative 2/2 · voix ${progress.voiceId || item.voiceId}`;
             const preview = progress && progress.textPreview ? ` · “${progress.textPreview}”` : '';
-            setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · voix ${item.voiceId}${segmentInfo} · ${progressLabel}${preview}`);
+            setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · ${voiceUsage}${segmentInfo} · ${progressLabel}${preview}`);
           }
         });
         if (!result || !result.ok) {
@@ -2344,6 +2349,8 @@
           engine: 'piper-cache',
           cacheKey: item.cacheKey,
           voiceId: item.voiceId,
+          voiceLabel: (getEmbeddedVoiceById(item.voiceId) || {}).label || item.voiceId,
+          modelKey: (getEmbeddedVoiceById(item.voiceId) || {}).model || '',
           rate: item.rate
         };
       }
@@ -2408,13 +2415,14 @@
 
   function speakWithEmbeddedVoice(text, onEnd, voiceSettings){
     const piper = getPiperService();
+    const fallbackVoice = resolveAutomaticVoiceForSpeaker(voiceSettings && voiceSettings.speaker ? voiceSettings.speaker : '');
     if (!piper || !piper.speak || !voiceSettings || !voiceSettings.voiceId) {
-      speakWithBrowser(text, onEnd, resolveAutomaticVoiceForSpeaker(voiceSettings && voiceSettings.speaker ? voiceSettings.speaker : ''));
+      reportBrowserFallbackFromPiper(text, voiceSettings, 'piper-service-unavailable');
+      speakWithBrowser(text, onEnd, fallbackVoice);
       return;
     }
     const token = state.playToken;
     let settled = false;
-    const fallbackVoice = resolveAutomaticVoiceForSpeaker(voiceSettings.speaker || '');
     const textLength = String(text || '').length;
     const timeoutDelay = Math.max(9000, Math.min(26000, 7000 + textLength * 90));
 
@@ -2423,6 +2431,7 @@
       settled = true;
       try { if (piper && piper.stop) piper.stop(); } catch(e) {}
       updateSpeechStatus();
+      reportBrowserFallbackFromPiper(text, voiceSettings, 'piper-timeout');
       speakWithBrowser(text, onEnd, fallbackVoice);
     }
 
@@ -2439,12 +2448,14 @@
         return;
       }
       updateSpeechStatus();
+      reportBrowserFallbackFromPiper(text, voiceSettings, 'piper-result-not-ok');
       speakWithBrowser(text, onEnd, fallbackVoice);
     }).catch(() => {
       if (settled || token !== state.playToken) return;
       settled = true;
       clearTimeout(safetyTimer);
       updateSpeechStatus();
+      reportBrowserFallbackFromPiper(text, voiceSettings, 'piper-error');
       speakWithBrowser(text, onEnd, fallbackVoice);
     });
   }
@@ -2549,6 +2560,45 @@
       pitch: 1,
       rate: voice.rate || 1
     };
+  }
+
+  function getEmbeddedVoiceById(voiceId){
+    const id = String(voiceId || '');
+    return getEmbeddedVoices().find(voice => voice && voice.id === id) || null;
+  }
+
+  function formatVoiceUsageLine(voiceId, engineLabel){
+    const voice = getEmbeddedVoiceById(voiceId);
+    const label = voice && voice.label ? voice.label : (voiceId || 'inconnue');
+    const model = voice && voice.model ? voice.model : 'inconnu';
+    return `Voix utilisée : ${label} · moteur : ${engineLabel || 'Piper'} · modèle : ${model}`;
+  }
+
+  function reportBrowserFallbackFromPiper(text, voiceSettings, reason){
+    const voice = voiceSettings && voiceSettings.voiceId ? getEmbeddedVoiceById(voiceSettings.voiceId) : null;
+    const selectedVoiceId = voiceSettings && voiceSettings.voiceId ? voiceSettings.voiceId : '';
+    const selectedVoiceLabel = voice && voice.label ? voice.label : selectedVoiceId;
+    const modelKey = voice && voice.model ? voice.model : '';
+    const speed = clampVoiceNumber((Number(els.repRate && els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? Number(voiceSettings.rate) : 1), .65, 1.4);
+    console.info('[FTS Piper Voice Debug]', {
+      selectedVoiceId,
+      selectedVoiceLabel,
+      engine: 'Navigateur',
+      modelKey,
+      modelPath: '',
+      configPath: '',
+      speakerId: voice && voice.speaker != null ? Number(voice.speaker) : null,
+      speed,
+      lengthScale: voice && voice.lengthScale ? Number(voice.lengthScale) : null,
+      noiseScale: null,
+      noiseW: null,
+      fallbackUsed: true,
+      text: String(text || ''),
+      reason: reason || ''
+    });
+    if (els.repSpeechStatus) {
+      els.repSpeechStatus.textContent = `Voix utilisée : ${selectedVoiceLabel || 'navigateur'} · moteur : Navigateur · modèle : ${modelKey || 'speechSynthesis'}`;
+    }
   }
 
   function resolveAutomaticVoiceForSpeaker(speaker){

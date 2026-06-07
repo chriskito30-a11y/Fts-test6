@@ -36,6 +36,7 @@
     resetCounter: 0,
     voicesIndex: null,
     voicesIndexPromise: null,
+    modelConfigCache: new Map(),
     preparePromise: null,
     preparedModels: new Set(),
     preparedCore: false
@@ -82,12 +83,17 @@
 
     state.loadPromise = import(VENDOR_URL).then(mod => {
       state.runtimeModule = mod;
-      const remoteProvider = new mod.RemoteVoiceProvider({ baseUrl: VOICE_BASE_URL });
+      const fileProvider = new mod.FetchProvider();
       const voiceProvider = {
-        destroy(){ remoteProvider.destroy(); },
-        list(){ return remoteProvider.list(); },
+        destroy(){ fileProvider.destroy(); },
+        list(){ return loadVoicesIndex(); },
         async fetch(model){
-          const voiceData = await remoteProvider.fetch(model);
+          const fileInfo = await getModelFileInfo(model);
+          if (!fileInfo.configUrl || !fileInfo.modelUrl) throw new Error('Fichiers voix Piper introuvables pour ' + model);
+          const voiceData = await Promise.all([
+            fileProvider.fetch(fileInfo.configUrl),
+            fileProvider.fetch(fileInfo.modelUrl)
+          ]);
           const config = cloneVoiceConfig(voiceData[0]);
           const scale = Number(state.currentLengthScale) || 1;
           config.inference = Object.assign({}, config.inference || {});
@@ -153,6 +159,7 @@
     let blob = await getCachedAudioBlob(segmentKey);
     if (blob) return { ok:true, segments:[{ cacheKey:segmentKey, textHash:hashString(cleanChunk), textPreview:previewText(cleanChunk) }] };
 
+    await logPiperVoiceDebug(voice, cleanChunk, options, false);
     const generated = await generateBlobWithRetry(cleanChunk, voice, options);
     blob = generated && generated.blob ? generated.blob : null;
     if (blob) {
@@ -406,6 +413,7 @@
       const engine = await load();
       if (token !== state.token) return { ok:false, cancelled:true };
       state.currentLengthScale = voice.lengthScale || 1;
+      await logPiperVoiceDebug(voice, text, { rate }, false);
       const response = await withTimeout(
         engine.generate(text, voice.model, Number(voice.speaker) || 0),
         getGenerateTimeout(text, isRetry),
@@ -481,6 +489,81 @@
       throw error;
     });
     return state.voicesIndexPromise;
+  }
+
+  async function getModelFileInfo(modelKey){
+    const index = await loadVoicesIndex();
+    const model = index && index[modelKey] ? index[modelKey] : null;
+    const files = model && model.files ? Object.keys(model.files) : [];
+    const modelRelativePath = files.find(filePath => /\.onnx$/i.test(filePath)) || '';
+    const configRelativePath = files.find(filePath => /\.onnx\.json$/i.test(filePath)) || '';
+    return {
+      modelRelativePath,
+      configRelativePath,
+      modelUrl: modelRelativePath ? new URL(modelRelativePath, VOICE_BASE_URL).href : '',
+      configUrl: configRelativePath ? new URL(configRelativePath, VOICE_BASE_URL).href : ''
+    };
+  }
+
+  async function loadModelConfig(modelKey){
+    const key = String(modelKey || '');
+    if (!key) return null;
+    if (state.modelConfigCache.has(key)) return state.modelConfigCache.get(key);
+    const fileInfo = await getModelFileInfo(key);
+    if (!fileInfo.configUrl) return null;
+    const config = await fetch(fileInfo.configUrl, { cache:'force-cache' }).then(response => {
+      if (!response.ok) throw new Error('Config Piper introuvable');
+      return response.json();
+    });
+    state.modelConfigCache.set(key, config || null);
+    return config || null;
+  }
+
+  async function buildPiperVoiceDebugPayload(voice, text, options, fallbackUsed){
+    const modelKey = voice && voice.model ? voice.model : '';
+    const fileInfo = modelKey ? await getModelFileInfo(modelKey) : {};
+    const config = modelKey ? await loadModelConfig(modelKey).catch(() => null) : null;
+    const inference = config && config.inference ? config.inference : {};
+    const voiceLengthScale = Number(voice && voice.lengthScale);
+    const baseLengthScale = Number(inference.length_scale);
+    return {
+      selectedVoiceId: voice && voice.id ? voice.id : '',
+      selectedVoiceLabel: voice && voice.label ? voice.label : (voice && voice.id ? voice.id : ''),
+      engine: fallbackUsed ? 'Navigateur' : 'Piper',
+      modelKey,
+      modelPath: fileInfo && fileInfo.modelUrl ? fileInfo.modelUrl : '',
+      configPath: fileInfo && fileInfo.configUrl ? fileInfo.configUrl : '',
+      speakerId: voice && voice.speaker != null ? Number(voice.speaker) : null,
+      speed: Number(options && options.rate) || 1,
+      lengthScale: clampNumber((Number.isFinite(baseLengthScale) ? baseLengthScale : 1) * (Number.isFinite(voiceLengthScale) ? voiceLengthScale : 1), 0.75, 1.65),
+      noiseScale: Number.isFinite(Number(inference.noise_scale)) ? Number(inference.noise_scale) : null,
+      noiseW: Number.isFinite(Number(inference.noise_w)) ? Number(inference.noise_w) : null,
+      fallbackUsed: !!fallbackUsed,
+      text: String(text || '')
+    };
+  }
+
+  async function logPiperVoiceDebug(voice, text, options, fallbackUsed){
+    try {
+      console.info('[FTS Piper Voice Debug]', await buildPiperVoiceDebugPayload(voice, text, options, fallbackUsed));
+    } catch(error) {
+      console.info('[FTS Piper Voice Debug]', {
+        selectedVoiceId: voice && voice.id ? voice.id : '',
+        selectedVoiceLabel: voice && voice.label ? voice.label : '',
+        engine: fallbackUsed ? 'Navigateur' : 'Piper',
+        modelKey: voice && voice.model ? voice.model : '',
+        modelPath: '',
+        configPath: '',
+        speakerId: voice && voice.speaker != null ? Number(voice.speaker) : null,
+        speed: Number(options && options.rate) || 1,
+        lengthScale: voice && voice.lengthScale ? Number(voice.lengthScale) : null,
+        noiseScale: null,
+        noiseW: null,
+        fallbackUsed: !!fallbackUsed,
+        text: String(text || ''),
+        debugError: serializeError(error)
+      });
+    }
   }
 
   async function prepare(options){

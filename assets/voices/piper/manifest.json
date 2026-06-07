@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-07-v16-stable-piper-upmc",
+  "version": "2026-06-07-v17-full-line-audio-diagnostics",
   "engine": "piper-tts-web",
   "language": "fr-FR",
   "defaultVoiceId": "pierre",
@@ -49,6 +49,6 @@
     "Piper voice models from rhasspy/piper-voices.",
     "Runtime from piper-tts-web, MIT license.",
     "UPMC dataset: CC-BY-SA 4.0.",
-    "V16: stable UPMC-only voice set for the repetition assistant."
+    "V17: stable UPMC-only voice set with full-line audio diagnostics."
   ]
 }
