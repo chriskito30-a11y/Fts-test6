@@ -1,0 +1,53 @@
+{
+  "version": "2026-06-07",
+  "engine": "piper-tts-web",
+  "language": "fr-FR",
+  "defaultVoiceId": "pierre",
+  "voices": [
+    {
+      "id": "jessica",
+      "label": "Jessica",
+      "gender": "female",
+      "model": "fr_FR-upmc-medium",
+      "speaker": 0,
+      "rate": 1.06,
+      "lengthScale": 1.18,
+      "description": "Voix française féminine embarquée, modèle UPMC medium."
+    },
+    {
+      "id": "pierre",
+      "label": "Pierre",
+      "gender": "male",
+      "model": "fr_FR-upmc-medium",
+      "speaker": 1,
+      "rate": 0.98,
+      "lengthScale": 1.2,
+      "description": "Voix française masculine embarquée, modèle UPMC medium."
+    },
+    {
+      "id": "siwis",
+      "label": "Siwis",
+      "gender": "female",
+      "model": "fr_FR-siwis-low",
+      "speaker": 0,
+      "rate": 1,
+      "lengthScale": 1.05,
+      "description": "Deuxième voix française féminine embarquée."
+    },
+    {
+      "id": "gilles",
+      "label": "Gilles",
+      "gender": "male",
+      "model": "fr_FR-gilles-low",
+      "speaker": 0,
+      "rate": 0.96,
+      "lengthScale": 1.08,
+      "description": "Deuxième voix française masculine embarquée."
+    }
+  ],
+  "attribution": [
+    "Piper voice models from rhasspy/piper-voices.",
+    "Runtime from piper-tts-web, MIT license.",
+    "siwis dataset: CC-BY 4.0; gilles dataset: CC0; upmc dataset: CC-BY-SA 4.0."
+  ]
+}

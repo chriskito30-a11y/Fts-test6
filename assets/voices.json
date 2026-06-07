@@ -1,0 +1,99 @@
+{
+  "fr_FR-siwis-low": {
+    "key": "fr_FR-siwis-low",
+    "name": "siwis",
+    "language": {
+      "code": "fr_FR",
+      "family": "fr",
+      "region": "FR",
+      "name_native": "Français",
+      "name_english": "French",
+      "country_english": "France"
+    },
+    "quality": "low",
+    "num_speakers": 1,
+    "speaker_id_map": {},
+    "files": {
+      "fr/fr_FR/siwis/low/fr_FR-siwis-low.onnx": {
+        "size_bytes": 28130791,
+        "md5_digest": "fcb614122005d70f27e4e61e58b4bb56"
+      },
+      "fr/fr_FR/siwis/low/fr_FR-siwis-low.onnx.json": {
+        "size_bytes": 4157,
+        "md5_digest": "5222111c6eaa632c7ea01a5a8938e5e1"
+      },
+      "fr/fr_FR/siwis/low/MODEL_CARD": {
+        "size_bytes": 274,
+        "md5_digest": "5d4a6b6e8d4a476e9b415ec0c1f030da"
+      }
+    },
+    "aliases": [
+      "fr-siwis-low"
+    ]
+  },
+  "fr_FR-gilles-low": {
+    "key": "fr_FR-gilles-low",
+    "name": "gilles",
+    "language": {
+      "code": "fr_FR",
+      "family": "fr",
+      "region": "FR",
+      "name_native": "Français",
+      "name_english": "French",
+      "country_english": "France"
+    },
+    "quality": "low",
+    "num_speakers": 1,
+    "speaker_id_map": {},
+    "files": {
+      "fr/fr_FR/gilles/low/fr_FR-gilles-low.onnx": {
+        "size_bytes": 63104526,
+        "md5_digest": "f984386d1f0927597f09a3ec10b11b5d"
+      },
+      "fr/fr_FR/gilles/low/fr_FR-gilles-low.onnx.json": {
+        "size_bytes": 4158,
+        "md5_digest": "38b1775fef8b9de50f15f63c5d8b8643"
+      },
+      "fr/fr_FR/gilles/low/MODEL_CARD": {
+        "size_bytes": 300,
+        "md5_digest": "9317af9efdb0d9986d42357b180f06e2"
+      }
+    },
+    "aliases": [
+      "fr-gilles-low"
+    ]
+  },
+  "fr_FR-upmc-medium": {
+    "key": "fr_FR-upmc-medium",
+    "name": "upmc",
+    "language": {
+      "code": "fr_FR",
+      "family": "fr",
+      "region": "FR",
+      "name_native": "Français",
+      "name_english": "French",
+      "country_english": "France"
+    },
+    "quality": "medium",
+    "num_speakers": 2,
+    "speaker_id_map": {
+      "jessica": 0,
+      "pierre": 1
+    },
+    "files": {
+      "fr/fr_FR/upmc/medium/fr_FR-upmc-medium.onnx": {
+        "size_bytes": 76733615,
+        "md5_digest": "6837ede9408c7e1b39fa4a126af9e865"
+      },
+      "fr/fr_FR/upmc/medium/fr_FR-upmc-medium.onnx.json": {
+        "size_bytes": 4996,
+        "md5_digest": "574571ae93aba72dbd159582981037da"
+      },
+      "fr/fr_FR/upmc/medium/MODEL_CARD": {
+        "size_bytes": 316,
+        "md5_digest": "9a49df5c79d89290ac626ebe08f05830"
+      }
+    },
+    "aliases": []
+  }
+}
