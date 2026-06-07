@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V138';
+  const REPETITION_VERSION = 'V139';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -52,6 +52,7 @@
     bindElements();
     liftPlayerControlsToViewport();
     bindEvents();
+    initEmbeddedVoices();
     loadVoices();
     scheduleVoiceReloads();
     initPdfEngine();
@@ -189,7 +190,41 @@
     if (document.body.classList.contains('rep-show-script')) renderLineList();
   }
 
+  function initEmbeddedVoices(){
+    window.addEventListener('FTS_PIPER_VOICES_READY', () => {
+      loadVoices(true);
+      updateSpeechStatus();
+      if (state.characters && state.characters.length) renderRoleReadControls();
+    });
+    const piper = getPiperService();
+    if (piper && piper.loadManifest) {
+      piper.loadManifest().then(() => {
+        loadVoices(true);
+        updateSpeechStatus();
+      }).catch(() => updateSpeechStatus());
+    }
+  }
+
+  function getPiperService(){
+    return window.FTS && window.FTS.Services && window.FTS.Services.PiperVoice ? window.FTS.Services.PiperVoice : null;
+  }
+
+  function getEmbeddedVoices(){
+    const piper = getPiperService();
+    return piper && piper.getVoices ? (piper.getVoices() || []) : [];
+  }
+
+  function hasEmbeddedVoices(){
+    const piper = getPiperService();
+    return !!(piper && piper.isSupported && piper.isSupported() && getEmbeddedVoices().length);
+  }
+
   function updateSpeechStatus(){
+    const embeddedCount = hasEmbeddedVoices() ? getEmbeddedVoices().length : 0;
+    if (embeddedCount) {
+      els.repSpeechStatus.textContent = `${embeddedCount} voix embarquÃ©es FTS Â· auto par rÃ´le`;
+      return;
+    }
     if (!('speechSynthesis' in window)) {
       els.repSpeechStatus.textContent = 'Voix non compatible';
       return;
@@ -212,19 +247,24 @@
   }
 
   function loadVoices(silent){
-    if (!('speechSynthesis' in window)) return;
+    const hasSpeech = 'speechSynthesis' in window;
     const previousSignature = (state.voices || []).map(v => `${v.name}|${v.lang}|${v.voiceURI}`).join('||');
-    state.voices = window.speechSynthesis.getVoices() || [];
+    state.voices = hasSpeech ? (window.speechSynthesis.getVoices() || []) : [];
     const current = els.repVoice.value;
     const french = getFrenchVoices();
     const ordered = french.length ? french.concat(state.voices.filter(v => !french.includes(v))) : state.voices;
-    els.repVoice.innerHTML = '<option value="">Voix auto par personnage</option><option value="default">Voix unique du navigateur</option>' + ordered.map((voice)=>{
+    const embeddedVoices = getEmbeddedVoices();
+    const embeddedOptions = embeddedVoices.length ? embeddedVoices.map(voice => {
+      const genderLabel = voice.gender === 'female' ? ' Â· femme' : voice.gender === 'male' ? ' Â· homme' : '';
+      return `<option value="piper:${escapeAttr(voice.id)}">FTS ${escapeHtml(voice.label || voice.id)}${genderLabel}</option>`;
+    }).join('') + '<option value="" disabled>---------- Navigateur ----------</option>' : '';
+    els.repVoice.innerHTML = '<option value="">Voix embarquees FTS - auto par personnage</option>' + embeddedOptions + '<option value="browser-auto">Voix du navigateur - auto</option><option value="default">Voix unique du navigateur</option>' + ordered.map((voice)=>{
       const originalIndex = state.voices.indexOf(voice);
       const gender = inferVoiceGender(voice);
       const genderLabel = gender === 'female' ? ' · femme' : gender === 'male' ? ' · homme' : '';
       return `<option value="${originalIndex}">${escapeHtml(voice.name)}${voice.lang ? ' — ' + escapeHtml(voice.lang) : ''}${genderLabel}</option>`;
     }).join('');
-    if (current === 'default' || (current && state.voices[Number(current)])) els.repVoice.value = current;
+    if (current === '' || current === 'default' || current === 'browser-auto' || (String(current).startsWith('piper:') && embeddedVoices.some(voice => 'piper:' + voice.id === current)) || (current && state.voices[Number(current)])) els.repVoice.value = current;
     updateSpeechStatus();
     const nextSignature = (state.voices || []).map(v => `${v.name}|${v.lang}|${v.voiceURI}`).join('||');
     if (state.characters && state.characters.length && (!silent || previousSignature !== nextSignature)) renderRoleReadControls();
@@ -1324,7 +1364,7 @@
             </label>
           `).join('')}
         </div>
-        <p class="rep-role-voice-note">Sur mobile, le navigateur peut ne fournir qu’une seule voix. Dans ce cas, l’app garde une voix par personnage en variant légèrement hauteur et vitesse. Pour de vraies voix différentes, active plusieurs voix françaises dans les réglages du téléphone.</p>
+        <p class="rep-role-voice-note">Les voix FTS sont embarquees dans l'app : Jessica, Pierre, Siwis et Gilles restent disponibles sur mobile. Les voix du navigateur restent seulement en secours.</p>
       </details>
     `;
 
@@ -1354,12 +1394,20 @@
     const frenchVoices = getFrenchVoices();
     const hasFemale = frenchVoices.some(v => inferVoiceGender(v) === 'female');
     const hasMale = frenchVoices.some(v => inferVoiceGender(v) === 'male');
+    const embeddedVoices = getEmbeddedVoices();
     const profileChoices = AUTO_VOICE_PROFILES.slice(1, 6).map(profile => ({
       value:'profile:' + profile.key,
       label:'Variante ' + profile.label
     }));
+    const embeddedChoices = embeddedVoices.map(voice => ({
+      value:'piper:' + voice.id,
+      label:'FTS ' + (voice.label || voice.id) + (voice.gender === 'female' ? ' - femme' : voice.gender === 'male' ? ' - homme' : '')
+    }));
     const choices = [
-      { value:'', label:'Auto par personnage' },
+      { value:'', label:'Auto FTS par personnage' },
+      { value:'piper-gender:female', label:'FTS femme auto', disabled: !embeddedVoices.some(voice => voice.gender === 'female') },
+      { value:'piper-gender:male', label:'FTS homme auto', disabled: !embeddedVoices.some(voice => voice.gender === 'male') },
+      ...embeddedChoices,
       ...profileChoices,
       { value:'fr-female', label: hasFemale ? 'Voix française femme' : 'Voix française femme — non détectée sur cet appareil', disabled: !hasFemale },
       { value:'fr-male', label: hasMale ? 'Voix française homme' : 'Voix française homme — non détectée sur cet appareil', disabled: !hasMale }
@@ -1668,6 +1716,8 @@
       alert('Choisis ton rôle avant de lancer la répétition.');
       return;
     }
+    const piper = getPiperService();
+    if (piper && piper.unlock) piper.unlock();
     stopSpeechOnly();
     state.playToken += 1;
     state.playing = true;
@@ -1851,6 +1901,13 @@
   }
 
   function speak(text, onEnd, options){
+    const settingsForLine = resolveVoiceForSpeaker(options && options.speaker ? options.speaker : '');
+    if (settingsForLine && settingsForLine.engine === 'piper') {
+      speakWithEmbeddedVoice(text, onEnd, settingsForLine);
+      return;
+    }
+    speakWithBrowser(text, onEnd, settingsForLine);
+    return;
     // IMPORTANT : ne jamais appeler speechSynthesis.cancel() au début d'une lecture.
     // Sur mobile, cancel() peut déclencher immédiatement onend/onerror de l'utterance
     // en cours ou tout juste ajoutée, ce qui faisait avancer toutes les lignes jusqu'à la fin.
@@ -1878,22 +1935,76 @@
     window.speechSynthesis.speak(utterance);
   }
 
+  function speakWithEmbeddedVoice(text, onEnd, voiceSettings){
+    const piper = getPiperService();
+    if (!piper || !piper.speak || !voiceSettings || !voiceSettings.voiceId) {
+      speakWithBrowser(text, onEnd, resolveAutomaticVoiceForSpeaker(voiceSettings && voiceSettings.speaker ? voiceSettings.speaker : ''));
+      return;
+    }
+    const token = state.playToken;
+    els.repSpeechStatus.textContent = 'Voix FTS en preparation...';
+    piper.speak(text, voiceSettings.voiceId, { rate: Number(els.repRate.value) || 1 }).then(result => {
+      if (token !== state.playToken || (result && result.cancelled)) return;
+      if (result && result.ok) {
+        updateSpeechStatus();
+        if (onEnd) onEnd();
+        return;
+      }
+      updateSpeechStatus();
+      speakWithBrowser(text, onEnd, resolveAutomaticVoiceForSpeaker(voiceSettings.speaker || ''));
+    }).catch(() => {
+      if (token !== state.playToken) return;
+      updateSpeechStatus();
+      speakWithBrowser(text, onEnd, resolveAutomaticVoiceForSpeaker(voiceSettings.speaker || ''));
+    });
+  }
+
+  function speakWithBrowser(text, onEnd, voiceSettings){
+    if (!('speechSynthesis' in window)) {
+      state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 900);
+      return;
+    }
+    if (!state.voices.length) loadVoices(true);
+    const utterance = new SpeechSynthesisUtterance(text);
+    if (voiceSettings && voiceSettings.voice) {
+      utterance.voice = voiceSettings.voice;
+      utterance.lang = voiceSettings.voice.lang || 'fr-FR';
+    } else {
+      utterance.lang = 'fr-FR';
+    }
+    utterance.rate = clampVoiceNumber((Number(els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? voiceSettings.rate : 1), .65, 1.4);
+    utterance.pitch = clampVoiceNumber(voiceSettings && voiceSettings.pitch ? voiceSettings.pitch : 1, .5, 1.8);
+    utterance.onend = () => onEnd && onEnd();
+    utterance.onerror = () => onEnd && onEnd();
+    window.speechSynthesis.speak(utterance);
+  }
+
   function resolveVoiceForSpeaker(speaker){
     const pref = speaker && state.roleVoicePrefs ? state.roleVoicePrefs[speaker] : '';
     if (pref) {
-      const roleVoice = voiceFromPreference(pref);
+      const roleVoice = voiceFromPreference(pref, speaker);
       if (roleVoice) return roleVoice;
     }
 
     const voiceIndex = els.repVoice.value;
+    if (String(voiceIndex).startsWith('piper:') || String(voiceIndex).startsWith('piper-gender:')) {
+      return embeddedVoiceFromPreference(voiceIndex, speaker) || resolveAutomaticVoiceForSpeaker(speaker);
+    }
+    if (voiceIndex === '') {
+      return resolveEmbeddedVoiceForSpeaker(speaker) || resolveAutomaticVoiceForSpeaker(speaker);
+    }
+    if (voiceIndex === 'browser-auto') return resolveAutomaticVoiceForSpeaker(speaker);
     if (voiceIndex === 'default') return makeVoiceSettings(null, AUTO_VOICE_PROFILES[0]);
     if (voiceIndex !== '' && state.voices[Number(voiceIndex)]) return makeVoiceSettings(state.voices[Number(voiceIndex)], getAutoVoiceProfile(speaker));
 
     return resolveAutomaticVoiceForSpeaker(speaker);
   }
 
-  function voiceFromPreference(pref){
+  function voiceFromPreference(pref, speaker){
     if (!pref) return null;
+    if (String(pref).startsWith('piper:') || String(pref).startsWith('piper-gender:')) {
+      return embeddedVoiceFromPreference(pref, speaker || '');
+    }
     if (String(pref).startsWith('profile:')) {
       return makeVoiceSettings(null, getVoiceProfileByKey(String(pref).replace('profile:', '')) || AUTO_VOICE_PROFILES[0]);
     }
@@ -1913,6 +2024,40 @@
       return makeVoiceSettings(french.find(v => inferVoiceGender(v) === 'male') || french[0] || null, AUTO_VOICE_PROFILES[0]);
     }
     return null;
+  }
+
+  function embeddedVoiceFromPreference(pref, speaker){
+    const value = String(pref || '');
+    if (value.startsWith('piper:')) {
+      const voiceId = value.replace('piper:', '');
+      const voice = getEmbeddedVoices().find(item => item.id === voiceId);
+      return voice ? makeEmbeddedVoiceSettings(voice, speaker) : null;
+    }
+    if (value.startsWith('piper-gender:')) {
+      const gender = value.replace('piper-gender:', '');
+      return resolveEmbeddedVoiceForSpeaker(speaker, gender);
+    }
+    return null;
+  }
+
+  function resolveEmbeddedVoiceForSpeaker(speaker, gender){
+    const voices = getEmbeddedVoices();
+    if (!voices.length || !hasEmbeddedVoices()) return null;
+    const filtered = gender ? voices.filter(voice => voice.gender === gender) : voices;
+    const pool = filtered.length ? filtered : voices;
+    const voice = pool[getSpeakerIndex(speaker) % pool.length];
+    return makeEmbeddedVoiceSettings(voice, speaker);
+  }
+
+  function makeEmbeddedVoiceSettings(voice, speaker){
+    if (!voice) return null;
+    return {
+      engine: 'piper',
+      voiceId: voice.id,
+      speaker: speaker || '',
+      pitch: 1,
+      rate: voice.rate || 1
+    };
   }
 
   function resolveAutomaticVoiceForSpeaker(speaker){
@@ -1941,6 +2086,7 @@
   function makeVoiceSettings(voice, profile){
     profile = profile || AUTO_VOICE_PROFILES[0];
     return {
+      engine: 'browser',
       voice: voice || null,
       pitch: profile.pitch || 1,
       rate: profile.rate || 1
@@ -2122,8 +2268,10 @@
   }
 
   function stopSpeechOnly(cancel = true){
-    if (!('speechSynthesis' in window)) return;
     if (!cancel) return;
+    const piper = getPiperService();
+    if (piper && piper.stop) piper.stop();
+    if (!('speechSynthesis' in window)) return;
     try {
       window.speechSynthesis.pause();
       window.speechSynthesis.cancel();

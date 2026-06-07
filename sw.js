@@ -1,4 +1,4 @@
-const CACHE = 'fts-v224-repetition-imparato';
+const CACHE = 'fts-v225-repetition-piper-voices';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -76,6 +76,7 @@ const FILES = [
   './assets/js/services/schedules.service.js',
   './assets/js/services/reminder-dispatcher.service.js',
   './assets/js/services/calendar-exclusions.service.js',
+  './assets/js/services/piper-voice.service.js',
   './assets/js/pages/admin.js',
   './assets/js/pages/auth.js',
   './assets/js/pages/calendrier-admin.js',
@@ -109,7 +110,9 @@ const FILES = [
   './assets/img/fts-any-512.png',
   './assets/img/fts-maskable-512.png',
   './assets/img/fts192.png',
-  './assets/img/fts512.png'
+  './assets/img/fts512.png',
+  './assets/voices/piper/manifest.json',
+  './assets/voices/piper/voices.json'
 ];
 
 self.addEventListener('install', e => {
@@ -229,7 +232,8 @@ function isFirebaseOrAuthRequest(url){
   return /firebaseio\.com|googleapis\.com\/identitytoolkit|securetoken\.googleapis\.com|gstatic\.com\/firebasejs/.test(url.hostname + url.pathname);
 }
 function isDocumentAsset(url){
-  return /\.(pdf|mp3|m4a|wav|ogg|mp4|webm|jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url.pathname);
+  return /\.(pdf|mp3|m4a|wav|ogg|mp4|webm|jpg|jpeg|png|gif|webp|svg|onnx|wasm|data)(\?|$)/i.test(url.pathname)
+    || /\/assets\/voices\/piper\//.test(url.pathname);
 }
 function isAppShellRequest(url){
   return url.origin === self.location.origin;
@@ -373,4 +377,4 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-// FTS cache bump V224 — assistant repetition : italienne + voix par personnage
+// FTS cache bump V225 — assistant repetition : voix Piper embarquees

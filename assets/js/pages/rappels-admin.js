@@ -1,7 +1,7 @@
 /* ================================================================
    PAGE MODULE — RAPPELS-ADMIN
    Module admin pour créer/simuler des rappels automatiques.
-   V66 : affichage/gestion des plannings collectifs créés.
+   V65 : dispatch natif admin, sans scénario externe.
    ================================================================ */
 (function(){
   'use strict';
@@ -10,11 +10,8 @@
   let users = {};
   let categoryStructure = [];
   let reminders = {};
-  let schedules = {};
   let courseOptions = [];
   let selectedReminderId = '';
-  let selectedScheduleId = '';
-  let editingScheduleId = '';
   let filterStatus = 'all';
   let isSaving = false;
   let calendarExclusions = null;
@@ -70,7 +67,6 @@
           document.querySelectorAll('[data-filter-status]').forEach(b => b.classList.toggle('active', b.getAttribute('data-filter-status') === 'issues'));
         }
         listenReminders();
-        listenSchedules();
         bindDispatcherStatus();
         if(FTS.Services && FTS.Services.ReminderDispatcher && FTS.Services.ReminderDispatcher.start){
           FTS.Services.ReminderDispatcher.start();
@@ -248,28 +244,9 @@
       renderReminders();
       return;
     }
-    const scheduleRow = event.target.closest('[data-schedule-id]');
-    if(scheduleRow && !event.target.closest('[data-schedule-action]')){
-      selectedScheduleId = scheduleRow.getAttribute('data-schedule-id') || '';
-      selectedReminderId = '';
-      renderSchedules();
-      renderSelectedReminder();
-      return;
-    }
-    const scheduleAction = event.target.closest('[data-schedule-action]');
-    if(scheduleAction){
-      const id = scheduleAction.getAttribute('data-id') || selectedScheduleId;
-      const type = scheduleAction.getAttribute('data-schedule-action');
-      if(type === 'edit') loadScheduleIntoForm(id);
-      if(type === 'disable') setScheduleActive(id, false);
-      if(type === 'activate') setScheduleActive(id, true);
-      if(type === 'delete') deleteSchedule(id);
-      return;
-    }
     const row = event.target.closest('[data-reminder-id]');
     if(row){
       selectedReminderId = row.getAttribute('data-reminder-id') || '';
-      selectedScheduleId = '';
       renderReminders();
       renderSelectedReminder();
       return;
@@ -968,21 +945,14 @@
     const old = btn ? btn.textContent : '';
     if(btn){ btn.disabled = true; btn.textContent = 'Création…'; }
     try{
-      const payload = buildSchedulePayload(data);
-      const scheduleId = editingScheduleId || await FTS.Services.Schedules.create(payload);
-      if(editingScheduleId){
-        await FTS.Services.Schedules.update(scheduleId, payload);
-        await removeRemindersLinkedToSchedule(scheduleId);
-      }
+      const scheduleId = await FTS.Services.Schedules.create(buildSchedulePayload(data));
       let created = [];
       if(data.offsets && data.offsets.length){
         created = await createReminderRecords(data, { scheduleId, source:'schedule', skipPast:true });
       }
       const reminderText = created.length ? ` + ${created.length} rappel(s) lié(s) créé(s).` : ' Aucun rappel lié créé car aucun rappel 24h/1h n’est coché.';
-      msg((editingScheduleId ? 'Créneau planning mis à jour.' : 'Créneau planning créé pour “Mon prochain cours”.') + reminderText, true);
-      editingScheduleId = '';
-      if(btn) btn.textContent = 'Créer planning + rappels';
-      if(window.console) console.log('[FTS] Créneau planning enregistré', scheduleId, created);
+      msg('Créneau planning créé pour “Mon prochain cours”.' + reminderText, true);
+      if(window.console) console.log('[FTS] Créneau planning créé', scheduleId, created);
     }catch(e){
       console.warn('[FTS Rappels Admin] saveSchedule', e);
       msg('Erreur pendant la création. Vérifie les rules fts_schedules / fts_scheduled_reminders.', false);
@@ -1118,145 +1088,6 @@
       renderReminders();
       renderSelectedReminder();
     });
-  }
-
-
-  function listenSchedules(){
-    if(!FTS.Services || !FTS.Services.Schedules || !FTS.Services.Schedules.listenAll) return;
-    FTS.Services.Schedules.listenAll(data => {
-      schedules = data || {};
-      renderSchedules();
-      renderSelectedReminder();
-    });
-  }
-
-  function sortedSchedules(){
-    return Object.entries(schedules || {})
-      .filter(([,s]) => s)
-      .sort((a,b) => (Number(a[1].startAt || 0) || 0) - (Number(b[1].startAt || 0) || 0));
-  }
-
-  function scheduleTargetLabel(s){
-    if(!s) return 'Planning';
-    if(s.uid){
-      const u = users[s.uid] || {};
-      return s.recipientName || displayName(u) || s.recipientEmail || 'Membre';
-    }
-    return [s.targetCategory, s.targetSubcategory].filter(Boolean).join(' · ') || 'Groupe / catégorie';
-  }
-
-  function scheduleMetaLabel(s){
-    if(!s) return '';
-    const mode = s.recurrenceMode === 'weekly' ? 'hebdomadaire' : (s.recurrenceMode === 'biweekly' ? 'toutes les 2 semaines' : (s.recurrenceMode === 'triweekly' ? 'toutes les 3 semaines' : (s.recurrenceMode === 'manual' ? 'dates manuelles' : 'ponctuel')));
-    const remindersLabel = s.remindersEnabled ? ['rappels', s.reminder24h ? '24h' : '', s.reminder1h ? '1h' : ''].filter(Boolean).join(' ') : 'sans rappel coché';
-    return [kindLabel(s.kind), mode, s.startAt ? formatFullDateTime(s.startAt) : '', remindersLabel].filter(Boolean).join(' · ');
-  }
-
-  function renderSchedules(){
-    const list = $('schedule-list');
-    const count = $('schedule-count');
-    if(!list) return;
-    const rows = sortedSchedules();
-    if(count) count.textContent = rows.length ? rows.length + ' planning(s)' : '—';
-    if(!rows.length){
-      list.innerHTML = '<div class="empty">Aucun planning créé pour le moment.</div>';
-      return;
-    }
-    list.innerHTML = rows.map(([id,s]) => {
-      const active = selectedScheduleId === id;
-      const isGroup = !s.uid;
-      const status = s.active === false ? 'standby' : 'pending';
-      return `<article class="reminder-row ${active ? 'active' : ''}" data-schedule-id="${esc(id)}">
-        <div class="reminder-top">
-          <div>
-            <div class="reminder-title">${esc(s.title || 'Planning')} ${isGroup ? '<span class="badge pending">Groupe</span>' : ''}</div>
-            <div class="reminder-meta">${esc(scheduleTargetLabel(s))}<br>${esc(scheduleMetaLabel(s))}</div>
-          </div>
-          <span class="badge ${esc(status)}">${s.active === false ? 'Masqué' : 'Actif'}</span>
-        </div>
-        <div class="row-actions" style="margin-top:.65rem">
-          <button class="btn-outline btn-sm" data-schedule-action="edit" data-id="${esc(id)}" type="button">Modifier</button>
-          ${s.active === false ? `<button class="btn-outline btn-sm" data-schedule-action="activate" data-id="${esc(id)}" type="button">Réactiver</button>` : `<button class="btn-outline btn-sm" data-schedule-action="disable" data-id="${esc(id)}" type="button">Masquer</button>`}
-          <button class="btn-outline danger btn-sm" data-schedule-action="delete" data-id="${esc(id)}" type="button">Supprimer</button>
-        </div>
-      </article>`;
-    }).join('');
-  }
-
-  async function removeRemindersLinkedToSchedule(scheduleId){
-    if(!scheduleId || !FTS.Services || !FTS.Services.Reminders) return;
-    const ids = Object.entries(reminders || {})
-      .filter(([,r]) => r && r.scheduleId === scheduleId)
-      .map(([id]) => id);
-    await Promise.all(ids.map(id => FTS.Services.Reminders.remove(id).catch(() => null)));
-  }
-
-  async function setScheduleActive(id, active){
-    if(!id || !FTS.Services || !FTS.Services.Schedules) return;
-    try{
-      await FTS.Services.Schedules.update(id, { active: !!active });
-      msg(active ? 'Planning réactivé.' : 'Planning masqué côté membre.', true);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] schedule active', e);
-      msg('Impossible de modifier ce planning.', false);
-    }
-  }
-
-  async function deleteSchedule(id){
-    if(!id || !FTS.Services || !FTS.Services.Schedules) return;
-    const linked = Object.entries(reminders || {}).filter(([,r]) => r && r.scheduleId === id).length;
-    if(!confirm('Supprimer ce planning' + (linked ? ' et ' + linked + ' rappel(s) lié(s)' : '') + ' ?')) return;
-    try{
-      await removeRemindersLinkedToSchedule(id);
-      await FTS.Services.Schedules.remove(id);
-      if(selectedScheduleId === id) selectedScheduleId = '';
-      if(editingScheduleId === id) editingScheduleId = '';
-      msg('Planning supprimé.', true);
-    }catch(e){
-      console.warn('[FTS Rappels Admin] schedule delete', e);
-      msg('Impossible de supprimer ce planning.', false);
-    }
-  }
-
-  function tsToLocalInput(ts){
-    return ts ? toLocalInputValue(Number(ts)) : '';
-  }
-
-  function localInputFromTimestamp(ts){
-    return tsToLocalInput(ts);
-  }
-
-  function loadScheduleIntoForm(id){
-    const s = id ? schedules[id] : null;
-    if(!s){ msg('Planning introuvable.', false); return; }
-    editingScheduleId = id;
-    selectedScheduleId = id;
-    if($('reminder-kind')) $('reminder-kind').value = s.kind || 'group';
-    updateConditionalFields();
-    if($('reminder-user')) $('reminder-user').value = s.uid || '';
-    if($('reminder-category')) $('reminder-category').value = s.targetCategory || '';
-    renderSubcategories();
-    if($('reminder-subcategory')) $('reminder-subcategory').value = s.targetSubcategory || '';
-    if($('lesson-title')) $('lesson-title').value = s.title || '';
-    if($('lesson-type')) $('lesson-type').value = s.lessonType || '';
-    if($('teacher-name')) $('teacher-name').value = s.teacher || '';
-    if($('place-name')) $('place-name').value = s.place || '';
-    if($('duration-min')) $('duration-min').value = String(s.durationMinutes || 30);
-    if($('planning-mode')) $('planning-mode').value = s.recurrenceMode || 'single';
-    if($('lesson-at')) $('lesson-at').value = localInputFromTimestamp(s.startAt || s.eventAt || 0);
-    if($('repeat-until')) $('repeat-until').value = s.repeatUntil ? new Date(Number(s.repeatUntil)).toISOString().slice(0,10) : '';
-    if($('manual-dates')) $('manual-dates').value = Array.isArray(s.manualDates) ? s.manualDates.map(x => formatFullDateTime(Number(x))).join('\n') : '';
-    if($('excluded-dates')) $('excluded-dates').value = Array.isArray(s.excludedDates) ? s.excludedDates.join('\n') : '';
-    if($('reminder-24h')) $('reminder-24h').checked = s.reminder24h === true;
-    if($('reminder-1h')) $('reminder-1h').checked = s.reminder1h === true;
-    const btn = $('btn-save-schedule');
-    if(btn) btn.textContent = 'Mettre à jour planning + rappels';
-    renderCourseOptions();
-    updateConditionalFields();
-    updatePreview();
-    renderSchedules();
-    msg('Planning chargé dans le formulaire. Modifie puis clique sur “Mettre à jour planning + rappels”.', true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function isReminderIssue(r){
@@ -1597,10 +1428,6 @@
   }
 
   function resetForm(showMsg){
-    editingScheduleId = '';
-    selectedScheduleId = '';
-    const saveBtn = $('btn-save-schedule');
-    if(saveBtn) saveBtn.textContent = 'Créer planning + rappels';
     ['lesson-title','lesson-type','teacher-name','place-name','message-extra','manual-dates','excluded-dates','manual-course-label','manual-owner-name'].forEach(id => { if($(id)) $(id).value = ''; });
     if($('reminder-user')) $('reminder-user').value = '';
     if($('course-choice')) $('course-choice').value = '';
