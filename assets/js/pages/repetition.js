@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V141-audio-cache';
+  const REPETITION_VERSION = 'V142-strict-audio-prep';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -66,7 +66,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repResumePdfBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repResumePdfBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview','repPrepPanel','repPrepTitle','repPrepBar','repPrepDetail'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -130,8 +130,11 @@
         const view = btn.getAttribute('data-view-target') || 'library';
         if (view === 'role' && !state.lines.length) return;
         if ((view === 'mode' || view === 'rehearse') && !getSelectedRole()) return;
+        if (view === 'rehearse') {
+          enterRehearsal(false);
+          return;
+        }
         setView(view);
-        if (view === 'rehearse') refreshPlayer();
       });
     });
     if (els.repBackToLibraryBtn) els.repBackToLibraryBtn.addEventListener('click', () => setView('library'));
@@ -157,8 +160,9 @@
       const active = target === next || (next === 'settings' && target === 'mode');
       btn.classList.toggle('is-active', active);
     });
-    if (next === 'mode' || next === 'rehearse') prepareEmbeddedVoicesForCurrentScript(false);
+    if (next === 'mode') prepareEmbeddedVoicesForCurrentScript(false);
     if (next === 'rehearse') refreshPlayer(false);
+    updatePreparationUi();
     setButtons();
     scrollToTopSoft();
   }
@@ -183,6 +187,7 @@
     if (reason && els.repSpeechStatus && state.currentView !== 'rehearse') {
       updateSpeechStatus();
     }
+    updatePreparationUi();
   }
 
   async function enterRehearsal(autoStart){
@@ -196,12 +201,20 @@
       setView('role');
       return;
     }
+
     if (usesEmbeddedVoicesForCurrentScript()) {
       const prepared = await prepareRehearsalAudioForCurrentScript(true);
-      if (!prepared) {
-        els.repSpeechStatus.textContent = 'Répliques audio non préparées · secours navigateur disponible';
+      if (!prepared || !isCurrentAudioPreparationReady()) {
+        setPreparationUi('error', 0, 'Préparation incomplète', 'La répétition reste verrouillée : toutes les répliques audio n’ont pas été générées correctement. Relance la préparation.');
+        setButtons();
+        return;
       }
+    } else if (hasEmbeddedVoices()) {
+      setPreparationUi('error', 0, 'Voix non préparables', 'Choisis les voix embarquées FTS pour pouvoir générer et stocker toutes les répliques avant lecture.');
+      setButtons();
+      return;
     }
+
     setView('rehearse');
     refreshPlayer();
     saveCurrentScriptSettings();
@@ -1768,10 +1781,16 @@
       return;
     }
     if (usesEmbeddedVoicesForCurrentScript()) {
-      const prepared = await prepareRehearsalAudioForCurrentScript(true);
-      if (!prepared) {
-        els.repSpeechStatus.textContent = 'Répliques audio lentes · lecture avec secours navigateur si besoin';
+      const prepared = isCurrentAudioPreparationReady() || await prepareRehearsalAudioForCurrentScript(true);
+      if (!prepared || !isCurrentAudioPreparationReady()) {
+        setPreparationUi('error', 0, 'Préparation incomplète', 'Lecture bloquée : les audios ne sont pas tous prêts. Retourne à l’étape 3 et relance la préparation.');
+        setButtons();
+        return;
       }
+    } else if (hasEmbeddedVoices()) {
+      setPreparationUi('error', 0, 'Voix non préparables', 'Lecture bloquée : choisis les voix embarquées FTS pour préparer les fichiers audio.');
+      setButtons();
+      return;
     }
     const piper = getPiperService();
     if (piper && piper.unlock) piper.unlock();
@@ -2078,6 +2097,61 @@
   }
 
 
+
+  function isCurrentAudioPreparationReady(){
+    if (!usesEmbeddedVoicesForCurrentScript()) return !hasEmbeddedVoices();
+    if (!state.audioPrep || !state.audioPrep.ready || state.audioPrep.status !== 'ready') return false;
+    const items = collectRehearsalAudioItems(true);
+    if (!items.length) return true;
+    const signature = buildAudioPreparationSignature();
+    if (state.audioPrep.signature !== signature) return false;
+    return items.every(item => state.audioPrep.map && state.audioPrep.map[item.lineIndex] && state.audioPrep.map[item.lineIndex].cacheKey === item.cacheKey);
+  }
+
+  function setPreparationUi(status, percent, title, detail){
+    if (els.repSpeechStatus) {
+      if (status === 'ready') els.repSpeechStatus.textContent = 'Répliques prêtes · lecture instantanée';
+      else if (status === 'preparing') els.repSpeechStatus.textContent = detail ? `${title} · ${detail}` : title;
+      else if (status === 'error') els.repSpeechStatus.textContent = title || 'Préparation audio impossible';
+      else updateSpeechStatus();
+    }
+    if (els.repPrepPanel) {
+      const shouldShow = state.currentView === 'mode' || status === 'preparing' || status === 'error';
+      els.repPrepPanel.hidden = !shouldShow;
+    }
+    if (els.repPrepTitle) els.repPrepTitle.textContent = title || 'Préparation audio obligatoire';
+    if (els.repPrepDetail) els.repPrepDetail.textContent = detail || 'Les répliques seront générées et stockées localement avant la répétition.';
+    if (els.repPrepBar) els.repPrepBar.style.width = Math.max(0, Math.min(100, Number(percent) || 0)) + '%';
+  }
+
+  function updatePreparationUi(){
+    if (!els.repPrepPanel) return;
+    if (!state.lines.length || state.currentView !== 'mode') {
+      els.repPrepPanel.hidden = true;
+      return;
+    }
+    if (!usesEmbeddedVoicesForCurrentScript()) {
+      if (hasEmbeddedVoices()) {
+        setPreparationUi('error', 0, 'Voix non préparables', 'Choisis les voix embarquées FTS pour générer les fichiers audio avant la répétition.');
+      } else {
+        els.repPrepPanel.hidden = true;
+      }
+      return;
+    }
+    if (state.audioPrep.status === 'preparing') {
+      const total = state.audioPrep.total || 0;
+      const done = state.audioPrep.done || 0;
+      setPreparationUi('preparing', state.audioPrep.progress || 0, 'Génération des répliques', total ? `${done}/${total} réplique préparée` : 'Préparation en cours…');
+      return;
+    }
+    if (isCurrentAudioPreparationReady()) {
+      setPreparationUi('ready', 100, 'Répliques prêtes', `${state.audioPrep.total || collectRehearsalAudioItems(true).length} répliques générées et stockées localement`);
+      return;
+    }
+    const count = collectRehearsalAudioItems(true).length;
+    setPreparationUi('idle', 0, 'Préparation audio obligatoire', count ? `${count} répliques à générer avant de pouvoir répéter.` : 'Aucune réplique à générer avec les voix FTS.');
+  }
+
   function buildAudioPreparationSignature(){
     const role = getSelectedRole();
     const mode = els.repMode ? els.repMode.value : 'full';
@@ -2159,7 +2233,7 @@
     state.audioPrep.done = 0;
     state.audioPrep.total = items.length;
     state.audioPrep.map = {};
-    if (els.repSpeechStatus) els.repSpeechStatus.textContent = `Préparation des répliques 0/${items.length}`;
+    setPreparationUi('preparing', 0, 'Génération des répliques', `0/${items.length} réplique préparée`);
     const previousStartDisabled = els.repStartBtn ? els.repStartBtn.disabled : false;
     if (blocking && els.repStartBtn) els.repStartBtn.disabled = true;
 
@@ -2169,7 +2243,7 @@
         const percent = Math.round((i / items.length) * 100);
         state.audioPrep.done = i;
         state.audioPrep.progress = percent;
-        if (els.repSpeechStatus) els.repSpeechStatus.textContent = `Préparation des répliques ${i + 1}/${items.length} · ${percent}%`;
+        setPreparationUi('preparing', percent, 'Génération des répliques', `${i + 1}/${items.length} · ${percent}%`);
         const result = await piper.prepareLineAudio(item.text, item.voiceId, {
           rate: item.rate,
           cacheKey: item.cacheKey
@@ -2186,12 +2260,12 @@
       state.audioPrep.progress = 100;
       state.audioPrep.ready = true;
       state.audioPrep.status = 'ready';
-      if (els.repSpeechStatus) els.repSpeechStatus.textContent = 'Répliques prêtes · lecture instantanée';
+      setPreparationUi('ready', 100, 'Répliques prêtes', `${items.length}/${items.length} répliques générées et stockées localement`);
       return true;
     })().catch(error => {
       state.audioPrep.ready = false;
       state.audioPrep.status = 'error';
-      if (els.repSpeechStatus) els.repSpeechStatus.textContent = 'Préparation audio impossible · secours navigateur';
+      setPreparationUi('error', 0, 'Préparation audio impossible', 'La répétition reste verrouillée : au moins une réplique n’a pas pu être générée.');
       throw error;
     }).finally(() => {
       state.audioPrep.promise = null;
@@ -2683,7 +2757,18 @@
     document.body.classList.toggle('is-playing', !!state.playing);
     document.body.classList.toggle('rep-own-only', !!state.focusOwnOnly);
     document.body.classList.toggle('has-script-ready', !!hasLines);
-    els.repStartBtn.disabled = !hasLines || state.playing || (state.audioPrep && state.audioPrep.status === 'preparing');
+    const preparingAudio = !!(state.audioPrep && state.audioPrep.status === 'preparing');
+    const needsPreparedAudio = hasLines && usesEmbeddedVoicesForCurrentScript();
+    const audioReady = !needsPreparedAudio || isCurrentAudioPreparationReady();
+    els.repStartBtn.disabled = !hasLines || state.playing || preparingAudio || !audioReady;
+    if (els.repBeginRehearsalBtn) {
+      els.repBeginRehearsalBtn.disabled = !hasLines || preparingAudio;
+      els.repBeginRehearsalBtn.textContent = preparingAudio ? 'Préparation en cours…' : audioReady ? 'Commencer' : 'Préparer les répliques';
+    }
+    document.querySelectorAll('[data-view-target="rehearse"]').forEach(btn => {
+      btn.disabled = !hasLines || preparingAudio || !audioReady;
+      btn.title = audioReady ? 'Répéter' : 'Prépare d’abord les répliques audio';
+    });
     if (els.repRestartBtn) els.repRestartBtn.disabled = !hasLines || (state.focusOwnOnly ? state.currentIndex <= (getOwnIndexesForRole()[0] || 0) : state.currentIndex <= 0);
     els.repStopBtn.disabled = !hasLines || !state.playing;
     els.repPrevBtn.disabled = !hasLines || (state.focusOwnOnly ? getOwnIndexesForRole().length < 2 : state.currentIndex <= 0);
