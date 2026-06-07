@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V139';
+  const REPETITION_VERSION = 'V140-voice-timeout';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -1942,20 +1942,39 @@
       return;
     }
     const token = state.playToken;
-    els.repSpeechStatus.textContent = 'Voix FTS en preparation...';
+    let settled = false;
+    const fallbackVoice = resolveAutomaticVoiceForSpeaker(voiceSettings.speaker || '');
+    const textLength = String(text || '').length;
+    const timeoutDelay = Math.max(9000, Math.min(26000, 7000 + textLength * 90));
+
+    function finishWithBrowserFallback(){
+      if (settled || token !== state.playToken) return;
+      settled = true;
+      try { if (piper && piper.stop) piper.stop(); } catch(e) {}
+      updateSpeechStatus();
+      speakWithBrowser(text, onEnd, fallbackVoice);
+    }
+
+    els.repSpeechStatus.textContent = 'Voix FTS en préparation...';
+    const safetyTimer = setTimeout(finishWithBrowserFallback, timeoutDelay);
+
     piper.speak(text, voiceSettings.voiceId, { rate: Number(els.repRate.value) || 1 }).then(result => {
-      if (token !== state.playToken || (result && result.cancelled)) return;
+      if (settled || token !== state.playToken || (result && result.cancelled)) return;
+      settled = true;
+      clearTimeout(safetyTimer);
       if (result && result.ok) {
         updateSpeechStatus();
         if (onEnd) onEnd();
         return;
       }
       updateSpeechStatus();
-      speakWithBrowser(text, onEnd, resolveAutomaticVoiceForSpeaker(voiceSettings.speaker || ''));
+      speakWithBrowser(text, onEnd, fallbackVoice);
     }).catch(() => {
-      if (token !== state.playToken) return;
+      if (settled || token !== state.playToken) return;
+      settled = true;
+      clearTimeout(safetyTimer);
       updateSpeechStatus();
-      speakWithBrowser(text, onEnd, resolveAutomaticVoiceForSpeaker(voiceSettings.speaker || ''));
+      speakWithBrowser(text, onEnd, fallbackVoice);
     });
   }
 
