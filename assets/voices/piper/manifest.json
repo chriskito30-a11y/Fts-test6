@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-07-v14-clean-mls-upmc",
+  "version": "2026-06-07-v15-stable-upmc-only",
   "engine": "piper-tts-web",
   "language": "fr-FR",
   "defaultVoiceId": "pierre",
@@ -12,7 +12,7 @@
       "speaker": 0,
       "rate": 1.06,
       "lengthScale": 1.18,
-      "description": "Voix française féminine embarquée, modèle UPMC medium. Validée pour l’assistant répétition."
+      "description": "Voix française féminine embarquée, modèle UPMC medium. Stable et validée."
     },
     {
       "id": "pierre",
@@ -22,33 +22,33 @@
       "speaker": 1,
       "rate": 0.98,
       "lengthScale": 1.2,
-      "description": "Voix française masculine embarquée, modèle UPMC medium. Validée pour l’assistant répétition."
+      "description": "Voix française masculine embarquée, modèle UPMC medium. Stable et validée."
     },
     {
       "id": "mireille",
       "label": "Mireille",
       "gender": "female",
-      "model": "fr_FR-mls-medium",
+      "model": "fr_FR-upmc-medium",
       "speaker": 0,
-      "rate": 1,
-      "lengthScale": 1.08,
-      "description": "Nouvelle voix française embarquée basée sur le modèle MLS medium."
+      "rate": 0.96,
+      "lengthScale": 1.28,
+      "description": "Variation stable de Jessica, basée sur UPMC medium. Remplace temporairement MLS pour éviter les blocages."
     },
     {
       "id": "marcel",
       "label": "Marcel",
       "gender": "male",
-      "model": "fr_FR-mls-medium",
+      "model": "fr_FR-upmc-medium",
       "speaker": 1,
-      "rate": 0.98,
-      "lengthScale": 1.1,
-      "description": "Nouvelle voix française embarquée basée sur le modèle MLS medium."
+      "rate": 0.9,
+      "lengthScale": 1.32,
+      "description": "Variation stable de Pierre, basée sur UPMC medium. Remplace temporairement MLS pour éviter les blocages."
     }
   ],
   "attribution": [
     "Piper voice models from rhasspy/piper-voices.",
     "Runtime from piper-tts-web, MIT license.",
     "UPMC dataset: CC-BY-SA 4.0.",
-    "MLS model: fr_FR-mls-medium, 125 speakers."
+    "V15: Gilles/Siwis removed; MLS disabled because Marcel/Mireille MLS generation blocked in browser/PWA tests."
   ]
 }

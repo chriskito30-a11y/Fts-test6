@@ -14,7 +14,9 @@
     "num_speakers": 2,
     "speaker_id_map": {
       "jessica": 0,
-      "pierre": 1
+      "pierre": 1,
+      "mireille": 0,
+      "marcel": 1
     },
     "files": {
       "fr/fr_FR/upmc/medium/fr_FR-upmc-medium.onnx": {
@@ -28,35 +30,6 @@
       "fr/fr_FR/upmc/medium/MODEL_CARD": {
         "size_bytes": 316,
         "md5_digest": "9a49df5c79d89290ac626ebe08f05830"
-      }
-    },
-    "aliases": []
-  },
-  "fr_FR-mls-medium": {
-    "key": "fr_FR-mls-medium",
-    "name": "mls",
-    "language": {
-      "code": "fr_FR",
-      "family": "fr",
-      "region": "FR",
-      "name_native": "Français",
-      "name_english": "French",
-      "country_english": "France"
-    },
-    "quality": "medium",
-    "num_speakers": 125,
-    "speaker_id_map": {
-      "mireille": 0,
-      "marcel": 1,
-      "speaker_0": 0,
-      "speaker_1": 1
-    },
-    "files": {
-      "fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx": {
-        "size_bytes": 76700000
-      },
-      "fr/fr_FR/mls/medium/fr_FR-mls-medium.onnx.json": {
-        "size_bytes": 7040
       }
     },
     "aliases": []
