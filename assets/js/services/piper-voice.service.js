@@ -4,21 +4,21 @@
   window.FTS = window.FTS || {};
   window.FTS.Services = window.FTS.Services || {};
 
-  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=13-mls-no-stale-voices', import.meta.url).href;
-  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=13-mls-no-stale-voices', import.meta.url).href;
-  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=13-mls-no-stale-voices', import.meta.url).href;
+  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=v16-stable-piper-upmc', import.meta.url).href;
+  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=v16-stable-piper-upmc', import.meta.url).href;
+  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=v16-stable-piper-upmc', import.meta.url).href;
   const VOICE_BASE_URL = new URL('../../voices/piper/', import.meta.url).href;
   const PIPER_BASE_URL = new URL('../../../piper/', import.meta.url).href;
   const ONNX_BASE_URL = new URL('../../../onnx/', import.meta.url).href;
-  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=13-mls-no-stale-voices', import.meta.url).href;
+  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=v16-stable-piper-upmc', import.meta.url).href;
 
   const noopExpressionRuntime = {
     destroy(){},
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v13-mls-no-stale-voices';
-  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v13-mls-no-stale-voices';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v16-stable-piper-upmc';
+  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v16-stable-piper-upmc';
   const memoryAudioCache = new Map();
   const memoryManifestCache = new Map();
 
@@ -140,7 +140,7 @@
     if (!segmentResult || !segmentResult.ok) return Object.assign({ ok:false, cached:false, cacheKey }, segmentResult || { reason:'generation_failed' });
 
     const segments = segmentResult.segments || [];
-    const manifest = { version: 13, cacheKey, voiceId, textHash: hashString(value), normalized:true, chunkLimit:getChunkLimitForVoice(voice), segments, createdAt: Date.now() };
+    const manifest = { version: 16, cacheKey, voiceId, textHash: hashString(value), normalized:true, chunkLimit:getChunkLimitForVoice(voice), segments, createdAt: Date.now() };
     const manifestStored = await putCachedAudioManifest(cacheKey, manifest);
     if (!manifestStored) return { ok:false, cached:false, cacheKey, reason:'manifest_write_failed' };
     return { ok:true, cached:false, cacheKey, manifest };
@@ -460,12 +460,9 @@
   }
 
   function getChunkLimitForVoice(voice){
-    const id = String(voice && voice.id || '').toLowerCase();
     const model = String(voice && voice.model || '').toLowerCase();
-    // V12 : les anciens IDs Gilles/Siwis sont supprimés. Nouvelles voix MLS medium : Marcel/Mireille.
-    // On garde des segments raisonnables pour les modèles medium, sans traitement spécial low.
+    // Garder des segments raisonnables pour les modèles medium embarqués.
     if (model.includes('upmc-medium')) return 52;
-    if (model.includes('mls-medium')) return 52;
     return 56;
   }
 

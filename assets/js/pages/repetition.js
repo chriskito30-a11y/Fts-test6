@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V144-mls-no-stale-voices';
+  const REPETITION_VERSION = 'V16-stable-piper-upmc';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -270,20 +270,13 @@
     return new Set(getEmbeddedVoices().map(voice => voice && voice.id).filter(Boolean));
   }
 
-  function migrateDeprecatedEmbeddedVoiceId(id){
-    const value = String(id || '').trim();
-    if (value === 'gilles') return 'marcel';
-    if (value === 'siwis') return 'mireille';
-    return value;
-  }
-
   function sanitizeVoicePreference(pref){
     const value = String(pref || '');
     if (!value) return '';
     const ids = getEmbeddedVoiceIds();
     if (value.startsWith('piper:')) {
-      const migrated = migrateDeprecatedEmbeddedVoiceId(value.replace('piper:', ''));
-      return ids.has(migrated) ? 'piper:' + migrated : '';
+      const embeddedId = value.replace('piper:', '').trim();
+      return ids.has(embeddedId) ? 'piper:' + embeddedId : '';
     }
     if (value.startsWith('piper-gender:')) return value;
     return value;
@@ -740,7 +733,7 @@
       if (cached && cached.text) {
         applyExtractedText(cached.text, resource.name, Object.assign({}, cached.meta || {}, { id: scriptId, label: resource.name, source:'resource', key:resource.key, fromCache:true }));
         setPdfStatus(`Texte prêt à reprendre.`);
-        // Si le texte était déjà analysé avant la V135, on ne relit pas le PDF automatiquement
+        // Si le texte était déjà analysé par une ancienne version, on ne relit pas le PDF automatiquement.
         // pour éviter du trafic inutile. Le PDF original sera enregistré localement au prochain chargement complet.
         return;
       }
@@ -1471,7 +1464,7 @@
             </label>
           `).join('')}
         </div>
-        <p class="rep-role-voice-note">Les voix FTS stables sont embarquées dans l'app : Jessica, Pierre, Mireille et Marcel. Les anciennes voix Gilles et Siwis ont été retirées.</p>
+        <p class="rep-role-voice-note">Les voix FTS stables sont embarquées dans l'app : Jessica, Pierre, Mireille et Marcel.</p>
       </details>
     `;
 

@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-07-v15-stable-upmc-only",
+  "version": "2026-06-07-v16-stable-piper-upmc",
   "engine": "piper-tts-web",
   "language": "fr-FR",
   "defaultVoiceId": "pierre",
@@ -32,7 +32,7 @@
       "speaker": 0,
       "rate": 0.96,
       "lengthScale": 1.28,
-      "description": "Variation stable de Jessica, basée sur UPMC medium. Remplace temporairement MLS pour éviter les blocages."
+      "description": "Variation stable de Jessica, basée sur UPMC medium."
     },
     {
       "id": "marcel",
@@ -42,13 +42,13 @@
       "speaker": 1,
       "rate": 0.9,
       "lengthScale": 1.32,
-      "description": "Variation stable de Pierre, basée sur UPMC medium. Remplace temporairement MLS pour éviter les blocages."
+      "description": "Variation stable de Pierre, basée sur UPMC medium."
     }
   ],
   "attribution": [
     "Piper voice models from rhasspy/piper-voices.",
     "Runtime from piper-tts-web, MIT license.",
     "UPMC dataset: CC-BY-SA 4.0.",
-    "V15: Gilles/Siwis removed; MLS disabled because Marcel/Mireille MLS generation blocked in browser/PWA tests."
+    "V16: stable UPMC-only voice set for the repetition assistant."
   ]
 }
