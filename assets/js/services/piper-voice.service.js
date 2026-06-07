@@ -26,7 +26,8 @@
     audioUrl: '',
     unlockAudio: null,
     token: 0,
-    currentLengthScale: 1
+    currentLengthScale: 1,
+    resetCounter: 0
   };
 
   function isSupported(){
@@ -108,19 +109,79 @@
   async function speak(text, voiceId, options){
     const token = nextToken();
     const voice = getVoice(voiceId);
-    if (!voice || !String(text || '').trim()) return { ok:false, cancelled:false };
+    const value = String(text || '').trim();
+    if (!voice || !value) return { ok:false, cancelled:false };
 
+    const rate = (Number(options && options.rate) || 1) * (Number(voice.rate) || 1);
+    const firstResult = await generateAndPlay(value, voice, token, rate, false);
+    if (firstResult && firstResult.ok) return firstResult;
+    if (firstResult && firstResult.cancelled) return firstResult;
+
+    // PiperWebEngine peut rester bloqué en BusyState si une génération échoue ou si le worker ONNX se fige.
+    // On reconstruit alors le moteur et on retente UNE fois avec la voix embarquée avant de laisser l'appelant basculer en secours navigateur.
+    resetEngine();
+    if (token !== state.token) return { ok:false, cancelled:true };
+    return await generateAndPlay(value, voice, token, rate, true, firstResult && firstResult.error);
+  }
+
+  async function generateAndPlay(text, voice, token, rate, isRetry, previousError){
     try {
       const engine = await load();
       if (token !== state.token) return { ok:false, cancelled:true };
       state.currentLengthScale = voice.lengthScale || 1;
-      const response = await engine.generate(String(text), voice.model, Number(voice.speaker) || 0);
+      const response = await withTimeout(
+        engine.generate(text, voice.model, Number(voice.speaker) || 0),
+        getGenerateTimeout(text, isRetry),
+        'Génération Piper trop longue'
+      );
       if (token !== state.token) return { ok:false, cancelled:true };
-      return await playBlob(response.file, token, (Number(options && options.rate) || 1) * (Number(voice.rate) || 1));
+      if (!response || !response.file) throw new Error('Audio Piper vide');
+      return await playBlob(response.file, token, rate);
     } catch (error) {
-      return { ok:false, cancelled:false, error };
+      // Important : la librairie Piper remet son état Idle seulement si tout se passe bien.
+      // En cas d'erreur, on détruit le worker pour éviter que les lectures suivantes restent muettes.
+      resetEngine();
+      return { ok:false, cancelled: token !== state.token, error: error || previousError };
     } finally {
       state.currentLengthScale = 1;
+    }
+  }
+
+  function withTimeout(promise, delay, message){
+    return new Promise((resolve, reject) => {
+      let done = false;
+      const timer = setTimeout(() => {
+        if (done) return;
+        done = true;
+        reject(new Error(message || 'Timeout'));
+      }, delay);
+      Promise.resolve(promise).then(value => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        resolve(value);
+      }).catch(error => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        reject(error);
+      });
+    });
+  }
+
+  function getGenerateTimeout(text, isRetry){
+    const length = String(text || '').length;
+    const base = isRetry ? 18000 : 14000;
+    return Math.max(base, Math.min(45000, base + length * 120));
+  }
+
+  function resetEngine(){
+    const engine = state.engine;
+    state.engine = null;
+    state.loadPromise = null;
+    state.resetCounter += 1;
+    if (engine && engine.destroy) {
+      try { engine.destroy(); } catch(e) {}
     }
   }
 
@@ -221,7 +282,8 @@
     stop,
     unlock,
     getVoices,
-    getVoice
+    getVoice,
+    resetEngine
   };
 
   loadManifest().catch(() => {});
