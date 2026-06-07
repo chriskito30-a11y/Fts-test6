@@ -17,6 +17,9 @@
     generate(){ return Promise.resolve([]); }
   };
 
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v4';
+  const memoryAudioCache = new Map();
+
   const state = {
     manifest: null,
     manifestPromise: null,
@@ -112,6 +115,102 @@
     return state.loadPromise;
   }
 
+
+  async function prepareLineAudio(text, voiceId, options){
+    options = options || {};
+    const voice = getVoice(voiceId);
+    const value = String(text || '').trim();
+    if (!voice || !value) return { ok:false, cached:false };
+    const cacheKey = options.cacheKey || buildGeneratedAudioKey(value, voiceId, options);
+    const cached = await getCachedAudioBlob(cacheKey);
+    if (cached) return { ok:true, cached:true, cacheKey, blob:cached };
+
+    const blob = await generateBlobWithRetry(value, voice, options);
+    if (!blob) return { ok:false, cached:false, cacheKey };
+    await putCachedAudioBlob(cacheKey, blob);
+    return { ok:true, cached:false, cacheKey, blob };
+  }
+
+  async function playPreparedAudio(cacheKey, options){
+    const token = nextToken();
+    const blob = await getCachedAudioBlob(cacheKey);
+    if (token !== state.token) return { ok:false, cancelled:true };
+    if (!blob) return { ok:false, cancelled:false, reason:'missing_cache' };
+    return await playBlob(blob, token, Number(options && options.rate) || 1);
+  }
+
+  async function generateBlobWithRetry(text, voice, options){
+    const first = await generateBlob(text, voice, false);
+    if (first && first.blob) return first.blob;
+    resetEngine();
+    const second = await generateBlob(text, voice, true);
+    return second && second.blob ? second.blob : null;
+  }
+
+  async function generateBlob(text, voice, isRetry){
+    try {
+      const engine = await load();
+      state.currentLengthScale = voice.lengthScale || 1;
+      const response = await withTimeout(
+        engine.generate(text, voice.model, Number(voice.speaker) || 0),
+        getGenerateTimeout(text, isRetry),
+        'Génération Piper trop longue'
+      );
+      if (!response || !response.file) throw new Error('Audio Piper vide');
+      return { ok:true, blob:response.file };
+    } catch(error) {
+      resetEngine();
+      return { ok:false, error };
+    } finally {
+      state.currentLengthScale = 1;
+    }
+  }
+
+  async function getCachedAudioBlob(cacheKey){
+    const key = String(cacheKey || '');
+    if (!key) return null;
+    if (memoryAudioCache.has(key)) return memoryAudioCache.get(key);
+    if (!window.caches || !caches.open) return null;
+    try {
+      const cache = await caches.open(GENERATED_AUDIO_CACHE);
+      const response = await cache.match(cacheUrlForKey(key));
+      if (!response) return null;
+      const blob = await response.blob();
+      memoryAudioCache.set(key, blob);
+      return blob;
+    } catch(e) {
+      return null;
+    }
+  }
+
+  async function putCachedAudioBlob(cacheKey, blob){
+    const key = String(cacheKey || '');
+    if (!key || !blob) return;
+    memoryAudioCache.set(key, blob);
+    if (!window.caches || !caches.open) return;
+    try {
+      const cache = await caches.open(GENERATED_AUDIO_CACHE);
+      await cache.put(cacheUrlForKey(key), new Response(blob, { headers:{ 'Content-Type': blob.type || 'audio/wav' } }));
+    } catch(e) {}
+  }
+
+  function cacheUrlForKey(key){
+    return new URL('/__fts_repetition_audio_cache__/' + encodeURIComponent(String(key)) + '.wav', window.location.origin).href;
+  }
+
+  function buildGeneratedAudioKey(text, voiceId, options){
+    return 'fts-piper-line-' + hashString([voiceId || '', String(Number(options && options.rate || 1).toFixed(2)), text || ''].join('::'));
+  }
+
+  function hashString(value){
+    const str = String(value || '');
+    let hash = 5381;
+    for (let i = 0; i < str.length; i += 1) {
+      hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(36);
+  }
+
   async function speak(text, voiceId, options){
     const token = nextToken();
     const voice = getVoice(voiceId);
@@ -119,6 +218,10 @@
     if (!voice || !value) return { ok:false, cancelled:false };
 
     const rate = (Number(options && options.rate) || 1) * (Number(voice.rate) || 1);
+    const cacheKey = options && options.cacheKey ? options.cacheKey : buildGeneratedAudioKey(value, voiceId, { rate });
+    const prepared = await prepareLineAudio(value, voiceId, { rate, cacheKey });
+    if (token !== state.token) return { ok:false, cancelled:true };
+    if (prepared && prepared.ok) return await playPreparedAudio(cacheKey, { rate });
     const firstResult = await generateAndPlay(value, voice, token, rate, false);
     if (firstResult && firstResult.ok) return firstResult;
     if (firstResult && firstResult.cancelled) return firstResult;
@@ -421,6 +524,8 @@
     loadManifest,
     load,
     prepare,
+    prepareLineAudio,
+    playPreparedAudio,
     speak,
     stop,
     unlock,
