@@ -5,6 +5,7 @@
   window.FTS.Services = window.FTS.Services || {};
 
   const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=1', import.meta.url).href;
+  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=1', import.meta.url).href;
   const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=1', import.meta.url).href;
   const VOICE_BASE_URL = new URL('../../voices/piper/', import.meta.url).href;
   const PIPER_BASE_URL = new URL('../../../piper/', import.meta.url).href;
@@ -27,7 +28,12 @@
     unlockAudio: null,
     token: 0,
     currentLengthScale: 1,
-    resetCounter: 0
+    resetCounter: 0,
+    voicesIndex: null,
+    voicesIndexPromise: null,
+    preparePromise: null,
+    preparedModels: new Set(),
+    preparedCore: false
   };
 
   function isSupported(){
@@ -185,6 +191,142 @@
     }
   }
 
+
+  async function loadVoicesIndex(){
+    if (state.voicesIndex) return state.voicesIndex;
+    if (state.voicesIndexPromise) return state.voicesIndexPromise;
+    state.voicesIndexPromise = fetch(VOICES_JSON_URL).then(response => {
+      if (!response.ok) throw new Error('Index des voix Piper introuvable');
+      return response.json();
+    }).then(index => {
+      state.voicesIndex = index || {};
+      return state.voicesIndex;
+    }).catch(error => {
+      state.voicesIndexPromise = null;
+      throw error;
+    });
+    return state.voicesIndexPromise;
+  }
+
+  async function prepare(options){
+    options = options || {};
+    if (!isSupported()) throw new Error('Piper non compatible avec ce navigateur');
+    await loadManifest();
+
+    const requestedVoiceIds = Array.isArray(options.voiceIds) && options.voiceIds.length
+      ? options.voiceIds
+      : getVoices().map(voice => voice.id);
+    const uniqueVoiceIds = Array.from(new Set(requestedVoiceIds.filter(Boolean)));
+    const voices = uniqueVoiceIds.map(getVoice).filter(Boolean);
+    if (!voices.length) return { ok:false, prepared:false, reason:'no_voice' };
+
+    const modelKeys = Array.from(new Set(voices.map(voice => voice.model).filter(Boolean)));
+    const missingModels = modelKeys.filter(model => !state.preparedModels.has(model));
+    if (state.preparedCore && !missingModels.length) {
+      dispatchPrepareProgress({ status:'ready', done:1, total:1, percent:100, label:'Voix FTS prêtes' });
+      return { ok:true, prepared:true, cached:true };
+    }
+    if (state.preparePromise) return state.preparePromise;
+
+    state.preparePromise = (async () => {
+      const index = await loadVoicesIndex();
+      const urls = buildPreparationUrls(index, modelKeys);
+      await cacheUrls(urls, options.onProgress);
+      state.preparedCore = true;
+
+      // Pré-chauffage réel : on lance une mini génération sans lecture.
+      // Cela force le chargement du worker, ONNX, phonemizer et du modèle choisi AVANT que l'élève appuie sur Play.
+      const engine = await load();
+      for (let i = 0; i < voices.length; i += 1) {
+        const voice = voices[i];
+        if (!voice || !voice.model || state.preparedModels.has(voice.model)) continue;
+        dispatchPrepareProgress({ status:'warming', done:i, total:voices.length, percent:95, label:'Préparation de ' + (voice.label || voice.id) + '…' });
+        if (typeof options.onProgress === 'function') {
+          try { options.onProgress({ status:'warming', done:i, total:voices.length, percent:95, label:'Préparation de ' + (voice.label || voice.id) + '…' }); } catch(e) {}
+        }
+        state.currentLengthScale = voice.lengthScale || 1;
+        await withTimeout(engine.generate('Bonjour.', voice.model, Number(voice.speaker) || 0), 45000, 'Préparation Piper trop longue');
+        state.preparedModels.add(voice.model);
+        state.currentLengthScale = 1;
+      }
+      dispatchPrepareProgress({ status:'ready', done:urls.length, total:urls.length, percent:100, label:'Voix FTS prêtes' });
+      if (typeof options.onProgress === 'function') {
+        try { options.onProgress({ status:'ready', done:urls.length, total:urls.length, percent:100, label:'Voix FTS prêtes' }); } catch(e) {}
+      }
+      return { ok:true, prepared:true, cached:false };
+    })().catch(error => {
+      dispatchPrepareProgress({ status:'error', error, label:'Préparation voix FTS impossible' });
+      throw error;
+    }).finally(() => {
+      state.preparePromise = null;
+      state.currentLengthScale = 1;
+    });
+
+    return state.preparePromise;
+  }
+
+  function buildPreparationUrls(index, modelKeys){
+    const urls = [
+      MANIFEST_URL,
+      VOICES_JSON_URL,
+      VENDOR_URL,
+      ONNX_WORKER_URL,
+      new URL('../../../onnx/ort-wasm-simd-threaded.wasm', import.meta.url).href,
+      new URL('../../../piper/piper_phonemize.wasm', import.meta.url).href,
+      new URL('../../../piper/piper_phonemize.data', import.meta.url).href
+    ];
+
+    modelKeys.forEach(modelKey => {
+      const model = index && index[modelKey];
+      const files = model && model.files ? Object.keys(model.files) : [];
+      files.forEach(filePath => urls.push(new URL(filePath, VOICE_BASE_URL).href));
+    });
+
+    return Array.from(new Set(urls));
+  }
+
+  async function cacheUrls(urls, onProgress){
+    const canUseCache = !!(window.caches && caches.open);
+    const cache = canUseCache ? await caches.open('fts-piper-assets-v3') : null;
+    const total = urls.length || 1;
+
+    for (let i = 0; i < urls.length; i += 1) {
+      const url = urls[i];
+      const label = labelForPreparationUrl(url);
+      const progress = { status:'downloading', done:i, total, percent:Math.round((i / total) * 90), label };
+      dispatchPrepareProgress(progress);
+      if (typeof onProgress === 'function') { try { onProgress(progress); } catch(e) {} }
+
+      if (cache) {
+        const hit = await cache.match(url);
+        if (hit) continue;
+      }
+      const response = await fetch(url, { cache:'force-cache' });
+      if (!response.ok) throw new Error('Téléchargement impossible : ' + label);
+      if (cache) await cache.put(url, response.clone());
+    }
+
+    const progress = { status:'downloaded', done:total, total, percent:90, label:'Fichiers voix enregistrés sur cet appareil' };
+    dispatchPrepareProgress(progress);
+    if (typeof onProgress === 'function') { try { onProgress(progress); } catch(e) {} }
+  }
+
+  function labelForPreparationUrl(url){
+    const value = String(url || '');
+    if (value.includes('.onnx')) return 'Téléchargement du modèle de voix…';
+    if (value.includes('piper-tts-web')) return 'Téléchargement du moteur vocal…';
+    if (value.includes('OnnxWebWorker')) return 'Préparation du worker audio…';
+    if (value.includes('phonemize')) return 'Préparation de la prononciation française…';
+    if (value.includes('ort-wasm')) return 'Préparation du moteur ONNX…';
+    return 'Préparation des voix FTS…';
+  }
+
+  function dispatchPrepareProgress(detail){
+    try {
+      window.dispatchEvent(new CustomEvent('FTS_PIPER_PREPARE_PROGRESS', { detail: detail || {} }));
+    } catch(e) {}
+  }
+
   function stop(){
     state.token += 1;
     stopAudio();
@@ -278,6 +420,7 @@
     isSupported,
     loadManifest,
     load,
+    prepare,
     speak,
     stop,
     unlock,
