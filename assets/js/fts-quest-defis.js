@@ -57,7 +57,7 @@
       `;
     }
     if (pills) {
-      pills.innerHTML = `<span>+${t.xp} XP prototype</span><span>${(D.challengePacks || []).length} packs</span><span>localStorage</span>`;
+      pills.innerHTML = `<span>+${t.xp} XP progression</span><span>${(D.challengePacks || []).length} packs</span><span>Suivi personnel</span>`;
     }
   }
 
@@ -107,11 +107,14 @@
     board.className = `active-challenge-board ${boardClass}`;
     board.innerHTML = pack.steps.map((step, index) => {
       const done = isDone(pack.id, step.id);
+      const axis = UI.Progress?.axisForChallenge ? UI.Progress.axisForChallenge(pack, step) : 'oser';
+      const axisMeta = (D.journeyAxes || []).find(item => item.id === axis) || { title:'Oser', icon:'✦' };
       return `
         <button class="challenge-step ${done ? 'done' : ''}" type="button" data-step="${UI.escape(step.id)}">
           <span class="step-index">${done ? '✓' : index + 1}</span>
           <strong>${UI.escape(step.label)}</strong>
           <small>${UI.escape(step.help)}</small>
+          <em class="step-axis">${UI.escape(axisMeta.icon)} ${UI.escape(axisMeta.title)}</em>
         </button>`;
     }).join('');
 
@@ -121,26 +124,61 @@
         const next = !isDone(pack.id, stepId);
         setDone(pack.id, stepId, next);
         const step = pack.steps.find(item => item.id === stepId);
+        if (next && UI.Progress) {
+          UI.Progress.recordAction({
+            id: `challenge:${pack.id}:${stepId}`,
+            label: step ? step.label : stepId,
+            source: pack.title,
+            detail: step ? step.help : '',
+            axis: UI.Progress.axisForChallenge(pack, step),
+            xp: pack.type === 'bingo' ? 10 : 14,
+            href: 'quest-defis.html'
+          });
+        }
         UI.log(`${next ? 'Validé' : 'Annulé'} · ${pack.title} · ${step ? step.label : stepId}`);
         renderAll();
       });
     });
   }
 
+  function renderImpact(){
+    const target = UI.$('#missionImpactPanel');
+    if (!target || !UI.Progress) return;
+    const summary = UI.Progress.summary();
+    const impact = summary.lastImpact;
+    const pack = getActivePack();
+    const packState = pack ? packProgress(pack) : { done:0, total:0 };
+    if (!impact) {
+      target.innerHTML = `
+        <article class="impact-card quiet">
+          <span>🎯</span>
+          <div>
+            <strong>Choisis une action vraiment faite.</strong>
+            <p>Le carnet FTS Quest gardera une trace utile : préparation, écoute, répétition, entraide ou scène.</p>
+          </div>
+        </article>`;
+      return;
+    }
+    const axis = (D.journeyAxes || []).find(item => item.id === impact.action?.axis) || { title:'Parcours', icon:'✦' };
+    const unlocked = impact.unlocked || [];
+    target.innerHTML = `
+      <article class="impact-card ${impact.added ? 'success' : 'quiet'}">
+        <span>${impact.added ? '✓' : '↺'}</span>
+        <div>
+          <strong>${UI.escape(impact.message || 'Progression mise à jour.')}</strong>
+          <p>${UI.escape(axis.icon)} ${UI.escape(axis.title)} · +${UI.escape(impact.action?.xp || 0)} XP · ${packState.done}/${packState.total} action(s) dans ce pack.</p>
+          ${unlocked.length ? `<small>${unlocked.map(item => `${UI.escape(item.icon || '🏆')} ${UI.escape(item.title)}`).join(' · ')}</small>` : '<small>Une action suffit. Le reste doit rester utile, pas obligatoire.</small>'}
+        </div>
+      </article>`;
+  }
+
   function initActions(){
-    const complete = UI.$('#completeVisibleBtn');
     const clear = UI.$('#clearVisibleBtn');
     const reset = UI.$('#resetChallengesBtn');
-    if (complete) complete.addEventListener('click', () => {
-      const pack = getActivePack();
-      pack.steps.forEach(step => setDone(pack.id, step.id, true));
-      UI.log('Pack validé entièrement : ' + pack.title);
-      renderAll();
-    });
     if (clear) clear.addEventListener('click', () => {
       const pack = getActivePack();
       pack.steps.forEach(step => setDone(pack.id, step.id, false));
-      UI.log('Pack vidé : ' + pack.title);
+      UI.log('Mission remise à zéro : ' + pack.title);
       renderAll();
     });
     if (reset) reset.addEventListener('click', () => {
@@ -156,6 +194,7 @@
     renderSummary();
     renderPacks();
     renderActivePack();
+    renderImpact();
     UI.renderLog();
   }
 

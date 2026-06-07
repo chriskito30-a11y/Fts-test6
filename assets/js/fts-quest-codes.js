@@ -5,7 +5,7 @@
   const UI = window.FTSQuestUI;
   const keys = D.storageKeys || {};
   const historyKey = keys.codesHistory || 'ftsQuest.codes.history.v1';
-  const progressKey = keys.playerProgress || 'ftsQuest.player.progress.v1';
+  const progressKey = keys.codesProgress || 'ftsQuest.codes.progress.v1';
 
   function readJson(key, fallback){
     try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
@@ -52,15 +52,15 @@
     const total = codeList().length || 1;
     const pct = Math.round((Object.keys(progress.usedCodes || {}).length / total) * 100);
     target.innerHTML = `
-      <div class="progress-hero"><span>${progress.accepted || 0}</span><div><strong>codes validés</strong><p>${progress.xp || 0} XP prototype gagnés</p></div></div>
+      <div class="progress-hero"><span>${progress.accepted || 0}</span><div><strong>codes validés</strong><p>${progress.xp || 0} XP gagnés</p></div></div>
       <div class="xp-track"><span style="width:${pct}%"></span></div>
       <div class="reward-pills">${(progress.rewards || []).slice(0,6).map(r => `<span>${UI.escape(r)}</span>`).join('') || '<span>Aucune récompense pour le moment</span>'}</div>
-      <button class="quest-btn quest-btn-ghost" id="resetCodesBtn" type="button">Réinitialiser le test local</button>`;
+      <button class="quest-btn quest-btn-ghost" id="resetCodesBtn" type="button">Effacer mon historique</button>`;
     const reset = UI.$('#resetCodesBtn');
     if (reset) reset.addEventListener('click', () => {
       localStorage.removeItem(progressKey);
       localStorage.removeItem(historyKey);
-      UI.log('Codes secrets : test local réinitialisé.');
+      UI.log('Codes secrets : historique effacé sur cet appareil.');
       initRender();
     });
   }
@@ -91,7 +91,7 @@
         <code>${UI.escape(code.code)}</code>
         <p>${UI.escape(code.description)}</p>
         <ul><li>Récompense : ${UI.escape(code.reward)}</li><li>Cible : ${UI.escape(code.target)}</li><li>Limite : ${UI.escape(code.maxUse)}</li></ul>
-        <button class="quest-btn ${used ? 'quest-btn-ghost' : 'quest-btn-primary'} test-code-btn" type="button" data-code="${UI.escape(code.code)}">${used ? 'Déjà utilisé' : 'Tester ce code'}</button>
+        <button class="quest-btn ${used ? 'quest-btn-ghost' : 'quest-btn-primary'} test-code-btn" type="button" data-code="${UI.escape(code.code)}">${used ? 'Déjà utilisé' : 'Utiliser ce code'}</button>
       </article>`;
     }).join('');
     UI.$$('.test-code-btn', target).forEach(btn => btn.addEventListener('click', () => validateCode(btn.dataset.code)));
@@ -102,10 +102,10 @@
     if (!target) return;
     const rules = [
       ['Une fois par membre', 'Chaque code important sera limité pour éviter les abus et le spam XP.'],
-      ['Ciblage groupe', 'Un code pourra viser théâtre 10/12, chant performance, profs, bêta testeurs, etc.'],
+      ['Ciblage groupe', 'Un code pourra viser théâtre 10/12, chant performance, profs, événement ou groupe concerné.'],
       ['Expiration', 'Un code de cours peut durer 24h, un code événement peut durer une semaine.'],
       ['Récompenses variées', 'XP, titre, badge, cadre, avatar, indice futur livre-jeu ou case de bingo.'],
-      ['Validation serveur plus tard', 'La vraie version Firebase/Worker devra vérifier les droits côté serveur.'],
+      ['Validation fiable', 'Un code doit être vérifié et limité pour rester juste pour tout le monde.'],
       ['Pas de classement toxique', 'Les codes valorisent la participation, pas la comparaison publique entre enfants.']
     ];
     target.innerHTML = rules.map((r,i) => `<article class="rule-card"><span>${String(i+1).padStart(2,'0')}</span><strong>${UI.escape(r[0])}</strong><p>${UI.escape(r[1])}</p></article>`).join('');
@@ -117,7 +117,7 @@
     const found = (D.codes || {})[code];
     const progress = getProgress();
     if (!found) {
-      const msg = 'Code inconnu dans ce prototype.';
+      const msg = 'Code inconnu. Vérifie l’orthographe ou demande au prof.';
       renderRewardPreview({ title: code, message: msg }, false);
       addHistory({ code, ok:false, message: msg });
       UI.log(`Code ${code} refusé : inconnu.`);
@@ -125,10 +125,10 @@
       return;
     }
     if (progress.usedCodes && progress.usedCodes[code]) {
-      const msg = 'Code déjà utilisé dans ce test local.';
+      const msg = 'Code déjà utilisé sur cet appareil.';
       renderRewardPreview({ title: found.title, message: msg }, false);
       addHistory({ code, ok:false, message: msg });
-      UI.log(`Code ${code} refusé : déjà utilisé localement.`);
+      UI.log(`Code ${code} refusé : déjà utilisé sur cet appareil.`);
       initRender();
       return;
     }
@@ -139,6 +139,17 @@
     progress.rewards = progress.rewards || [];
     progress.rewards.unshift(found.reward);
     saveProgress(progress);
+    if (UI.Progress) {
+      UI.Progress.recordAction({
+        id: `code:${code}`,
+        label: `Code reçu : ${found.title}`,
+        source: 'Codes secrets',
+        detail: found.reward,
+        axis: 'aider',
+        xp: Math.min(40, Number(found.xp || 20)),
+        href: 'quest-codes.html'
+      });
+    }
     renderRewardPreview(found, true);
     addHistory({ code, ok:true, message: `+${found.xp} XP · ${found.reward}` });
     UI.log(`Code ${code} accepté : ${found.reward}`);

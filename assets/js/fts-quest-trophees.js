@@ -26,7 +26,7 @@
     filter: 'all',
     trophies: {},
     history: [],
-    activeTitle: 'Explorateur de scène',
+    activeTitle: 'Artiste en route',
     xpBonus: 0
   };
 
@@ -55,7 +55,8 @@
   }
 
   function totalXp(){
-    return (data.player?.xp || 0) + state.xpBonus + mergedRewards().filter(r => r.unlocked).reduce((sum,r) => sum + (r.xp || 0), 0);
+    const progressXp = ui.Progress?.summary ? ui.Progress.summary().xp : 0;
+    return (data.player?.xp || 0) + progressXp + state.xpBonus + mergedRewards().filter(r => r.unlocked).reduce((sum,r) => sum + (r.xp || 0), 0);
   }
 
   function currentLevel(){
@@ -83,7 +84,7 @@
     const saved = readJSON(storageKey, {});
     state.trophies = saved.trophies || {};
     state.history = saved.history || [];
-    state.activeTitle = saved.activeTitle || data.player?.activeTitle || 'Explorateur de scène';
+    state.activeTitle = saved.activeTitle || data.player?.activeTitle || 'Artiste en route';
     state.xpBonus = saved.xpBonus || 0;
   }
 
@@ -164,9 +165,7 @@
         <p>${r.condition}</p>
       </div>
       <div class="trophy-reward">${r.xp ? `+${r.xp} XP` : r.type === 'title' ? 'Titre' : 'Badge'}</div>
-      ${!r.unlocked ? `<button class="mini-unlock" type="button" data-unlock="${r.id}">Débloquer test</button>` : ''}
     </article>`).join('');
-    $$('[data-unlock]', wrap).forEach(btn => btn.addEventListener('click', () => unlockReward(btn.dataset.unlock, true)));
   }
 
   function renderTitles(){
@@ -190,7 +189,7 @@
     const wrap = $('#rewardTimeline');
     if(!wrap) return;
     if(!state.history.length){
-      wrap.innerHTML = '<p class="empty-state">Aucune récompense récente. Débloque un badge test pour alimenter le journal.</p>';
+      wrap.innerHTML = '<p class="empty-state">Aucune récompense récente. Les prochains badges doivent correspondre à une action réellement faite.</p>';
       return;
     }
     wrap.innerHTML = state.history.slice(0, 12).map(h => `<article class="timeline-item">
@@ -215,21 +214,14 @@
     log('🏆 Trophée débloqué : ' + reward.title);
   }
 
-  function simulate(){
-    const locked = mergedRewards().filter(r => !r.unlocked);
-    if(!locked.length){ log('🎉 Tous les trophées sont déjà débloqués dans ce prototype.'); return; }
-    const reward = locked[Math.floor(Math.random() * locked.length)];
-    unlockReward(reward.id, true);
-  }
-
   function reset(){
     state.trophies = {};
     state.history = [];
-    state.activeTitle = data.player?.activeTitle || 'Explorateur de scène';
+    state.activeTitle = data.player?.activeTitle || 'Artiste en route';
     state.xpBonus = 0;
     save();
     renderAll();
-    log('🧹 Salle des trophées réinitialisée en local.');
+    log('🧹 Progression de trophées remise à zéro sur cet appareil.');
   }
 
   function renderAll(){
@@ -242,10 +234,9 @@
   }
 
   function init(){
+    if(ui.Progress?.syncTrophies) ui.Progress.syncTrophies(ui.Progress.read());
     load();
     renderAll();
-    const sim = $('#simulateReward');
-    if(sim) sim.addEventListener('click', simulate);
     const resetBtn = $('#resetTrophies');
     if(resetBtn) resetBtn.addEventListener('click', reset);
     log('🏆 Salle des trophées initialisée.');

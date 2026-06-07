@@ -90,7 +90,19 @@
   function choose(choice){
     if(choice.href){ window.location.href = choice.href; return; }
     if(!hasAll(choice.requiresAll) || !hasAny(choice.requiresAny)) return;
+    const fromScene = state.currentScene;
     applyEffects(choice);
+    if(ui.Progress && choice.label){
+      ui.Progress.recordAction({
+        id: `adventure:${fromScene}:${choice.target || choice.label}`,
+        label: `Choix d’aventure : ${choice.label}`,
+        source: 'Les Mystères des Coulisses',
+        detail: Object.keys(choice.effects || {}).map(labelForStat).join(' · '),
+        axis: ui.Progress.axisForText(`${choice.label} ${Object.keys(choice.effects || {}).join(' ')}`, 'creer'),
+        xp: 10,
+        href: 'quest-aventure.html'
+      });
+    }
     if(!choice.resetRun && choice.target) state.currentScene = choice.target;
     render();
     save(false);

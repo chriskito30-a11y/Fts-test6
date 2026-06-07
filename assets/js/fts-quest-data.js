@@ -1,28 +1,46 @@
 'use strict';
 
 window.FTSQuestData = {
-  version: '0.6.0-aventure-coulisses',
+  version: '0.7.0-avent-noel',
   storageKeys: {
     player: 'ftsQuest.player.v2',
     avatar: 'ftsQuest.avatar.v2',
     log: 'ftsQuest.log.v3',
     codesHistory: 'ftsQuest.codes.history.v1',
+    codesProgress: 'ftsQuest.codes.progress.v1',
     playerProgress: 'ftsQuest.player.progress.v1',
     challengesState: 'ftsQuest.challenges.state.v1',
     trophiesState: 'ftsQuest.trophies.state.v1',
-    adventureState: 'ftsQuest.aventure.state.v1'
+    adventureState: 'ftsQuest.aventure.state.v1',
+    adventState: 'ftsQuest.advent.state.v1'
   },
   player: {
     name: 'Artiste FTS',
     discipline: 'Théâtre · Chant · Danse · Musique',
-    xp: 420,
+    xp: 120,
     nextXp: 700,
     act: 'Acte II',
     levelLabel: 'Je m’entraîne',
-    activeTitle: 'Explorateur de scène',
-    badges: 8,
-    titles: 4,
-    challenges: 12
+    activeTitle: 'Artiste en route',
+    badges: 1,
+    titles: 1,
+    challenges: 0
+  },
+  todayAction: {
+    kicker: 'Aujourd’hui dans FTS Quest',
+    title: 'Prépare ton prochain cours',
+    description: 'Une petite mission utile pour arriver plus serein, mieux écouter le groupe et progresser sans pression.',
+    time: '3 minutes',
+    reward: 'Progression esprit de troupe',
+    steps: [
+      'Vérifie ton prochain horaire ou ton prochain objectif.',
+      'Choisis un mini-défi artistique à faire avant le cours.',
+      'Note une question ou une intention à apporter au groupe.'
+    ],
+    primaryLabel: 'Faire ma mission du jour',
+    primaryHref: 'quest-defis.html',
+    secondaryLabel: 'Lancer un exercice',
+    secondaryHref: 'quest-roulette.html'
   },
   avatarDefault: {
     base: 'showrunner',
@@ -43,7 +61,7 @@ window.FTSQuestData = {
     { id: 'vocal_star', label: 'Voix d’or', family: 'Chant', rarity: 'Rare', description: 'Un avatar lumineux pour les interprètes et chanteurs de troupe.' },
     { id: 'dance_nova', label: 'Nova Danse', family: 'Danse', rarity: 'Épique', description: 'Silhouette dynamique, aura néon, mouvement et impact scénique.' },
     { id: 'tempo_guardian', label: 'Gardien du tempo', family: 'Musique', rarity: 'Rare', description: 'Style musical, précis, parfait pour les élèves instruments et groupe.' },
-    { id: 'backstage_mage', label: 'Mage des coulisses', family: 'Coulisses', rarity: 'Mythique', description: 'Ambiance mystérieuse pour les futurs modules livre-jeu et aventure.' }
+    { id: 'backstage_mage', label: 'Mage des coulisses', family: 'Coulisses', rarity: 'Mythique', description: 'Ambiance mystérieuse pour l’aventure et les secrets de troupe.' }
   ],
   palettes: [
     { id: 'red_gold', label: 'Rideau rouge', primary: '#e7354f', secondary: '#ffd166', bg: '#140814' },
@@ -99,52 +117,61 @@ window.FTSQuestData = {
     { id: 'mythic', label: 'Mythique rouge', rarity: 'Mythique' }
   ],
   titles: [
-    { id: 'new_talent', label: 'Nouveau Talent', unlocked: true, description: 'Titre de départ pour entrer dans FTS Quest.' },
-    { id: 'scene_explorer', label: 'Explorateur de scène', unlocked: true, description: 'Pour les artistes qui découvrent le hub et ses modules.' },
-    { id: 'impro_master', label: 'Maître de l’impro', unlocked: false, description: 'Débloqué avec la future roulette impro.' },
-    { id: 'show_star', label: 'Star du Show', unlocked: false, description: 'Titre prestige lié aux spectacles et checklists.' },
-    { id: 'backstage_guardian', label: 'Gardien des Coulisses', unlocked: false, description: 'Titre spécial du futur livre-jeu interactif.' },
-    { id: 'team_spirit', label: 'Esprit d’Équipe', unlocked: true, description: 'Récompense les comportements positifs dans la communauté.' }
+    { id: 'new_talent', label: 'Nouveau talent', unlocked: true, description: 'Titre de départ pour entrer dans FTS Quest.' },
+    { id: 'scene_explorer', label: 'Artiste en route', unlocked: true, description: 'Pour commencer le parcours avec une première mission utile.' },
+    { id: 'impro_master', label: 'Écoute active', unlocked: false, description: 'Pour celles et ceux qui appliquent les consignes et soutiennent le groupe.' },
+    { id: 'show_star', label: 'Prêt pour le plateau', unlocked: false, description: 'Pour une préparation spectacle sérieuse et sans oubli important.' },
+    { id: 'backstage_guardian', label: 'Gardien des Coulisses', unlocked: false, description: 'Pour réussir le livre-jeu interactif avec esprit de troupe.' },
+    { id: 'team_spirit', label: 'Esprit d’équipe', unlocked: true, description: 'Récompense les comportements positifs dans la communauté.' }
   ],
   missions: [
-    { id: 'rentree', title: 'Défi rentrée', description: 'Transformer l’onboarding en mission utile.', percent: 70, steps: ['Installer la PWA', 'Activer les notifications', 'Consulter son planning', 'Lire les infos importantes'] },
-    { id: 'spectacle', title: 'Préparation spectacle', description: 'Checklist ludique pour éviter les oublis.', percent: 45, steps: ['Costume prêt', 'Horaire vérifié', 'Message prof lu', 'Sac préparé'] },
-    { id: 'bingo', title: 'Bingo artiste', description: 'Grille d’actions positives : répéter, encourager, consulter.', percent: 30, steps: ['Texte relu', 'Musique écoutée', 'Encouragement envoyé', 'Code secret trouvé'] }
+    { id: 'cours', title: 'Prêt pour le prochain cours', description: 'Arriver avec les bonnes infos et une intention simple.', percent: 65, steps: ['Horaire vérifié', 'Objectif choisi', 'Question préparée', 'Matériel prêt'] },
+    { id: 'spectacle', title: 'Préparation spectacle', description: 'La checklist anti-oubli avant répétition ou représentation.', percent: 45, steps: ['Message prof lu', 'Costume prêt', 'Texte ou musique relu', 'Sac préparé'] },
+    { id: 'troupe', title: 'Esprit de troupe', description: 'Valoriser ce qui rend un groupe plus fort.', percent: 35, steps: ['Encouragement donné', 'Aide proposée', 'Rangement fait', 'Merci envoyé'] }
+  ],
+  journeyAxes: [
+    { id: 'oser', icon: '🎭', title: 'Oser', text: 'Essayer une consigne, une voix, un geste ou une idée sans chercher la perfection.', action: 'Utile avant une impro ou une prise de parole.' },
+    { id: 'ecouter', icon: '👂', title: 'Écouter', text: 'Repérer les consignes, le rythme du groupe et les besoins des autres.', action: 'Utile en cours, en répétition et en spectacle.' },
+    { id: 'creer', icon: '✨', title: 'Créer', text: 'Inventer un personnage, une intention, un mouvement, un son ou une ambiance.', action: 'Utile pour le livre-jeu, les défis et les projets.' },
+    { id: 'repeter', icon: '🔁', title: 'Répéter', text: 'Revenir plusieurs fois sur une scène, une chanson, une choré ou un passage.', action: 'Utile pour progresser sans pression.' },
+    { id: 'aider', icon: '🤝', title: 'Aider', text: 'Encourager, ranger, transmettre une info ou soutenir quelqu’un.', action: 'Utile pour l’esprit de troupe.' },
+    { id: 'scene', icon: '🌟', title: 'Monter sur scène', text: 'Préparer son corps, sa tête, son matériel et son énergie de show.', action: 'Utile avant les représentations.' }
   ],
   modules: [
-    { id: 'hub', title: 'Mon aventure', href: 'quest.html', status: 'Brique 1', description: 'Hub autonome, carte profil, XP, modules et design commun.' },
-    { id: 'avatar', title: 'Avatar Lab', href: 'quest-avatar.html', status: 'Brique 2', description: 'Créateur d’avatar premium : couleurs, yeux, accessoires, cadre.' },
-    { id: 'codes', title: 'Codes secrets', href: 'quest-codes.html', status: 'Brique 3', description: 'Récompenses par codes prof/admin, historique, limites et aperçu admin.' },
-    { id: 'defis', title: 'Défis & bingo', href: 'quest-defis.html', status: 'Brique 4', description: 'Défis rentrée, checklists, bingo spectacle et préparation utile.' },
-    { id: 'roulette', title: 'Roulette impro', href: 'quest-roulette.html', status: 'Brique 5', description: 'Bandit manchot pédagogique : impro, chant, danse, musique et comédie musicale.' },
-    { id: 'trophees', title: 'Salle des trophées', href: 'quest-trophees.html', status: 'Brique 6', description: 'Badges, titres, niveaux, raretés et progression globale FTS Quest.' },
-    { id: 'aventure', title: 'Les Mystères des Coulisses', href: 'quest-aventure.html', status: 'Brique 7', description: 'Livre-jeu interactif : scènes, choix, inventaire, stats et fins multiples.' }
+    { id: 'defis', title: 'Missions de troupe', href: 'quest-defis.html', status: 'Prioritaire', role: 'À faire quand tu veux être utile maintenant.', description: 'Rentrée, spectacle, répétition, entraide et préparation concrète.' },
+    { id: 'roulette', title: 'Roulette scénique', href: 'quest-roulette.html', status: 'S’entraîner', role: 'À lancer quand tu veux une consigne courte.', description: 'Générateur d’exercices pour impro, chant, danse, musique et comédie musicale.' },
+    { id: 'trophees', title: 'Mes progrès', href: 'quest-trophees.html', status: 'Se souvenir', role: 'À consulter pour voir les efforts qui comptent.', description: 'Badges et titres liés à l’effort, la régularité, l’entraide et la scène.' },
+    { id: 'aventure', title: 'Les Mystères des Coulisses', href: 'quest-aventure.html', status: 'Explorer', role: 'À ouvrir pour vivre l’esprit FTS en histoire.', description: 'Aventure interactive sur l’esprit de troupe et les métiers de la scène.' },
+    { id: 'avatar', title: 'Mon artiste', href: 'quest-avatar.html', status: 'Personnaliser', role: 'À faire une fois, puis à ajuster quand tu veux.', description: 'Carte artiste personnalisable pour rendre le parcours plus personnel.' },
+    { id: 'codes', title: 'Codes secrets', href: 'quest-codes.html', status: 'Débloquer', role: 'À utiliser seulement si tu as reçu un code.', description: 'Codes donnés par un prof ou l’association pour valoriser une action utile.' },
+    { id: 'avent', title: 'Calendrier magique', href: 'quest-avent.html', status: 'Saisonnier', role: 'À utiliser pendant une période spéciale.', description: '24 surprises artistiques pour revenir avec une petite action utile.' },
+    { id: 'hub', title: 'Mon parcours', href: 'quest.html', status: 'Accueil', role: 'Le point de départ pour choisir quoi faire.', description: 'Action du jour, progression et accès rapide aux espaces FTS Quest.' }
   ],
   codes: {
     'IMPRO-ETOILE': {
       id: 'impro-etoile', code: 'IMPRO-ETOILE', title: 'Étoile d’impro', xp: 50,
-      reward: 'Titre prototype : Maître de l’impro', type: 'Cours', rarity: 'Rare',
+      reward: 'Titre : Maître de l’impro', type: 'Cours', rarity: 'Rare',
       description: 'Code donné par un prof après un exercice d’impro.', target: 'Théâtre / Impro', expires: 'Permanent', maxUse: '1 fois par membre'
     },
     'SHOWTIME': {
       id: 'showtime', code: 'SHOWTIME', title: 'Prêt pour le show', xp: 80,
-      reward: 'Badge prototype : Prêt pour le show', type: 'Spectacle', rarity: 'Épique',
+      reward: 'Badge : Prêt pour le show', type: 'Spectacle', rarity: 'Épique',
       description: 'Code événementiel pour valoriser la préparation spectacle.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
     },
     'FTS-QUEST': {
       id: 'fts-quest', code: 'FTS-QUEST', title: 'Fondateur FTS Quest', xp: 120,
-      reward: 'Cadre prototype : Légendaire or', type: 'Prototype', rarity: 'Légendaire',
-      description: 'Code de lancement pour tester le module sans Firebase.', target: 'Bêta testeurs', expires: 'Permanent', maxUse: '1 fois par membre'
+      reward: 'Cadre : Légendaire or', type: 'Lancement', rarity: 'Légendaire',
+      description: 'Code spécial de lancement FTS Quest.', target: 'Membres FTS', expires: 'Permanent', maxUse: '1 fois par membre'
     },
     'AVATAR-LAB': {
       id: 'avatar-lab', code: 'AVATAR-LAB', title: 'Créateur d’identité', xp: 65,
-      reward: 'Badge prototype : Avatar personnalisé', type: 'Avatar', rarity: 'Rare',
-      description: 'Récompense les tests du créateur d’avatar.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
+      reward: 'Badge : Avatar personnalisé', type: 'Avatar', rarity: 'Rare',
+      description: 'Récompense la création de ta carte artiste.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
     },
     'COULISSES': {
       id: 'coulisses', code: 'COULISSES', title: 'Gardien des coulisses', xp: 90,
-      reward: 'Titre prototype : Gardien des Coulisses', type: 'Aventure', rarity: 'Mythique',
-      description: 'Prépare le futur livre-jeu illustré et roleplay.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
+      reward: 'Titre : Gardien des Coulisses', type: 'Aventure', rarity: 'Mythique',
+      description: 'Valorise l’aventure et l’esprit de troupe en coulisses.', target: 'Tous les membres', expires: 'Permanent', maxUse: '1 fois par membre'
     }
   },
   challengePacks: [
@@ -152,9 +179,9 @@ window.FTSQuestData = {
       id: 'rentree-fts',
       type: 'checklist',
       icon: '🚀',
-      title: 'Défi rentrée FTS',
-      subtitle: 'Installer les bons réflexes app dès le début de saison.',
-      audience: 'Tous les membres / parents',
+      title: 'Bien démarrer la saison',
+      subtitle: 'Installer les réflexes qui évitent les oublis dès le début.',
+      audience: 'Élèves / parents',
       difficulty: 'Facile',
       rewardXp: 120,
       color: 'gold',
@@ -190,10 +217,10 @@ window.FTSQuestData = {
       id: 'bingo-artiste',
       type: 'bingo',
       icon: '🏆',
-      title: 'Bingo artiste',
-      subtitle: 'Une grille ludique pour encourager les bons comportements.',
+      title: 'Bingo esprit de troupe',
+      subtitle: 'Une grille d’actions positives pour renforcer le groupe.',
       audience: 'Tous les artistes',
-      difficulty: 'Fun',
+      difficulty: 'Bienveillant',
       rewardXp: 200,
       color: 'violet',
       gridSize: 9,
@@ -213,9 +240,9 @@ window.FTSQuestData = {
       id: 'mini-defis-scene',
       type: 'cards',
       icon: '✨',
-      title: 'Mini-défis scène',
-      subtitle: 'Petites missions artistiques à valider quand on veut.',
-      audience: 'Élèves motivés',
+      title: 'Entraînement scène',
+      subtitle: 'Petites actions artistiques à faire seul ou en groupe.',
+      audience: 'Élèves / profs',
       difficulty: 'Variable',
       rewardXp: 90,
       color: 'blue',
@@ -241,29 +268,27 @@ window.FTSQuestData = {
       { level: 7, act: 'Acte VII', label: 'Légende des coulisses', minXp: 3000, maxXp: 999999 }
     ],
     rewards: [
-      { id: 'first-step', type: 'badge', rarity: 'common', discipline: 'Général', icon: '🌟', title: 'Premier pas sur scène', condition: 'Découvrir FTS Quest', xp: 25, unlocked: true },
-      { id: 'avatar-maker', type: 'badge', rarity: 'common', discipline: 'Avatar', icon: '🎭', title: 'Créateur d’avatar', condition: 'Ouvrir Avatar Lab', xp: 40, unlocked: true },
-      { id: 'secret-code', type: 'badge', rarity: 'rare', discipline: 'Codes', icon: '🔐', title: 'Décodeur FTS', condition: 'Entrer un code secret valide', xp: 80, unlocked: true },
-      { id: 'challenge-start', type: 'badge', rarity: 'common', discipline: 'Défis', icon: '✅', title: 'Mission acceptée', condition: 'Cocher au moins un défi', xp: 50, unlocked: true },
-      { id: 'bingo-line', type: 'badge', rarity: 'rare', discipline: 'Bingo', icon: '🎟️', title: 'Bingo de scène', condition: 'Compléter une ligne de bingo', xp: 120, unlocked: false },
-      { id: 'roulette-first', type: 'badge', rarity: 'common', discipline: 'Impro', icon: '🎰', title: 'Premier tirage', condition: 'Lancer la roulette impro', xp: 60, unlocked: true },
-      { id: 'impro-card', type: 'badge', rarity: 'rare', discipline: 'Théâtre', icon: '🎲', title: 'Carton d’impro', condition: 'Sauvegarder un tirage théâtre complet', xp: 150, unlocked: false },
-      { id: 'singer-star', type: 'badge', rarity: 'rare', discipline: 'Chant', icon: '🎤', title: 'Interprète étoile', condition: 'Travailler une chanson tirée au sort', xp: 140, unlocked: false },
-      { id: 'dance-pulse', type: 'badge', rarity: 'rare', discipline: 'Danse', icon: '💃', title: 'Pulse scénique', condition: 'Créer une phrase chorégraphique', xp: 140, unlocked: false },
-      { id: 'band-ready', type: 'badge', rarity: 'rare', discipline: 'Musique', icon: '🎸', title: 'Esprit de groupe', condition: 'Faire un défi musique avec écoute des autres', xp: 140, unlocked: false },
-      { id: 'musical-bridge', type: 'badge', rarity: 'epic', discipline: 'Comédie musicale', icon: '🎬', title: 'Triple menace', condition: 'Relier jeu, chant et mouvement', xp: 250, unlocked: false },
-      { id: 'team-spirit', type: 'badge', rarity: 'common', discipline: 'Communauté', icon: '🤝', title: 'Esprit troupe', condition: 'Aider un autre élève', xp: 70, unlocked: false },
-      { id: 'backstage-key', type: 'badge', rarity: 'epic', discipline: 'Coulisses', icon: '🗝️', title: 'Clé des coulisses', condition: 'Trouver la clé dorée dans le livre-jeu', xp: 260, unlocked: false },
+      { id: 'course-ready', type: 'badge', rarity: 'common', discipline: 'Préparation', icon: '🎒', title: 'Prêt pour le cours', condition: 'Préparer horaire, matériel et objectif avant un cours', xp: 60, unlocked: true },
+      { id: 'regular-practice', type: 'badge', rarity: 'rare', discipline: 'Répétition', icon: '🔁', title: 'Répétition régulière', condition: 'Répéter plusieurs fois au lieu de tout faire au dernier moment', xp: 140, unlocked: false },
+      { id: 'team-spirit', type: 'badge', rarity: 'common', discipline: 'Communauté', icon: '🤝', title: 'Main tendue', condition: 'Aider, encourager ou remercier quelqu’un de la troupe', xp: 120, unlocked: false },
+      { id: 'showtime', type: 'badge', rarity: 'epic', discipline: 'Spectacle', icon: '🏆', title: 'Prêt pour le show', condition: 'Valider la préparation spectacle sans oublier tenue, horaire et consignes', xp: 180, unlocked: false },
+      { id: 'feedback-seeker', type: 'badge', rarity: 'rare', discipline: 'Progression', icon: '💬', title: 'Retour demandé', condition: 'Demander ou appliquer un retour de prof', xp: 130, unlocked: false },
+      { id: 'creative-spark', type: 'badge', rarity: 'rare', discipline: 'Création', icon: '✨', title: 'Étincelle créative', condition: 'Créer un personnage, un mouvement, une intention ou une idée de décor', xp: 120, unlocked: false },
+      { id: 'calm-stage', type: 'badge', rarity: 'common', discipline: 'Scène', icon: '🌬️', title: 'Trac apprivoisé', condition: 'Faire un rituel de respiration ou de concentration avant scène', xp: 110, unlocked: false },
+      { id: 'roulette-first', type: 'badge', rarity: 'common', discipline: 'Exercice', icon: '🎲', title: 'Consigne travaillée', condition: 'Utiliser un tirage comme vrai exercice', xp: 100, unlocked: false },
+      { id: 'secret-code', type: 'badge', rarity: 'rare', discipline: 'Récompense prof', icon: '🔐', title: 'Décodeur FTS', condition: 'Entrer un code reçu après une action utile', xp: 80, unlocked: false },
       { id: 'backstage-detective', type: 'badge', rarity: 'rare', discipline: 'Aventure', icon: '🔎', title: 'Détective de scène', condition: 'Terminer “Les Mystères des Coulisses”', xp: 180, unlocked: false },
       { id: 'curtain-guardian', type: 'badge', rarity: 'legendary', discipline: 'Aventure', icon: '🎭', title: 'Gardien du rideau', condition: 'Obtenir la bonne fin du livre-jeu', xp: 360, unlocked: false },
-      { id: 'showtime', type: 'badge', rarity: 'legendary', discipline: 'Spectacle', icon: '🏆', title: 'Fais Ton Show', condition: 'Valider plusieurs modules FTS Quest', xp: 500, unlocked: false },
-      { id: 'mythic-artist', type: 'badge', rarity: 'mythic', discipline: 'Légende', icon: '👑', title: 'Légende FTS', condition: 'Récompense ultime prototype', xp: 1000, unlocked: false },
-      { id: 'title-explorer', type: 'title', rarity: 'common', discipline: 'Titre', icon: '🏷️', title: 'Explorateur de scène', condition: 'Titre de départ', xp: 0, unlocked: true },
-      { id: 'title-decodeur', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Décodeur des coulisses', condition: 'Débloqué via codes secrets', xp: 0, unlocked: true },
-      { id: 'title-improviser', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Improvisateur agile', condition: 'Utiliser la roulette théâtre', xp: 0, unlocked: false },
-      { id: 'title-showrunner', type: 'title', rarity: 'epic', discipline: 'Titre', icon: '🏷️', title: 'Showrunner FTS', condition: 'Compléter plusieurs missions', xp: 0, unlocked: false },
-      { id: 'title-legende', type: 'title', rarity: 'legendary', discipline: 'Titre', icon: '🏷️', title: 'Légende des planches', condition: 'Atteindre l’acte V', xp: 0, unlocked: false },
-      { id: 'title-backstage-guardian', type: 'title', rarity: 'epic', discipline: 'Titre', icon: '🏷️', title: 'Gardien des Coulisses', condition: 'Réussir le livre-jeu interactif', xp: 0, unlocked: false }
+      { id: 'advent-first-flake', type: 'badge', rarity: 'common', discipline: 'Calendrier', icon: '❄️', title: 'Premier rendez-vous', condition: 'Ouvrir la première case et choisir une petite action artistique', xp: 40, unlocked: false },
+      { id: 'advent-enjoy-friend', type: 'badge', rarity: 'rare', discipline: 'Calendrier', icon: '🎁', title: 'Surprise partagée', condition: 'Découvrir une surprise du calendrier et la partager avec quelqu’un', xp: 80, unlocked: false },
+      { id: 'advent-heart-troupe', type: 'badge', rarity: 'epic', discipline: 'Communauté', icon: '🤝', title: 'Cœur de troupe', condition: 'Réaliser une mission d’entraide du calendrier', xp: 120, unlocked: false },
+      { id: 'advent-christmas-guardian', type: 'badge', rarity: 'legendary', discipline: 'Calendrier', icon: '🎄', title: 'Gardien du calendrier', condition: 'Ouvrir la case finale avec une vraie trace de progression', xp: 300, unlocked: false },
+      { id: 'title-explorer', type: 'title', rarity: 'common', discipline: 'Titre', icon: '🏷️', title: 'Artiste en route', condition: 'Commencer le parcours FTS Quest', xp: 0, unlocked: true },
+      { id: 'title-team', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Esprit troupe', condition: 'Valoriser l’entraide et l’écoute', xp: 0, unlocked: false },
+      { id: 'title-method', type: 'title', rarity: 'rare', discipline: 'Titre', icon: '🏷️', title: 'Je répète avec méthode', condition: 'Construire une vraie régularité', xp: 0, unlocked: false },
+      { id: 'title-stage-ready', type: 'title', rarity: 'epic', discipline: 'Titre', icon: '🏷️', title: 'Prêt pour le plateau', condition: 'Préparer un spectacle avec sérieux', xp: 0, unlocked: false },
+      { id: 'title-backstage-guardian', type: 'title', rarity: 'epic', discipline: 'Titre', icon: '🏷️', title: 'Gardien des Coulisses', condition: 'Réussir le livre-jeu interactif', xp: 0, unlocked: false },
+      { id: 'title-advent-star', type: 'title', rarity: 'legendary', discipline: 'Titre', icon: '🏷️', title: 'Étoile de la troupe', condition: 'Terminer le Calendrier magique des Coulisses', xp: 0, unlocked: false }
     ]
   }
 };

@@ -137,15 +137,43 @@
     box.innerHTML = `<ul class="result-lines">${lines}</ul>`;
   }
 
+  function ensureResult(){
+    if(Object.keys(state.result).length) return;
+    state.reels.forEach(id => {
+      const items = allItems(id);
+      state.result[id] = items.length ? pick(items) : '—';
+    });
+    writeJSON(storage.last, { packId: state.packId, result: state.result, at: Date.now() });
+    renderSlot();
+    renderResultText();
+  }
+
+  function recordRouletteProgress(item, pack){
+    const questUI = window.FTSQuestUI;
+    if(!questUI || !questUI.Progress) return null;
+    const detail = item.reels.map(id => `${bankLabel(id)} : ${item.result[id] || '—'}`).join(' · ');
+    return questUI.Progress.recordAction({
+      id: `roulette:${pack.id}:${new Date().toISOString().slice(0, 10)}`,
+      label: `Tirage travaillé : ${pack.label}`,
+      source: 'Roulette scénique',
+      detail,
+      axis: questUI.Progress.axisForText(`${pack.label} ${detail}`, 'creer'),
+      xp: 15,
+      href: 'quest-roulette.html'
+    });
+  }
+
   function saveCurrent(){
-    if(!Object.keys(state.result).length) spin();
+    ensureResult();
     const pack = getPack();
     const item = { id: 'spin_' + Date.now(), packId: pack.id, packLabel: pack.label, result: {...state.result}, reels: state.reels.slice(), at: Date.now() };
     state.saved.unshift(item);
     state.saved = state.saved.slice(0, 20);
     writeJSON(storage.saved, state.saved);
     renderSaved();
-    log('💾 Tirage sauvegardé localement.');
+    const impact = recordRouletteProgress(item, pack);
+    if(impact && impact.added) log('💾 Tirage sauvegardé comme exercice dans ton carnet.');
+    else log('💾 Tirage sauvegardé sur cet appareil.');
   }
 
   function renderSaved(){
@@ -172,7 +200,7 @@
     const list = $('#customList');
     if(!list) return;
     const rows = Object.entries(state.custom).flatMap(([bank, items]) => items.map(v => ({bank, v})));
-    if(!rows.length){ list.innerHTML = '<p class="empty-state">Aucun ajout local. Les profs/admins pourront enrichir les banques ici.</p>'; return; }
+    if(!rows.length){ list.innerHTML = '<p class="empty-state">Aucun ajout pour le moment. L’équipe pourra enrichir les banques d’exercices.</p>'; return; }
     list.innerHTML = rows.map((r, idx) => `<button class="custom-pill" type="button" data-bank="${r.bank}" data-value="${encodeURIComponent(r.v)}"><span>${bankLabel(r.bank)}</span>${r.v}<b>×</b></button>`).join('');
     $$('.custom-pill', list).forEach(btn => btn.addEventListener('click', () => {
       const bank = btn.dataset.bank; const val = decodeURIComponent(btn.dataset.value);
@@ -195,11 +223,11 @@
         writeJSON(storage.custom, state.custom);
         $('#customValue').value = '';
         renderCustomList(); updateMeta();
-        log('➕ Ajout local dans ' + bankLabel(bank) + '.');
+        log('➕ Ajout disponible dans ' + bankLabel(bank) + '.');
       });
     }
     const reset = $('#resetCustoms');
-    if(reset) reset.addEventListener('click', () => { state.custom = {}; writeJSON(storage.custom, state.custom); renderCustomList(); updateMeta(); log('🧹 Ajouts locaux réinitialisés.'); });
+    if(reset) reset.addEventListener('click', () => { state.custom = {}; writeJSON(storage.custom, state.custom); renderCustomList(); updateMeta(); log('🧹 Ajouts remis à zéro sur cet appareil.'); });
   }
 
   function setupPack(){
