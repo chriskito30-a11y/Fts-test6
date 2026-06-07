@@ -4,21 +4,21 @@
   window.FTS = window.FTS || {};
   window.FTS.Services = window.FTS.Services || {};
 
-  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=v16-stable-piper-upmc', import.meta.url).href;
-  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=v16-stable-piper-upmc', import.meta.url).href;
-  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=v16-stable-piper-upmc', import.meta.url).href;
+  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=v17-full-line-audio', import.meta.url).href;
+  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=v17-full-line-audio', import.meta.url).href;
+  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=v17-full-line-audio', import.meta.url).href;
   const VOICE_BASE_URL = new URL('../../voices/piper/', import.meta.url).href;
   const PIPER_BASE_URL = new URL('../../../piper/', import.meta.url).href;
   const ONNX_BASE_URL = new URL('../../../onnx/', import.meta.url).href;
-  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=v16-stable-piper-upmc', import.meta.url).href;
+  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=v17-full-line-audio', import.meta.url).href;
 
   const noopExpressionRuntime = {
     destroy(){},
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v16-stable-piper-upmc';
-  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v16-stable-piper-upmc';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v17-full-line-audio';
+  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v17-full-line-audio';
   const memoryAudioCache = new Map();
   const memoryManifestCache = new Map();
 
@@ -133,46 +133,23 @@
       if (allSegmentsReady) return { ok:true, cached:true, cacheKey, manifest:existingManifest };
     }
 
-    const chunks = splitTextIntoAudioChunks(value, getChunkLimitForVoice(voice));
-    if (!chunks.length) return { ok:false, cached:false, cacheKey, reason:'empty_chunks' };
-
-    const segmentResult = await prepareAudioSegmentsFromChunks(chunks, voice, cacheKey, options);
+    const segmentResult = await prepareFullLineAudioSegment(value, voice, cacheKey, options);
     if (!segmentResult || !segmentResult.ok) return Object.assign({ ok:false, cached:false, cacheKey }, segmentResult || { reason:'generation_failed' });
 
     const segments = segmentResult.segments || [];
-    const manifest = { version: 16, cacheKey, voiceId, textHash: hashString(value), normalized:true, chunkLimit:getChunkLimitForVoice(voice), segments, createdAt: Date.now() };
+    const manifest = { version: 17, cacheKey, voiceId, textHash: hashString(value), normalized:true, segmentMode:'full-line', segments, createdAt: Date.now() };
     const manifestStored = await putCachedAudioManifest(cacheKey, manifest);
     if (!manifestStored) return { ok:false, cached:false, cacheKey, reason:'manifest_write_failed' };
     return { ok:true, cached:false, cacheKey, manifest };
   }
 
-  async function prepareAudioSegmentsFromChunks(chunks, voice, cacheKey, options){
-    const segments = [];
-    const total = chunks.length || 1;
-
-    for (let i = 0; i < chunks.length; i += 1) {
-      const chunk = chunks[i];
-      if (typeof options.onProgress === 'function') {
-        try { options.onProgress({ status:'segment', done:i, total, segment:i + 1, segments:total, text:chunk, textPreview:previewText(chunk) }); } catch(e) {}
-      }
-
-      const prepared = await prepareSingleSegmentOrSplit(chunk, voice, cacheKey, i + 1, total, options, 0);
-      if (!prepared || !prepared.ok) {
-        return Object.assign({ ok:false, reason:'generation_failed_segment_' + (i + 1), segment:i + 1, segments:total }, prepared || {});
-      }
-      prepared.segments.forEach(segment => segments.push(segment));
-
-      if (typeof options.onProgress === 'function') {
-        try { options.onProgress({ status:'segment-ready', done:i + 1, total, segment:i + 1, segments:total, textPreview:previewText(chunk) }); } catch(e) {}
-      }
-    }
-
-    return { ok:true, segments };
+  async function prepareFullLineAudioSegment(text, voice, cacheKey, options){
+    return await prepareSingleSegment(text, voice, cacheKey, 1, 1, options);
   }
 
-  async function prepareSingleSegmentOrSplit(chunk, voice, cacheKey, segmentNumber, segmentTotal, options, depth){
+  async function prepareSingleSegment(chunk, voice, cacheKey, segmentNumber, segmentTotal, options){
     const cleanChunk = normalizeTextForPiper(chunk);
-    const segmentKey = cacheKey + '-seg-' + segmentNumber + '-d' + depth + '-' + hashString(cleanChunk);
+    const segmentKey = cacheKey + '-line-' + hashString(cleanChunk);
     let blob = await getCachedAudioBlob(segmentKey);
     if (blob) return { ok:true, segments:[{ cacheKey:segmentKey, textHash:hashString(cleanChunk), textPreview:previewText(cleanChunk) }] };
 
@@ -180,32 +157,13 @@
     blob = generated && generated.blob ? generated.blob : null;
     if (blob) {
       const stored = await putCachedAudioBlob(segmentKey, blob);
-      if (!stored) return { ok:false, reason:'cache_write_failed_segment_' + segmentNumber, segment:segmentNumber, segments:segmentTotal, textPreview:previewText(cleanChunk) };
+      if (!stored) return { ok:false, reason:'cache_write_failed_line', segment:segmentNumber, segments:segmentTotal, textPreview:previewText(cleanChunk) };
       return { ok:true, segments:[{ cacheKey:segmentKey, textHash:hashString(cleanChunk), textPreview:previewText(cleanChunk) }] };
-    }
-
-    // V10 : si Piper timeout sur un segment encore long, on ne bloque pas tout de suite.
-    // On re-découpe localement ce segment en morceaux plus courts et on les génère l'un après l'autre.
-    const canSplitAgain = cleanChunk.length > 38 && depth < 2 && isTimeoutLike(generated);
-    if (canSplitAgain) {
-      const smaller = splitTextIntoAudioChunks(cleanChunk, Math.max(28, Math.floor(cleanChunk.length / 2)));
-      if (smaller.length > 1) {
-        const nested = [];
-        for (let j = 0; j < smaller.length; j += 1) {
-          if (typeof options.onProgress === 'function') {
-            try { options.onProgress({ status:'segment', done:segmentNumber - 1, total:segmentTotal, segment:segmentNumber, segments:segmentTotal, subSegment:j + 1, subSegments:smaller.length, text:smaller[j], textPreview:previewText(smaller[j]) }); } catch(e) {}
-          }
-          const sub = await prepareSingleSegmentOrSplit(smaller[j], voice, cacheKey + '-seg-' + segmentNumber + '-sub-' + (j + 1), j + 1, smaller.length, options, depth + 1);
-          if (!sub || !sub.ok) return Object.assign({ ok:false, reason:'generation_failed_segment_' + segmentNumber, segment:segmentNumber, segments:segmentTotal }, sub || {});
-          sub.segments.forEach(item => nested.push(item));
-        }
-        return { ok:true, segments:nested };
-      }
     }
 
     return {
       ok:false,
-      reason:'generation_failed_segment_' + segmentNumber,
+      reason:'generation_failed_line',
       segment:segmentNumber,
       segments:segmentTotal,
       voiceId: voice && voice.id ? voice.id : '',
@@ -216,11 +174,6 @@
       secondError: generated && generated.secondError ? generated.secondError : '',
       diagnostics: generated && generated.diagnostics ? generated.diagnostics.map(compactDiagnostic) : []
     };
-  }
-
-  function isTimeoutLike(result){
-    const text = [result && result.error, result && result.firstError, result && result.secondError].join(' ');
-    return /trop longue|timeout/i.test(text);
   }
 
   async function playPreparedAudio(cacheKey, options){
@@ -395,77 +348,6 @@
     return new URL('/__fts_repetition_audio_manifest__/' + encodeURIComponent(String(key)) + '.json', window.location.origin).href;
   }
 
-  function splitTextIntoAudioChunks(text, maxLength){
-    const value = normalizeTextForPiper(text);
-    const limit = Math.max(24, Number(maxLength) || 55);
-    if (!value) return [];
-    if (value.length <= limit) return [value];
-
-    const chunks = [];
-    const sentenceParts = value.match(/[^.!?;:]+[.!?;:]?|\S+/g) || [value];
-    let current = '';
-
-    sentenceParts.forEach(part => {
-      const piece = String(part || '').trim();
-      if (!piece) return;
-      pushPiece(piece);
-    });
-    flush();
-    return chunks.filter(Boolean);
-
-    function pushPiece(piece){
-      if (piece.length > limit) {
-        const commaParts = piece.split(/(?<=[,])\s+/).filter(Boolean);
-        if (commaParts.length > 1) {
-          commaParts.forEach(pushPiece);
-          return;
-        }
-        splitByWords(piece).forEach(part => add(part));
-        return;
-      }
-      add(piece);
-    }
-
-    function add(piece){
-      const candidate = (current + ' ' + piece).trim();
-      if (!current || candidate.length <= limit) {
-        current = candidate;
-        return;
-      }
-      flush();
-      current = piece;
-    }
-
-    function flush(){
-      if (current) chunks.push(current.trim());
-      current = '';
-    }
-
-    function splitByWords(piece){
-      const words = String(piece || '').split(/\s+/).filter(Boolean);
-      const parts = [];
-      let line = '';
-      words.forEach(word => {
-        const candidate = (line + ' ' + word).trim();
-        if (!line || candidate.length <= limit) {
-          line = candidate;
-        } else {
-          if (line) parts.push(line);
-          line = word;
-        }
-      });
-      if (line) parts.push(line);
-      return parts;
-    }
-  }
-
-  function getChunkLimitForVoice(voice){
-    const model = String(voice && voice.model || '').toLowerCase();
-    // Garder des segments raisonnables pour les modèles medium embarqués.
-    if (model.includes('upmc-medium')) return 52;
-    return 56;
-  }
-
   function normalizeTextForPiper(text){
     let value = String(text || '');
     if (value.normalize) value = value.normalize('NFKC');
@@ -484,7 +366,7 @@
   }
 
   function buildGeneratedAudioKey(text, voiceId, options){
-    return 'fts-piper-line-' + hashString([voiceId || '', String(Number(options && options.rate || 1).toFixed(2)), text || ''].join('::'));
+    return 'fts-piper-line-v17-' + hashString([voiceId || '', String(Number(options && options.rate || 1).toFixed(2)), text || ''].join('::'));
   }
 
   function hashString(value){

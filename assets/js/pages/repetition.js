@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V16-stable-piper-upmc';
+  const REPETITION_VERSION = 'V17-full-line-audio';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -2218,7 +2218,7 @@
   }
 
   function buildLineAudioCacheKey(item){
-    return 'fts-rep-v10-' + hashString([
+    return 'fts-rep-v17-full-line-' + hashString([
       state.currentScriptId || state.currentScriptLabel || 'local-script',
       item.lineIndex,
       item.speaker || '',
@@ -2327,13 +2327,12 @@
           cacheKey: item.cacheKey,
           onProgress(progress){
             const segmentInfo = progress && progress.segments > 1 ? ` · segment ${progress.segment}/${progress.segments}` : '';
-            const subSegmentInfo = progress && progress.subSegments > 1 ? ` · sous-segment ${progress.subSegment}/${progress.subSegments}` : '';
-            let progressLabel = 'génération du segment';
-            if (progress && progress.status === 'segment-ready') progressLabel = 'segment enregistré';
+            let progressLabel = 'génération de la réplique complète';
+            if (progress && progress.status === 'segment-ready') progressLabel = 'réplique enregistrée';
             else if (progress && progress.status === 'piper-generate-start') progressLabel = `Piper tentative 1/2 · voix ${progress.voiceId || item.voiceId}`;
             else if (progress && progress.status === 'piper-generate-retry') progressLabel = `Piper tentative 2/2 · voix ${progress.voiceId || item.voiceId}`;
             const preview = progress && progress.textPreview ? ` · “${progress.textPreview}”` : '';
-            setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · voix ${item.voiceId}${segmentInfo}${subSegmentInfo} · ${progressLabel}${preview}`);
+            setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · voix ${item.voiceId}${segmentInfo} · ${progressLabel}${preview}`);
           }
         });
         if (!result || !result.ok) {
