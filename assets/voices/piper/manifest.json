@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-07-v18-tom-siwis-medium-test",
+  "version": "2026-06-07-v19-clean-voice-labels",
   "engine": "piper-tts-web",
   "language": "fr-FR",
   "defaultVoiceId": "pierre",
@@ -46,23 +46,23 @@
     },
     {
       "id": "tom-medium",
-      "label": "Tom medium (test)",
+      "label": "Tom",
       "gender": "male",
       "model": "fr_FR-tom-medium",
       "speaker": 0,
       "rate": 1,
       "lengthScale": 1,
-      "description": "Voix francaise masculine de test, modele Tom medium."
+      "description": "Voix francaise masculine Tom."
     },
     {
       "id": "siwis-medium",
-      "label": "Siwis medium (test)",
+      "label": "Siwis",
       "gender": "female",
       "model": "fr_FR-siwis-medium",
       "speaker": 0,
       "rate": 1,
       "lengthScale": 1,
-      "description": "Voix francaise de test, modele Siwis medium. Remplace uniquement les anciens tests Siwis low."
+      "description": "Voix francaise Siwis."
     }
   ],
   "attribution": [
@@ -71,6 +71,6 @@
     "UPMC dataset: CC-BY-SA 4.0.",
     "Tom dataset/model card: AGPLv3.",
     "SIWIS dataset: CC-BY 4.0.",
-    "V18: adds Tom medium and Siwis medium as direct test voices."
+    "V19: clean user-facing voice labels."
   ]
 }

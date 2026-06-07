@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V18-tom-siwis-medium-test';
+  const REPETITION_VERSION = 'V19-clean-voice-labels';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -2571,8 +2571,16 @@
   function formatVoiceUsageLine(voiceId, engineLabel){
     const voice = getEmbeddedVoiceById(voiceId);
     const label = voice && voice.label ? voice.label : (voiceId || 'inconnue');
-    const model = voice && voice.model ? voice.model : 'inconnu';
+    const model = formatPiperModelForUi(voice && voice.model);
     return `Voix utilisée : ${label} · moteur : ${engineLabel || 'Piper'} · modèle : ${model}`;
+  }
+
+  function formatPiperModelForUi(modelKey){
+    const value = String(modelKey || '').toLowerCase();
+    if (value.includes('tom')) return 'Tom';
+    if (value.includes('siwis')) return 'Siwis';
+    if (value.includes('upmc')) return 'UPMC';
+    return 'local';
   }
 
   function reportBrowserFallbackFromPiper(text, voiceSettings, reason){
@@ -2598,7 +2606,7 @@
       reason: reason || ''
     });
     if (els.repSpeechStatus) {
-      els.repSpeechStatus.textContent = `Voix utilisée : ${selectedVoiceLabel || 'navigateur'} · moteur : Navigateur · modèle : ${modelKey || 'speechSynthesis'}`;
+      els.repSpeechStatus.textContent = `Voix utilisée : ${selectedVoiceLabel || 'navigateur'} · moteur : Navigateur · modèle : ${formatPiperModelForUi(modelKey)}`;
     }
   }
 
