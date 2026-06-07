@@ -118,6 +118,7 @@
 
   async function prepareLineAudio(text, voiceId, options){
     options = options || {};
+    await loadManifest();
     const voice = getVoice(voiceId);
     const value = String(text || '').trim();
     if (!voice || !value) return { ok:false, cached:false };
@@ -220,6 +221,7 @@
 
   async function speak(text, voiceId, options){
     const token = nextToken();
+    await loadManifest();
     const voice = getVoice(voiceId);
     const value = String(text || '').trim();
     if (!voice || !value) return { ok:false, cancelled:false };
@@ -337,7 +339,7 @@
     const modelKeys = Array.from(new Set(voices.map(voice => voice.model).filter(Boolean)));
     const missingModels = modelKeys.filter(model => !state.preparedModels.has(model));
     if (state.preparedCore && !missingModels.length) {
-      dispatchPrepareProgress({ status:'ready', done:1, total:1, percent:100, label:'Voix FTS prêtes' });
+      dispatchPrepareProgress({ status:'ready', done:1, total:1, percent:100, label:'Voix FTS disponibles' });
       return { ok:true, prepared:true, cached:true };
     }
     if (state.preparePromise) return state.preparePromise;
@@ -347,32 +349,14 @@
       const urls = buildPreparationUrls(index, modelKeys);
       await cacheUrls(urls, options.onProgress);
       state.preparedCore = true;
-
-      // Pré-chauffage réel : on lance une mini génération sans lecture.
-      // Cela force le chargement du worker, ONNX, phonemizer et du modèle choisi AVANT que l'élève appuie sur Play.
-      await load();
-      for (let i = 0; i < voices.length; i += 1) {
-        const voice = voices[i];
-        if (!voice || !voice.model || state.preparedModels.has(voice.model)) continue;
-        dispatchPrepareProgress({ status:'warming', done:i, total:voices.length, percent:95, label:'Préparation de ' + (voice.label || voice.id) + '…' });
-        if (typeof options.onProgress === 'function') {
-          try { options.onProgress({ status:'warming', done:i, total:voices.length, percent:95, label:'Préparation de ' + (voice.label || voice.id) + '…' }); } catch(e) {}
-        }
-        state.currentLengthScale = voice.lengthScale || 1;
-        // V6 : on ne fait plus échouer toute la préparation sur un préchauffage Piper.
-        // Le vrai travail est la génération complète des répliques juste après.
-        // Sur mobile, le préchauffage "Bonjour" peut dépasser le délai alors que le moteur fonctionne.
-        // On marque donc le modèle comme téléchargé/préparé côté fichiers, puis les répliques valideront réellement l'audio.
-        state.preparedModels.add(voice.model);
-        state.currentLengthScale = 1;
-      }
-      dispatchPrepareProgress({ status:'ready', done:urls.length, total:urls.length, percent:100, label:'Voix FTS prêtes' });
+      modelKeys.forEach(model => state.preparedModels.add(model));
+      dispatchPrepareProgress({ status:'ready', done:urls.length, total:urls.length, percent:100, label:'Voix FTS téléchargées · génération des répliques à lancer' });
       if (typeof options.onProgress === 'function') {
-        try { options.onProgress({ status:'ready', done:urls.length, total:urls.length, percent:100, label:'Voix FTS prêtes' }); } catch(e) {}
+        try { options.onProgress({ status:'ready', done:urls.length, total:urls.length, percent:100, label:'Voix FTS téléchargées · génération des répliques à lancer' }); } catch(e) {}
       }
       return { ok:true, prepared:true, cached:false };
     })().catch(error => {
-      dispatchPrepareProgress({ status:'error', error, label:'Téléchargement des voix FTS impossible' });
+      dispatchPrepareProgress({ status:'error', error, label:'Téléchargement des fichiers voix FTS impossible' });
       throw error;
     }).finally(() => {
       state.preparePromise = null;
@@ -381,6 +365,7 @@
 
     return state.preparePromise;
   }
+
 
   function buildPreparationUrls(index, modelKeys){
     const urls = [
