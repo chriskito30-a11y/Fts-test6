@@ -17,8 +17,8 @@
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v8';
-  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v8';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v9diag';
+  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v9diag';
   const memoryAudioCache = new Map();
   const memoryManifestCache = new Map();
 
@@ -144,8 +144,23 @@
       }
       let blob = await getCachedAudioBlob(segmentKey);
       if (!blob) {
-        blob = await generateBlobWithRetry(chunk, voice, options);
-        if (!blob) return { ok:false, cached:false, cacheKey, reason:'generation_failed_segment_' + (i + 1), segment:i + 1, segments:chunks.length };
+        const generated = await generateBlobWithRetry(chunk, voice, options);
+        blob = generated && generated.blob ? generated.blob : null;
+        if (!blob) return {
+          ok:false,
+          cached:false,
+          cacheKey,
+          reason:'generation_failed_segment_' + (i + 1),
+          segment:i + 1,
+          segments:chunks.length,
+          voiceId: voice && voice.id ? voice.id : voiceId,
+          model: voice && voice.model ? voice.model : '',
+          textPreview: previewText(chunk),
+          error: generated && generated.error ? generated.error : '',
+          firstError: generated && generated.firstError ? generated.firstError : '',
+          secondError: generated && generated.secondError ? generated.secondError : '',
+          diagnostics: generated && generated.diagnostics ? generated.diagnostics.map(compactDiagnostic) : []
+        };
         const stored = await putCachedAudioBlob(segmentKey, blob);
         if (!stored) return { ok:false, cached:false, cacheKey, reason:'cache_write_failed_segment_' + (i + 1), segment:i + 1, segments:chunks.length };
       }
@@ -155,7 +170,7 @@
       }
     }
 
-    const manifest = { version: 8, cacheKey, voiceId, textHash: hashString(value), segments, createdAt: Date.now() };
+    const manifest = { version: 9, cacheKey, voiceId, textHash: hashString(value), segments, createdAt: Date.now() };
     const manifestStored = await putCachedAudioManifest(cacheKey, manifest);
     if (!manifestStored) return { ok:false, cached:false, cacheKey, reason:'manifest_write_failed' };
     return { ok:true, cached:false, cacheKey, manifest };
@@ -183,27 +198,69 @@
   }
 
   async function generateBlobWithRetry(text, voice, options){
+    options = options || {};
+    const diagnostics = [];
+
+    if (typeof options.onProgress === 'function') {
+      try { options.onProgress({
+        status:'piper-generate-start',
+        attempt:1,
+        voiceId: voice && voice.id ? voice.id : '',
+        model: voice && voice.model ? voice.model : '',
+        textPreview: previewText(text)
+      }); } catch(e) {}
+    }
+
     const first = await generateBlob(text, voice, false);
-    if (first && first.blob) return first.blob;
+    diagnostics.push(first);
+    if (first && first.blob) return { ok:true, blob:first.blob, diagnostics };
+
+    if (typeof options.onProgress === 'function') {
+      try { options.onProgress({
+        status:'piper-generate-retry',
+        attempt:2,
+        voiceId: voice && voice.id ? voice.id : '',
+        model: voice && voice.model ? voice.model : '',
+        error: serializeError(first && first.error),
+        textPreview: previewText(text)
+      }); } catch(e) {}
+    }
+
     resetEngine();
     const second = await generateBlob(text, voice, true);
-    return second && second.blob ? second.blob : null;
+    diagnostics.push(second);
+    if (second && second.blob) return { ok:true, blob:second.blob, diagnostics, retried:true };
+
+    return {
+      ok:false,
+      blob:null,
+      diagnostics,
+      error: serializeError((second && second.error) || (first && first.error)),
+      firstError: serializeError(first && first.error),
+      secondError: serializeError(second && second.error),
+      voiceId: voice && voice.id ? voice.id : '',
+      model: voice && voice.model ? voice.model : '',
+      speaker: voice && voice.speaker != null ? String(voice.speaker) : '',
+      textPreview: previewText(text)
+    };
   }
 
   async function generateBlob(text, voice, isRetry){
+    const startedAt = Date.now();
+    const timeoutMs = getGenerateTimeout(text, isRetry);
     try {
       const engine = await load();
       state.currentLengthScale = voice.lengthScale || 1;
       const response = await withTimeout(
         engine.generate(text, voice.model, Number(voice.speaker) || 0),
-        getGenerateTimeout(text, isRetry),
+        timeoutMs,
         'Génération Piper trop longue'
       );
       if (!response || !response.file) throw new Error('Audio Piper vide');
-      return { ok:true, blob:response.file };
+      return { ok:true, blob:response.file, elapsedMs:Date.now() - startedAt, timeoutMs, retry:!!isRetry };
     } catch(error) {
       resetEngine();
-      return { ok:false, error };
+      return { ok:false, error, elapsedMs:Date.now() - startedAt, timeoutMs, retry:!!isRetry };
     } finally {
       state.currentLengthScale = 1;
     }
@@ -627,6 +684,31 @@
     } catch(e) {
       return Object.assign({}, config || {});
     }
+  }
+
+  function serializeError(error){
+    if (!error) return '';
+    if (typeof error === 'string') return error;
+    const parts = [];
+    if (error.name) parts.push(error.name);
+    if (error.message) parts.push(error.message);
+    const value = parts.join(': ') || String(error);
+    return value.slice(0, 500);
+  }
+
+  function compactDiagnostic(result){
+    if (!result) return null;
+    return {
+      ok: !!result.ok,
+      retry: !!result.retry,
+      elapsedMs: result.elapsedMs || 0,
+      timeoutMs: result.timeoutMs || 0,
+      error: serializeError(result.error)
+    };
+  }
+
+  function previewText(text){
+    return String(text || '').replace(/\s+/g, ' ').trim().slice(0, 180);
   }
 
   function clampNumber(value, min, max){
