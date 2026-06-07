@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#05030b" />
   <title>FTS Quest · Mon aventure</title>
-  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=11-aventure" />
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=12-avent" />
 </head>
 <body class="quest-body">
   <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
@@ -20,13 +20,11 @@
         <div class="hero-copy">
           <p class="quest-kicker">L’aventure des artistes</p>
           <h1>FTS<br><span>Quest</span></h1>
-          <p class="hero-lead">Un module jeu séparé, premium et mobile first : avatar, carte artiste, titres, défis, codes secrets et futurs modules pédagogiques.</p>
+          <p class="hero-lead">Prépare ton show, progresse à ton rythme et fais grandir ta troupe avec des missions courtes, des exercices et des récompenses utiles.</p>
           <div class="hero-actions">
-            <a href="quest-aventure.html" class="quest-btn quest-btn-primary">Continuer l’aventure</a>
-            <a href="quest-avatar.html" class="quest-btn quest-btn-ghost">Créer mon avatar</a>
-            <a href="quest-trophees.html" class="quest-btn quest-btn-ghost">🏆 Voir mes trophées</a>
-            <a href="quest-roulette.html" class="quest-btn quest-btn-ghost">Roulette impro</a>
-            <a href="#quest-dashboard" class="quest-btn quest-btn-ghost">Voir le hub</a>
+            <a href="quest-defis.html" class="quest-btn quest-btn-primary">Faire mon défi du jour</a>
+            <a href="quest-roulette.html" class="quest-btn quest-btn-ghost">Lancer un exercice</a>
+            <a href="quest-trophees.html" class="quest-btn quest-btn-ghost">Voir mes progrès</a>
           </div>
         </div>
         <aside class="hero-card" aria-label="Carte artiste FTS Quest">
@@ -36,27 +34,53 @@
       </section>
     </header>
 
+    <section class="quest-today" data-reveal aria-label="Action du jour">
+      <div id="todayQuestCard"></div>
+    </section>
+
+    <section class="quest-dashboard quest-coach" data-reveal aria-label="Coach du jour">
+      <div id="questCoachCard"></div>
+    </section>
+
+    <section class="quest-dashboard quest-journey" data-reveal aria-label="Parcours vie de troupe">
+      <div class="section-head">
+        <p class="quest-kicker">Vie de troupe</p>
+        <h2>Le parcours commun</h2>
+        <p>FTS Quest sert d’abord à progresser dans la vraie vie de l’association : oser, écouter, créer, répéter, aider et préparer la scène.</p>
+      </div>
+      <div class="journey-axis-grid" id="journeyAxisGrid"></div>
+    </section>
+
+    <section class="quest-dashboard quest-recap" data-reveal aria-label="Carnet de progression">
+      <div class="section-head">
+        <p class="quest-kicker">Carnet de troupe</p>
+        <h2>Ce que tu construis</h2>
+        <p>Un retour simple sur les actions vraiment faites : pas de classement, juste une trace de préparation, d’entraînement et d’entraide.</p>
+      </div>
+      <div class="progress-recap-grid" id="progressRecapGrid"></div>
+    </section>
+
     <section class="quest-dashboard" id="quest-dashboard" data-reveal>
       <div class="section-head">
-        <p class="quest-kicker">Briques 1 → 7</p>
-        <h2>Hub autonome FTS Quest</h2>
-        <p>Le hub ajoute maintenant le livre-jeu interactif “Les Mystères des Coulisses”, toujours en localStorage et sans branchement Firebase.</p>
+        <p class="quest-kicker">Tableau de bord</p>
+        <h2>Ton parcours d’artiste FTS</h2>
+        <p>Retrouve ce qui aide vraiment avant, pendant et après les cours : missions, exercices, progrès et aventures de troupe.</p>
       </div>
       <div class="dashboard-grid">
         <article class="command-card">
-          <div class="card-head"><div><p class="mini-label">État joueur</p><h3>Mon aventure</h3></div><span class="status-chip">Local mock</span></div>
+          <div class="card-head"><div><p class="mini-label">État artiste</p><h3>Mon aventure</h3></div><span class="status-chip">Progression perso</span></div>
           <div class="stats-grid" id="statsGrid"></div>
         </article>
         <article class="command-card">
-          <div class="card-head compact"><div><p class="mini-label">Prototype</p><h3>Code secret</h3></div><span class="card-icon">⌁</span></div>
+          <div class="card-head compact"><div><p class="mini-label">Récompense</p><h3>Code secret</h3></div><span class="card-icon">⌁</span></div>
           <div class="secret-form">
-            <a class="quest-btn quest-btn-primary" href="quest-codes.html">Ouvrir le module Codes secrets</a>
-            <p class="form-feedback">Cette brique dispose maintenant d’une page complète avec historique local, récompenses et aperçu admin.</p>
+            <a class="quest-btn quest-btn-primary" href="quest-codes.html">Entrer un code reçu</a>
+            <p class="form-feedback">Un prof ou l’association peut donner un code pour valoriser une action, un effort ou un événement.</p>
           </div>
           <form class="secret-form" id="secretCodeForm">
-            <label for="secretCode">Entre un code test</label>
+            <label for="secretCode">Entre ton code</label>
             <div class="input-row"><input id="secretCode" name="secretCode" autocomplete="off" placeholder="IMPRO-ETOILE" /><button type="submit">OK</button></div>
-            <p class="form-feedback" id="codeFeedback">Exemples : IMPRO-ETOILE, SHOWTIME, FTS-QUEST</p>
+            <p class="form-feedback" id="codeFeedback">Les codes sont donnés pendant les cours, événements ou missions FTS.</p>
           </form>
         </article>
       </div>
@@ -64,36 +88,36 @@
 
     <section class="quest-tabs" data-reveal>
       <div class="tabbar" role="tablist" aria-label="Modules FTS Quest">
-        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-tab="avatars">Avatars</button>
-        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="titles">Titres</button>
-        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="missions">Défis</button>
-        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="modules">Modules</button>
+        <button class="tab-btn active" type="button" role="tab" aria-selected="true" data-tab="missions">Missions utiles</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="titles">Progrès</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="avatars">Mon artiste</button>
+        <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="modules">Explorer</button>
       </div>
-      <div class="tab-panel active" id="tab-avatars" role="tabpanel">
-        <div class="section-head left"><p class="quest-kicker">Identité visuelle</p><h2>Avatars premium</h2><p>Le hub lit l’avatar sauvegardé dans Avatar Lab. Les avatars sont en CSS/SVG-like pour être légers et recolorables.</p></div>
+      <div class="tab-panel" id="tab-avatars" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Identité visuelle</p><h2>Cartes artiste</h2><p>Choisis une identité légère pour personnaliser ton parcours.</p></div>
         <div class="avatar-strip" id="avatarStrip"></div>
       </div>
       <div class="tab-panel" id="tab-titles" role="tabpanel">
         <div class="section-head left"><p class="quest-kicker">Progression</p><h2>Titres débloquables</h2><p>Des statuts valorisants sans classement public agressif.</p></div>
         <div class="title-grid" id="titleGrid"></div>
       </div>
-      <div class="tab-panel" id="tab-missions" role="tabpanel">
-        <div class="section-head left"><p class="quest-kicker">Défis utiles</p><h2>Checklists & bingo</h2><p>Des défis qui servent vraiment l’organisation : rentrée, spectacle, préparation et infos importantes.</p></div>
+      <div class="tab-panel active" id="tab-missions" role="tabpanel">
+        <div class="section-head left"><p class="quest-kicker">Missions utiles</p><h2>Ce qui aide vraiment</h2><p>Commence par une mission courte liée à un cours, une répétition, un spectacle ou l’esprit de troupe.</p></div>
         <div class="mission-grid" id="missionGrid"></div>
       </div>
       <div class="tab-panel" id="tab-modules" role="tabpanel">
-        <div class="section-head left"><p class="quest-kicker">Architecture séparée</p><h2>Modules HTML</h2><p>Chaque module reste autonome avant intégration progressive dans membres/profs/admin.</p></div>
+        <div class="section-head left"><p class="quest-kicker">Autour des missions</p><h2>Outils de parcours</h2><p>Ces espaces sont secondaires : ils aident à s’entraîner, se souvenir, personnaliser ou vivre une aventure, mais la priorité reste l’action utile.</p></div>
         <div class="module-grid" id="moduleGrid"></div>
       </div>
     </section>
 
     <section class="quest-terminal" data-reveal>
-      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · journal local</strong></div>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · journal personnel</strong></div>
       <div class="terminal-body" id="questLog" aria-live="polite"></div>
     </section>
   </main>
-  <script src="../assets/js/fts-quest-data.js?v=11-aventure"></script>
-  <script src="../assets/js/fts-quest-ui.js?v=11-aventure"></script>
-  <script src="../assets/js/fts-quest-core.js?v=11-aventure"></script>
+  <script src="../assets/js/fts-quest-data.js?v=12-avent"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=12-avent"></script>
+  <script src="../assets/js/fts-quest-core.js?v=12-avent"></script>
 </body>
 </html>

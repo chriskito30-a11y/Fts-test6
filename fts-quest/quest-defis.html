@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#05030b" />
   <title>FTS Quest · Défis & Bingo</title>
-  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=8-impro-realiste" />
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=10-trophees" />
 </head>
 <body class="quest-body">
   <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
@@ -18,16 +18,16 @@
       </nav>
       <section class="hero-grid defis-grid">
         <div class="hero-copy">
-          <p class="quest-kicker">Brique 4 · Défis utiles</p>
-          <h1>Défis<br><span>& Bingo</span></h1>
-          <p class="hero-lead">Des missions ludiques mais concrètes : rentrée, spectacle, bingo artiste et mini-défis de scène. Tout reste local pour valider l’UX avant Firebase.</p>
+          <p class="quest-kicker">Missions de troupe</p>
+          <h1>Défis<br><span>utiles</span></h1>
+          <p class="hero-lead">Des missions concrètes pour préparer les cours, les répétitions, les spectacles et les bons réflexes de troupe.</p>
           <div class="hero-actions">
             <a href="#defis-board" class="quest-btn quest-btn-primary">Commencer</a>
-            <button class="quest-btn quest-btn-ghost" type="button" id="resetChallengesBtn">Réinitialiser prototype</button>
+            <button class="quest-btn quest-btn-ghost" type="button" id="resetChallengesBtn">Effacer ma sélection</button>
           </div>
         </div>
         <aside class="command-card challenge-summary-card" aria-label="Résumé des défis">
-          <div class="card-head"><div><p class="mini-label">Progression locale</p><h3>Tableau de mission</h3></div><span class="status-chip">Mock</span></div>
+          <div class="card-head"><div><p class="mini-label">Mes actions</p><h3>Tableau de mission</h3></div><span class="status-chip">En cours</span></div>
           <div class="challenge-score" id="challengeScore"></div>
           <div class="reward-pills" id="challengePills"></div>
         </aside>
@@ -36,9 +36,9 @@
 
     <section class="quest-dashboard" id="defis-board" data-reveal>
       <div class="section-head">
-        <p class="quest-kicker">Choisir un pack</p>
-        <h2>Un système unique pour checklists, bingo et mini-défis</h2>
-        <p>Chaque pack peut plus tard être ciblé par catégorie/sous-catégorie, validé automatiquement, déclaré par l’élève ou confirmé par un prof.</p>
+        <p class="quest-kicker">Choisir un objectif</p>
+        <h2>Une mission doit aider dans la vraie vie FTS</h2>
+        <p>Choisis un objectif, puis coche seulement les actions réellement faites. Le but n’est pas d’aller vite : c’est d’arriver plus prêt, plus confiant ou plus utile au groupe.</p>
       </div>
       <div class="challenge-pack-grid" id="challengePackGrid"></div>
     </section>
@@ -50,17 +50,18 @@
         <p id="activePackSubtitle">Sélectionne un pack pour voir les missions.</p>
       </div>
       <div class="challenge-toolbar">
-        <button class="quest-btn quest-btn-primary" type="button" id="completeVisibleBtn">Valider tout le pack</button>
+        <span class="mission-honesty-note">Coche une action quand elle est vraiment faite.</span>
         <button class="quest-btn quest-btn-ghost" type="button" id="clearVisibleBtn">Vider ce pack</button>
       </div>
+      <div class="mission-impact-panel" id="missionImpactPanel"></div>
       <div class="active-challenge-board" id="activeChallengeBoard"></div>
     </section>
 
     <section class="quest-dashboard" data-reveal>
       <div class="section-head left">
-        <p class="quest-kicker">Préparation Firebase future</p>
-        <h2>Ce que cette brique prépare</h2>
-        <p>Le prototype local sert à valider le vocabulaire, l’UX mobile, les formats de missions et la logique de progression avant branchement réel.</p>
+        <p class="quest-kicker">Validation saine</p>
+        <h2>Comment une mission devient utile</h2>
+        <p>Une mission doit aider à mieux venir en cours, mieux répéter, mieux écouter ou mieux faire équipe.</p>
       </div>
       <div class="rule-grid">
         <article class="rule-card"><span>1</span><strong>Déclaratif</strong><p>L’élève ou le parent coche une action faite : sac prêt, planning vérifié, ressource lue.</p></article>
@@ -74,8 +75,8 @@
       <div class="terminal-body" id="questLog" aria-live="polite"></div>
     </section>
   </main>
-  <script src="../assets/js/fts-quest-data.js?v=8-impro-realiste"></script>
-  <script src="../assets/js/fts-quest-ui.js?v=8-impro-realiste"></script>
-  <script src="../assets/js/fts-quest-defis.js?v=8-impro-realiste"></script>
+  <script src="../assets/js/fts-quest-data.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-defis.js?v=10-trophees"></script>
 </body>
 </html>

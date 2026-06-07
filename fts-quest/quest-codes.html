@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#05030b" />
   <title>FTS Quest · Codes secrets</title>
-  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=8-impro-realiste" />
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=10-trophees" />
 </head>
 <body class="quest-body quest-codes-page">
   <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
@@ -18,12 +18,12 @@
       </nav>
       <section class="codes-hero-grid">
         <div class="hero-copy">
-          <p class="quest-kicker">Brique 3 · récompenses</p>
+          <p class="quest-kicker">Récompenses de cours</p>
           <h1>Codes<br><span>secrets</span></h1>
-          <p class="hero-lead">Un module autonome pour tester les codes prof/admin : validation locale, récompense, historique, journal et aperçu de gestion. Aucun Firebase, aucune règle, aucun worker.</p>
+          <p class="hero-lead">Entre un code donné par un prof ou par l’association pour garder une trace d’un effort, d’un événement ou d’une mission réussie.</p>
           <div class="hero-actions">
-            <a href="#code-console" class="quest-btn quest-btn-primary">Entrer un code</a>
-            <a href="#code-admin-preview" class="quest-btn quest-btn-ghost">Voir l’aperçu admin</a>
+            <a href="#code-console" class="quest-btn quest-btn-primary">Entrer un code reçu</a>
+            <a href="#tab-rules" class="quest-btn quest-btn-ghost">Comprendre les règles</a>
           </div>
         </div>
         <aside class="code-console-card" id="code-console" aria-label="Console de code secret">
@@ -33,7 +33,7 @@
           <form class="mega-code-form" id="questCodeForm">
             <label for="questCodeInput">Code secret</label>
             <div class="mega-code-input"><input id="questCodeInput" autocomplete="off" placeholder="IMPRO-ETOILE" /><button type="submit">Valider</button></div>
-            <p class="form-feedback" id="questCodeFeedback">Codes test : IMPRO-ETOILE, SHOWTIME, FTS-QUEST, AVATAR-LAB, COULISSES</p>
+            <p class="form-feedback" id="questCodeFeedback">Un code sert à valoriser une action utile, pas à faire la course aux points.</p>
           </form>
           <div class="reward-preview" id="rewardPreview"></div>
         </aside>
@@ -42,7 +42,7 @@
 
     <section class="codes-layout" data-reveal>
       <article class="command-card">
-        <div class="card-head"><div><p class="mini-label">Progression locale</p><h3>Récompenses obtenues</h3></div><span class="status-chip">Mock local</span></div>
+        <div class="card-head"><div><p class="mini-label">Progression personnelle</p><h3>Récompenses obtenues</h3></div><span class="status-chip">Personnel</span></div>
         <div class="codes-progress" id="codesProgress"></div>
       </article>
       <article class="command-card">
@@ -58,7 +58,7 @@
         <button class="tab-btn" type="button" role="tab" aria-selected="false" data-tab="admin">Aperçu admin</button>
       </div>
       <div class="tab-panel active" id="tab-available" role="tabpanel">
-        <div class="section-head left"><p class="quest-kicker">Prototype testable</p><h2>Catalogue de codes</h2><p>En production, cette liste sera masquée côté membre. Ici elle sert aux tests avant branchement Firebase.</p></div>
+        <div class="section-head left"><p class="quest-kicker">Exemples</p><h2>Récompenses possibles</h2><p>Ces exemples montrent le type d’actions que FTS Quest peut valoriser : effort, préparation, participation et esprit de troupe.</p></div>
         <div class="codes-grid" id="codesGrid"></div>
       </div>
       <div class="tab-panel" id="tab-rules" role="tabpanel">
@@ -66,10 +66,10 @@
         <div class="rule-grid" id="rulesGrid"></div>
       </div>
       <div class="tab-panel" id="tab-admin" role="tabpanel">
-        <div class="section-head left" id="code-admin-preview"><p class="quest-kicker">Plus tard</p><h2>Aperçu admin/prof</h2><p>Ce n’est pas encore branché : c’est un wireframe visuel pour préparer la future page de gestion.</p></div>
+        <div class="section-head left" id="code-admin-preview"><p class="quest-kicker">Côté équipe</p><h2>Comment un code peut être utilisé</h2><p>Un code utile doit être ciblé, limité et lié à une vraie action FTS.</p></div>
         <div class="admin-preview-grid">
           <article class="admin-preview-card"><span>01</span><strong>Créer un code</strong><p>Nom, code, XP, récompense, catégorie ciblée, date d’expiration.</p></article>
-          <article class="admin-preview-card"><span>02</span><strong>Cibler un groupe</strong><p>Public, activité, sous-catégorie, prof, événement ou bêta testeurs.</p></article>
+          <article class="admin-preview-card"><span>02</span><strong>Cibler un groupe</strong><p>Public, activité, sous-catégorie, prof, événement ou groupe concerné.</p></article>
           <article class="admin-preview-card"><span>03</span><strong>Limiter l’usage</strong><p>Une fois par membre, quota total, période active, désactivation rapide.</p></article>
           <article class="admin-preview-card"><span>04</span><strong>Analyser</strong><p>Nombre d’utilisations, historique, récompenses distribuées, erreurs.</p></article>
         </div>
@@ -77,12 +77,12 @@
     </section>
 
     <section class="quest-terminal" data-reveal>
-      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest Codes · journal local</strong></div>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest Codes · journal personnel</strong></div>
       <div class="terminal-body" id="questLog" aria-live="polite"></div>
     </section>
   </main>
-  <script src="../assets/js/fts-quest-data.js?v=8-impro-realiste"></script>
-  <script src="../assets/js/fts-quest-ui.js?v=8-impro-realiste"></script>
-  <script src="../assets/js/fts-quest-codes.js?v=8-impro-realiste"></script>
+  <script src="../assets/js/fts-quest-data.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-codes.js?v=10-trophees"></script>
 </body>
 </html>

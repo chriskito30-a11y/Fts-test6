@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#05030b" />
   <title>FTS Quest · Avatar Lab</title>
-  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=8-impro-realiste" />
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=10-trophees" />
 </head>
 <body class="quest-body">
   <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
@@ -18,9 +18,9 @@
       </nav>
       <section class="hero-grid">
         <div class="hero-copy">
-          <p class="quest-kicker">Brique 2 · Avatar Lab</p>
-          <h1>Avatar<br><span>Builder</span></h1>
-          <p class="hero-lead">Crée une identité d’artiste premium : base, couleurs, peau, cheveux, yeux, chapeau/accessoire et cadre de carte.</p>
+          <p class="quest-kicker">Identité artiste</p>
+          <h1>Mon<br><span>artiste</span></h1>
+          <p class="hero-lead">Choisis une carte artiste qui te ressemble et que tu peux retrouver dans ton parcours FTS Quest.</p>
           <div class="hero-actions"><a href="#avatar-lab" class="quest-btn quest-btn-primary">Personnaliser</a><button class="quest-btn quest-btn-ghost" type="button" id="resetAvatar">Réinitialiser</button></div>
         </div>
         <aside class="hero-card"><div class="hero-card-glow"></div><div id="avatarPreviewCard"></div></aside>
@@ -30,8 +30,8 @@
     <section class="avatar-lab" id="avatar-lab" data-reveal>
       <div class="section-head">
         <p class="quest-kicker">Studio de création</p>
-        <h2>Personnalisation mobile first</h2>
-        <p>Version autonome : la sauvegarde se fait en localStorage pour tester le rendu sans rules, worker ni Firebase.</p>
+        <h2>Personnalisation simple</h2>
+        <p>Ta carte reste sur cet appareil pour que tu puisses la retrouver dans le hub.</p>
       </div>
       <div class="lab-grid">
         <aside class="preview-sticky">
@@ -42,7 +42,7 @@
               <button class="quest-btn quest-btn-primary" type="button" id="saveAvatar">Sauvegarder</button>
               <a class="quest-btn quest-btn-ghost" href="quest.html">Voir dans le hub</a>
             </div>
-            <p class="form-feedback" id="saveFeedback">Aucune écriture serveur : test sans risque.</p>
+            <p class="form-feedback" id="saveFeedback">Sauvegarde personnelle sur cet appareil.</p>
           </article>
         </aside>
 
@@ -53,12 +53,11 @@
             <button class="builder-tab" type="button" data-builder-tab="eyes">Yeux</button>
             <button class="builder-tab" type="button" data-builder-tab="accessories">Chapeau</button>
             <button class="builder-tab" type="button" data-builder-tab="card">Carte</button>
-            <button class="builder-tab" type="button" data-builder-tab="data">JSON</button>
           </div>
 
           <div class="builder-panels">
             <section class="builder-panel active" id="builder-base">
-              <div class="section-head left"><p class="quest-kicker">Archétype</p><h2>Choisis ta base</h2><p>La base donne l’attitude générale et prépare les futures familles d’avatars.</p></div>
+              <div class="section-head left"><p class="quest-kicker">Archétype</p><h2>Choisis ta base</h2><p>La base donne l’attitude générale de ta carte artiste.</p></div>
               <div class="choice-grid" id="baseChoices"></div>
             </section>
 
@@ -84,23 +83,18 @@
               <div class="section-head left"><p class="quest-kicker">Rareté</p><h2>Cadre de carte</h2><p>Le cadre donne un rendu collection, premium, et pourra refléter les récompenses débloquées.</p></div>
               <div class="choice-grid" id="frameChoices"></div>
             </section>
-
-            <section class="builder-panel" id="builder-data">
-              <div class="section-head left"><p class="quest-kicker">Préparation Firebase</p><h2>Structure JSON</h2><p>Ce format pourra être enregistré plus tard dans RTDB sous le profil du membre.</p></div>
-              <pre class="raw-box" id="avatarJson"></pre>
-            </section>
           </div>
         </div>
       </div>
     </section>
 
     <section class="quest-terminal" data-reveal>
-      <div class="terminal-head"><span></span><span></span><span></span><strong>Avatar Lab · journal local</strong></div>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>Avatar Lab · journal personnel</strong></div>
       <div class="terminal-body" id="questLog" aria-live="polite"></div>
     </section>
   </main>
-  <script src="../assets/js/fts-quest-data.js?v=8-impro-realiste"></script>
-  <script src="../assets/js/fts-quest-ui.js?v=8-impro-realiste"></script>
-  <script src="../assets/js/fts-quest-avatar.js?v=8-impro-realiste"></script>
+  <script src="../assets/js/fts-quest-data.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-avatar.js?v=10-trophees"></script>
 </body>
 </html>

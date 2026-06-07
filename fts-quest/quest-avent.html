@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#120711" />
+  <title>FTS Quest · Calendrier magique</title>
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=12-avent" />
+</head>
+<body class="quest-body advent-body">
+  <div class="quest-stage advent-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span><span class="snow snow-a"></span><span class="snow snow-b"></span></div>
+  <main class="quest-shell advent-shell" id="ftsAdventApp">
+    <header class="quest-hero advent-hero" data-reveal>
+      <nav class="quest-topbar" aria-label="Navigation FTS Quest">
+        <a class="quest-back" href="quest.html" aria-label="Retour au hub"><span>‹</span> Hub Quest</a>
+        <div class="quest-brand"><img src="../fts192.png" alt="Fais Ton Show" /><strong>Calendrier magique</strong></div>
+        <button class="quest-icon-btn" type="button" id="toggleAdventTest" aria-label="Mode libre">✦</button>
+      </nav>
+      <section class="hero-grid advent-hero-grid">
+        <div class="hero-copy">
+          <p class="quest-kicker">Noël dans les coulisses</p>
+          <h1>Calendrier<br><span>Magique</span></h1>
+          <p class="hero-lead">24 cases premium, des mini-défis artistiques, des cadeaux virtuels et une ambiance Noël façon rideau rouge, dorures et lumière de scène.</p>
+          <div class="hero-actions">
+            <button class="quest-btn quest-btn-primary" type="button" id="openTodayBtn">Ouvrir la case du jour</button>
+            <button class="quest-btn quest-btn-ghost" type="button" id="showProgressBtn">Voir ma progression</button>
+            <a class="quest-btn quest-btn-ghost" href="quest-trophees.html">🏆 Salle des trophées</a>
+          </div>
+        </div>
+        <aside class="hero-card advent-summary-card" aria-label="Résumé calendrier">
+          <div class="hero-card-glow"></div>
+          <p class="mini-label">Progression personnelle</p>
+          <div class="advent-ring" id="adventRing"><strong>0/24</strong><span>cases ouvertes</span></div>
+          <div class="advent-summary-stats" id="adventSummaryStats"></div>
+        </aside>
+      </section>
+    </header>
+
+    <section class="advent-toolbar command-card" data-reveal>
+      <div>
+        <p class="mini-label">Ouverture</p>
+        <h2>Les 24 surprises des coulisses</h2>
+        <p>En décembre, seules les cases du jour et des jours passés s’ouvrent. Le mode libre permet de rejouer ou préparer le calendrier hors période.</p>
+      </div>
+      <div class="advent-mode-pill" id="adventModePill">Mode réel</div>
+    </section>
+
+    <section class="advent-grid" id="adventGrid" aria-label="Calendrier de l’Avent FTS Quest" data-reveal></section>
+
+    <section class="dashboard-grid advent-lower" data-reveal>
+      <article class="command-card">
+        <div class="card-head"><div><p class="mini-label">Inventaire Noël</p><h3>Objets trouvés</h3></div><span class="card-icon">🎁</span></div>
+        <div class="inventory-list" id="adventInventory"></div>
+      </article>
+      <article class="command-card">
+        <div class="card-head"><div><p class="mini-label">Stats légères</p><h3>Esprit de troupe</h3></div><span class="card-icon">✨</span></div>
+        <div class="adventure-stats" id="adventStats"></div>
+      </article>
+    </section>
+
+    <section class="quest-terminal" data-reveal>
+      <div class="terminal-head"><span></span><span></span><span></span><strong>FTS Quest · calendrier personnel</strong></div>
+      <div class="terminal-body" id="questLog" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <dialog class="advent-modal" id="adventModal" aria-labelledby="adventModalTitle">
+    <div class="advent-modal-card">
+      <button class="advent-close" type="button" id="adventClose" aria-label="Fermer">×</button>
+      <div class="advent-modal-visual"><span id="adventModalIcon">🎄</span><i></i></div>
+      <p class="quest-kicker" id="adventModalType">Noël</p>
+      <h2 id="adventModalTitle">Titre</h2>
+      <p class="advent-modal-text" id="adventModalText"></p>
+      <div class="advent-action-box"><strong>Défi du jour</strong><p id="adventModalAction"></p></div>
+      <div class="advent-reward-box" id="adventModalReward"></div>
+      <button class="quest-btn quest-btn-primary" type="button" id="adventValidate">Valider ma surprise</button>
+    </div>
+  </dialog>
+
+  <script src="../assets/js/fts-quest-data.js?v=12-avent"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=12-avent"></script>
+  <script src="../assets/js/fts-quest-avent-data.js?v=12-avent"></script>
+  <script src="../assets/js/fts-quest-avent.js?v=12-avent"></script>
+</body>
+</html>

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#05030b" />
   <title>FTS Quest · Roulette impro</title>
-  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=9-slot-polish" />
+  <link rel="stylesheet" href="../assets/css/fts-quest.css?v=10-trophees" />
 </head>
 <body class="quest-body roulette-body">
   <div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span><span class="orb orb-c"></span><span class="scanlines"></span></div>
@@ -18,17 +18,17 @@
       </nav>
       <section class="hero-grid roulette-hero-grid">
         <div class="hero-copy">
-          <p class="quest-kicker">Brique 5 · outil prof & membre</p>
-          <h1>Roulette<br><span>Bandit scénique</span></h1>
-          <p class="hero-lead">Un générateur premium façon machine à sous : thèmes, lieux, catégories d’impro, chansons à interpréter, musiques support pour danse, styles, personnages et contraintes.</p>
+          <p class="quest-kicker">Générateur d’exercices</p>
+          <h1>Roulette<br><span>scénique</span></h1>
+          <p class="hero-lead">Tire une consigne pour travailler l’impro, le chant, la danse, la musique ou la comédie musicale sans perdre de temps à chercher une idée.</p>
           <div class="hero-actions">
             <button class="quest-btn quest-btn-primary" id="spinRoulette" type="button">🎰 Lancer la roulette</button>
-            <button class="quest-btn quest-btn-ghost" id="saveSpin" type="button">Sauvegarder</button>
+            <button class="quest-btn quest-btn-ghost" id="saveSpin" type="button">Sauvegarder comme exercice</button>
             <button class="quest-btn quest-btn-ghost" id="copySpin" type="button">Copier</button>
           </div>
         </div>
         <aside class="command-card roulette-panel">
-          <div class="card-head"><div><p class="mini-label">Banque intégrée</p><h3>Contenu pédagogique</h3></div><span class="status-chip">Local</span></div>
+          <div class="card-head"><div><p class="mini-label">Banque FTS</p><h3>Contenu pédagogique</h3></div><span class="status-chip">Prêt à jouer</span></div>
           <div class="roulette-metrics"><div><strong id="rouletteCount">—</strong><span>combinaisons</span></div><div><strong id="rouletteReelsCount">—</strong><span>rouleaux actifs</span></div></div>
           <p id="roulettePackDesc" class="form-feedback">Choisis un pack pour générer une consigne.</p>
         </aside>
@@ -60,21 +60,21 @@
         <div id="rouletteResultText" class="roulette-result-text"></div>
       </article>
       <article class="command-card admin-extension-card">
-        <div class="card-head"><div><p class="mini-label">Prof / Admin prototype</p><h3>Ajouter des possibilités</h3></div><span class="status-chip">localStorage</span></div>
+        <div class="card-head"><div><p class="mini-label">Idées de cours</p><h3>Ajouter des possibilités</h3></div><span class="status-chip">Sur cet appareil</span></div>
         <form id="customForm" class="secret-form">
           <label for="customBank">Banque à enrichir</label>
           <select id="customBank"></select>
           <label for="customValue">Nouvelle proposition</label>
           <div class="input-row"><input id="customValue" placeholder="Ex : une scène sous l’eau" /><button type="submit">Ajouter</button></div>
-          <p class="form-feedback">Prototype local : les ajouts restent sur ce navigateur. Plus tard, ils iront dans Firebase avec rôles prof/admin.</p>
+          <p class="form-feedback">Les ajouts restent disponibles sur cet appareil pour préparer ou rejouer une séance.</p>
         </form>
         <div id="customList" class="custom-list"></div>
-        <button class="quest-btn quest-btn-ghost danger-soft" id="resetCustoms" type="button">Réinitialiser les ajouts locaux</button>
+        <button class="quest-btn quest-btn-ghost danger-soft" id="resetCustoms" type="button">Réinitialiser les ajouts</button>
       </article>
     </section>
 
     <section class="quest-dashboard" data-reveal>
-      <div class="section-head left"><p class="quest-kicker">Historique local</p><h2>Tirages sauvegardés</h2><p>Utile pour préparer un cours, garder une idée ou transformer plus tard un tirage en défi.</p></div>
+      <div class="section-head left"><p class="quest-kicker">Mes idées</p><h2>Tirages sauvegardés</h2><p>Utile pour préparer un cours, garder une idée ou transformer un tirage en défi.</p></div>
       <div id="savedSpins" class="saved-spins"></div>
       <button class="quest-btn quest-btn-ghost danger-soft" id="clearSaved" type="button">Vider l’historique</button>
     </section>
@@ -84,9 +84,9 @@
       <div class="terminal-body" id="questLog" aria-live="polite"></div>
     </section>
   </main>
-  <script src="../assets/js/fts-quest-data.js?v=9-slot-polish"></script>
-  <script src="../assets/js/fts-quest-ui.js?v=9-slot-polish"></script>
-  <script src="../assets/js/fts-quest-roulette-data.js?v=9-slot-polish"></script>
-  <script src="../assets/js/fts-quest-roulette.js?v=9-slot-polish"></script>
+  <script src="../assets/js/fts-quest-data.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-ui.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-roulette-data.js?v=10-trophees"></script>
+  <script src="../assets/js/fts-quest-roulette.js?v=10-trophees"></script>
 </body>
 </html>
