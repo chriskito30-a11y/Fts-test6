@@ -2174,7 +2174,7 @@
   }
 
   function buildLineAudioCacheKey(item){
-    return 'fts-rep-v6-' + hashString([
+    return 'fts-rep-v8-' + hashString([
       state.currentScriptId || state.currentScriptLabel || 'local-script',
       item.lineIndex,
       item.speaker || '',
@@ -2223,11 +2223,17 @@
         setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · création du fichier audio… ${percent}%`);
         const result = await piper.prepareLineAudio(item.text, item.voiceId, {
           rate: item.rate,
-          cacheKey: item.cacheKey
+          cacheKey: item.cacheKey,
+          onProgress(progress){
+            const segmentInfo = progress && progress.segments > 1 ? ` · segment ${progress.segment}/${progress.segments}` : '';
+            const progressLabel = progress && progress.status === 'segment-ready' ? 'segment enregistré' : 'génération du segment';
+            setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel}${segmentInfo} · ${progressLabel}…`);
+          }
         });
         if (!result || !result.ok) {
           const reason = result && result.reason ? result.reason : 'generation_failed';
-          throw new Error(`Réplique audio impossible (${item.speaker || 'personnage inconnu'} · ligne ${item.lineIndex + 1} · ${reason})`);
+          const segment = result && result.segment ? ` · segment ${result.segment}/${result.segments || '?'}` : '';
+          throw new Error(`Réplique audio impossible (${item.speaker || 'personnage inconnu'} · ligne ${item.lineIndex + 1}${segment} · ${reason})`);
         }
         state.audioPrep.map[item.lineIndex] = {
           engine: 'piper-cache',
@@ -2246,7 +2252,7 @@
       state.audioPrep.ready = false;
       state.audioPrep.status = 'error';
       state.audioPrep.error = error && error.message ? error.message : '';
-      setPreparationUi('error', 0, 'Préparation audio impossible', state.audioPrep.error ? `La répétition reste verrouillée : ${state.audioPrep.error}. Relance la préparation après avoir laissé l’écran ouvert.` : 'La répétition reste verrouillée : au moins une réplique n’a pas pu être générée. Vérifie la connexion, laisse l’écran ouvert, puis relance la préparation.');
+      setPreparationUi('error', 0, 'Préparation audio impossible', state.audioPrep.error ? `La répétition reste verrouillée : ${state.audioPrep.error}. La réplique est peut-être trop longue ou le moteur vocal a bloqué. Relance la préparation ; les segments déjà générés seront conservés.` : 'La répétition reste verrouillée : au moins une réplique n’a pas pu être générée. Vérifie la connexion, laisse l’écran ouvert, puis relance la préparation.');
       throw error;
     }).finally(() => {
       state.audioPrep.promise = null;
