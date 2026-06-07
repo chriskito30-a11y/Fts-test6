@@ -4,21 +4,21 @@
   window.FTS = window.FTS || {};
   window.FTS.Services = window.FTS.Services || {};
 
-  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=1', import.meta.url).href;
-  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=1', import.meta.url).href;
-  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=1', import.meta.url).href;
+  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=12-mls-sans-gilles-siwis', import.meta.url).href;
+  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=12-mls-sans-gilles-siwis', import.meta.url).href;
+  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=12-mls-sans-gilles-siwis', import.meta.url).href;
   const VOICE_BASE_URL = new URL('../../voices/piper/', import.meta.url).href;
   const PIPER_BASE_URL = new URL('../../../piper/', import.meta.url).href;
   const ONNX_BASE_URL = new URL('../../../onnx/', import.meta.url).href;
-  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=1', import.meta.url).href;
+  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=12-mls-sans-gilles-siwis', import.meta.url).href;
 
   const noopExpressionRuntime = {
     destroy(){},
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v10';
-  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v10';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v12-mls-sans-gilles-siwis';
+  const GENERATED_MANIFEST_CACHE = 'fts-piper-generated-manifests-v12-mls-sans-gilles-siwis';
   const memoryAudioCache = new Map();
   const memoryManifestCache = new Map();
 
@@ -140,7 +140,7 @@
     if (!segmentResult || !segmentResult.ok) return Object.assign({ ok:false, cached:false, cacheKey }, segmentResult || { reason:'generation_failed' });
 
     const segments = segmentResult.segments || [];
-    const manifest = { version: 10, cacheKey, voiceId, textHash: hashString(value), normalized:true, chunkLimit:getChunkLimitForVoice(voice), segments, createdAt: Date.now() };
+    const manifest = { version: 12, cacheKey, voiceId, textHash: hashString(value), normalized:true, chunkLimit:getChunkLimitForVoice(voice), segments, createdAt: Date.now() };
     const manifestStored = await putCachedAudioManifest(cacheKey, manifest);
     if (!manifestStored) return { ok:false, cached:false, cacheKey, reason:'manifest_write_failed' };
     return { ok:true, cached:false, cacheKey, manifest };
@@ -462,10 +462,10 @@
   function getChunkLimitForVoice(voice){
     const id = String(voice && voice.id || '').toLowerCase();
     const model = String(voice && voice.model || '').toLowerCase();
-    // Diagnostic V9 : fr_FR-gilles-low timeout sur ~100 caractères.
-    // V10 limite Gilles beaucoup plus bas pour obtenir de vrais petits fichiers audio.
-    if (id === 'gilles' || model.includes('gilles')) return 42;
+    // V12 : les anciens IDs Gilles/Siwis sont supprimés. Nouvelles voix MLS medium : Marcel/Mireille.
+    // On garde des segments raisonnables pour les modèles medium, sans traitement spécial low.
     if (model.includes('upmc-medium')) return 52;
+    if (model.includes('mls-medium')) return 52;
     return 56;
   }
 
