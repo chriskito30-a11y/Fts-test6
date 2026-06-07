@@ -17,7 +17,7 @@
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v5';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v6';
   const memoryAudioCache = new Map();
 
   const state = {
@@ -287,8 +287,12 @@
 
   function getGenerateTimeout(text, isRetry){
     const length = String(text || '').length;
-    const base = isRetry ? 18000 : 14000;
-    return Math.max(base, Math.min(45000, base + length * 120));
+    // V6 : génération volontairement plus patiente.
+    // Sur téléphone, la première génération Piper peut être très lente parce qu'elle charge le worker,
+    // ONNX, le phonemizer et le modèle vocal. Il vaut mieux attendre pendant l'écran de préparation
+    // que déclencher une fausse erreur puis laisser l'élève bloqué.
+    const base = isRetry ? 90000 : 60000;
+    return Math.max(base, Math.min(240000, base + length * 450));
   }
 
   function resetEngine(){
@@ -346,7 +350,7 @@
 
       // Pré-chauffage réel : on lance une mini génération sans lecture.
       // Cela force le chargement du worker, ONNX, phonemizer et du modèle choisi AVANT que l'élève appuie sur Play.
-      const engine = await load();
+      await load();
       for (let i = 0; i < voices.length; i += 1) {
         const voice = voices[i];
         if (!voice || !voice.model || state.preparedModels.has(voice.model)) continue;
@@ -355,7 +359,10 @@
           try { options.onProgress({ status:'warming', done:i, total:voices.length, percent:95, label:'Préparation de ' + (voice.label || voice.id) + '…' }); } catch(e) {}
         }
         state.currentLengthScale = voice.lengthScale || 1;
-        await withTimeout(engine.generate('Bonjour.', voice.model, Number(voice.speaker) || 0), 45000, 'Préparation Piper trop longue');
+        // V6 : on ne fait plus échouer toute la préparation sur un préchauffage Piper.
+        // Le vrai travail est la génération complète des répliques juste après.
+        // Sur mobile, le préchauffage "Bonjour" peut dépasser le délai alors que le moteur fonctionne.
+        // On marque donc le modèle comme téléchargé/préparé côté fichiers, puis les répliques valideront réellement l'audio.
         state.preparedModels.add(voice.model);
         state.currentLengthScale = 1;
       }
@@ -365,7 +372,7 @@
       }
       return { ok:true, prepared:true, cached:false };
     })().catch(error => {
-      dispatchPrepareProgress({ status:'error', error, label:'Préparation voix FTS impossible' });
+      dispatchPrepareProgress({ status:'error', error, label:'Téléchargement des voix FTS impossible' });
       throw error;
     }).finally(() => {
       state.preparePromise = null;
