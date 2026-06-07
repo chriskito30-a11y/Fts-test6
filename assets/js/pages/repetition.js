@@ -2176,7 +2176,7 @@
   }
 
   function buildLineAudioCacheKey(item){
-    return 'fts-rep-v9diag-' + hashString([
+    return 'fts-rep-v10-' + hashString([
       state.currentScriptId || state.currentScriptLabel || 'local-script',
       item.lineIndex,
       item.speaker || '',
@@ -2285,12 +2285,13 @@
           cacheKey: item.cacheKey,
           onProgress(progress){
             const segmentInfo = progress && progress.segments > 1 ? ` · segment ${progress.segment}/${progress.segments}` : '';
+            const subSegmentInfo = progress && progress.subSegments > 1 ? ` · sous-segment ${progress.subSegment}/${progress.subSegments}` : '';
             let progressLabel = 'génération du segment';
             if (progress && progress.status === 'segment-ready') progressLabel = 'segment enregistré';
             else if (progress && progress.status === 'piper-generate-start') progressLabel = `Piper tentative 1/2 · voix ${progress.voiceId || item.voiceId}`;
             else if (progress && progress.status === 'piper-generate-retry') progressLabel = `Piper tentative 2/2 · voix ${progress.voiceId || item.voiceId}`;
             const preview = progress && progress.textPreview ? ` · “${progress.textPreview}”` : '';
-            setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · voix ${item.voiceId}${segmentInfo} · ${progressLabel}${preview}`);
+            setPreparationUi('preparing', percent, 'Génération réelle des audios', `${i + 1}/${items.length}${speakerLabel} · voix ${item.voiceId}${segmentInfo}${subSegmentInfo} · ${progressLabel}${preview}`);
           }
         });
         if (!result || !result.ok) {
