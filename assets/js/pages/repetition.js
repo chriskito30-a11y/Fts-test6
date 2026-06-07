@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V143-mls-sans-gilles-siwis';
+  const REPETITION_VERSION = 'V144-mls-no-stale-voices';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -266,6 +266,52 @@
     return !!(piper && piper.isSupported && piper.isSupported() && getEmbeddedVoices().length);
   }
 
+  function getEmbeddedVoiceIds(){
+    return new Set(getEmbeddedVoices().map(voice => voice && voice.id).filter(Boolean));
+  }
+
+  function migrateDeprecatedEmbeddedVoiceId(id){
+    const value = String(id || '').trim();
+    if (value === 'gilles') return 'marcel';
+    if (value === 'siwis') return 'mireille';
+    return value;
+  }
+
+  function sanitizeVoicePreference(pref){
+    const value = String(pref || '');
+    if (!value) return '';
+    const ids = getEmbeddedVoiceIds();
+    if (value.startsWith('piper:')) {
+      const migrated = migrateDeprecatedEmbeddedVoiceId(value.replace('piper:', ''));
+      return ids.has(migrated) ? 'piper:' + migrated : '';
+    }
+    if (value.startsWith('piper-gender:')) return value;
+    return value;
+  }
+
+  function sanitizeSavedVoicePreferences(){
+    if (els.repVoice) {
+      const sanitized = sanitizeVoicePreference(els.repVoice.value);
+      if (sanitized !== els.repVoice.value) {
+        els.repVoice.value = sanitized;
+        invalidatePreparedAudio('deprecated-global-voice');
+      }
+    }
+    const nextPrefs = {};
+    let changed = false;
+    Object.keys(state.roleVoicePrefs || {}).forEach(name => {
+      const before = state.roleVoicePrefs[name];
+      const after = sanitizeVoicePreference(before);
+      if (after) nextPrefs[name] = after;
+      if (after !== before) changed = true;
+    });
+    if (changed) {
+      state.roleVoicePrefs = nextPrefs;
+      invalidatePreparedAudio('deprecated-role-voice');
+    }
+    return changed;
+  }
+
   function updateSpeechStatus(){
     const embeddedCount = hasEmbeddedVoices() ? getEmbeddedVoices().length : 0;
     if (embeddedCount) {
@@ -315,13 +361,16 @@
       const genderLabel = voice.gender === 'female' ? ' Â· femme' : voice.gender === 'male' ? ' Â· homme' : '';
       return `<option value="piper:${escapeAttr(voice.id)}">FTS ${escapeHtml(voice.label || voice.id)}${genderLabel}</option>`;
     }).join('') + '<option value="" disabled>---------- Navigateur ----------</option>' : '';
-    els.repVoice.innerHTML = '<option value="">Voix embarquees FTS - auto par personnage</option>' + embeddedOptions + '<option value="browser-auto">Voix du navigateur - auto</option><option value="default">Voix unique du navigateur</option>' + ordered.map((voice)=>{
+    els.repVoice.innerHTML = '<option value="">Voix embarquées FTS - auto par personnage</option>' + embeddedOptions + '<option value="browser-auto">Voix du navigateur - auto</option><option value="default">Voix unique du navigateur</option>' + ordered.map((voice)=>{
       const originalIndex = state.voices.indexOf(voice);
       const gender = inferVoiceGender(voice);
       const genderLabel = gender === 'female' ? ' · femme' : gender === 'male' ? ' · homme' : '';
       return `<option value="${originalIndex}">${escapeHtml(voice.name)}${voice.lang ? ' — ' + escapeHtml(voice.lang) : ''}${genderLabel}</option>`;
     }).join('');
-    if (current === '' || current === 'default' || current === 'browser-auto' || (String(current).startsWith('piper:') && embeddedVoices.some(voice => 'piper:' + voice.id === current)) || (current && state.voices[Number(current)])) els.repVoice.value = current;
+    const sanitizedCurrent = sanitizeVoicePreference(current);
+    if (sanitizedCurrent === '' || sanitizedCurrent === 'default' || sanitizedCurrent === 'browser-auto' || (String(sanitizedCurrent).startsWith('piper:') && embeddedVoices.some(voice => 'piper:' + voice.id === sanitizedCurrent)) || (sanitizedCurrent && state.voices[Number(sanitizedCurrent)])) els.repVoice.value = sanitizedCurrent;
+    else els.repVoice.value = '';
+    sanitizeSavedVoicePreferences();
     updateSpeechStatus();
     const nextSignature = (state.voices || []).map(v => `${v.name}|${v.lang}|${v.voiceURI}`).join('||');
     if (state.characters && state.characters.length && (!silent || previousSignature !== nextSignature)) renderRoleReadControls();
@@ -1422,7 +1471,7 @@
             </label>
           `).join('')}
         </div>
-        <p class="rep-role-voice-note">Les voix FTS sont embarquees dans l'app : Jessica, Pierre, Siwis et Gilles restent disponibles sur mobile. Les voix du navigateur restent seulement en secours.</p>
+        <p class="rep-role-voice-note">Les voix FTS stables sont embarquées dans l'app : Jessica, Pierre, Mireille et Marcel. Les anciennes voix Gilles et Siwis ont été retirées.</p>
       </details>
     `;
 
@@ -2017,7 +2066,7 @@
 
   function usesEmbeddedVoicesForCurrentScript(){
     if (!hasEmbeddedVoices()) return false;
-    const selected = els.repVoice ? String(els.repVoice.value || '') : '';
+    const selected = sanitizeVoicePreference(els.repVoice ? String(els.repVoice.value || '') : '');
     if (selected === 'browser-auto' || selected === 'default') return false;
     if (selected !== '' && !selected.startsWith('piper:') && !selected.startsWith('piper-gender:')) return false;
     return collectEmbeddedVoiceIdsForCurrentScript().length > 0;
@@ -2027,7 +2076,7 @@
     const ids = new Set();
     if (!hasEmbeddedVoices()) return [];
     const role = getSelectedRole();
-    const selected = els.repVoice ? String(els.repVoice.value || '') : '';
+    const selected = sanitizeVoicePreference(els.repVoice ? String(els.repVoice.value || '') : '');
 
     if (selected.startsWith('piper:')) {
       const voiceId = selected.replace('piper:', '');
@@ -2450,6 +2499,7 @@
   }
 
   function voiceFromPreference(pref, speaker){
+    pref = sanitizeVoicePreference(pref);
     if (!pref) return null;
     if (String(pref).startsWith('piper:') || String(pref).startsWith('piper-gender:')) {
       return embeddedVoiceFromPreference(pref, speaker || '');
@@ -3335,7 +3385,7 @@
     if (settings.ownLines && els.repOwnLines.querySelector(`option[value="${cssEscape(settings.ownLines)}"]`)) els.repOwnLines.value = settings.ownLines;
     if (settings.pause) els.repPause.value = String(settings.pause);
     if (settings.rate) els.repRate.value = String(settings.rate);
-    if (settings.voice !== undefined) els.repVoice.value = String(settings.voice || '');
+    if (settings.voice !== undefined) els.repVoice.value = sanitizeVoicePreference(String(settings.voice || ''));
     state.ignoredSpeakers = new Set((settings.ignoredSpeakers || []).filter(name => state.characters.includes(name)));
     state.difficultLines = new Set((settings.difficultLines || []).map(Number).filter(index => Number.isFinite(index) && index >= 0 && index < state.lines.length));
     state.focusDifficultOnly = false;
@@ -3343,6 +3393,7 @@
     state.sceneOnly = !!settings.sceneOnly;
     state.sceneScope = settings.sceneScope || null;
     state.roleVoicePrefs = Object.assign({}, settings.roleVoicePrefs || {});
+    sanitizeSavedVoicePreferences();
     if (Number.isFinite(settings.currentIndex)) state.currentIndex = Math.max(0, Math.min(state.lines.length - 1, settings.currentIndex));
     renderRoleChoices();
     renderRoleReadControls();
