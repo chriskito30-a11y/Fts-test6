@@ -21,20 +21,23 @@
   ];
 
   const INTENTS = [
-    { key:'resources', label:'📚 Ressources', words:['ressource','document','doc','texte','partition','tablature','musique','audio','video','vidéo','pdf','parole','réplique','replique','fichier'] },
-    { key:'calendar', label:'📅 Planning', words:['planning','calendrier','date','horaire','heure','cours','répétition','repetition','spectacle','stage','événement','evenement','venir','quand'] },
-    { key:'messages', label:'💬 Messages', words:['message','messagerie','privé','prive','prof','professeur','contacter','répondre','repondre','discussion','dm'] },
-    { key:'forum', label:'👥 Forum', words:['forum','groupe','discussion','catégorie','categorie','publier','post','commentaire','communauté','communaute'] },
-    { key:'notifications', label:'🔔 Notifications', words:['notification','notif','alerte','push','sonne','recevoir','reçois','recois','autoriser','activer'] },
-    { key:'account', label:'👤 Mon compte', words:['compte','profil','connexion','connecter','mot de passe','email','mail','identifiant','validé','valide','enfant','parent','accès','acces'] },
-    { key:'install', label:'📲 Installer l’app', words:['installer','installation','application','app','pwa','iphone','android','écran accueil','ecran accueil','raccourci'] },
-    { key:'season', label:'🎭 Saison / inscriptions', words:['saison','inscription','inscrire','tarif','prix','activité','activite','loisir','performance','place','billet','billetterie'] },
-    { key:'help', label:'🆘 Aide', words:['aide','problème','probleme','bug','erreur','marche pas','bloqué','bloque','perdu','question','administration','admin'] }
+    { key:'resources', label:'📚 Ressources', words:['ressource','ressources','document','documents','doc','docs','texte','partition','tablature','musique','audio','video','vidéo','pdf','parole','réplique','replique','fichier','fichiers','cours a travailler','répéter','repeter'] },
+    { key:'calendar', label:'📅 Planning', words:['planning','calendrier','date','horaire','horaires','heure','cours','répétition','repetition','spectacle','stage','événement','evenement','venir','quand','prochain cours','prochaine répétition','absence','rdv','rendez vous'] },
+    { key:'messages', label:'💬 Messages', words:['message','messages','messagerie','privé','prive','mp','dm','conversation','discussion privée','prof','professeur','contacter','répondre','repondre','envoyer un message'] },
+    { key:'unread', label:'🔴 Non lus', words:['non lu','non lus','à lire','a lire','badge','pastille','bulle','rouge','notification rouge','ou aller','où aller','quoi lire','nouveau message'] },
+    { key:'forum', label:'👥 Forum', words:['forum','groupe','groupes','discussion','discussion groupe','catégorie','categorie','publier','post','commentaire','communauté','communaute','annonce groupe','canal'] },
+    { key:'polls', label:'📊 Sondages', words:['sondage','sondages','vote','voter','répondre au sondage','repondre au sondage','questionnaire','avis','réponse attendue','reponse attendue'] },
+    { key:'notifications', label:'🔔 Notifications', words:['notification','notifications','notif','notifs','alerte','push','sonne','recevoir','reçois','recois','autoriser','activer','désactiver','desactiver'] },
+    { key:'account', label:'👤 Mon compte', words:['compte','profil','connexion','connecter','mot de passe','email','mail','identifiant','validé','valide','validation','enfant','parent','accès','acces','discipline','groupe manquant'] },
+    { key:'install', label:'📲 Installer l’app', words:['installer','installation','application','app','pwa','iphone','android','écran accueil','ecran accueil','raccourci','icone','icône','mobile'] },
+    { key:'season', label:'🎭 Saison / inscriptions', words:['saison','inscription','inscrire','tarif','tarifs','prix','activité','activite','loisir','performance','place','billet','billetterie','cotisation','adhésion','adhesion'] },
+    { key:'help', label:'🆘 Aide', words:['aide','problème','probleme','bug','erreur','marche pas','bloqué','bloque','perdu','question','administration','admin','souci','ça bug','ca bug'] }
   ];
 
   const state = {
     options: {}, db: null, auth: null, user: null, profile: null,
-    categories: [], allowedCategories: [], unread: 0, events: [], courses: [],
+    categories: [], allowedCategories: [], unread: 0, unreadOverview: emptyUnreadOverview(),
+    events: [], courses: [], currentView: 'home',
     mounted: false, root: null, body: null, badge: null, input: null,
     listeners: []
   };
@@ -61,6 +64,33 @@
   const isProf = () => state.profile && state.profile.role === 'prof';
 
   function log(){ if (cfg().debug) console.log('[Enjoy]', ...arguments); }
+
+  function emptyUnreadOverview() {
+    return {
+      total: 0,
+      dm: { total: 0, items: [] },
+      forum: { total: 0, items: [] },
+      polls: { total: 0, items: [] }
+    };
+  }
+
+  function getUnreadOverview() {
+    return state.unreadOverview || emptyUnreadOverview();
+  }
+
+  function unreadTotal() {
+    const ov = getUnreadOverview();
+    return Number(ov.total || state.unread || 0) || 0;
+  }
+
+  function unreadSummaryText() {
+    const ov = getUnreadOverview();
+    const parts = [];
+    if (ov.dm && ov.dm.total) parts.push(`${ov.dm.total} MP`);
+    if (ov.forum && ov.forum.total) parts.push(`${ov.forum.total} forum`);
+    if (ov.polls && ov.polls.total) parts.push(`${ov.polls.total} sondage${ov.polls.total > 1 ? 's' : ''}`);
+    return parts.join(' · ');
+  }
 
   function getFirstName() {
     const p = state.profile || {};
@@ -364,6 +394,17 @@
 
   function listenUnread(user) {
     if (!state.db || !user) return;
+    if (FTSObj().listenUnreadOverview) {
+      const cleanup = FTSObj().listenUnreadOverview(state.db, user.uid, state.profile || {}, overview => {
+        state.unreadOverview = overview || emptyUnreadOverview();
+        state.unread = unreadTotal();
+        setBadge(state.unread);
+        if (state.currentView === 'home') renderHome();
+        if (state.currentView === 'unread') renderUnreadOverview({ replace:true });
+      });
+      state.listeners.push(cleanup);
+      return;
+    }
     const ref = state.db.ref('fts_dm/userConvs/' + user.uid);
     const handler = async snap => {
       const ids = [];
@@ -371,6 +412,7 @@
       try {
         const vals = await Promise.all(ids.map(id => state.db.ref('fts_dm/conversations/' + id + '/unread/' + user.uid).once('value')));
         state.unread = vals.reduce((sum, s) => sum + Number(s.val() || 0), 0);
+        state.unreadOverview = { total: state.unread, dm: { total: state.unread, items: [] }, forum: { total: 0, items: [] }, polls: { total: 0, items: [] } };
         setBadge(state.unread);
       } catch(e) { log('unread denied/unavailable', e); }
     };
@@ -559,6 +601,7 @@
 
   function renderHome() {
     if (!state.body) return;
+    state.currentView = 'home';
     state.body.innerHTML = '';
 
     if (!state.user) {
@@ -574,15 +617,20 @@
     const first = getFirstName();
     const role = getRoleLabel();
     const groups = state.allowedCategories.map(c => c.name);
-    const unreadText = state.unread > 0 ? `\nTu as ${state.unread} message${state.unread > 1 ? 's' : ''} non lu${state.unread > 1 ? 's' : ''}.` : '';
+    const totalUnread = unreadTotal();
+    const unreadDetails = unreadSummaryText();
+    const unreadText = totalUnread > 0
+      ? `\nTu as ${totalUnread} élément${totalUnread > 1 ? 's' : ''} à lire${unreadDetails ? ' : ' + unreadDetails : ''}.`
+      : '';
     const intro = `Salut ${first ? first + ' ' : ''}👋\nJe peux t’aider avec ton espace ${role} Fais Ton Show.${unreadText}`;
     bot(intro);
 
     const quick = [
       { label:'📚 Mes ressources', small: groups.length ? groups.slice(0,2).join(' · ') + (groups.length > 2 ? '…' : '') : 'Selon ton profil', intent:'resources' },
       { label:'📅 Mon planning', small: state.courses.length ? relativeCourseDate(state.courses[0].startAt, state.courses[0].endAt) : (state.events.length ? state.events[0].date || 'Prochain événement' : 'Cours et événements'), intent:'calendar' },
-      { label:'💬 Messages', small: state.unread ? `${state.unread} non lu${state.unread > 1 ? 's' : ''}` : 'Discussions privées', intent:'messages' },
+      { label:'💬 Messages', small: totalUnread ? `${totalUnread} à lire${unreadDetails ? ' · ' + unreadDetails : ''}` : 'MP, forum, sondages', intent:'messages' },
       { label:'👥 Forum', small:'Groupes et annonces', intent:'forum' },
+      { label:'📊 Sondages', small:(getUnreadOverview().polls.total ? `${getUnreadOverview().polls.total} en attente` : 'Votes et réponses'), intent:'polls' },
       { label:'🔔 Notifications', small: notificationSummary(), intent:'notifications' },
       { label:'🆘 Besoin d’aide', small:'Compte ou accès', intent:'help' }
     ];
@@ -606,6 +654,72 @@
     state.body.appendChild(note);
   }
 
+  function countLabel(n, singular, plural) {
+    const count = Number(n || 0) || 0;
+    return `${count} ${count > 1 ? plural : singular}`;
+  }
+
+  function itemSmall(item, singular, plural) {
+    return countLabel(item && item.count, singular, plural);
+  }
+
+  function renderUnreadOverview(options) {
+    if (!state.body) return;
+    state.currentView = 'unread';
+    if (options && options.replace) state.body.innerHTML = '';
+    if (!state.user) {
+      bot('Connecte-toi pour que je puisse te montrer tes messages, forums et sondages à lire.', [
+        { label:'Se connecter', url:'auth.html', primary:true }
+      ]);
+      return;
+    }
+
+    const ov = getUnreadOverview();
+    const total = unreadTotal();
+    if (!total) {
+      bot('Je ne vois rien à lire pour le moment : aucun MP, message forum ou sondage en attente.', [
+        { label:'Ouvrir le hub messages', url:'hub-messages.html', primary:true },
+        { label:'Voir mes messages privés', url:'messages.html' },
+        { label:'Voir le forum', url:'forum.html' }
+      ]);
+      return;
+    }
+
+    bot(`Tu as ${total} élément${total > 1 ? 's' : ''} à lire. Voilà où aller, sans chercher au hasard :`);
+
+    if (ov.dm && ov.dm.total) {
+      section('Messages privés');
+      renderActions((ov.dm.items || []).map(item => ({
+        label: `💬 ${item.label || 'Conversation'}`,
+        small: itemSmall(item, 'message non lu', 'messages non lus'),
+        url: item.url || pageUrl('messages.html', { conv:item.id }),
+        primary: true
+      })).concat((ov.dm.items || []).length ? [] : [{ label:'Ouvrir mes messages privés', small:countLabel(ov.dm.total, 'message non lu', 'messages non lus'), url:'messages.html', primary:true }]));
+    }
+
+    if (ov.forum && ov.forum.total) {
+      section('Forum');
+      renderActions((ov.forum.items || []).map(item => ({
+        label: `👥 ${item.label || 'Canal forum'}`,
+        small: itemSmall(item, 'message non lu', 'messages non lus'),
+        url: item.url || pageUrl('forum.html', { channel:item.channel }),
+        primary: !(ov.dm && ov.dm.total)
+      })).concat((ov.forum.items || []).length ? [] : [{ label:'Ouvrir le forum', small:countLabel(ov.forum.total, 'message non lu', 'messages non lus'), url:'forum.html' }]));
+    }
+
+    if (ov.polls && ov.polls.total) {
+      section('Sondages');
+      renderActions((ov.polls.items || []).map(item => ({
+        label: `📊 ${item.label || 'Sondage'}`,
+        small:'Réponse attendue',
+        url: item.url || pageUrl('sondages.html', { poll:item.id }),
+        primary: !(ov.dm && ov.dm.total) && !(ov.forum && ov.forum.total)
+      })).concat((ov.polls.items || []).length ? [] : [{ label:'Ouvrir les sondages', small:countLabel(ov.polls.total, 'sondage en attente', 'sondages en attente'), url:'sondages.html' }]));
+    }
+
+    renderActions([{ label:'Voir le hub messages', url:'hub-messages.html' }]);
+  }
+
   function notificationSummary() {
     if (!('Notification' in window)) return 'Non compatible';
     if (Notification.permission === 'granted') return 'Autorisées';
@@ -615,36 +729,91 @@
 
   function detectIntent(text) {
     const n = norm(text);
-    if (n.includes('prochain_cours') || n.includes('mon_cours') || (n.includes('cours') && (n.includes('quand') || n.includes('horaire') || n.includes('heure')))) return 'calendar';
-    let best = { key:'help', score:0 };
-    INTENTS.forEach(intent => {
+    const tokens = n.split('_').filter(Boolean);
+    const tokenSet = new Set(tokens);
+    const hasFtsAnchor = ['fts','fais_ton_show','enjoy','assistant','application','app'].some(w => n.includes(w));
+    const politeOnly = ['bonjour','salut','hello','coucou','merci','ok'].includes(n);
+    if (politeOnly) return { type:'direct', key:'help', score:2 };
+    if (n.includes('prochain_cours') || n.includes('mon_cours') || (n.includes('cours') && (n.includes('quand') || n.includes('horaire') || n.includes('heure')))) {
+      return { type:'direct', key:'calendar', score:4 };
+    }
+
+    const scored = INTENTS.map(intent => {
       let score = 0;
+      const matched = [];
       intent.words.forEach(w => {
         const nw = norm(w);
-        if (n.includes(nw)) score += Math.max(1, nw.length > 7 ? 2 : 1);
+        if (!nw) return;
+        const wordScore = nw.length > 10 ? 3 : (nw.length > 4 ? 2 : 1);
+        const matchedDirectly = nw.includes('_') ? n.includes(nw) : tokenSet.has(nw);
+        if (matchedDirectly) {
+          score += wordScore;
+          matched.push(w);
+        }
       });
-      if (score > best.score) best = { key:intent.key, score };
-    });
-    return best.score ? best.key : 'help';
+      if (intent.key === 'help' && score === 1 && !hasFtsAnchor) score = 1;
+      return Object.assign({}, intent, { score, matched });
+    }).filter(x => x.score > 0).sort((a,b) => b.score - a.score);
+
+    if (!scored.length) return { type: hasFtsAnchor ? 'unclear' : 'unknown', score:0 };
+    const best = scored[0];
+    const near = scored.filter(x => x.key !== best.key && x.score >= 2 && best.score - x.score <= 2).slice(0, 3);
+    if (near.length) return { type:'ambiguous', choices:[best].concat(near) };
+    if (best.score < 2 && !hasFtsAnchor) return { type:'unknown', score:best.score };
+    if (best.score < 2) return { type:'unclear', choices:scored.slice(0, 3) };
+    return { type:'direct', key:best.key, score:best.score };
   }
 
   function ask(text) {
     userMsg(text);
-    respond(detectIntent(text), text);
+    state.currentView = 'chat';
+    handleIntent(detectIntent(text), text);
+  }
+
+  function handleIntent(result, rawText) {
+    if (!result || result.type === 'unknown') return answerUnknown();
+    if (result.type === 'ambiguous') return answerClarify(result.choices);
+    if (result.type === 'unclear') return answerUnclear(result.choices);
+    return respond(result.key, rawText);
   }
 
   function respond(intent, rawText) {
+    if (intent !== 'unread') state.currentView = 'chat';
     switch(intent) {
       case 'resources': return answerResources();
       case 'calendar': return answerCalendar(rawText);
       case 'messages': return answerMessages();
+      case 'unread': return renderUnreadOverview();
       case 'forum': return answerForum();
+      case 'polls': return answerPolls();
       case 'notifications': return answerNotifications();
       case 'account': return answerAccount();
       case 'install': return answerInstall();
       case 'season': return answerSeason();
       default: return answerHelp();
     }
+  }
+
+  function intentAction(intent, primary) {
+    return { label:intent.label, intent:intent.key, primary:primary === true };
+  }
+
+  function answerClarify(choices) {
+    const usable = (choices || []).filter(c => c && c.key).slice(0, 4);
+    bot('Ta question peut vouloir dire plusieurs choses dans Fais Ton Show. Choisis la piste la plus proche et je t’emmène au bon endroit.', usable.map((c, index) => intentAction(c, index === 0)));
+  }
+
+  function answerUnclear(choices) {
+    const usable = (choices && choices.length ? choices : INTENTS.filter(i => ['resources','calendar','messages','account'].includes(i.key))).slice(0, 4);
+    bot('Je n’ai pas assez d’indices pour répondre proprement. Je préfère te demander une précision plutôt que de t’envoyer n’importe où.', usable.map((c, index) => intentAction(c, index === 0)));
+  }
+
+  function answerUnknown() {
+    bot('Je ne suis pas sûr de comprendre dans le cadre Fais Ton Show, je préfère ne pas inventer. Je peux t’aider sur les ressources, le planning, les messages, le forum, les sondages, les notifications, l’installation ou ton compte.', [
+      { label:'Voir les sujets possibles', intent:'help', primary:true },
+      { label:'Ouvrir mon espace membre', url:'membres.html' },
+      { label:'Voir la FAQ', url:'faq.html' }
+    ]);
   }
 
   function answerResources() {
@@ -696,19 +865,36 @@
 
   function answerMessages() {
     if (!state.user) return bot('Pour accéder aux messages, il faut être connecté à ton compte Fais Ton Show.', [{ label:'Se connecter', url:'auth.html', primary:true }]);
-    const text = state.unread > 0
-      ? `Tu as ${state.unread} message${state.unread > 1 ? 's' : ''} non lu${state.unread > 1 ? 's' : ''}.`
-      : 'Je ne vois pas de message non lu pour le moment.';
-    bot(`${text}\nLa messagerie sert aux échanges privés avec l’équipe, les professeurs ou les membres concernés.`, [
-      { label:'Ouvrir mes messages', url:'messages.html', primary:true },
-      { label:'Voir le forum', url:'forum.html' }
+    if (unreadTotal() > 0) return renderUnreadOverview();
+    bot('Je ne vois rien à lire pour le moment. La zone Messages regroupe les MP, le forum et les sondages, donc tu peux choisir directement l’espace dont tu as besoin.', [
+      { label:'Ouvrir le hub messages', url:'hub-messages.html', primary:true },
+      { label:'Messages privés', url:'messages.html' },
+      { label:'Forum', url:'forum.html' }
     ]);
   }
 
   function answerForum() {
-    bot('Le forum sert aux discussions de groupe, aux annonces et aux échanges par activité. Tu ne vois que les espaces liés à ton profil.', [
+    const forumUnread = getUnreadOverview().forum.total || 0;
+    bot((forumUnread ? `Tu as ${forumUnread} message${forumUnread > 1 ? 's' : ''} forum à lire.\n` : '') + 'Le forum sert aux discussions de groupe, aux annonces et aux échanges par activité. Tu ne vois que les espaces liés à ton profil.', [
       { label:'Ouvrir le forum', url:'forum.html', primary:true },
+      { label:'Voir mes non-lus', intent:'unread' },
       { label:'Voir mes ressources', intent:'resources' }
+    ]);
+  }
+
+  function answerPolls() {
+    if (!state.user) return bot('Connecte-toi pour voir les sondages associés à ton compte.', [{ label:'Se connecter', url:'auth.html', primary:true }]);
+    const pollUnread = getUnreadOverview().polls.total || 0;
+    if (pollUnread > 0) {
+      bot(`Tu as ${pollUnread} sondage${pollUnread > 1 ? 's' : ''} en attente. Je peux t’ouvrir directement celui ou ceux à traiter.`, [
+        { label:'Voir les sondages à répondre', intent:'unread', primary:true },
+        { label:'Ouvrir les sondages', url:'sondages.html' }
+      ]);
+      return;
+    }
+    bot('Je ne vois pas de sondage en attente pour ton compte. Tu peux quand même ouvrir la page Sondages pour consulter les votes passés ou les résultats visibles.', [
+      { label:'Ouvrir les sondages', url:'sondages.html', primary:true },
+      { label:'Voir le hub messages', url:'hub-messages.html' }
     ]);
   }
 
@@ -750,12 +936,13 @@
   }
 
   function answerHelp() {
-    bot('Je peux t’aider sur les ressources, le planning, les messages, le forum, les notifications, l’installation ou ton compte. Si ta demande concerne un accès manquant ou un bug, contacte l’équipe depuis la messagerie.', [
+    bot('Je peux t’aider sur les sujets Fais Ton Show ci-dessous. Choisis une piste : je préfère te guider clairement plutôt que deviner.', [
       { label:'Ressources', intent:'resources' },
       { label:'Planning', intent:'calendar' },
       { label:'Messages', intent:'messages' },
+      { label:'Compte / accès', intent:'account' },
       { label:'Notifications', intent:'notifications' },
-      { label:'Contacter l’équipe', url:'messages.html', primary:true }
+      { label:'Installation app', intent:'install' }
     ]);
   }
 
@@ -783,6 +970,8 @@
         state.events = [];
         state.courses = [];
         state.unread = 0;
+        state.unreadOverview = emptyUnreadOverview();
+        state.currentView = 'home';
         setBadge(0);
         state.listeners.splice(0).forEach(fn => { try { fn(); } catch(e){} });
         if (user) {
@@ -804,7 +993,7 @@
     state.listeners.splice(0).forEach(fn => { try { fn(); } catch(e){} });
     if (state.root) state.root.remove();
     document.body.classList.remove('fts-enjoy-open-mobile');
-    Object.assign(state, { mounted:false, root:null, body:null, badge:null, input:null, user:null, profile:null, categories:[], allowedCategories:[], unread:0, events:[], courses:[] });
+    Object.assign(state, { mounted:false, root:null, body:null, badge:null, input:null, user:null, profile:null, categories:[], allowedCategories:[], unread:0, unreadOverview:emptyUnreadOverview(), events:[], courses:[], currentView:'home' });
   }
 
   window.FTSEnjoy = { init, open, close, toggle, refresh: refreshContext, destroy, ask };

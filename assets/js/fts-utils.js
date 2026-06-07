@@ -621,6 +621,425 @@ FTS.ensureResourceCategory = async function(db, resource) {
 })();
 /* END_FTS_DM_UNREAD_TOTAL_HELPER */
 
+/* FTS_UNREAD_OVERVIEW_HELPER
+   Vue centralisee des non-lus: MP + forum + sondages.
+   Retourne un total synchronise et des liens profonds vers l'endroit exact a lire.
+*/
+(function(){
+  'use strict';
+  window.FTS = window.FTS || {};
+  if (window.FTS.listenUnreadOverview) return;
+
+  function norm(v){
+    if (window.FTS && typeof FTS.norm === 'function') return FTS.norm(v);
+    return String(v || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  }
+
+  function list(v){
+    return (Array.isArray(v) ? v : String(v || '').split(',')).map(function(x){ return String(x || '').trim(); }).filter(Boolean);
+  }
+
+  function uniq(arr){
+    var seen = {};
+    return (arr || []).filter(function(v){
+      var k = norm(v);
+      if (!k || seen[k]) return false;
+      seen[k] = true;
+      return true;
+    });
+  }
+
+  function cloneOverview(overview){
+    return {
+      total: Number(overview.total || 0) || 0,
+      dm: {
+        total: Number(overview.dm && overview.dm.total || 0) || 0,
+        items: (overview.dm && overview.dm.items || []).map(function(x){ return Object.assign({}, x); })
+      },
+      forum: {
+        total: Number(overview.forum && overview.forum.total || 0) || 0,
+        items: (overview.forum && overview.forum.items || []).map(function(x){ return Object.assign({}, x); })
+      },
+      polls: {
+        total: Number(overview.polls && overview.polls.total || 0) || 0,
+        items: (overview.polls && overview.polls.items || []).map(function(x){ return Object.assign({}, x); })
+      }
+    };
+  }
+
+  function emptyOverview(){
+    return {
+      total: 0,
+      dm: { total: 0, items: [] },
+      forum: { total: 0, items: [] },
+      polls: { total: 0, items: [] }
+    };
+  }
+
+  function profileGroups(profile){
+    var own = list(profile && (profile.disciplines || profile.groups || profile.group || profile.categories));
+    var kids = [];
+    if (profile && profile.hasEnfant && Array.isArray(profile.enfants)) {
+      profile.enfants.forEach(function(e){ kids = kids.concat(list(e && (e.disciplines || e.groups || e.group || e.categories))); });
+    }
+    return uniq(own.concat(kids));
+  }
+
+  function profileSubgroups(profile){
+    var own = list(profile && (profile.subgroups || profile.subcategories || profile.subgroup || profile.sousCategories));
+    var kids = [];
+    if (profile && profile.hasEnfant && Array.isArray(profile.enfants)) {
+      profile.enfants.forEach(function(e){ kids = kids.concat(list(e && (e.subgroups || e.subcategories || e.subgroup || e.sousCategories))); });
+    }
+    return uniq(own.concat(kids));
+  }
+
+  function forumInitialReadTs(profile){
+    return Number(profile && (profile.forumBaselineAt || profile.createdAt || profile.created_at || profile.ts || 0)) || 0;
+  }
+
+  function forumLastReadTs(reads, channel, profile){
+    var direct = Number((reads && reads[channel] && reads[channel].ts) || (reads && reads[channel]) || 0) || 0;
+    return direct || forumInitialReadTs(profile);
+  }
+
+  function shouldCountForumMessage(msg, uid){
+    if (!msg) return false;
+    if (msg.uid && msg.uid === uid && !(msg.system === true || msg.gamification === true || msg.notifyAll === true || msg.type === 'special_badge' || msg.type === 'artist_of_week' || msg.type === 'xp_level')) return false;
+    return true;
+  }
+
+  function channelUrl(channel){
+    return 'forum.html?channel=' + encodeURIComponent(channel);
+  }
+
+  function pollUrl(id){
+    return 'sondages.html?poll=' + encodeURIComponent(id);
+  }
+
+  function dmUrl(id){
+    return 'messages.html?conv=' + encodeURIComponent(id);
+  }
+
+  window.FTS.listenUnreadOverview = function(db, uid, profile, callback, options){
+    options = options || {};
+    if (!db || !uid || typeof callback !== 'function') return function(){};
+
+    var stopped = false;
+    var overview = emptyOverview();
+    var lastKey = '';
+    var maxItems = Number(options.maxItems || 8) || 8;
+    var activeProfile = profile || {};
+
+    var userConvsRef = null;
+    var userConvsCb = null;
+    var dmListeners = {};
+    var dmData = {};
+    var publicProfiles = {};
+    var publicProfileLoading = {};
+
+    var forumChannels = [];
+    var forumChannelListeners = [];
+    var forumReadsRef = null;
+    var forumReadsCb = null;
+    var forumTimer = null;
+    var forumRefreshId = 0;
+
+    var pollRef = null;
+    var pollCb = null;
+    var pollRefreshId = 0;
+
+    function emit(){
+      if (stopped) return;
+      overview.total = Number(overview.dm.total || 0) + Number(overview.forum.total || 0) + Number(overview.polls.total || 0);
+      var copy = cloneOverview(overview);
+      var key = JSON.stringify(copy);
+      if (key === lastKey) return;
+      lastKey = key;
+      try { callback(copy); } catch(e) { console.warn('[FTS] listenUnreadOverview callback:', e); }
+    }
+
+    function detachDm(id){
+      var entry = dmListeners[id];
+      if (entry && entry.ref && entry.cb) {
+        try { entry.ref.off('value', entry.cb); } catch(e) {}
+      }
+      delete dmListeners[id];
+      delete dmData[id];
+    }
+
+    function dmOtherUid(conv){
+      var parts = conv && conv.participants ? Object.keys(conv.participants) : [];
+      return parts.find(function(id){ return id !== uid; }) || '';
+    }
+
+    function refreshDmLabels(){
+      if (stopped) return;
+      renderDm();
+    }
+
+    function loadPublicProfile(otherUid){
+      if (!otherUid || publicProfiles[otherUid] || publicProfileLoading[otherUid]) return;
+      publicProfileLoading[otherUid] = true;
+      db.ref('fts_public_profiles/' + otherUid).once('value').then(function(snap){
+        publicProfiles[otherUid] = snap.val() || {};
+        delete publicProfileLoading[otherUid];
+        refreshDmLabels();
+      }).catch(function(){
+        publicProfiles[otherUid] = {};
+        delete publicProfileLoading[otherUid];
+      });
+    }
+
+    function dmLabel(id, conv){
+      if (!conv) return 'Message prive';
+      if (conv.type === 'group') return conv.name || 'Groupe prive';
+      var otherUid = dmOtherUid(conv);
+      if (otherUid) {
+        loadPublicProfile(otherUid);
+        var p = publicProfiles[otherUid] || {};
+        if (p.name || p.firstName) return p.name || p.firstName;
+      }
+      if (conv.lastSenderName) return conv.lastSenderName;
+      return 'Message prive';
+    }
+
+    function renderDm(){
+      var items = Object.keys(dmData).map(function(id){
+        var conv = dmData[id] || {};
+        var count = Number(conv.unread && conv.unread[uid] || 0) || 0;
+        if (!count) return null;
+        return {
+          id: id,
+          count: count,
+          label: dmLabel(id, conv),
+          url: dmUrl(id),
+          ts: Number(conv.lastTs || conv.updatedAt || conv.createdAt || 0) || 0
+        };
+      }).filter(Boolean).sort(function(a,b){ return (b.ts || 0) - (a.ts || 0); });
+      overview.dm = {
+        total: items.reduce(function(sum, item){ return sum + Number(item.count || 0); }, 0),
+        items: items.slice(0, maxItems)
+      };
+      emit();
+    }
+
+    function listenDm(){
+      userConvsRef = db.ref('fts_dm/userConvs/' + uid);
+      userConvsCb = function(snap){
+        if (stopped) return;
+        var ids = snap && snap.val() ? Object.keys(snap.val()) : [];
+        var active = ids.reduce(function(acc, id){ acc[id] = true; return acc; }, {});
+        Object.keys(dmListeners).forEach(function(id){ if (!active[id]) detachDm(id); });
+        if (!ids.length) {
+          dmData = {};
+          overview.dm = { total: 0, items: [] };
+          emit();
+          return;
+        }
+        ids.forEach(function(id){
+          if (dmListeners[id]) return;
+          var ref = db.ref('fts_dm/conversations/' + id);
+          var cb = function(s){
+            if (stopped) return;
+            var val = s && s.val();
+            if (!val) {
+              detachDm(id);
+            } else {
+              dmData[id] = val;
+              if (val.type !== 'group') loadPublicProfile(dmOtherUid(val));
+            }
+            renderDm();
+          };
+          dmListeners[id] = { ref: ref, cb: cb };
+          ref.on('value', cb);
+        });
+        renderDm();
+      };
+      userConvsRef.on('value', userConvsCb);
+    }
+
+    async function visibleForumChannels(){
+      var role = String((activeProfile && activeProfile.role) || '').toLowerCase();
+      var isAdmin = role === 'admin';
+      var groups = profileGroups(activeProfile).map(norm);
+      var subs = profileSubgroups(activeProfile).map(norm);
+      var channels = [{ id:'general', label:'Forum general', url:channelUrl('general') }];
+      try {
+        var structure = window.FTS && FTS.getCategoryStructureAsync
+          ? await FTS.getCategoryStructureAsync(db)
+          : (window.FTS && FTS.getCategoryStructure ? FTS.getCategoryStructure() : []);
+        (structure || []).forEach(function(cat){
+          var catName = cat.name || cat.category || '';
+          var catNorm = norm(catName);
+          if (!catNorm) return;
+          if (isAdmin || groups.indexOf(catNorm) !== -1) {
+            channels.push({ id:catNorm, label:'General ' + catName, url:channelUrl(catNorm) });
+          }
+          (cat.subs || cat.subcats || []).forEach(function(sub){
+            var subName = typeof sub === 'string' ? sub : (sub && (sub.name || sub.label));
+            var subNorm = norm(subName);
+            if (!subNorm) return;
+            if (isAdmin || subs.indexOf(subNorm) !== -1) {
+              channels.push({ id:subNorm, label:String(subName || subNorm), url:channelUrl(subNorm) });
+            }
+          });
+        });
+      } catch(e) {
+        groups.forEach(function(g){ channels.push({ id:g, label:'General ' + g, url:channelUrl(g) }); });
+        subs.forEach(function(s){ channels.push({ id:s, label:s, url:channelUrl(s) }); });
+      }
+      var seen = {};
+      return channels.filter(function(ch){
+        if (!ch || !ch.id || seen[ch.id]) return false;
+        seen[ch.id] = true;
+        return true;
+      });
+    }
+
+    function clearForumListeners(){
+      if (forumTimer) clearTimeout(forumTimer);
+      forumTimer = null;
+      try {
+        forumChannelListeners.forEach(function(entry){
+          if (entry && entry.ref && entry.cb) entry.ref.off('value', entry.cb);
+        });
+        if (forumReadsRef && forumReadsCb) forumReadsRef.off('value', forumReadsCb);
+      } catch(e) {}
+      forumChannelListeners = [];
+      forumReadsRef = null;
+      forumReadsCb = null;
+    }
+
+    function scheduleForum(){
+      if (forumTimer) clearTimeout(forumTimer);
+      forumTimer = setTimeout(refreshForum, 160);
+    }
+
+    async function refreshForum(){
+      if (stopped) return;
+      var refreshId = ++forumRefreshId;
+      if (!forumChannels.length) {
+        overview.forum = { total: 0, items: [] };
+        emit();
+        return;
+      }
+      try {
+        var readsSnap = await db.ref('fts_users/' + uid + '/forumReads').once('value');
+        if (stopped || refreshId !== forumRefreshId) return;
+        var reads = readsSnap.val() || {};
+        var rows = [];
+        await Promise.all(forumChannels.map(function(ch){
+          var lastRead = forumLastReadTs(reads, ch.id, activeProfile);
+          if (!lastRead) return Promise.resolve();
+          return db.ref('fts_forum/messages/' + ch.id).orderByChild('ts').startAt(lastRead + 1).limitToLast(50).once('value')
+            .then(function(snap){
+              var count = 0;
+              var ts = 0;
+              snap.forEach(function(child){
+                var msg = child.val() || {};
+                if (!shouldCountForumMessage(msg, uid)) return;
+                count += 1;
+                ts = Math.max(ts, Number(msg.ts || 0) || 0);
+              });
+              if (count) rows.push({ channel:ch.id, count:count, label:ch.label, url:ch.url, ts:ts });
+            }).catch(function(){});
+        }));
+        if (stopped || refreshId !== forumRefreshId) return;
+        rows.sort(function(a,b){ return (b.ts || 0) - (a.ts || 0); });
+        overview.forum = {
+          total: rows.reduce(function(sum, item){ return sum + Number(item.count || 0); }, 0),
+          items: rows.slice(0, maxItems)
+        };
+      } catch(e) {
+        overview.forum = { total: 0, items: [] };
+      }
+      emit();
+    }
+
+    async function listenForum(){
+      clearForumListeners();
+      forumChannels = await visibleForumChannels();
+      if (stopped) return;
+      forumReadsRef = db.ref('fts_users/' + uid + '/forumReads');
+      forumReadsCb = scheduleForum;
+      forumReadsRef.on('value', forumReadsCb);
+      forumChannels.forEach(function(ch){
+        var ref = db.ref('fts_forum/messages/' + ch.id).orderByChild('ts').limitToLast(1);
+        var cb = scheduleForum;
+        forumChannelListeners.push({ ref:ref, cb:cb });
+        ref.on('value', cb);
+      });
+      scheduleForum();
+    }
+
+    function listenPolls(){
+      pollRef = db.ref('fts_poll_unread/' + uid);
+      pollCb = function(snap){
+        if (stopped) return;
+        var refreshId = ++pollRefreshId;
+        var raw = snap && snap.val() ? snap.val() : {};
+        var ids = Object.keys(raw).filter(Boolean);
+        if (!ids.length) {
+          overview.polls = { total: 0, items: [] };
+          emit();
+          return;
+        }
+        Promise.all(ids.slice(0, maxItems).map(function(id){
+          return db.ref('fts_polls/' + id).once('value').then(function(pollSnap){
+            var poll = pollSnap.val() || {};
+            return {
+              id: id,
+              count: 1,
+              label: poll.title || poll.name || 'Sondage',
+              url: pollUrl(id),
+              ts: Number(poll.createdAt || poll.updatedAt || (raw[id] && raw[id].ts) || 0) || 0
+            };
+          }).catch(function(){
+            return { id:id, count:1, label:'Sondage', url:pollUrl(id), ts:0 };
+          });
+        })).then(function(items){
+          if (stopped || refreshId !== pollRefreshId) return;
+          items.sort(function(a,b){ return (b.ts || 0) - (a.ts || 0); });
+          overview.polls = { total: ids.length, items: items };
+          emit();
+        });
+      };
+      pollRef.on('value', pollCb);
+    }
+
+    function cleanup(){
+      if (stopped) return;
+      stopped = true;
+      if (forumTimer) clearTimeout(forumTimer);
+      try {
+        if (userConvsRef && userConvsCb) userConvsRef.off('value', userConvsCb);
+        Object.keys(dmListeners).forEach(detachDm);
+        clearForumListeners();
+        if (pollRef && pollCb) pollRef.off('value', pollCb);
+      } catch(e) {}
+      dmListeners = {};
+      dmData = {};
+      pollRef = null;
+      pollCb = null;
+    }
+
+    listenDm();
+    listenPolls();
+    Promise.resolve(activeProfile && Object.keys(activeProfile).length ? activeProfile : db.ref('fts_users/' + uid).once('value').then(function(s){ return s.val() || {}; }))
+      .then(function(p){ activeProfile = p || {}; return listenForum(); })
+      .catch(function(){ activeProfile = activeProfile || {}; return listenForum(); });
+    emit();
+
+    if (options.autoCleanup !== false) {
+      window.addEventListener('pagehide', cleanup, { once:true });
+    }
+
+    return cleanup;
+  };
+})();
+/* END_FTS_UNREAD_OVERVIEW_HELPER */
+
 /* FTS_DATA_ACTION_DELEGATION */
 (function(){
   'use strict';

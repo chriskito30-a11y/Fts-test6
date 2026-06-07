@@ -16,6 +16,10 @@
   var forumChannelListeners = [];
   var forumReadsRef = null;
   var forumReadsCb = null;
+  var unreadOverviewCleanup = null;
+  var unreadOverviewUid = null;
+  var unreadOverviewStarting = false;
+  var unreadOverviewToken = 0;
 
   function esc(v){
     if (window.FTS && typeof FTS.esc === 'function') return FTS.esc(v);
@@ -318,12 +322,17 @@
 
   function clearUnreadListeners(){
     try {
+      if (unreadOverviewCleanup) unreadOverviewCleanup();
       Object.keys(unreadConvListeners).forEach(function(id){
         var entry = unreadConvListeners[id];
         if (entry && entry.ref && entry.cb) entry.ref.off('value', entry.cb);
       });
       if (unreadUserConvsRef) unreadUserConvsRef.off();
     } catch(e) {}
+    unreadOverviewCleanup = null;
+    unreadOverviewUid = null;
+    unreadOverviewStarting = false;
+    unreadOverviewToken++;
     unreadConvListeners = {};
     unreadTotalByConv = {};
     unreadUserConvsRef = null;
@@ -379,6 +388,36 @@
       setBadge('fts-member-badge', 0);
       setBadge('fts-messages-badge', 0);
       clearUnreadListeners();
+      return;
+    }
+    var sharedDb = initFirebaseSafe();
+    if (sharedDb && window.FTS && typeof FTS.listenUnreadOverview === 'function') {
+      if (unreadOverviewUid === user.uid && (unreadOverviewCleanup || unreadOverviewStarting)) return;
+      clearUnreadListeners();
+      unreadOverviewUid = user.uid;
+      unreadOverviewStarting = true;
+      var token = ++unreadOverviewToken;
+      sharedDb.ref('fts_users/' + user.uid).once('value')
+        .then(function(snap){
+          if (unreadOverviewUid !== user.uid || token !== unreadOverviewToken) return;
+          unreadOverviewStarting = false;
+          unreadOverviewCleanup = FTS.listenUnreadOverview(sharedDb, user.uid, snap.val() || {}, function(overview){
+            var total = Number(overview && overview.total || 0) || 0;
+            ensureMessagesBadge();
+            setBadge('fts-member-badge', total);
+            setBadge('fts-messages-badge', total);
+          });
+        })
+        .catch(function(){
+          if (unreadOverviewUid !== user.uid || token !== unreadOverviewToken) return;
+          unreadOverviewStarting = false;
+          unreadOverviewCleanup = FTS.listenUnreadOverview(sharedDb, user.uid, {}, function(overview){
+            var total = Number(overview && overview.total || 0) || 0;
+            ensureMessagesBadge();
+            setBadge('fts-member-badge', total);
+            setBadge('fts-messages-badge', total);
+          });
+        });
       return;
     }
     listenUnreadMessages(user.uid);
