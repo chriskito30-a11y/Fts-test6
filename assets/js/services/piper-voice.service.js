@@ -17,7 +17,7 @@
     generate(){ return Promise.resolve([]); }
   };
 
-  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v4';
+  const GENERATED_AUDIO_CACHE = 'fts-piper-generated-audio-v5';
   const memoryAudioCache = new Map();
 
   const state = {
@@ -126,8 +126,9 @@
     if (cached) return { ok:true, cached:true, cacheKey, blob:cached };
 
     const blob = await generateBlobWithRetry(value, voice, options);
-    if (!blob) return { ok:false, cached:false, cacheKey };
-    await putCachedAudioBlob(cacheKey, blob);
+    if (!blob) return { ok:false, cached:false, cacheKey, reason:'generation_failed' };
+    const stored = await putCachedAudioBlob(cacheKey, blob);
+    if (!stored) return { ok:false, cached:false, cacheKey, reason:'cache_write_failed' };
     return { ok:true, cached:false, cacheKey, blob };
   }
 
@@ -185,13 +186,19 @@
 
   async function putCachedAudioBlob(cacheKey, blob){
     const key = String(cacheKey || '');
-    if (!key || !blob) return;
-    memoryAudioCache.set(key, blob);
-    if (!window.caches || !caches.open) return;
+    if (!key || !blob) return false;
+    if (!window.caches || !caches.open) return false;
     try {
       const cache = await caches.open(GENERATED_AUDIO_CACHE);
-      await cache.put(cacheUrlForKey(key), new Response(blob, { headers:{ 'Content-Type': blob.type || 'audio/wav' } }));
-    } catch(e) {}
+      const url = cacheUrlForKey(key);
+      await cache.put(url, new Response(blob, { headers:{ 'Content-Type': blob.type || 'audio/wav' } }));
+      const verify = await cache.match(url);
+      if (!verify) return false;
+      memoryAudioCache.set(key, blob);
+      return true;
+    } catch(e) {
+      return false;
+    }
   }
 
   function cacheUrlForKey(key){
