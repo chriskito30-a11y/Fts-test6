@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V140-voice-timeout';
+  const REPETITION_VERSION = 'V141-audio-cache';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -44,7 +44,8 @@
     openSceneGroupKey: '',
     currentView: 'library',
     xpSession: { practice:0, own:0, difficult:0 },
-    piperPrep: { status:'idle', ready:false, signature:'', promise:null, progress:0 }
+    piperPrep: { status:'idle', ready:false, signature:'', promise:null, progress:0 },
+    audioPrep: { status:'idle', ready:false, signature:'', promise:null, progress:0, total:0, done:0, map:{} }
   };
 
   document.addEventListener('DOMContentLoaded', init);
@@ -104,12 +105,12 @@
     els.repNextBtn.addEventListener('click', nextLineManual);
     els.repStopBtn.addEventListener('click', stop);
     els.repRoleSelect.addEventListener('change', () => { stop(false); state.currentIndex = 0; state.awaitingUser = false; state.focusDifficultOnly = false; state.focusOwnOnly = false; refreshPlayer(); renderRoleChoices(); renderSectionNavigation(); updateDifficultUi(); saveCurrentScriptSettings(); if (getSelectedRole() && (state.currentView === 'role' || state.currentView === 'library')) setView('mode'); });
-    els.repMode.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
-    if (els.repReadSpeakerName) els.repReadSpeakerName.addEventListener('change', () => { saveCurrentScriptSettings(); });
+    els.repMode.addEventListener('change', () => { invalidatePreparedAudio('mode'); refreshPlayer(); saveCurrentScriptSettings(); });
+    if (els.repReadSpeakerName) els.repReadSpeakerName.addEventListener('change', () => { invalidatePreparedAudio('speaker-name'); saveCurrentScriptSettings(); });
     els.repOwnLines.addEventListener('change', () => { refreshPlayer(); saveCurrentScriptSettings(); });
     els.repPause.addEventListener('change', saveCurrentScriptSettings);
-    els.repRate.addEventListener('change', saveCurrentScriptSettings);
-    els.repVoice.addEventListener('change', () => { state.piperPrep.ready = false; state.piperPrep.signature = ''; saveCurrentScriptSettings(); renderRoleReadControls(); updateSpeechStatus(); prepareEmbeddedVoicesForCurrentScript(false); });
+    els.repRate.addEventListener('change', () => { invalidatePreparedAudio('rate'); saveCurrentScriptSettings(); });
+    els.repVoice.addEventListener('change', () => { state.piperPrep.ready = false; state.piperPrep.signature = ''; invalidatePreparedAudio('voice'); saveCurrentScriptSettings(); renderRoleReadControls(); updateSpeechStatus(); prepareEmbeddedVoicesForCurrentScript(false); });
     if (els.repResourceSelect) els.repResourceSelect.addEventListener('change', onResourceSelectChange);
     if (els.repLoadResourcePdfBtn) els.repLoadResourcePdfBtn.addEventListener('click', loadSelectedResourcePdf);
     if (els.repReloadAppPdfBtn) els.repReloadAppPdfBtn.addEventListener('click', () => loadAppDocumentsForCurrentUser(true));
@@ -170,6 +171,20 @@
     return els.repRoleSelect ? els.repRoleSelect.value : '';
   }
 
+  function invalidatePreparedAudio(reason){
+    state.audioPrep.ready = false;
+    state.audioPrep.status = 'idle';
+    state.audioPrep.signature = '';
+    state.audioPrep.promise = null;
+    state.audioPrep.progress = 0;
+    state.audioPrep.total = 0;
+    state.audioPrep.done = 0;
+    state.audioPrep.map = {};
+    if (reason && els.repSpeechStatus && state.currentView !== 'rehearse') {
+      updateSpeechStatus();
+    }
+  }
+
   async function enterRehearsal(autoStart){
     if (!state.lines.length) {
       alert('Choisis d’abord un texte.');
@@ -182,9 +197,9 @@
       return;
     }
     if (usesEmbeddedVoicesForCurrentScript()) {
-      const prepared = await prepareEmbeddedVoicesForCurrentScript(true);
+      const prepared = await prepareRehearsalAudioForCurrentScript(true);
       if (!prepared) {
-        els.repSpeechStatus.textContent = 'Voix FTS non préparées · secours navigateur disponible';
+        els.repSpeechStatus.textContent = 'Répliques audio non préparées · secours navigateur disponible';
       }
     }
     setView('rehearse');
@@ -239,10 +254,14 @@
   function updateSpeechStatus(){
     const embeddedCount = hasEmbeddedVoices() ? getEmbeddedVoices().length : 0;
     if (embeddedCount) {
-      if (state.piperPrep && state.piperPrep.status === 'preparing') {
+      if (state.audioPrep && state.audioPrep.status === 'preparing') {
+        els.repSpeechStatus.textContent = `Préparation des répliques ${state.audioPrep.done || 0}/${state.audioPrep.total || 0} · ${Math.round(state.audioPrep.progress || 0)}%`;
+      } else if (state.audioPrep && state.audioPrep.ready) {
+        els.repSpeechStatus.textContent = `${embeddedCount} voix FTS · répliques prêtes en local`;
+      } else if (state.piperPrep && state.piperPrep.status === 'preparing') {
         els.repSpeechStatus.textContent = `Préparation voix FTS ${Math.round(state.piperPrep.progress || 0)}%`;
       } else if (state.piperPrep && state.piperPrep.ready) {
-        els.repSpeechStatus.textContent = `${embeddedCount} voix embarquées FTS · prêtes hors ligne`;
+        els.repSpeechStatus.textContent = `${embeddedCount} voix embarquées FTS · prêtes à générer`;
       } else {
         els.repSpeechStatus.textContent = `${embeddedCount} voix embarquées FTS · à préparer`;
       }
@@ -869,6 +888,7 @@
     renderScriptEditorPreview();
     const lines = parseScript(text);
     state.lines = lines;
+    invalidatePreparedAudio('script');
     state.characters = collectCharacters(lines);
     state.currentIndex = state.sceneOnly && state.sceneScope ? state.sceneScope.start : (state.focusOwnOnly ? (getOwnIndexesForRole()[0] || 0) : 0);
     state.awaitingUser = false;
@@ -1401,6 +1421,7 @@
         saveCurrentScriptSettings();
         state.piperPrep.ready = false;
         state.piperPrep.signature = '';
+        invalidatePreparedAudio('role-voice');
         prepareEmbeddedVoicesForCurrentScript(false);
       });
     });
@@ -1413,6 +1434,7 @@
         else delete state.roleVoicePrefs[name];
         state.piperPrep.ready = false;
         state.piperPrep.signature = '';
+        invalidatePreparedAudio('role-voice');
         saveCurrentScriptSettings();
         prepareEmbeddedVoicesForCurrentScript(false);
       });
@@ -1746,9 +1768,9 @@
       return;
     }
     if (usesEmbeddedVoicesForCurrentScript()) {
-      const prepared = await prepareEmbeddedVoicesForCurrentScript(true);
+      const prepared = await prepareRehearsalAudioForCurrentScript(true);
       if (!prepared) {
-        els.repSpeechStatus.textContent = 'Voix FTS lentes · lecture avec secours navigateur si besoin';
+        els.repSpeechStatus.textContent = 'Répliques audio lentes · lecture avec secours navigateur si besoin';
       }
     }
     const piper = getPiperService();
@@ -1904,6 +1926,7 @@
       state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 80);
       return;
     }
+    if (includeSpeaker && state.audioPrep && state.audioPrep.ready && speakPreparedEmbeddedLine(line, onEnd)) return;
     const shouldReadSpeaker = includeSpeaker && shouldReadSpeakerName();
     const prefix = shouldReadSpeaker && line && line.speaker ? `${line.speaker}. ` : '';
     speak(prefix + text, onEnd, { speaker: line && line.speaker ? line.speaker : '' });
@@ -2052,6 +2075,167 @@
 
     if (!blocking) return false;
     return await state.piperPrep.promise;
+  }
+
+
+  function buildAudioPreparationSignature(){
+    const role = getSelectedRole();
+    const mode = els.repMode ? els.repMode.value : 'full';
+    const rate = els.repRate ? String(els.repRate.value || '1') : '1';
+    const readSpeaker = shouldReadSpeakerName() ? 'speaker-on' : 'speaker-off';
+    const voiceGlobal = els.repVoice ? String(els.repVoice.value || '') : '';
+    const rolePrefs = Object.keys(state.roleVoicePrefs || {}).sort().map(name => name + ':' + state.roleVoicePrefs[name]).join('|');
+    const ignored = Array.from(state.ignoredSpeakers || []).sort().join('|');
+    const spoken = collectRehearsalAudioItems(true).map(item => `${item.lineIndex}:${item.speaker}:${item.voiceId}:${hashString(item.text)}`).join('|');
+    return hashString([state.currentScriptId || '', state.currentScriptLabel || '', mode, role, rate, readSpeaker, voiceGlobal, rolePrefs, ignored, spoken].join('::'));
+  }
+
+  function collectRehearsalAudioItems(includeCacheKey){
+    const items = [];
+    const role = getSelectedRole();
+    const mode = els.repMode ? els.repMode.value : 'full';
+    const rate = Number(els.repRate && els.repRate.value) || 1;
+    (state.lines || []).forEach((line, index) => {
+      if (!line || line.kind !== 'line') return;
+      if (isIgnoredSpeakerLine(line, role)) return;
+      const isOwn = mode !== 'full' && role && line.speaker === role;
+      if (isOwn && mode === 'auto' && !state.focusOwnOnly) return;
+      if (state.focusOwnOnly && (!role || line.speaker !== role)) return;
+      const text = getPreparedSpeakableText(line, true);
+      if (!text) return;
+      const voiceSettings = resolveVoiceForSpeaker(line.speaker || '');
+      if (!voiceSettings || voiceSettings.engine !== 'piper' || !voiceSettings.voiceId) return;
+      const item = {
+        lineIndex: index,
+        speaker: line.speaker || '',
+        text,
+        voiceId: voiceSettings.voiceId,
+        rate: rate * (Number(voiceSettings.rate) || 1)
+      };
+      if (includeCacheKey) item.cacheKey = buildLineAudioCacheKey(item);
+      items.push(item);
+    });
+    return items;
+  }
+
+  function getPreparedSpeakableText(line, includeSpeaker){
+    const text = getSpeakableText(line ? line.text : '');
+    if (!text) return '';
+    const prefix = includeSpeaker && shouldReadSpeakerName() && line && line.speaker ? `${line.speaker}. ` : '';
+    return prefix + text;
+  }
+
+  function buildLineAudioCacheKey(item){
+    return 'fts-rep-v4-' + hashString([
+      state.currentScriptId || state.currentScriptLabel || 'local-script',
+      item.lineIndex,
+      item.speaker || '',
+      item.voiceId || '',
+      String(Number(item.rate || 1).toFixed(2)),
+      item.text || ''
+    ].join('::'));
+  }
+
+  async function prepareRehearsalAudioForCurrentScript(blocking){
+    const piper = getPiperService();
+    if (!piper || !piper.prepareLineAudio || !hasEmbeddedVoices()) return true;
+
+    const voiceReady = await prepareEmbeddedVoicesForCurrentScript(blocking);
+    if (!voiceReady && blocking) return false;
+
+    const items = collectRehearsalAudioItems(true);
+    if (!items.length) return true;
+    const signature = buildAudioPreparationSignature();
+    if (state.audioPrep.ready && state.audioPrep.signature === signature) return true;
+    if (state.audioPrep.promise && state.audioPrep.signature === signature) {
+      if (!blocking) return false;
+      try { await state.audioPrep.promise; return true; } catch(e) { return false; }
+    }
+
+    state.audioPrep.status = 'preparing';
+    state.audioPrep.ready = false;
+    state.audioPrep.signature = signature;
+    state.audioPrep.progress = 0;
+    state.audioPrep.done = 0;
+    state.audioPrep.total = items.length;
+    state.audioPrep.map = {};
+    if (els.repSpeechStatus) els.repSpeechStatus.textContent = `Préparation des répliques 0/${items.length}`;
+    const previousStartDisabled = els.repStartBtn ? els.repStartBtn.disabled : false;
+    if (blocking && els.repStartBtn) els.repStartBtn.disabled = true;
+
+    state.audioPrep.promise = (async () => {
+      for (let i = 0; i < items.length; i += 1) {
+        const item = items[i];
+        const percent = Math.round((i / items.length) * 100);
+        state.audioPrep.done = i;
+        state.audioPrep.progress = percent;
+        if (els.repSpeechStatus) els.repSpeechStatus.textContent = `Préparation des répliques ${i + 1}/${items.length} · ${percent}%`;
+        const result = await piper.prepareLineAudio(item.text, item.voiceId, {
+          rate: item.rate,
+          cacheKey: item.cacheKey
+        });
+        if (!result || !result.ok) throw new Error('Réplique audio impossible');
+        state.audioPrep.map[item.lineIndex] = {
+          engine: 'piper-cache',
+          cacheKey: item.cacheKey,
+          voiceId: item.voiceId,
+          rate: item.rate
+        };
+      }
+      state.audioPrep.done = items.length;
+      state.audioPrep.progress = 100;
+      state.audioPrep.ready = true;
+      state.audioPrep.status = 'ready';
+      if (els.repSpeechStatus) els.repSpeechStatus.textContent = 'Répliques prêtes · lecture instantanée';
+      return true;
+    })().catch(error => {
+      state.audioPrep.ready = false;
+      state.audioPrep.status = 'error';
+      if (els.repSpeechStatus) els.repSpeechStatus.textContent = 'Préparation audio impossible · secours navigateur';
+      throw error;
+    }).finally(() => {
+      state.audioPrep.promise = null;
+      if (blocking && els.repStartBtn) els.repStartBtn.disabled = previousStartDisabled;
+      setButtons();
+    });
+
+    if (!blocking) return false;
+    try { return await state.audioPrep.promise; } catch(e) { return false; }
+  }
+
+  function speakPreparedEmbeddedLine(line, onEnd){
+    const prepared = state.audioPrep && state.audioPrep.map ? state.audioPrep.map[state.currentIndex] : null;
+    const piper = getPiperService();
+    if (!prepared || !piper || !piper.playPreparedAudio) return false;
+    const token = state.playToken;
+    piper.playPreparedAudio(prepared.cacheKey, { rate: prepared.rate || Number(els.repRate.value) || 1 }).then(result => {
+      if (token !== state.playToken || (result && result.cancelled)) return;
+      if (result && result.ok) {
+        if (onEnd) onEnd();
+        return;
+      }
+      speakLineLiveFallback(line, onEnd);
+    }).catch(() => {
+      if (token !== state.playToken) return;
+      speakLineLiveFallback(line, onEnd);
+    });
+    return true;
+  }
+
+  function speakLineLiveFallback(line, onEnd){
+    const text = getPreparedSpeakableText(line, true);
+    const settings = resolveVoiceForSpeaker(line && line.speaker ? line.speaker : '');
+    if (settings && settings.engine === 'piper') speakWithEmbeddedVoice(text, onEnd, settings);
+    else speakWithBrowser(text, onEnd, settings);
+  }
+
+  function hashString(value){
+    const str = String(value || '');
+    let hash = 5381;
+    for (let i = 0; i < str.length; i += 1) {
+      hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(36);
   }
 
   function speakWithEmbeddedVoice(text, onEnd, voiceSettings){
@@ -2499,7 +2683,7 @@
     document.body.classList.toggle('is-playing', !!state.playing);
     document.body.classList.toggle('rep-own-only', !!state.focusOwnOnly);
     document.body.classList.toggle('has-script-ready', !!hasLines);
-    els.repStartBtn.disabled = !hasLines || state.playing;
+    els.repStartBtn.disabled = !hasLines || state.playing || (state.audioPrep && state.audioPrep.status === 'preparing');
     if (els.repRestartBtn) els.repRestartBtn.disabled = !hasLines || (state.focusOwnOnly ? state.currentIndex <= (getOwnIndexesForRole()[0] || 0) : state.currentIndex <= 0);
     els.repStopBtn.disabled = !hasLines || !state.playing;
     els.repPrevBtn.disabled = !hasLines || (state.focusOwnOnly ? getOwnIndexesForRole().length < 2 : state.currentIndex <= 0);
@@ -2528,6 +2712,7 @@
     els.repScriptInput.value = '';
     renderScriptEditorPreview();
     state.lines = [];
+    invalidatePreparedAudio('clear');
     state.characters = [];
     state.currentIndex = 0;
     state.focusDifficultOnly = false;
