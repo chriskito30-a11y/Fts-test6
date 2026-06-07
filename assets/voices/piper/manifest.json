@@ -1,5 +1,5 @@
 {
-  "version": "2026-06-07-v17-full-line-audio-diagnostics",
+  "version": "2026-06-07-v18-tom-siwis-medium-test",
   "engine": "piper-tts-web",
   "language": "fr-FR",
   "defaultVoiceId": "pierre",
@@ -12,7 +12,7 @@
       "speaker": 0,
       "rate": 1.06,
       "lengthScale": 1.18,
-      "description": "Voix française féminine embarquée, modèle UPMC medium. Stable et validée."
+      "description": "Voix francaise feminine embarquee, modele UPMC medium. Stable et validee."
     },
     {
       "id": "pierre",
@@ -22,7 +22,7 @@
       "speaker": 1,
       "rate": 0.98,
       "lengthScale": 1.2,
-      "description": "Voix française masculine embarquée, modèle UPMC medium. Stable et validée."
+      "description": "Voix francaise masculine embarquee, modele UPMC medium. Stable et validee."
     },
     {
       "id": "mireille",
@@ -32,7 +32,7 @@
       "speaker": 0,
       "rate": 0.96,
       "lengthScale": 1.28,
-      "description": "Variation stable de Jessica, basée sur UPMC medium."
+      "description": "Variation stable de Jessica, basee sur UPMC medium."
     },
     {
       "id": "marcel",
@@ -42,13 +42,35 @@
       "speaker": 1,
       "rate": 0.9,
       "lengthScale": 1.32,
-      "description": "Variation stable de Pierre, basée sur UPMC medium."
+      "description": "Variation stable de Pierre, basee sur UPMC medium."
+    },
+    {
+      "id": "tom-medium",
+      "label": "Tom medium (test)",
+      "gender": "male",
+      "model": "fr_FR-tom-medium",
+      "speaker": 0,
+      "rate": 1,
+      "lengthScale": 1,
+      "description": "Voix francaise masculine de test, modele Tom medium."
+    },
+    {
+      "id": "siwis-medium",
+      "label": "Siwis medium (test)",
+      "gender": "female",
+      "model": "fr_FR-siwis-medium",
+      "speaker": 0,
+      "rate": 1,
+      "lengthScale": 1,
+      "description": "Voix francaise de test, modele Siwis medium. Remplace uniquement les anciens tests Siwis low."
     }
   ],
   "attribution": [
     "Piper voice models from rhasspy/piper-voices.",
     "Runtime from piper-tts-web, MIT license.",
     "UPMC dataset: CC-BY-SA 4.0.",
-    "V17: stable UPMC-only voice set with full-line audio diagnostics."
+    "Tom dataset/model card: AGPLv3.",
+    "SIWIS dataset: CC-BY 4.0.",
+    "V18: adds Tom medium and Siwis medium as direct test voices."
   ]
 }

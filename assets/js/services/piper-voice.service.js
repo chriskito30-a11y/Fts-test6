@@ -4,13 +4,13 @@
   window.FTS = window.FTS || {};
   window.FTS.Services = window.FTS.Services || {};
 
-  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=v17-full-line-audio', import.meta.url).href;
-  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=v17-full-line-audio', import.meta.url).href;
-  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=v17-full-line-audio', import.meta.url).href;
+  const MANIFEST_URL = new URL('../../voices/piper/manifest.json?v=v18-tom-siwis-medium-test', import.meta.url).href;
+  const VOICES_JSON_URL = new URL('../../voices/piper/voices.json?v=v18-tom-siwis-medium-test', import.meta.url).href;
+  const VENDOR_URL = new URL('../../vendor/piper/piper-tts-web.js?v=v18-tom-siwis-medium-test', import.meta.url).href;
   const VOICE_BASE_URL = new URL('../../voices/piper/', import.meta.url).href;
   const PIPER_BASE_URL = new URL('../../../piper/', import.meta.url).href;
   const ONNX_BASE_URL = new URL('../../../onnx/', import.meta.url).href;
-  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=v17-full-line-audio', import.meta.url).href;
+  const ONNX_WORKER_URL = new URL('../../../worker/OnnxWebWorker.js?v=v18-tom-siwis-medium-test', import.meta.url).href;
 
   const noopExpressionRuntime = {
     destroy(){},

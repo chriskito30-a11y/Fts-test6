@@ -6,7 +6,7 @@
       "code": "fr_FR",
       "family": "fr",
       "region": "FR",
-      "name_native": "Français",
+      "name_native": "Francais",
       "name_english": "French",
       "country_english": "France"
     },
@@ -24,14 +24,84 @@
         "md5_digest": "6837ede9408c7e1b39fa4a126af9e865"
       },
       "fr/fr_FR/upmc/medium/fr_FR-upmc-medium.onnx.json": {
-        "size_bytes": 4996,
-        "md5_digest": "574571ae93aba72dbd159582981037da"
+        "size_bytes": 5500,
+        "md5_digest": "7e51b01e822998e1f9f2fa4e7d82a7fc"
       },
       "fr/fr_FR/upmc/medium/MODEL_CARD": {
-        "size_bytes": 316,
-        "md5_digest": "9a49df5c79d89290ac626ebe08f05830"
+        "size_bytes": 331,
+        "md5_digest": "44a733e89e2c82c61499dc6ee4a7188f"
       }
     },
     "aliases": []
+  },
+  "fr_FR-tom-medium": {
+    "key": "fr_FR-tom-medium",
+    "name": "tom",
+    "language": {
+      "code": "fr_FR",
+      "family": "fr",
+      "region": "FR",
+      "name_native": "Francais",
+      "name_english": "French",
+      "country_english": "France"
+    },
+    "quality": "medium",
+    "num_speakers": 1,
+    "speaker_id_map": {
+      "tom-medium": 0
+    },
+    "files": {
+      "fr/fr_FR/tom/medium/fr_FR-tom-medium.onnx": {
+        "size_bytes": 63511038,
+        "md5_digest": "5b460c2394a871e675f5c798af149412"
+      },
+      "fr/fr_FR/tom/medium/fr_FR-tom-medium.onnx.json": {
+        "size_bytes": 4959,
+        "md5_digest": "964d58602df7adf76c2401b070f68ea2"
+      },
+      "fr/fr_FR/tom/medium/MODEL_CARD": {
+        "size_bytes": 233,
+        "md5_digest": "d82342c0c27cfbe9342814c7da46cb83"
+      }
+    },
+    "aliases": []
+  },
+  "fr_FR-siwis-medium": {
+    "key": "fr_FR-siwis-medium",
+    "name": "siwis",
+    "language": {
+      "code": "fr_FR",
+      "family": "fr",
+      "region": "FR",
+      "name_native": "Francais",
+      "name_english": "French",
+      "country_english": "France"
+    },
+    "quality": "medium",
+    "num_speakers": 1,
+    "speaker_id_map": {
+      "siwis-medium": 0
+    },
+    "files": {
+      "fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx": {
+        "size_bytes": 63201294,
+        "md5_digest": "20e876e8c839e9b11a26085858f2300c"
+      },
+      "fr/fr_FR/siwis/medium/fr_FR-siwis-medium.onnx.json": {
+        "size_bytes": 4875,
+        "md5_digest": "a407e7e6901feb79c2ea2a5466076cce"
+      },
+      "fr/fr_FR/siwis/medium/MODEL_CARD": {
+        "size_bytes": 284,
+        "md5_digest": "2b9ea48b15e9e1fd25f95b415caaf66f"
+      },
+      "fr/fr_FR/siwis/medium/ALIASES": {
+        "size_bytes": 16,
+        "md5_digest": "365b322ca04bbb386c99f1d152e026bc"
+      }
+    },
+    "aliases": [
+      "fr-siwis-medium"
+    ]
   }
 }

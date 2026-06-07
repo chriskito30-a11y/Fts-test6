@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V17-full-line-audio';
+  const REPETITION_VERSION = 'V18-tom-siwis-medium-test';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -271,10 +271,11 @@
   }
 
   function sanitizeVoicePreference(pref){
-    const value = String(pref || '');
+    const value = String(pref || '').trim();
     if (!value) return '';
     const lowered = value.toLowerCase();
-    if (/(^|[:/_-])(gilles|siwis|mls)(?:$|[:/_-])|fr_fr-(gilles|siwis|mls)/.test(lowered)) return '';
+    if (/(^|[:/_-])(gilles|mls)(?:$|[:/_-])|fr_fr-(gilles|mls)/.test(lowered)) return '';
+    if (lowered.includes('siwis') && lowered !== 'piper:siwis-medium') return '';
     const ids = getEmbeddedVoiceIds();
     if (value.startsWith('piper:')) {
       const embeddedId = value.replace('piper:', '').trim();
