@@ -1,4 +1,4 @@
-const CACHE = 'fts-v219-rappels-schedule-list';
+const CACHE = 'fts-v224-repetition-imparato';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -373,4 +373,4 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-// FTS cache bump V216 — codes promo XP : libellé + masquage des codes utilisés
+// FTS cache bump V224 — assistant repetition : italienne + voix par personnage
