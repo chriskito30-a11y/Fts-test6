@@ -2200,7 +2200,7 @@
   }
 
   function buildLineAudioCacheKey(item){
-    return 'fts-rep-v4-' + hashString([
+    return 'fts-rep-v6-' + hashString([
       state.currentScriptId || state.currentScriptLabel || 'local-script',
       item.lineIndex,
       item.speaker || '',
@@ -2243,7 +2243,7 @@
         const percent = Math.round((i / items.length) * 100);
         state.audioPrep.done = i;
         state.audioPrep.progress = percent;
-        setPreparationUi('preparing', percent, 'Génération des répliques', `${i + 1}/${items.length} · ${percent}%`);
+        setPreparationUi('preparing', percent, 'Génération des répliques', `${i + 1}/${items.length} · génération réelle en cours… ${percent}%`);
         const result = await piper.prepareLineAudio(item.text, item.voiceId, {
           rate: item.rate,
           cacheKey: item.cacheKey
@@ -2265,7 +2265,7 @@
     })().catch(error => {
       state.audioPrep.ready = false;
       state.audioPrep.status = 'error';
-      setPreparationUi('error', 0, 'Préparation audio impossible', 'La répétition reste verrouillée : au moins une réplique n’a pas pu être générée.');
+      setPreparationUi('error', 0, 'Préparation audio impossible', 'La répétition reste verrouillée : au moins une réplique n’a pas pu être générée. Vérifie la connexion, laisse l’écran ouvert, puis relance la préparation.');
       throw error;
     }).finally(() => {
       state.audioPrep.promise = null;
