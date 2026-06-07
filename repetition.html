@@ -9,6 +9,16 @@
   <link rel="stylesheet" href="assets/css/fts-nav.css?v=106" />
   <link rel="stylesheet" href="assets/css/pages/repetition.css?v=139" />
 <link rel="stylesheet" href="assets/css/fts-enjoy.css?v=6">
+
+  <style>
+    .rep-prep-panel{margin-top:14px;padding:14px;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:rgba(255,255,255,.06);backdrop-filter:blur(10px)}
+    .rep-prep-panel[hidden]{display:none!important}
+    .rep-prep-title{display:flex;gap:10px;align-items:center;font-weight:800;margin-bottom:8px}
+    .rep-prep-detail{margin:8px 0 0;color:rgba(255,255,255,.76);font-size:.95rem}
+    .rep-prep-bar{height:10px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+    .rep-prep-bar span{display:block;height:100%;width:0%;border-radius:999px;background:linear-gradient(90deg,#ffcc66,#ff4f9a,#8b5cff);transition:width .25s ease}
+    .rep-step:disabled,.rep-btn:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.65)}
+  </style>
 </head>
 <body class="has-glow has-topbar" data-rep-view="library">
   <main class="rep-shell wrap wrap-xl">
@@ -142,6 +152,11 @@
       <div class="rep-mode-actions">
         <button class="rep-btn rep-btn-primary" id="repBeginRehearsalBtn" type="button">Commencer</button>
         <button class="rep-btn" id="repOpenSettingsBtn" type="button">⚙️ Personnaliser</button>
+      </div>
+      <div class="rep-prep-panel" id="repPrepPanel" hidden aria-live="polite">
+        <div class="rep-prep-title" id="repPrepTitle">🎙️ Préparation audio obligatoire</div>
+        <div class="rep-prep-bar" aria-hidden="true"><span id="repPrepBar"></span></div>
+        <p class="rep-prep-detail" id="repPrepDetail">Les répliques seront générées et stockées localement avant la répétition.</p>
       </div>
     </section>
 
@@ -292,7 +307,7 @@
   <script src="assets/js/fts-firebase.js"></script>
   <script src="assets/js/fts-nav.js?v=185"></script>
   <script src="assets/js/fts-gamification.js?v=185"></script>
-  <script type="module" src="assets/js/services/piper-voice.service.js?v=4-audio-cache"></script>
+  <script type="module" src="assets/js/services/piper-voice.service.js?v=5-strict-audio-cache"></script>
   <script src="assets/js/pages/repetition.js?v=217-audio-cache" defer></script>
 
 <script src="assets/js/fts-enjoy.js?v=6"></script>
