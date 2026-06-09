@@ -298,12 +298,20 @@ function automaticAmountForSelection(item,offer,subcat,prices){
   if(!item||!offer||!subcat||!prices||!prices.length) return null;
   const activity=norm(item.id||item.name||'');
   const offerKey=norm(offer.key||offer.label||'');
+  const subKey=norm(subcat.key||subcat.name||subcat.title||'');
+  const subLabel=norm(subcat.title||subcat.name||'');
+  const text=(subKey+' '+subLabel).trim();
+
+  // Danse Loisir : Baby Show et Enfants restent à 180 €, Ados/Adultes à 200 €.
   if(activity==='danse' && offerKey==='loisir' && hasPriceChoice(prices,18000) && hasPriceChoice(prices,20000)){
-    const subKey=norm(subcat.key||subcat.name||subcat.title||'');
-    const subLabel=norm(subcat.title||subcat.name||'');
-    const text=(subKey+' '+subLabel).trim();
-    return text.includes('baby') ? 18000 : 20000;
+    return text.includes('ados') || text.includes('adultes') ? 20000 : 18000;
   }
+
+  // Comédie musicale Loisir : Kids 7/9 ans à 280 €, Enfants 10+ et Adultes à 360 €.
+  if(activity==='comedie_musicale' && offerKey==='loisir' && hasPriceChoice(prices,28000) && hasPriceChoice(prices,36000)){
+    return text.includes('kids') || text.includes('7_9') ? 28000 : 36000;
+  }
+
   const subPrices=priceChoices(subcat.price||subcat.tarif||'');
   if(subPrices.length===1 && hasPriceChoice(prices,subPrices[0].cents)) return subPrices[0].cents;
   return null;
