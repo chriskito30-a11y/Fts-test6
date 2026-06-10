@@ -604,6 +604,40 @@ function nextOccurrenceForSchedule(s, nowTs){
   return future[0] || null;
 }
 
+function futureOccurrencesForSchedule(s, nowTs, maxRows){
+  if (!s || s.active === false) return [];
+  const duration = Math.max(5, Number(s.durationMinutes || 30) || 30);
+  const mode = String(s.recurrenceMode || 'single');
+  const excluded = new Set(Array.isArray(s.excludedDates) ? s.excludedDates : []);
+  const rows = [];
+  const max = Math.max(1, Number(maxRows || 80) || 80);
+
+  function pushIfValid(ts){
+    if (!ts || !Number.isFinite(ts)) return;
+    const endAt = ts + duration * 60000;
+    if (endAt < nowTs) return;
+    if (excluded.has(scheduleDateKey(ts))) return;
+    rows.push({ startAt: ts, endAt, durationMinutes: duration, schedule: s, scheduleId: s.id || '' });
+  }
+
+  if (mode === 'manual') {
+    (Array.isArray(s.manualDates) ? s.manualDates : []).map(Number).filter(Boolean).sort((a,b) => a-b).forEach(pushIfValid);
+  } else if (mode === 'weekly' || mode === 'biweekly' || mode === 'triweekly') {
+    const startAt = Number(s.startAt || 0);
+    if (!startAt) return [];
+    const step = mode === 'weekly' ? 7 : (mode === 'biweekly' ? 14 : 21);
+    const until = Number(s.repeatUntil || 0) || defaultScheduleUntil(startAt);
+    let cur = startAt;
+    let guard = 0;
+    while (cur + duration * 60000 < nowTs && guard < 260) { cur = addScheduleDays(cur, step); guard++; }
+    while (cur <= until && guard < 360 && rows.length < max) { pushIfValid(cur); cur = addScheduleDays(cur, step); guard++; }
+  } else {
+    pushIfValid(Number(s.startAt || 0));
+  }
+
+  return rows.sort((a,b) => a.startAt - b.startAt).slice(0, max);
+}
+
 function upcomingMemberOccurrences(limit){
   const nowTs = Date.now();
   return Object.entries(memberSchedules || {})
@@ -616,6 +650,16 @@ function upcomingMemberOccurrences(limit){
     .filter(Boolean)
     .sort((a,b) => a.startAt - b.startAt)
     .slice(0, limit || 4);
+}
+
+function allUpcomingMemberOccurrences(maxRows){
+  const nowTs = Date.now();
+  const rows = [];
+  Object.entries(memberSchedules || {})
+    .map(([id, s]) => Object.assign({ id }, s || {}))
+    .filter(canSeeSchedule)
+    .forEach(s => { futureOccurrencesForSchedule(s, nowTs, Math.max(1, Number(maxRows || 120) || 120)).forEach(o => rows.push(o)); });
+  return rows.sort((a,b) => a.startAt - b.startAt).slice(0, Math.max(1, Number(maxRows || 120) || 120));
 }
 
 function nextCourseTypeLabel(s){
@@ -668,8 +712,7 @@ function isAppleCalendarDevice(){
   return /iphone|ipad|ipod|macintosh/.test(ua) || iPadOS;
 }
 
-function icsCalendarUrlForOccurrence(occ){
-  const s = occ.schedule || {};
+function icsTextForOccurrences(occurrences){
   const pad = n => String(n).padStart(2, '0');
   function icsDate(ts){
     const d = new Date(ts);
@@ -683,27 +726,34 @@ function icsCalendarUrlForOccurrence(occ){
       .replace(/,/g, '\\,')
       .replace(/\n/g, '\\n');
   }
-  const uidPart = String((s.id || occ.scheduleId || occ.startAt || Date.now()) + '@faistonshow.fr').replace(/[^a-zA-Z0-9@._-]/g, '');
-  const summary = (s.title || s.lessonType || 'Créneau Fais Ton Show') + ' — Fais Ton Show';
-  const description = 'Créneau Fais Ton Show' + (s.teacher ? '\nProf : ' + s.teacher : '') + (s.lessonType ? '\nType : ' + s.lessonType : '');
-  const ics = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Fais Ton Show//FTS PWA//FR',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    'UID:' + uidPart,
-    'DTSTAMP:' + icsDate(Date.now()),
-    'DTSTART:' + icsDate(occ.startAt),
-    'DTEND:' + icsDate(occ.endAt || (occ.startAt + Number(s.durationMinutes || 30) * 60000)),
-    'SUMMARY:' + fold(summary),
-    'DESCRIPTION:' + fold(description),
-    'LOCATION:' + fold(s.place || 'Fais Ton Show'),
-    'END:VEVENT',
-    'END:VCALENDAR'
-  ].join('\r\n');
-  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(ics);
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Fais Ton Show//FTS PWA//FR','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+  (occurrences || []).forEach((occ, index) => {
+    const s = occ.schedule || {};
+    const uidRaw = String((s.id || occ.scheduleId || 'cours') + '-' + (occ.startAt || index) + '@faistonshow.fr');
+    const uidPart = uidRaw.replace(/[^a-zA-Z0-9@._-]/g, '');
+    const summary = (s.title || s.lessonType || 'Créneau Fais Ton Show') + ' — Fais Ton Show';
+    const description = 'Créneau Fais Ton Show' + (s.teacher ? '\nProf : ' + s.teacher : '') + (s.lessonType ? '\nType : ' + s.lessonType : '');
+    lines.push('BEGIN:VEVENT','UID:' + uidPart,'DTSTAMP:' + icsDate(Date.now()),'DTSTART:' + icsDate(occ.startAt),'DTEND:' + icsDate(occ.endAt || (occ.startAt + Number(s.durationMinutes || 30) * 60000)),'SUMMARY:' + fold(summary),'DESCRIPTION:' + fold(description),'LOCATION:' + fold(s.place || 'Fais Ton Show'),'END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+function icsCalendarUrlForOccurrence(occ){
+  return 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsTextForOccurrences([occ]));
+}
+
+function downloadIcsFile(filename, occurrences){
+  const rows = Array.isArray(occurrences) ? occurrences.filter(Boolean) : [];
+  if (!rows.length) return;
+  const blob = new Blob([icsTextForOccurrences(rows)], { type:'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'fais-ton-show-calendrier.ics';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { try { URL.revokeObjectURL(url); } catch(e) {} try { a.remove(); } catch(e) {} }, 800);
 }
 
 function calendarActionsHtmlForOccurrence(occ){
@@ -737,6 +787,11 @@ function renderNextCoursePanel(){
   const title = s.title || s.lessonType || s.targetSubcategory || s.targetCategory || 'Prochain créneau';
   const metaParts = [nextCourseTypeLabel(s), s.teacher ? 'Prof : ' + s.teacher : '', s.place || '', first.durationMinutes ? first.durationMinutes + ' min' : ''].filter(Boolean);
   const more = rows.slice(1);
+  const seriesRows = futureOccurrencesForSchedule(s, Date.now(), 90);
+  const allRows = allUpcomingMemberOccurrences(140);
+  const extraCalendarActions = [];
+  if (seriesRows.length > 1) extraCalendarActions.push(`<button type="button" class="btn-outline btn-sm" data-calendar-download="series" data-schedule-id="${FTS.esc(first.scheduleId || s.id || '')}">Toute la série iCal</button>`);
+  if (allRows.length > 1) extraCalendarActions.push(`<button type="button" class="btn-outline btn-sm" data-calendar-download="all">Tous mes cours iCal</button>`);
 
   card.innerHTML = `
     <div class="next-course-main">
@@ -750,7 +805,9 @@ function renderNextCoursePanel(){
     </div>
     <div class="next-course-actions">
       ${calendarActionsHtmlForOccurrence(first)}
+      ${extraCalendarActions.join('')}
     </div>
+    ${extraCalendarActions.length ? `<div class="next-course-calendar-help">Le fichier iCal contient plusieurs événements. Il peut être importé dans Apple Calendrier, Google Calendar ou Outlook.</div>` : ''}
     ${more.length ? `<div class="next-course-more">
       <div class="next-course-more-title">Ensuite</div>
       ${more.map(o => {
@@ -3667,6 +3724,21 @@ function bindMembresUiEvents() {
   bindClick('pwa-install-main', triggerAndroidInstallPrompt);
 
   document.addEventListener('click', function(e) {
+
+    const calendarDownloadBtn = e.target.closest('[data-calendar-download]');
+    if (calendarDownloadBtn) {
+      e.preventDefault();
+      const mode = calendarDownloadBtn.getAttribute('data-calendar-download') || '';
+      const scheduleId = calendarDownloadBtn.getAttribute('data-schedule-id') || '';
+      if (mode === 'series') {
+        const sched = scheduleId && memberSchedules ? memberSchedules[scheduleId] : null;
+        const rows = futureOccurrencesForSchedule(Object.assign({ id:scheduleId }, sched || {}), Date.now(), 90);
+        downloadIcsFile('fais-ton-show-serie.ics', rows);
+      } else {
+        downloadIcsFile('fais-ton-show-mes-cours.ics', allUpcomingMemberOccurrences(140));
+      }
+      return;
+    }
 
     const firstStepBtn = e.target.closest('[data-first-step]');
     if (firstStepBtn) {

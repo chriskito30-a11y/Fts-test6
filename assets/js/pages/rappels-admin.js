@@ -244,6 +244,15 @@
       renderReminders();
       return;
     }
+    const groupAction = event.target.closest('[data-reminder-group-action]');
+    if(groupAction){
+      event.preventDefault();
+      event.stopPropagation();
+      const key = groupAction.getAttribute('data-group-key') || '';
+      const type = groupAction.getAttribute('data-reminder-group-action') || '';
+      applyGroupAction(key, type);
+      return;
+    }
     const row = event.target.closest('[data-reminder-id]');
     if(row){
       selectedReminderId = row.getAttribute('data-reminder-id') || '';
@@ -262,10 +271,12 @@
       const id = action.getAttribute('data-id') || selectedReminderId;
       const type = action.getAttribute('data-reminder-action');
       if(type === 'delete') deleteReminder(id);
+      if(type === 'delete-series') deleteReminderSeries(id);
       if(type === 'send-test-dm') sendRealTestDm(id);
       if(type === 'standby') setReminderStatus(id, 'standby');
       if(type === 'activate-series') activateReminderSeries(id);
       if(type === 'standby-series') standbyReminderSeries(id);
+      if(type === 'cancelled-series') cancelReminderSeries(id);
       if(type === 'cancelled') setReminderStatus(id, 'cancelled');
     }
   }
@@ -1146,6 +1157,53 @@
     return Array.from(map.values()).sort((a,b) => (a.nextAt || 0) - (b.nextAt || 0) || String(a.label).localeCompare(String(b.label)));
   }
 
+  function visibleReminderIdsForGroupKey(key){
+    return sortedReminders().filter(([,r]) => reminderGroupKey(r) === key).map(([id]) => id);
+  }
+
+  async function bulkUpdateReminders(ids, patch, successText){
+    const rows = Array.isArray(ids) ? ids.filter(Boolean) : [];
+    if(!rows.length){ msg('Aucun rappel visible à modifier dans ce groupe.', false); return; }
+    try{
+      if(FTS.Services.Reminders.updateMany) await FTS.Services.Reminders.updateMany(rows, patch || {});
+      else await Promise.all(rows.map(id => FTS.Services.Reminders.update(id, patch || {})));
+      msg(successText || (rows.length + ' rappel(s) modifié(s).'), true);
+    }catch(e){ console.warn('[FTS Rappels Admin] bulk update', e); msg('Impossible de modifier ce lot de rappels.', false); }
+  }
+
+  async function bulkRemoveReminders(ids, successText){
+    const rows = Array.isArray(ids) ? ids.filter(Boolean) : [];
+    if(!rows.length){ msg('Aucun rappel visible à supprimer dans ce groupe.', false); return; }
+    try{
+      if(FTS.Services.Reminders.removeMany) await FTS.Services.Reminders.removeMany(rows);
+      else await Promise.all(rows.map(id => FTS.Services.Reminders.remove(id)));
+      if(rows.includes(selectedReminderId)) selectedReminderId = '';
+      msg(successText || (rows.length + ' rappel(s) supprimé(s).'), true);
+    }catch(e){ console.warn('[FTS Rappels Admin] bulk remove', e); msg('Impossible de supprimer ce lot de rappels.', false); }
+  }
+
+  async function applyGroupAction(key, type){
+    const ids = visibleReminderIdsForGroupKey(key);
+    if(!ids.length){ msg('Aucun rappel visible dans ce groupe.', false); return; }
+    const label = ids.length + ' rappel(s) visible(s)';
+    if(type === 'activate'){
+      if(!confirm('Activer ' + label + ' ?')) return;
+      return bulkUpdateReminders(ids, { status:'pending' }, ids.length + ' rappel(s) activé(s).');
+    }
+    if(type === 'standby'){
+      if(!confirm('Mettre en pause ' + label + ' ?')) return;
+      return bulkUpdateReminders(ids, { status:'standby' }, ids.length + ' rappel(s) mis en pause.');
+    }
+    if(type === 'cancelled'){
+      if(!confirm('Annuler ' + label + ' ?')) return;
+      return bulkUpdateReminders(ids, { status:'cancelled' }, ids.length + ' rappel(s) annulé(s).');
+    }
+    if(type === 'delete'){
+      if(!confirm('Supprimer définitivement ' + label + ' ?')) return;
+      return bulkRemoveReminders(ids, ids.length + ' rappel(s) supprimé(s).');
+    }
+  }
+
   function renderReminderRow(id, r){
     const active = selectedReminderId === id;
     const hasIssue = isReminderIssue(r);
@@ -1189,6 +1247,12 @@
           <span class="reminder-group-main"><strong>${esc(g.label)}</strong><small>${esc(meta)}</small></span>
           <span class="reminder-group-count">${g.rows.length}</span>
         </summary>
+        <div class="reminder-group-bulk" aria-label="Actions rapides sur ce groupe">
+          <button type="button" class="btn-outline btn-sm" data-reminder-group-action="activate" data-group-key="${esc(g.key)}">Activer le lot</button>
+          <button type="button" class="btn-outline btn-sm" data-reminder-group-action="standby" data-group-key="${esc(g.key)}">Pause le lot</button>
+          <button type="button" class="btn-outline danger btn-sm" data-reminder-group-action="cancelled" data-group-key="${esc(g.key)}">Annuler le lot</button>
+          <button type="button" class="btn-outline danger btn-sm" data-reminder-group-action="delete" data-group-key="${esc(g.key)}">Supprimer le lot</button>
+        </div>
         <div class="reminder-group-body">${g.rows.map(([id,r]) => renderReminderRow(id,r)).join('')}</div>
       </details>`;
     }).join('');
@@ -1217,8 +1281,11 @@
         <button class="btn-outline btn-sm" data-copy-reminder="1" data-id="${esc(selectedReminderId)}">Copier le texte</button>
         ${r.uid ? `<button class="btn btn-sm btn-gold" data-reminder-action="send-test-dm" data-id="${esc(selectedReminderId)}">Envoyer un MP de test maintenant</button>` : `<button class="btn-outline btn-sm" disabled title="Réservé aux rappels avec membre ciblé">Test MP indisponible</button>`}
         <button class="btn-outline btn-sm" data-reminder-action="standby" data-id="${esc(selectedReminderId)}">Mettre en pause</button>
+        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="activate-series" data-id="${esc(selectedReminderId)}">Activer la série</button>` : ''}
         ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline btn-sm" data-reminder-action="standby-series" data-id="${esc(selectedReminderId)}">Mettre la série en pause</button>` : ''}
+        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline danger btn-sm" data-reminder-action="cancelled-series" data-id="${esc(selectedReminderId)}">Annuler la série</button>` : ''}
         <button class="btn-outline danger btn-sm" data-reminder-action="cancelled" data-id="${esc(selectedReminderId)}">Annuler</button>
+        ${(r.seriesId || r.scheduleId) ? `<button class="btn-outline danger btn-sm" data-reminder-action="delete-series" data-id="${esc(selectedReminderId)}">Supprimer la série</button>` : ''}
         <button class="btn-outline danger btn-sm" data-reminder-action="delete" data-id="${esc(selectedReminderId)}">Supprimer</button>
       </div>
     </div>`;
@@ -1412,6 +1479,22 @@
       console.warn('[FTS Rappels Admin] standby series', e);
       msg('Impossible de mettre la série en pause.', false);
     }
+  }
+
+  async function cancelReminderSeries(id){
+    const base = reminders[id];
+    const ids = linkedReminderIds(base);
+    if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
+    if(!confirm('Annuler ' + ids.length + ' rappel(s) de cette série ?')) return;
+    await bulkUpdateReminders(ids, { status:'cancelled' }, ids.length + ' rappel(s) annulé(s).');
+  }
+
+  async function deleteReminderSeries(id){
+    const base = reminders[id];
+    const ids = linkedReminderIds(base);
+    if(!ids.length){ msg('Aucune série liée trouvée.', false); return; }
+    if(!confirm('Supprimer définitivement ' + ids.length + ' rappel(s) de cette série ?')) return;
+    await bulkRemoveReminders(ids, ids.length + ' rappel(s) supprimé(s).');
   }
 
   async function deleteReminder(id){
