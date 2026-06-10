@@ -31,6 +31,21 @@
     },
     update(id, patch){ return this.ref(id).update(Object.assign({}, patch, { updatedAt: Date.now() })); },
     remove(id){ return this.ref(id).remove(); },
+    updateMany(ids, patch){
+      const rows = Array.isArray(ids) ? ids.filter(Boolean) : [];
+      if(!rows.length) return Promise.resolve();
+      const now = Date.now();
+      const updates = {};
+      rows.forEach(id => { updates[id] = Object.assign({}, patch || {}, { updatedAt: now }); });
+      return this.ref().update(updates);
+    },
+    removeMany(ids){
+      const rows = Array.isArray(ids) ? ids.filter(Boolean) : [];
+      if(!rows.length) return Promise.resolve();
+      const updates = {};
+      rows.forEach(id => { updates[id] = null; });
+      return this.ref().update(updates);
+    },
     setStatus(id, status){
       return this.update(id, { status });
     },
