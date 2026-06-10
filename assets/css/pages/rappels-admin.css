@@ -97,3 +97,9 @@
   .grid{grid-template-columns:minmax(360px,420px) minmax(0,1fr);align-items:start}
   .reminder-list{max-height:none;overflow:visible;padding-right:0}
 }
+
+
+/* Patch rappels — actions de lot */
+.reminder-group-bulk{display:flex;gap:.45rem;flex-wrap:wrap;padding:0 .75rem .65rem;margin-top:-.2rem}
+.reminder-group-bulk .btn-sm{font-size:.68rem;padding:.48rem .72rem}
+@media(max-width:560px){.reminder-group-bulk{padding:0 .55rem .55rem}.reminder-group-bulk .btn-sm{flex:1 1 calc(50% - .45rem)}}

@@ -3734,3 +3734,8 @@ button.profile-pill:focus-visible {
   .welcome-card.smart-hero .account-actions .member-tool-btn .quick-title{ font-size:.66rem !important; }
   .welcome-card.smart-hero .account-actions .member-tool-btn .quick-ico{ font-size:.92rem !important; }
 }
+
+
+/* Patch calendrier série — export multi-cours */
+.next-course-calendar-help{font-size:.72rem;color:var(--muted);line-height:1.35;margin:.35rem 0 0;text-align:right}
+@media(max-width:560px){.next-course-calendar-help{text-align:left}.next-course-actions .btn-sm{width:100%;justify-content:center;text-align:center}}
