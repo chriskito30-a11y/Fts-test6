@@ -34,3 +34,8 @@ body{font-family:'DM Sans',system-ui,sans-serif;color:#fff;background:#08070d}.s
 .promo-target-option small{display:block;margin-top:2px;color:rgba(255,255,255,.62);font-weight:600}
 .promo-picker-empty{padding:12px;color:rgba(255,255,255,.66);border-radius:12px;background:rgba(255,255,255,.045)}
 .promo-picker-empty.bad{color:#ffb0b0}
+
+/* Règlements exceptionnels */
+#shop-seed-exceptional{background:rgba(255,214,102,.14);color:#ffd666;border:1px solid rgba(255,214,102,.26)}
+#shop-seed-exceptional:disabled{opacity:.65;cursor:wait}
+.shop-product span:has(+ small){line-height:1.35}
