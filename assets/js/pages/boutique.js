@@ -9,8 +9,21 @@
   async function api(path,opts){ const t=await token(); const headers={'Content-Type':'application/json'}; if(t) headers.Authorization='Bearer '+t; const res=await fetch(worker()+path,Object.assign({headers},opts||{})); const data=await res.json().catch(()=>null); if(!res.ok||!data||data.ok===false) throw new Error((data&&data.error)||('HTTP '+res.status)); return data; }
   function guard(txt){ $('shop-guard').hidden=false; $('shop-guard').innerHTML='<div class="shop-empty">'+esc(txt)+'</div>'; $('shop-list').hidden=true; }
   function slug(v){ return String(v||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''); }
-  function isExceptionalProduct(p){ const id=slug(p&&p.id), cat=slug(p&&p.category), name=slug(p&&p.name); return id.indexOf('reglement_exceptionnel')===0 || cat==='reglement_exceptionnel' || name.indexOf('reglement_exceptionnel')===0; }
-  function exceptionalAmount(p){ return Math.round(Number(p&&p.priceCents||0)/100); }
+  function prettyCategoryName(cat){
+    const raw=String(cat||'').trim();
+    if(!raw) return '';
+    return raw.replace(/^liste\s*d[ée]roulante\s*[—–-]\s*/i,'').trim();
+  }
+  function dropdownGroupName(p){
+    const cat=String(p&&p.category||'').trim();
+    const catSlug=slug(cat);
+    if(catSlug.indexOf('liste_deroulante_')===0 || catSlug==='liste_deroulante') return prettyCategoryName(cat) || 'Liste déroulante';
+    // Compatibilité avec la première version livrée : les anciens produits restent regroupés.
+    if(catSlug==='reglement_exceptionnel') return 'Règlement exceptionnel';
+    return '';
+  }
+  function dropdownGroupId(name){ return '__dropdown_group__'+slug(name); }
+  function dropdownAmountLabel(p){ return euro(p&&p.priceCents); }
   function parseOptions(text){
     return String(text||'').split(/\n+/).map(line=>line.trim()).filter(Boolean).map((line,i)=>{
       const parts=line.split(':');
@@ -32,23 +45,34 @@
     document.getElementById('shop-buy-form').addEventListener('submit',submitBuy);
     return m;
   }
-  let currentProduct=null, currentButton=null, currentExceptionalGroup=null;
-  function exceptionalGroup(){
-    const items=(products||[]).filter(isExceptionalProduct).sort((a,b)=>Number(a.priceCents||0)-Number(b.priceCents||0));
-    if(!items.length) return null;
-    return {__exceptionalGroup:true,id:'__reglement_exceptionnel_group',name:'Règlement exceptionnel',category:'Paiement ponctuel',description:'À utiliser uniquement si l’administration Fais Ton Show vous a demandé de régler un complément spécifique.',items,priceCents:items[0].priceCents};
+  let currentProduct=null, currentButton=null, currentDropdownGroup=null;
+  function dropdownGroups(){
+    const map={};
+    (products||[]).forEach(p=>{
+      const name=dropdownGroupName(p);
+      if(!name) return;
+      const key=slug(name)||'liste';
+      if(!map[key]) map[key]={__dropdownGroup:true,id:dropdownGroupId(name),name,category:'Paiement ponctuel',description:'Choisis le montant ou l’option demandé par l’administration Fais Ton Show.',items:[]};
+      map[key].items.push(p);
+    });
+    return Object.values(map).map(g=>{
+      g.items.sort((a,b)=>Number(a.priceCents||0)-Number(b.priceCents||0) || String(a.name||'').localeCompare(String(b.name||''),'fr'));
+      g.priceCents=(g.items[0]&&g.items[0].priceCents)||0;
+      return g;
+    }).sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'fr'));
   }
   function render(){
     const box=$('shop-list'); $('shop-guard').hidden=true; box.hidden=false;
-    const group=exceptionalGroup();
-    const rows=(products||[]).filter(p=>!isExceptionalProduct(p));
-    if(group) rows.push(group);
+    const groups=dropdownGroups();
+    const rows=(products||[]).filter(p=>!dropdownGroupName(p));
+    groups.forEach(g=>rows.push(g));
     if(!rows.length){ box.innerHTML='<div class="shop-empty">Aucun article disponible pour le moment.</div>'; return; }
     box.innerHTML=rows.map(p=>{
-      if(p.__exceptionalGroup){
-        const amounts=p.items.map(exceptionalAmount).filter(Boolean);
-        const min=Math.min.apply(null,amounts), max=Math.max.apply(null,amounts);
-        return `<article class="shop-item shop-item-exceptional"><div class="shop-img">💳</div><div class="shop-body"><span>${esc(p.category)}</span><h2>${esc(p.name)}</h2><p>${esc(p.description)}</p><small>Montant au choix : ${esc(amounts.join(' € · '))} €</small><div class="shop-buy"><strong>${min===max?euro(p.priceCents):('de '+euro(min*100)+' à '+euro(max*100))}</strong><button type="button" data-buy="${esc(p.id)}">Choisir</button></div></div></article>`;
+      if(p.__dropdownGroup){
+        const labels=p.items.map(dropdownAmountLabel);
+        const prices=p.items.map(item=>Number(item.priceCents||0));
+        const min=Math.min.apply(null,prices), max=Math.max.apply(null,prices);
+        return `<article class="shop-item shop-item-exceptional"><div class="shop-img">💳</div><div class="shop-body"><span>${esc(p.category)}</span><h2>${esc(p.name)}</h2><p>${esc(p.description)}</p><small>Choix disponibles : ${esc(labels.join(' · '))}</small><div class="shop-buy"><strong>${min===max?euro(min):('de '+euro(min)+' à '+euro(max))}</strong><button type="button" data-buy="${esc(p.id)}">Choisir</button></div></div></article>`;
       }
       const opts=parseOptions(p.variantsText);
       return `<article class="shop-item"><div class="shop-img">${p.imageUrl?`<img src="${esc(p.imageUrl)}" alt=""/>`:'🛍️'}</div><div class="shop-body"><span>${esc(p.category||'Boutique')}</span><h2>${esc(p.name||'Article')}</h2><p>${esc(p.description||'')}</p>${opts.length?`<small>${esc(opts.map(o=>o.name).join(' · '))}</small>`:''}<div class="shop-buy"><strong>${euro(p.priceCents)}</strong><button type="button" data-buy="${esc(p.id)}">Acheter</button></div></div></article>`;
@@ -58,19 +82,21 @@
   function prefill(form){ try{ const u=firebase.auth().currentUser; form.email.value=(u&&u.email)||''; }catch(e){} }
   function optionsHtml(opts){ return opts.length?opts.map(o=>`<label>${esc(o.name)}<select name="opt_${esc(o.key)}" data-option-name="${esc(o.name)}" required><option value="">Choisir…</option>${o.values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('')}</select></label>`).join(''):''; }
   function openBuy(id,btn){
-    const group=exceptionalGroup();
-    const p=(group&&String(id)===String(group.id))?group:products.find(x=>String(x.id)===String(id));
+    const groups=dropdownGroups();
+    const group=groups.find(g=>String(g.id)===String(id));
+    const p=group||products.find(x=>String(x.id)===String(id));
     if(!p) return;
-    currentProduct=p; currentButton=btn; currentExceptionalGroup=p.__exceptionalGroup?p:null;
+    currentProduct=p; currentButton=btn; currentDropdownGroup=p.__dropdownGroup?p:null;
     const m=modal();
     const form=$('shop-buy-form');
     const qtyLabel=form.querySelector('[data-shop-quantity]');
     $('shop-buy-title').textContent=p.name||'Article';
     const zone=$('shop-buy-options');
-    if(p.__exceptionalGroup){
-      $('shop-buy-summary').textContent='Choisis le montant demandé par l’administration.';
-      const motifOptions=parseOptions((p.items[0]&&p.items[0].variantsText)||'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé');
-      zone.innerHTML=`<label>Montant<select name="exceptionalProductId" data-exceptional-product required><option value="">Choisir…</option>${p.items.map(item=>`<option value="${esc(item.id)}">${esc(exceptionalAmount(item))} €</option>`).join('')}</select></label>`+optionsHtml(motifOptions);
+    if(p.__dropdownGroup){
+      $('shop-buy-summary').textContent='Choisis l’option demandée par l’administration.';
+      const motifSource=(p.items.find(item=>String(item.variantsText||'').trim())||{}).variantsText || 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé';
+      const motifOptions=parseOptions(motifSource);
+      zone.innerHTML=`<label>Montant / option<select name="dropdownProductId" data-dropdown-product required><option value="">Choisir…</option>${p.items.map(item=>`<option value="${esc(item.id)}">${esc(item.name||dropdownAmountLabel(item))} — ${esc(euro(item.priceCents))}</option>`).join('')}</select></label>`+optionsHtml(motifOptions);
       if(qtyLabel) qtyLabel.hidden=true;
     } else {
       const opts=parseOptions(p.variantsText);
@@ -79,24 +105,24 @@
       if(qtyLabel) qtyLabel.hidden=false;
     }
     form.reset(); form.quantity.value='1'; prefill(form); $('shop-buy-msg').textContent='';
-    const exceptionalSelect=form.querySelector('[data-exceptional-product]');
-    if(exceptionalSelect){
-      exceptionalSelect.addEventListener('change',()=>{
-        const selected=(currentExceptionalGroup&&currentExceptionalGroup.items||[]).find(item=>String(item.id)===String(exceptionalSelect.value));
-        $('shop-buy-summary').textContent=selected?('Montant sélectionné : '+euro(selected.priceCents)):'Choisis le montant demandé par l’administration.';
+    const dropdownSelect=form.querySelector('[data-dropdown-product]');
+    if(dropdownSelect){
+      dropdownSelect.addEventListener('change',()=>{
+        const selected=(currentDropdownGroup&&currentDropdownGroup.items||[]).find(item=>String(item.id)===String(dropdownSelect.value));
+        $('shop-buy-summary').textContent=selected?('Sélection : '+(selected.name||'Option')+' · '+euro(selected.priceCents)):'Choisis l’option demandée par l’administration.';
       },{once:false});
     }
     m.classList.add('open');
   }
   function selectedProductForSubmit(form){
-    if(currentExceptionalGroup){
-      const sel=form.querySelector('[data-exceptional-product]');
-      const picked=(currentExceptionalGroup.items||[]).find(item=>String(item.id)===String(sel&&sel.value));
+    if(currentDropdownGroup){
+      const sel=form.querySelector('[data-dropdown-product]');
+      const picked=(currentDropdownGroup.items||[]).find(item=>String(item.id)===String(sel&&sel.value));
       return picked||null;
     }
     return currentProduct;
   }
-  async function submitBuy(e){ e.preventDefault(); const form=e.currentTarget; const p=selectedProductForSubmit(form); if(!p) return; const btn=currentButton; const submit=form.querySelector('button[type="submit"]'); const old=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='Préparation…'} if(submit){submit.disabled=true;submit.textContent='Préparation…'} try{ const variants={}; form.querySelectorAll('[data-option-name]').forEach(sel=>{ variants[sel.getAttribute('data-option-name')]=sel.value; }); if(currentExceptionalGroup){ variants.Montant=exceptionalAmount(p)+' €'; } const quantity=currentExceptionalGroup?1:Math.max(1,Math.min(20,Math.round(Number(form.quantity.value||1))||1)); const data=await api('/checkout',{method:'POST',body:JSON.stringify({type:'shop_order',source:'boutique.html',productId:p.id,quantity,variants,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},promoCode:form.promoCode?form.promoCode.value:''})}); if(data.redirectUrl){location.href=data.redirectUrl;}else if(data.confirmationUrl){location.href=data.confirmationUrl;}else{throw new Error('redirect_missing');} }catch(err){ console.warn(err); $('shop-buy-msg').textContent=err.message==='product_out_of_stock'?'Stock insuffisant.':'Impossible de lancer le paiement.'; if(btn){btn.disabled=false;btn.textContent=old} if(submit){submit.disabled=false;submit.textContent='Continuer'} } }
+  async function submitBuy(e){ e.preventDefault(); const form=e.currentTarget; const p=selectedProductForSubmit(form); if(!p) return; const btn=currentButton; const submit=form.querySelector('button[type="submit"]'); const old=btn?btn.textContent:''; if(btn){btn.disabled=true;btn.textContent='Préparation…'} if(submit){submit.disabled=true;submit.textContent='Préparation…'} try{ const variants={}; form.querySelectorAll('[data-option-name]').forEach(sel=>{ variants[sel.getAttribute('data-option-name')]=sel.value; }); if(currentDropdownGroup){ variants['Liste déroulante']=currentDropdownGroup.name; variants['Choix']=p.name||dropdownAmountLabel(p); } const quantity=currentDropdownGroup?1:Math.max(1,Math.min(20,Math.round(Number(form.quantity.value||1))||1)); const data=await api('/checkout',{method:'POST',body:JSON.stringify({type:'shop_order',source:'boutique.html',productId:p.id,quantity,variants,payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},promoCode:form.promoCode?form.promoCode.value:''})}); if(data.redirectUrl){location.href=data.redirectUrl;}else if(data.confirmationUrl){location.href=data.confirmationUrl;}else{throw new Error('redirect_missing');} }catch(err){ console.warn(err); $('shop-buy-msg').textContent=err.message==='product_out_of_stock'?'Stock insuffisant.':'Impossible de lancer le paiement.'; if(btn){btn.disabled=false;btn.textContent=old} if(submit){submit.disabled=false;submit.textContent='Continuer'} } }
   async function load(){ const data=await api('/catalog/products',{method:'GET'}); products=data.products||[]; render(); }
   function boot(){ FTS.initFirebase(); if(window.firebase && firebase.auth){ firebase.auth().onAuthStateChanged(()=>load().catch(e=>guard('Boutique indisponible : '+e.message))); } else { load().catch(e=>guard('Boutique indisponible : '+e.message)); } }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot); else boot();

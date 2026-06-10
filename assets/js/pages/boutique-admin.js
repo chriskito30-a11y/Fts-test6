@@ -10,7 +10,8 @@
   const euro = c => (Number(c || 0) / 100).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
 
   const EXCEPTIONAL_AMOUNTS = [50, 80, 100, 120, 150, 200];
-  const EXCEPTIONAL_CATEGORY = 'Règlement exceptionnel';
+  const DROPDOWN_CATEGORY_PREFIX = 'Liste déroulante — ';
+  const EXCEPTIONAL_CATEGORY = DROPDOWN_CATEGORY_PREFIX + 'Règlement exceptionnel';
 
   function exceptionalPayload(amount, index) {
     const cents = Math.round(Number(amount || 0) * 100);
@@ -50,6 +51,74 @@
       if (btn) {
         btn.disabled = false;
         btn.textContent = old || 'Créer règlements exceptionnels';
+      }
+    }
+  }
+
+
+  function slug(v) {
+    return String(v || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+
+  function dropdownCategoryName(name) {
+    const clean = String(name || '').trim() || 'Règlement exceptionnel';
+    return DROPDOWN_CATEGORY_PREFIX + clean;
+  }
+
+  function setDropdownCategory() {
+    const listName = $('p-dropdown-list') ? $('p-dropdown-list').value.trim() : '';
+    if (!listName) return msg('Indique le nom de la liste déroulante', false);
+    $('p-category').value = dropdownCategoryName(listName);
+    msg('Catégorie réglée pour la liste : ' + listName);
+  }
+
+  async function createDropdownProduct() {
+    const btn = $('shop-create-dropdown-product');
+    const listName = $('quick-dropdown-list') ? $('quick-dropdown-list').value.trim() : '';
+    const label = $('quick-dropdown-label') ? $('quick-dropdown-label').value.trim() : '';
+    const price = $('quick-dropdown-price') ? Number(String($('quick-dropdown-price').value || '0').replace(',', '.')) : 0;
+    if (!listName) return msg('Indique le nom de la liste déroulante', false);
+    if (!label) return msg('Indique le nom affiché dans la liste', false);
+    if (!price || price < 0) return msg('Indique un tarif valide', false);
+
+    const cents = Math.round(price * 100);
+    const id = 'dropdown-' + slug(listName) + '-' + slug(label || price) + '-' + cents;
+    const payload = {
+      id,
+      name: label,
+      description: 'Paiement ponctuel ajouté depuis l’administration Fais Ton Show.',
+      priceCents: cents,
+      stock: 0,
+      category: dropdownCategoryName(listName),
+      order: 900 + Math.round(price),
+      imageUrl: '',
+      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé',
+      active: true
+    };
+
+    const old = btn ? btn.textContent : '';
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Ajout…';
+      }
+      await api('/admin/catalog/product', { method:'POST', body:JSON.stringify(payload) });
+      msg('Produit ajouté à la liste déroulante : ' + listName);
+      if ($('quick-dropdown-label')) $('quick-dropdown-label').value = '';
+      if ($('quick-dropdown-price')) $('quick-dropdown-price').value = '';
+      await load();
+    } catch(err) {
+      console.warn(err);
+      msg('Erreur ajout liste : ' + err.message, false);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = old || 'Ajouter à la liste';
       }
     }
   }
@@ -267,6 +336,10 @@
       $('shop-new').addEventListener('click', reset);
       const exceptionalBtn = $('shop-seed-exceptional');
       if (exceptionalBtn) exceptionalBtn.addEventListener('click', createExceptionalProducts);
+      const createDropdownBtn = $('shop-create-dropdown-product');
+      if (createDropdownBtn) createDropdownBtn.addEventListener('click', createDropdownProduct);
+      const applyDropdownBtn = $('shop-apply-dropdown-category');
+      if (applyDropdownBtn) applyDropdownBtn.addEventListener('click', setDropdownCategory);
       $('shop-reset').addEventListener('click', reset);
       $('shop-delete').addEventListener('click', remove);
       $('shop-upload-image').addEventListener('click', uploadImage);
