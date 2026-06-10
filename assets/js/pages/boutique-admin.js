@@ -9,6 +9,51 @@
   const esc = v => FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const euro = c => (Number(c || 0) / 100).toLocaleString('fr-FR', { style:'currency', currency:'EUR' });
 
+  const EXCEPTIONAL_AMOUNTS = [50, 80, 100, 120, 150, 200];
+  const EXCEPTIONAL_CATEGORY = 'Règlement exceptionnel';
+
+  function exceptionalPayload(amount, index) {
+    const cents = Math.round(Number(amount || 0) * 100);
+    return {
+      id: 'reglement-exceptionnel-' + amount,
+      name: 'Règlement exceptionnel — ' + amount + ' €',
+      description: 'À utiliser uniquement si l’administration Fais Ton Show vous a demandé de régler ce complément précis.',
+      priceCents: cents,
+      stock: 0,
+      category: EXCEPTIONAL_CATEGORY,
+      order: 900 + Number(index || 0),
+      imageUrl: '',
+      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé',
+      active: true
+    };
+  }
+
+  async function createExceptionalProducts() {
+    const btn = $('shop-seed-exceptional');
+    if (!confirm('Créer / mettre à jour les règlements exceptionnels 50, 80, 100, 120, 150 et 200 € ?\n\nTu pourras ensuite les masquer, modifier ou supprimer un par un dans la boutique.')) return;
+    const old = btn ? btn.textContent : '';
+    try {
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Création…';
+      }
+      for (let i = 0; i < EXCEPTIONAL_AMOUNTS.length; i += 1) {
+        const payload = exceptionalPayload(EXCEPTIONAL_AMOUNTS[i], i);
+        await api('/admin/catalog/product', { method:'POST', body:JSON.stringify(payload) });
+      }
+      msg('Règlements exceptionnels créés / mis à jour');
+      await load();
+    } catch(err) {
+      console.warn(err);
+      msg('Erreur création règlements : ' + err.message, false);
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = old || 'Créer règlements exceptionnels';
+      }
+    }
+  }
+
   function worker() {
     return String((FTS.PAYMENT && FTS.PAYMENT.workerUrl) || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/, '');
   }
@@ -220,6 +265,8 @@
       $('shop-admin-shell').hidden = false;
       $('shop-form').addEventListener('submit', save);
       $('shop-new').addEventListener('click', reset);
+      const exceptionalBtn = $('shop-seed-exceptional');
+      if (exceptionalBtn) exceptionalBtn.addEventListener('click', createExceptionalProducts);
       $('shop-reset').addEventListener('click', reset);
       $('shop-delete').addEventListener('click', remove);
       $('shop-upload-image').addEventListener('click', uploadImage);
