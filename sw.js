@@ -1,4 +1,4 @@
-const CACHE = 'fts-v226-slots-individual-courses';
+const CACHE = 'fts-v227-slots-individual-courses-fix';
 const FILES = [
   './manifest.json',
   './index.html',
