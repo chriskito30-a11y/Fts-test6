@@ -42,7 +42,7 @@
     },
     chant_piano_individuels: {
       label: 'Chant / Piano',
-      active: true,
+      active: false,
       teacherLabel: 'Prof chant / piano',
       capacity: 1,
       activities: ['chant','piano'],
@@ -206,7 +206,7 @@
     if(!database) return Object.entries(DEFAULT_WINDOWS).map(([id,w]) => normalizeWindow(id,w));
     const snap = await database.ref('fts_slots_windows').once('value');
     const raw = snap.val() || {};
-    const base = Object.keys(raw).length ? raw : DEFAULT_WINDOWS;
+    const base = raw;
     return Object.entries(base).map(([id,w]) => normalizeWindow(id,w)).sort((a,b) => a.order - b.order || sortByDayTime(a,b));
   }
 
@@ -245,6 +245,7 @@
     delete payload.id;
     payload.activities = toArray(payload.activities).map(norm);
     payload.durations = toNumberArray(payload.durations);
+    if(typeof payload.active === 'string') payload.active = payload.active === 'true';
     payload.updatedAt = firebase.database.ServerValue.TIMESTAMP;
     await database.ref('fts_slots_pools/' + id).update(payload);
     return id;
@@ -259,6 +260,7 @@
     payload.day = norm(payload.day);
     payload.activities = toArray(payload.activities).map(norm);
     payload.durations = toNumberArray(payload.durations);
+    if(typeof payload.active === 'string') payload.active = payload.active === 'true';
     payload.updatedAt = firebase.database.ServerValue.TIMESTAMP;
     await database.ref('fts_slots_windows/' + id).update(payload);
     return id;
@@ -271,10 +273,18 @@
   async function seedDefaults(){
     const database = db();
     if(!database) throw new Error('Firebase indisponible.');
-    const updates = { fts_slots_config: Object.assign({}, DEFAULT_CONFIG, { updatedAt: firebase.database.ServerValue.TIMESTAMP }) };
-    Object.entries(DEFAULT_POOLS).forEach(([id,p]) => updates['fts_slots_pools/' + id] = p);
-    Object.entries(DEFAULT_WINDOWS).forEach(([id,w]) => updates['fts_slots_windows/' + id] = w);
-    await database.ref().update(updates);
+    const updates = {};
+    const [cfgSnap, poolsSnap, windowsSnap] = await Promise.all([
+      database.ref('fts_slots_config').once('value'),
+      database.ref('fts_slots_pools').once('value'),
+      database.ref('fts_slots_windows').once('value')
+    ]);
+    if(!cfgSnap.exists()) updates['fts_slots_config'] = Object.assign({}, DEFAULT_CONFIG, { updatedAt: firebase.database.ServerValue.TIMESTAMP });
+    const currentPools = poolsSnap.val() || {};
+    Object.entries(DEFAULT_POOLS).forEach(([id,p]) => { if(!currentPools[id]) updates['fts_slots_pools/' + id] = p; });
+    const currentWindows = windowsSnap.val() || {};
+    Object.entries(DEFAULT_WINDOWS).forEach(([id,w]) => { if(!currentWindows[id]) updates['fts_slots_windows/' + id] = w; });
+    if(Object.keys(updates).length) await database.ref().update(updates);
   }
 
   function matchingWindows(windows, poolId, activity, duration){
@@ -537,7 +547,7 @@
       container.innerHTML = '<div class="fts-slots-empty">Aucun planning actif pour cette activité. Le créneau sera défini avec le professeur.</div>';
       return;
     }
-    const activities = options.activity ? [norm(options.activity)] : (pool.activities || []);
+    const activities = options.activity ? [norm(options.activity)] : (options.activityOptions && options.activityOptions.length ? options.activityOptions.map(norm) : (pool.activities || []));
     let durations = options.durationMinutes ? [Number(options.durationMinutes)] : (pool.durations || [30]);
     durations = durations.filter(d => d === 30 || d === 60);
     let selectedActivity = activities[0] || '';
@@ -662,6 +672,10 @@
     try{
       await cleanupExpired().catch(() => {});
       const [config, pools, windows, reservations] = await Promise.all([loadConfig(), loadPools(), loadWindows(), loadReservations()]);
+      const windowsByPool = {};
+      windows.forEach(w => { (windowsByPool[w.poolId] = windowsByPool[w.poolId] || []).push(w); });
+      const activeReservations = reservations.filter(r => !isExpired(r) && !['cancelled','expired'].includes(String(r.status || '')));
+      const poolOptions = pools.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('');
       container.innerHTML = `
         <section class="fts-slots-card">
           <div class="fts-slots-head">
@@ -687,19 +701,39 @@
               <div class="fts-slots-field"><label>Expiration réservation temporaire</label><input data-config-hold type="number" min="5" max="120" value="${esc(config.holdDurationMinutes || 25)}"></div>
               <div class="fts-slots-field"><label>Réservation automatique</label><select data-config-enabled><option value="true" ${config.enabled ? 'selected' : ''}>Activée</option><option value="false" ${!config.enabled ? 'selected' : ''}>Désactivée</option></select></div>
             </div>
-            <div class="fts-slots-actions"><button type="button" class="fts-slots-btn" data-save-config>Enregistrer les réglages</button><button type="button" class="fts-slots-btn-secondary" data-seed-defaults>Créer les réglages de base</button></div>
+            <div class="fts-slots-actions"><button type="button" class="fts-slots-btn" data-save-config>Enregistrer les réglages</button><button type="button" class="fts-slots-btn-secondary" data-seed-defaults>Créer / compléter les réglages de base</button></div>
           </div>
           <div class="fts-slots-card">
-            <div class="fts-slots-head"><div><div class="fts-slots-kicker">Pools partagés</div><h2 style="margin:0">Plannings profs</h2><p class="fts-slots-sub">Un pool = un professeur/ressource. Guitare, basse et batterie partagent le même pool ; chant et piano en partagent un autre.</p></div></div>
-            <div class="fts-slots-list">${pools.map(p => `<article class="fts-slots-row"><div><strong>${esc(p.label)}</strong><small>${esc((p.activities || []).map(activityLabel).join(', '))} · ${esc((p.durations || []).join('/'))} min · ${esc(p.teacherLabel || '')}</small></div><span class="fts-slots-pill ${p.active ? 'is-on' : 'is-off'}">${p.active ? 'Actif' : 'Inactif'}</span></article>`).join('')}</div>
+            <div class="fts-slots-head"><div><div class="fts-slots-kicker">Pools partagés</div><h2 style="margin:0">Plannings profs</h2><p class="fts-slots-sub">Un pool = un professeur/ressource. Tu peux activer ou désactiver chaque pool indépendamment.</p></div></div>
+            <div class="fts-slots-list">
+              ${pools.map(p => {
+                const hasWindows = !!(windowsByPool[p.id] || []).length;
+                return `<article class="fts-slots-row ${p.active && !hasWindows ? 'is-warning' : ''}" data-pool-row="${esc(p.id)}">
+                  <div style="width:100%">
+                    <strong>${esc(p.label)}</strong>
+                    <small>${esc((p.activities || []).map(activityLabel).join(', '))} · ${esc((p.durations || []).join('/'))} min · ${esc(p.teacherLabel || '')}</small>
+                    ${p.active && !hasWindows ? '<small class="fts-slots-warn">Actif mais aucune plage configurée : il apparaîtra comme indisponible côté inscription.</small>' : ''}
+                    <div class="fts-slots-grid-3 fts-slots-inline-edit">
+                      <div class="fts-slots-field"><label>Nom</label><input data-pool-label value="${esc(p.label)}"></div>
+                      <div class="fts-slots-field"><label>Prof</label><input data-pool-teacher value="${esc(p.teacherLabel || '')}"></div>
+                      <div class="fts-slots-field"><label>Actif</label><select data-pool-active><option value="true" ${p.active ? 'selected' : ''}>Oui</option><option value="false" ${!p.active ? 'selected' : ''}>Non</option></select></div>
+                      <div class="fts-slots-field"><label>Activités</label><input data-pool-activities value="${esc((p.activities || []).join(','))}"></div>
+                      <div class="fts-slots-field"><label>Durées</label><input data-pool-durations value="${esc((p.durations || []).join(','))}"></div>
+                    </div>
+                  </div>
+                  <div class="fts-slots-actions"><button type="button" class="fts-slots-btn-secondary" data-save-pool="${esc(p.id)}">Enregistrer</button></div>
+                </article>`;
+              }).join('')}
+            </div>
           </div>
         </section>
 
         <section class="fts-slots-section" data-slots-section="windows" hidden>
           <div class="fts-slots-card">
-            <div class="fts-slots-head"><div><div class="fts-slots-kicker">Ajouter une plage</div><h2 style="margin:0">Disponibilités</h2><p class="fts-slots-sub">Crée une plage, l’app génère les créneaux de 30 min automatiquement.</p></div></div>
+            <div class="fts-slots-head"><div><div class="fts-slots-kicker">Ajouter / modifier une plage</div><h2 style="margin:0">Disponibilités</h2><p class="fts-slots-sub">Crée une plage, l’app génère les créneaux de 30 min automatiquement. Le bouton Modifier remplit ce formulaire.</p></div></div>
+            <input type="hidden" data-window-id value="">
             <div class="fts-slots-grid-3">
-              <div class="fts-slots-field"><label>Pool</label><select data-window-pool>${pools.map(p => `<option value="${esc(p.id)}">${esc(p.label)}</option>`).join('')}</select></div>
+              <div class="fts-slots-field"><label>Pool</label><select data-window-pool>${poolOptions}</select></div>
               <div class="fts-slots-field"><label>Jour</label><select data-window-day>${Object.keys(DAY_LABELS).map(d => `<option value="${d}">${DAY_LABELS[d]}</option>`).join('')}</select></div>
               <div class="fts-slots-field"><label>Nom optionnel</label><input data-window-label placeholder="Ex : Lundi instruments"></div>
               <div class="fts-slots-field"><label>Début</label><input data-window-start type="time" value="14:00"></div>
@@ -708,20 +742,42 @@
               <div class="fts-slots-field"><label>Durées</label><input data-window-durations placeholder="30,60" value="30,60"></div>
               <div class="fts-slots-field"><label>Actif</label><select data-window-active><option value="true">Oui</option><option value="false">Non</option></select></div>
             </div>
-            <div class="fts-slots-actions"><button type="button" class="fts-slots-btn" data-save-window>Ajouter la plage</button></div>
+            <div class="fts-slots-actions"><button type="button" class="fts-slots-btn" data-save-window>Ajouter la plage</button><button type="button" class="fts-slots-btn-secondary" data-reset-window-form hidden>Annuler la modification</button></div>
           </div>
-          <div class="fts-slots-card"><div class="fts-slots-list">${windows.map(w => `<article class="fts-slots-row"><div><strong>${esc(w.label || ((DAY_LABELS[w.day] || w.day) + ' ' + w.start + '-' + w.end))}</strong><small>${esc((pools.find(p => p.id === w.poolId) || {}).label || w.poolId)} · ${esc(DAY_LABELS[w.day] || w.day)} · ${esc(timeLabel(w.start))}-${esc(timeLabel(w.end))} · ${esc((w.activities || []).map(activityLabel).join(', '))}</small></div><div class="fts-slots-actions"><span class="fts-slots-pill ${w.active ? 'is-on' : 'is-off'}">${w.active ? 'Active' : 'Inactive'}</span><button type="button" class="fts-slots-btn-danger" data-remove-window="${esc(w.id)}">Supprimer</button></div></article>`).join('') || '<div class="fts-slots-empty">Aucune plage configurée.</div>'}</div></div>
+          <div class="fts-slots-card"><div class="fts-slots-list">${windows.map(w => `<article class="fts-slots-row"><div><strong>${esc(w.label || ((DAY_LABELS[w.day] || w.day) + ' ' + w.start + '-' + w.end))}</strong><small>${esc((pools.find(p => p.id === w.poolId) || {}).label || w.poolId)} · ${esc(DAY_LABELS[w.day] || w.day)} · ${esc(timeLabel(w.start))}-${esc(timeLabel(w.end))} · ${esc((w.activities || []).map(activityLabel).join(', '))} · ${esc((w.durations || []).join('/'))} min</small></div><div class="fts-slots-actions"><span class="fts-slots-pill ${w.active ? 'is-on' : 'is-off'}">${w.active ? 'Active' : 'Inactive'}</span><button type="button" class="fts-slots-btn-secondary" data-edit-window="${esc(w.id)}">Modifier</button><button type="button" class="fts-slots-btn-secondary" data-toggle-window="${esc(w.id)}">${w.active ? 'Désactiver' : 'Activer'}</button><button type="button" class="fts-slots-btn-danger" data-remove-window="${esc(w.id)}">Supprimer</button></div></article>`).join('') || '<div class="fts-slots-empty">Aucune plage configurée.</div>'}</div></div>
         </section>
 
         <section class="fts-slots-section" data-slots-section="reservations" hidden>
           <div class="fts-slots-card">
-            <div class="fts-slots-head"><div><div class="fts-slots-kicker">Réservations</div><h2 style="margin:0">À vérifier</h2><p class="fts-slots-sub">Sans Worker, la confirmation reste manuelle après vérification du paiement.</p></div><button type="button" class="fts-slots-btn-secondary" data-refresh-admin>Actualiser</button></div>
-            ${reservations.length ? `<table class="fts-slots-table"><thead><tr><th>Créneau</th><th>Élève</th><th>Activité</th><th>Statut</th><th>Actions</th></tr></thead><tbody>${reservations.sort(sortByDayTime).map(r => { const m = reservationMeta(r); return `<tr><td><strong>${esc(m.label)}</strong><small>${esc((pools.find(p => p.id === r.poolId) || {}).label || r.poolId)}</small></td><td>${esc(m.who)}${r.payerEmail ? `<small>${esc(r.payerEmail)}</small>` : ''}</td><td>${esc(activityLabel(r.activity))}<small>${esc(r.durationMinutes)} min</small></td><td>${esc(statusLabel(isExpired(r) ? 'expired' : r.status))}</td><td><div class="fts-slots-actions"><button class="fts-slots-btn-secondary" data-confirm="${esc(r.id)}">Confirmer</button><button class="fts-slots-btn-danger" data-cancel="${esc(r.id)}">Annuler</button></div></td></tr>`; }).join('')}</tbody></table>` : '<div class="fts-slots-empty">Aucune réservation pour le moment.</div>'}
+            <div class="fts-slots-head"><div><div class="fts-slots-kicker">Réservations</div><h2 style="margin:0">À vérifier</h2><p class="fts-slots-sub">Sans Worker, la confirmation reste manuelle après vérification du paiement. Les réservations annulées ou expirées sont masquées ici.</p></div><button type="button" class="fts-slots-btn-secondary" data-refresh-admin>Actualiser</button></div>
+            ${activeReservations.length ? `<table class="fts-slots-table"><thead><tr><th>Créneau</th><th>Élève</th><th>Activité</th><th>Statut</th><th>Actions</th></tr></thead><tbody>${activeReservations.sort(sortByDayTime).map(r => { const m = reservationMeta(r); return `<tr><td><strong>${esc(m.label)}</strong><small>${esc((pools.find(p => p.id === r.poolId) || {}).label || r.poolId)}</small></td><td>${esc(m.who)}${r.payerEmail ? `<small>${esc(r.payerEmail)}</small>` : ''}</td><td>${esc(activityLabel(r.activity))}<small>${esc(r.durationMinutes)} min</small></td><td>${esc(statusLabel(r.status))}</td><td><div class="fts-slots-actions"><button class="fts-slots-btn-secondary" data-confirm="${esc(r.id)}">Confirmer</button><button class="fts-slots-btn-danger" data-cancel="${esc(r.id)}">Annuler</button></div></td></tr>`; }).join('')}</tbody></table>` : '<div class="fts-slots-empty">Aucune réservation à vérifier pour le moment.</div>'}
           </div>
         </section>`;
 
       const msg = container.querySelector('[data-slots-admin-msg]');
       const showMsg = (text, ok) => { if(msg){ msg.className = 'fts-slots-msg ' + (ok ? 'is-ok' : 'is-error'); msg.textContent = text; } };
+      const windowById = {}; windows.forEach(w => windowById[w.id] = w);
+      const form = {
+        id: container.querySelector('[data-window-id]'),
+        pool: container.querySelector('[data-window-pool]'),
+        day: container.querySelector('[data-window-day]'),
+        label: container.querySelector('[data-window-label]'),
+        start: container.querySelector('[data-window-start]'),
+        end: container.querySelector('[data-window-end]'),
+        activities: container.querySelector('[data-window-activities]'),
+        durations: container.querySelector('[data-window-durations]'),
+        active: container.querySelector('[data-window-active]'),
+        save: container.querySelector('[data-save-window]'),
+        reset: container.querySelector('[data-reset-window-form]')
+      };
+      function resetWindowForm(){
+        if(!form.id) return;
+        form.id.value = ''; form.label.value = ''; form.start.value = '14:00'; form.end.value = '21:00'; form.activities.value = ''; form.durations.value = '30,60'; form.active.value = 'true';
+        if(form.pool && pools[0]) form.pool.value = pools[0].id;
+        if(form.day) form.day.value = 'monday';
+        if(form.save) form.save.textContent = 'Ajouter la plage';
+        if(form.reset) form.reset.hidden = true;
+      }
       container.querySelectorAll('[data-slots-tab]').forEach(btn => btn.addEventListener('click', () => {
         container.querySelectorAll('[data-slots-tab]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
@@ -734,33 +790,70 @@
       });
       const seed = container.querySelector('[data-seed-defaults]');
       if(seed) seed.addEventListener('click', async () => {
-        if(!confirm('Créer / remettre les réglages de base instruments lundi-jeudi ?')) return;
-        try{ await seedDefaults(); showMsg('Réglages de base créés.', true); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); }
+        if(!confirm('Créer les réglages manquants ? Les éléments déjà existants ne seront pas écrasés.')) return;
+        try{ await seedDefaults(); showMsg('Réglages de base complétés.', true); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); }
       });
+      container.querySelectorAll('[data-save-pool]').forEach(btn => btn.addEventListener('click', async () => {
+        const row = btn.closest('[data-pool-row]');
+        const id = btn.getAttribute('data-save-pool');
+        try{
+          await savePool(id, {
+            label: row.querySelector('[data-pool-label]').value,
+            teacherLabel: row.querySelector('[data-pool-teacher]').value,
+            active: row.querySelector('[data-pool-active]').value === 'true',
+            activities: row.querySelector('[data-pool-activities]').value,
+            durations: row.querySelector('[data-pool-durations]').value
+          });
+          showMsg('Pool enregistré.', true); await renderAdmin(container);
+        }catch(e){ showMsg(e.message || String(e), false); }
+      }));
       const saveWin = container.querySelector('[data-save-window]');
       if(saveWin) saveWin.addEventListener('click', async () => {
         try{
-          await saveWindow('', {
-            poolId: container.querySelector('[data-window-pool]').value,
-            day: container.querySelector('[data-window-day]').value,
-            label: container.querySelector('[data-window-label]').value,
-            start: container.querySelector('[data-window-start]').value,
-            end: container.querySelector('[data-window-end]').value,
-            activities: container.querySelector('[data-window-activities]').value,
-            durations: container.querySelector('[data-window-durations]').value,
-            active: container.querySelector('[data-window-active]').value === 'true',
+          const id = form.id.value || '';
+          await saveWindow(id, {
+            poolId: form.pool.value,
+            day: form.day.value,
+            label: form.label.value,
+            start: form.start.value,
+            end: form.end.value,
+            activities: form.activities.value,
+            durations: form.durations.value,
+            active: form.active.value === 'true',
             type: 'regular',
-            order: Date.now()
+            order: id && windowById[id] ? windowById[id].order : Date.now()
           });
-          showMsg('Plage ajoutée.', true); await renderAdmin(container);
+          showMsg(id ? 'Plage modifiée.' : 'Plage ajoutée.', true); await renderAdmin(container);
         }catch(e){ showMsg(e.message || String(e), false); }
       });
-      container.querySelectorAll('[data-remove-window]').forEach(btn => btn.addEventListener('click', async () => {
-        if(!confirm('Supprimer cette plage ?')) return;
-        try{ await removeWindow(btn.getAttribute('data-remove-window')); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); }
+      if(form.reset) form.reset.addEventListener('click', resetWindowForm);
+      container.querySelectorAll('[data-edit-window]').forEach(btn => btn.addEventListener('click', () => {
+        const w = windowById[btn.getAttribute('data-edit-window')];
+        if(!w) return;
+        form.id.value = w.id;
+        form.pool.value = w.poolId;
+        form.day.value = w.day;
+        form.label.value = w.label || '';
+        form.start.value = w.start || '14:00';
+        form.end.value = w.end || '21:00';
+        form.activities.value = (w.activities || []).join(',');
+        form.durations.value = (w.durations || []).join(',');
+        form.active.value = w.active ? 'true' : 'false';
+        if(form.save) form.save.textContent = 'Enregistrer la plage';
+        if(form.reset) form.reset.hidden = false;
+        form.label.scrollIntoView({ behavior:'smooth', block:'center' });
       }));
-      container.querySelectorAll('[data-confirm]').forEach(btn => btn.addEventListener('click', async () => { try{ await setReservationStatus(btn.getAttribute('data-confirm'), 'confirmed'); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); } }));
-      container.querySelectorAll('[data-cancel]').forEach(btn => btn.addEventListener('click', async () => { if(!confirm('Annuler cette réservation et libérer le créneau ?')) return; try{ await cancelReservation(btn.getAttribute('data-cancel')); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); } }));
+      container.querySelectorAll('[data-toggle-window]').forEach(btn => btn.addEventListener('click', async () => {
+        const w = windowById[btn.getAttribute('data-toggle-window')];
+        if(!w) return;
+        try{ await saveWindow(w.id, Object.assign({}, w, { active: !w.active })); showMsg(w.active ? 'Plage désactivée.' : 'Plage activée.', true); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); }
+      }));
+      container.querySelectorAll('[data-remove-window]').forEach(btn => btn.addEventListener('click', async () => {
+        if(!confirm('Supprimer cette plage ? Les réservations déjà prises restent visibles, mais ce créneau ne sera plus proposé aux nouveaux inscrits.')) return;
+        try{ await removeWindow(btn.getAttribute('data-remove-window')); showMsg('Plage supprimée.', true); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); }
+      }));
+      container.querySelectorAll('[data-confirm]').forEach(btn => btn.addEventListener('click', async () => { try{ await setReservationStatus(btn.getAttribute('data-confirm'), 'confirmed'); showMsg('Réservation confirmée.', true); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); } }));
+      container.querySelectorAll('[data-cancel]').forEach(btn => btn.addEventListener('click', async () => { if(!confirm('Annuler cette réservation et libérer le créneau ?')) return; try{ await cancelReservation(btn.getAttribute('data-cancel')); showMsg('Réservation annulée et créneau libéré.', true); await renderAdmin(container); }catch(e){ showMsg(e.message || String(e), false); } }));
       const refresh = container.querySelector('[data-refresh-admin]');
       if(refresh) refresh.addEventListener('click', () => renderAdmin(container));
     }catch(e){
