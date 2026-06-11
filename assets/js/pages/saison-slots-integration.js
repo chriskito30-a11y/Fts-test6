@@ -20,9 +20,28 @@
     chantPianoPool: 'chant_piano_individuels'
   };
 
+  function textParts(value, out){
+    out = out || [];
+    if(value == null) return out;
+    if(typeof value === 'string' || typeof value === 'number'){
+      out.push(String(value));
+      return out;
+    }
+    if(Array.isArray(value)){
+      value.forEach(v => textParts(v, out));
+      return out;
+    }
+    if(typeof value === 'object'){
+      ['id','key','name','title','label','main','subtitle','description','priceNote','activity','slotActivity','day','time'].forEach(k => {
+        if(value[k] != null) textParts(value[k], out);
+      });
+      if(value.bullets) textParts(value.bullets, out);
+    }
+    return out;
+  }
+
   function offerText(offer){
-    return [offer && offer.key, offer && offer.label, offer && offer.main, offer && offer.priceNote, offer && offer.price]
-      .map(x => String(x || '')).join(' ').toLowerCase();
+    return textParts(offer || {}).join(' ').toLowerCase();
   }
 
   function inferDuration(offer){
@@ -34,43 +53,88 @@
     return null;
   }
 
-  function explicitSlotMeta(item, offer){
+  function currentSubcat(item){
+    try{
+      if(typeof selectedSeasonSubcat === 'function') return selectedSeasonSubcat(item) || null;
+    }catch(e){ /* lecture optionnelle */ }
+    return null;
+  }
+
+  function containsToken(text, token){
+    const n = norm(text || '');
+    const t = norm(token || '');
+    return n === t || n.includes('_' + t + '_') || n.startsWith(t + '_') || n.endsWith('_' + t) || n.includes(t);
+  }
+
+  function detectActivityFromText(text){
+    const n = norm(text || '');
+    const checks = [
+      ['batterie', ['batterie','drums']],
+      ['basse', ['basse','bass']],
+      ['guitare', ['guitare','guitar']],
+      ['piano', ['piano']],
+      ['chant', ['chant','voix','vocal']]
+    ];
+    for(const [activity, tokens] of checks){
+      if(tokens.some(t => containsToken(n, t))) return activity;
+    }
+    return '';
+  }
+
+  function poolForActivity(activity){
+    const a = norm(activity || '');
+    if(['guitare','basse','batterie'].includes(a)) return CONFIG.instrumentsPool;
+    if(['chant','piano'].includes(a)) return CONFIG.chantPianoPool;
+    return '';
+  }
+
+  function explicitSlotMeta(item, offer, subcat){
     const season = item && item.season || {};
     const raw = Object.assign({}, season.slotBooking || {}, offer && offer.slotBooking || {});
-    const poolId = raw.poolId || offer && offer.slotPoolId || season.slotPoolId || item && item.slotPoolId;
-    if(!poolId && raw.enabled !== true && offer && offer.requiresSlotBooking !== true && season.requiresSlotBooking !== true) return null;
+    const hasExplicit = raw.enabled === true || raw.poolId || raw.activity || (offer && (offer.slotPoolId || offer.slotActivity || offer.requiresSlotBooking === true)) || season.slotPoolId || season.slotActivity || season.requiresSlotBooking === true || item && item.slotPoolId;
+    if(!hasExplicit) return null;
+    const specificText = textParts([offer, subcat]).join(' ');
+    const genericText = textParts([item]).join(' ');
+    const detected = detectActivityFromText(specificText) || detectActivityFromText(genericText);
+    const activity = norm(raw.activity || offer && offer.slotActivity || season.slotActivity || item && item.slotActivity || detected || item && item.id || '');
+    const forcedPool = poolForActivity(activity);
+    const poolId = forcedPool || raw.poolId || offer && offer.slotPoolId || season.slotPoolId || item && item.slotPoolId;
     return {
       poolId,
-      activity: raw.activity || offer && offer.slotActivity || season.slotActivity || item && item.slotActivity || item && item.id,
+      activity,
       durationMinutes: Number(raw.durationMinutes || offer && offer.slotDurationMinutes || offer && offer.durationMinutes || inferDuration(offer) || 0) || null
     };
   }
 
-  function autoSlotMeta(item, offer){
+  function autoSlotMeta(item, offer, subcat){
     const id = norm(item && item.id || item && item.name || '');
-    const label = norm(item && item.name || '');
-    const text = norm([id, label, offer && offer.label, offer && offer.key].join(' '));
+    const specificText = textParts([offer, subcat]).join(' ');
+    const genericText = textParts([item]).join(' ');
     const duration = inferDuration(offer);
-
-    if(['guitare','basse','batterie'].includes(id)){
-      return { poolId: CONFIG.instrumentsPool, activity: id, durationMinutes: duration };
+    const specificActivity = detectActivityFromText(specificText);
+    const genericActivity = detectActivityFromText(genericText);
+    const itemActivity = ['guitare','basse','batterie','chant','piano'].includes(id) ? id : '';
+    const activity = specificActivity || itemActivity || genericActivity;
+    const forcedPool = poolForActivity(activity);
+    if(forcedPool){
+      return { poolId: forcedPool, activity, durationMinutes: duration };
     }
-    if(id === 'musique' || text.includes('instrument')){
+    const allText = norm([specificText, genericText, id].join(' '));
+    if(id === 'musique' || containsToken(allText, 'instrument') || containsToken(allText, 'instruments')){
       return { poolId: CONFIG.instrumentsPool, activity: '', activityOptions: ['guitare','basse','batterie'], durationMinutes: duration };
-    }
-    if(id === 'chant'){
-      return { poolId: CONFIG.chantPianoPool, activity: 'chant', durationMinutes: duration };
-    }
-    if(id === 'piano'){
-      return { poolId: CONFIG.chantPianoPool, activity: 'piano', durationMinutes: duration };
     }
     return null;
   }
 
   function resolveSlotMeta(item, offer){
-    const explicit = explicitSlotMeta(item, offer);
-    const meta = explicit || autoSlotMeta(item, offer);
+    const subcat = currentSubcat(item);
+    const explicit = explicitSlotMeta(item, offer, subcat);
+    const meta = explicit || autoSlotMeta(item, offer, subcat);
     if(!meta || !meta.poolId) return null;
+    if(meta.activity){
+      const strictPool = poolForActivity(meta.activity);
+      if(strictPool) meta.poolId = strictPool;
+    }
     return meta;
   }
 
@@ -95,6 +159,9 @@
   }
 
   async function chooseReservation(item, offer, source){
+    try{
+      if(item && (item.subcats || []).length && typeof selectedSeasonSubcat === 'function' && !selectedSeasonSubcat(item)) return null;
+    }catch(e){ /* la validation native de saison.js prendra le relais */ }
     const meta = resolveSlotMeta(item, offer);
     if(!meta) return null;
     const enabled = await slotSystemIsEnabled(meta);
