@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Créneaux individuels — Fais Ton Show</title>
+<link rel="manifest" href="./manifest.json"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700;800&display=swap" rel="stylesheet"/>
+<link href="assets/css/fts.css" rel="stylesheet"/>
+<link href="assets/css/fts-nav.css?v=214-ios-nav" rel="stylesheet"/>
+<link href="assets/css/pages/admin.css?v=46" rel="stylesheet"/>
+<link href="assets/css/fts-admin-mode.css?v=80" rel="stylesheet"/>
+<link href="assets/css/fts-slots.css?v=1" rel="stylesheet"/>
+<link rel="stylesheet" href="assets/css/fts-enjoy.css?v=6"/>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-glow">
+<div class="auth-loading" id="slots-auth-loading">
+  <div class="logo">CRÉNEAUX <span>FTS</span></div>
+  <div class="spinner"></div>
+  <div class="sub">Vérification accès admin…</div>
+  <div class="empty-error" id="slots-auth-error"></div>
+</div>
+
+<div class="admin-shell" id="slots-admin-shell" style="display:none">
+  <header class="fts-admin-pagehead" aria-label="En-tête administrateur">
+    <div class="fts-admin-brand">
+      <div class="fts-admin-logo">CRÉNEAUX <span>FTS</span></div>
+      <div class="fts-admin-sub">Réservation des cours individuels</div>
+    </div>
+    <div class="fts-admin-actions">
+      <a class="fts-admin-ghost" href="admin.html">Admin</a>
+      <a class="fts-admin-ghost" href="saison.html">Saison</a>
+      <button class="fts-admin-logout" id="slots-signout">Déconnexion</button>
+    </div>
+  </header>
+
+  <main class="admin-wrap">
+    <section class="hello-card">
+      <div class="hello-kicker">Module autonome</div>
+      <div class="hello-title">Créneaux individuels</div>
+      <div class="hello-sub">Gère les plannings partagés guitare/basse/batterie et chant/piano sans toucher au Worker HelloAsso.</div>
+    </section>
+
+    <div id="fts-slots-admin-root"></div>
+
+    <footer class="page-footer">
+      <a href="admin.html">Retour admin</a> · <a href="profs.html">Vue profs</a> · <a href="saison.html">Page Saison</a>
+    </footer>
+  </main>
+</div>
+
+<script src="assets/js/fts-utils.js?v=209"></script>
+<script src="assets/js/fts-admin-mode.js?v=80"></script>
+<script src="assets/js/fts-firebase.js?v=209"></script>
+<script src="assets/js/fts-slots.js?v=1"></script>
+<script src="assets/js/fts-enjoy.js?v=6"></script>
+<script>
+(function(){
+  'use strict';
+  const db = FTS.initFirebase();
+  const auth = firebase.auth();
+  const loading = document.getElementById('slots-auth-loading');
+  const shell = document.getElementById('slots-admin-shell');
+  const err = document.getElementById('slots-auth-error');
+  document.getElementById('slots-signout').addEventListener('click', () => auth.signOut());
+  auth.onAuthStateChanged(async function(user){
+    if(!user){ location.href = 'auth.html'; return; }
+    try{
+      const snap = await db.ref('fts_users/' + user.uid).once('value');
+      const profile = snap.val() || {};
+      if(profile.status !== 'active' || profile.role !== 'admin'){
+        location.href = profile.role === 'prof' ? 'profs.html' : 'membres.html';
+        return;
+      }
+      loading.style.display = 'none';
+      shell.style.display = 'block';
+      await FTSSlots.renderAdmin('#fts-slots-admin-root');
+      if(window.FTSEnjoy){
+        window.FTSEnjoy.init({ page:'slots-admin', avatar:'assets/img/enjoy.png' });
+      }
+    }catch(e){
+      console.warn('[FTS Slots Admin]', e);
+      if(err) err.textContent = 'Accès impossible : ' + (e && e.message ? e.message : e);
+      setTimeout(() => location.href = 'auth.html', 1200);
+    }
+  });
+})();
+</script>
+</body>
+</html>

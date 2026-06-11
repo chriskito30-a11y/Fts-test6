@@ -17,6 +17,7 @@
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=18">
 
 <link rel="stylesheet" href="assets/css/pages/profs.css?v=150">
+<link rel="stylesheet" href="assets/css/fts-slots.css?v=1">
 <link href="assets/css/fts-admin-mode.css?v=79" rel="stylesheet"/>
 <link rel="stylesheet" href="assets/css/fts-enjoy.css?v=6">
 </head>
@@ -106,6 +107,9 @@
       </button>
       <button class="tab-lnk" id="tab-btn-students" onclick="switchTab('students')">
         👥 Élèves <span class="tab-badge" id="students-count" style="background:#2a5a2a">0</span>
+      </button>
+      <button class="tab-lnk" id="tab-btn-slots" onclick="switchTab('slots')">
+        🗓️ Planning
       </button>
       <button class="tab-lnk" data-admin-advanced id="tab-btn-rewards" onclick="switchTab('rewards')">
         🏅 Récompenser
@@ -300,6 +304,13 @@
       </div>
     </div>
 
+    <!-- ── ONGLET PLANNING INDIVIDUEL ── -->
+    <div class="tab-pane" id="tab-slots">
+      <div id="profs-slots-planning">
+        <div class="empty-manage">Chargement du planning individuel…</div>
+      </div>
+    </div>
+
     <div class="bnav-spacer"></div>
 
     <footer class="page-footer">
@@ -382,7 +393,9 @@
 <script src="assets/js/fts-gamification.js?v=209"></script>
 
 <script src="assets/js/fts-nav.js?v=185"></script>
+<script src="assets/js/fts-slots.js?v=1"></script>
 <script src="assets/js/pages/profs.js?v=209"></script>
+<script src="assets/js/pages/profs-slots.js?v=1"></script>
 
 <script src="assets/js/fts-pwa.js?v=12"></script>
 

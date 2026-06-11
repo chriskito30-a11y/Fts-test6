@@ -1,4 +1,4 @@
-const CACHE = 'fts-v225-repetition-piper-voices';
+const CACHE = 'fts-v226-slots-individual-courses';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -20,6 +20,7 @@ const FILES = [
   './forum-admin.html',
   './saison.html',
   './saison-admin.html',
+  './slots-admin.html',
   './boutique.html',
   './boutique-admin.html',
   './xp-rewards-admin.html',
@@ -51,6 +52,7 @@ const FILES = [
   './assets/css/pages/ventes-admin.css',
   './assets/css/fts-enjoy.css',
   './assets/css/fts-nav.css',
+  './assets/css/fts-slots.css',
   './assets/css/pages/hub-messages.css',
   './assets/css/pages/sondages.css',
   './assets/css/pages/rappels-admin.css',
@@ -88,6 +90,9 @@ const FILES = [
   './assets/js/pages/repetition.js',
   './assets/js/pages/messages.js',
   './assets/js/pages/profs.js',
+  './assets/js/fts-slots.js',
+  './assets/js/pages/profs-slots.js',
+  './assets/js/pages/saison-slots-integration.js',
   './assets/js/pages/saison-admin.js',
   './assets/js/pages/saison.js',
   './assets/js/pages/boutique.js',
