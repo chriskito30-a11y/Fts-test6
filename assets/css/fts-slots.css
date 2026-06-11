@@ -327,3 +327,9 @@
   .fts-slots-modal { align-items: flex-end; padding: 0; }
   .fts-slots-times { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* v1.1 — édition admin pools / plages */
+.fts-slots-row.is-warning{border-color:rgba(245,158,11,.55);background:rgba(245,158,11,.08)}
+.fts-slots-warn{color:#fbbf24;font-weight:800}
+.fts-slots-inline-edit{margin-top:12px;width:100%}
+.fts-slots-inline-edit .fts-slots-field label{font-size:.72rem}
