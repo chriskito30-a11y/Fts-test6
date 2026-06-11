@@ -1,0 +1,329 @@
+/* ================================================================
+   FTS-SLOTS.CSS — Module créneaux individuels
+   Module autonome : admin, profs, intégration Saison.
+   ================================================================ */
+
+.fts-slots-card,
+.fts-slots-panel {
+  background: rgba(12,12,18,.86);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 24px;
+  box-shadow: 0 18px 45px rgba(0,0,0,.32);
+  padding: 18px;
+  color: #fff;
+}
+
+.fts-slots-card + .fts-slots-card,
+.fts-slots-panel + .fts-slots-panel { margin-top: 16px; }
+
+.fts-slots-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.fts-slots-kicker {
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: #ffca38;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.fts-slots-title {
+  font-family: 'Bebas Neue', system-ui, sans-serif;
+  font-size: clamp(1.7rem, 7vw, 3rem);
+  line-height: .9;
+  margin: 4px 0 0;
+}
+
+.fts-slots-sub {
+  color: rgba(255,255,255,.68);
+  font-size: .92rem;
+  line-height: 1.45;
+  margin: 7px 0 0;
+}
+
+.fts-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fts-slots-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fts-slots-field {
+  display: grid;
+  gap: 6px;
+}
+
+.fts-slots-field label,
+.fts-slots-field > span {
+  color: rgba(255,255,255,.72);
+  font-size: .78rem;
+  font-weight: 700;
+}
+
+.fts-slots-field input,
+.fts-slots-field select,
+.fts-slots-field textarea {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,.26);
+  color: #fff;
+  outline: none;
+}
+
+.fts-slots-field textarea { min-height: 76px; resize: vertical; }
+
+.fts-slots-field small { color: rgba(255,255,255,.5); line-height: 1.35; }
+
+.fts-slots-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.fts-slots-btn,
+.fts-slots-btn-secondary,
+.fts-slots-btn-danger {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 16px;
+  font-weight: 800;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+}
+
+.fts-slots-btn { background: linear-gradient(135deg,#ffca38,#ff7a00); color: #120800; }
+.fts-slots-btn-secondary { background: rgba(255,255,255,.10); color: #fff; border: 1px solid rgba(255,255,255,.12); }
+.fts-slots-btn-danger { background: rgba(255,80,80,.17); color: #ffb7b7; border: 1px solid rgba(255,80,80,.28); }
+
+.fts-slots-btn:disabled,
+.fts-slots-btn-secondary:disabled,
+.fts-slots-btn-danger:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.fts-slots-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.fts-slots-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.78);
+  font-size: .78rem;
+}
+
+.fts-slots-pill.is-on { background: rgba(62,211,133,.16); color: #baffd8; border-color: rgba(62,211,133,.32); }
+.fts-slots-pill.is-off { background: rgba(255,90,90,.14); color: #ffc4c4; border-color: rgba(255,90,90,.28); }
+
+.fts-slots-list {
+  display: grid;
+  gap: 10px;
+}
+
+.fts-slots-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 18px;
+}
+
+.fts-slots-row strong { display: block; }
+.fts-slots-row small { display: block; color: rgba(255,255,255,.62); margin-top: 3px; line-height: 1.35; }
+
+.fts-slots-calendar {
+  display: grid;
+  gap: 14px;
+}
+
+.fts-slots-day {
+  padding: 12px;
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 20px;
+}
+
+.fts-slots-day h3 {
+  margin: 0 0 10px;
+  font-size: 1rem;
+}
+
+.fts-slots-times {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.fts-slots-time {
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.24);
+  color: #fff;
+  border-radius: 14px;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.fts-slots-time:hover,
+.fts-slots-time.is-selected {
+  border-color: rgba(255,202,56,.72);
+  background: rgba(255,202,56,.14);
+}
+
+.fts-slots-time[disabled] {
+  opacity: .42;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.fts-slots-empty,
+.fts-slots-msg {
+  border-radius: 16px;
+  padding: 12px;
+  background: rgba(255,255,255,.07);
+  color: rgba(255,255,255,.7);
+  line-height: 1.45;
+}
+
+.fts-slots-msg.is-error { background: rgba(255,80,80,.16); color: #ffd3d3; }
+.fts-slots-msg.is-ok { background: rgba(62,211,133,.14); color: #caffdf; }
+
+.fts-slots-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+  background: rgba(0,0,0,.68);
+  backdrop-filter: blur(12px);
+}
+
+.fts-slots-modal.open { display: flex; }
+
+.fts-slots-dialog {
+  width: min(720px, 100%);
+  max-height: min(88vh, 760px);
+  overflow: auto;
+  border-radius: 28px;
+  background: #101016;
+  border: 1px solid rgba(255,255,255,.14);
+  box-shadow: 0 25px 80px rgba(0,0,0,.55);
+  padding: 18px;
+}
+
+.fts-slots-close {
+  border: 0;
+  background: rgba(255,255,255,.1);
+  color: #fff;
+  border-radius: 999px;
+  width: 38px;
+  height: 38px;
+  cursor: pointer;
+  font-size: 1.3rem;
+}
+
+.fts-slots-booking-summary {
+  display: none;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(255,202,56,.14);
+  color: #ffe7a0;
+  border: 1px solid rgba(255,202,56,.22);
+  font-size: .88rem;
+}
+
+.fts-slots-booking-summary.is-visible { display: block; }
+
+.fts-slots-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 16px;
+}
+
+.fts-slots-table th,
+.fts-slots-table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  text-align: left;
+  vertical-align: top;
+}
+
+.fts-slots-table th {
+  color: rgba(255,255,255,.55);
+  font-size: .75rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.fts-slots-admin-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin: 12px 0 16px;
+}
+
+.fts-slots-admin-tabs button {
+  white-space: nowrap;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.07);
+  color: #fff;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.fts-slots-admin-tabs button.active {
+  background: rgba(255,202,56,.18);
+  border-color: rgba(255,202,56,.55);
+  color: #ffdf75;
+}
+
+.fts-slots-section[hidden] { display: none !important; }
+
+@media (max-width: 720px) {
+  .fts-slots-grid,
+  .fts-slots-grid-3 { grid-template-columns: 1fr; }
+  .fts-slots-head { flex-direction: column; }
+  .fts-slots-row { grid-template-columns: 1fr; }
+  .fts-slots-dialog { border-radius: 24px 24px 0 0; }
+  .fts-slots-modal { align-items: flex-end; padding: 0; }
+  .fts-slots-times { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
