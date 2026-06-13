@@ -359,3 +359,44 @@ body {
 .image-rights-details[open] summary::after{transform:rotate(180deg)}
 .image-rights-details-body{display:grid;gap:8px;margin-top:10px}
 .image-rights-details-body p{margin:0;color:rgba(255,255,255,.74);font-size:.84rem;line-height:1.45}
+
+/* ── Inscription Google ── */
+.google-register-box {
+  margin-bottom: 1.2rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.auth-google-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+.auth-google-btn::before {
+  content: 'G';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,.9);
+  color: #111;
+  font-weight: 800;
+  font-family: Arial, sans-serif;
+}
+.google-register-help,
+.google-register-status {
+  margin-top: .55rem;
+  font-size: .72rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.google-register-status {
+  color: var(--gold);
+}
+.auth-google-locked {
+  opacity: .78;
+  cursor: not-allowed;
+}
