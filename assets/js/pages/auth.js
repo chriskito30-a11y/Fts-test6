@@ -1469,7 +1469,6 @@ function friendlyError(code) {
     'auth/popup-blocked':           'La fenêtre Google a été bloquée par le navigateur.',
     'auth/account-exists-with-different-credential': 'Un compte existe déjà avec cette adresse e-mail avec une autre méthode de connexion.',
     'fts/profile-already-exists':   'Un profil Fais Ton Show existe déjà pour ce compte Google.',
-    'fts/google-profile-not-found': 'Aucun compte Fais Ton Show n’est encore associé à ce compte Google. Utilise d’abord l’onglet S’inscrire.',
   };
   return map[code] || 'Une erreur est survenue. Réessaie.';
 }
