@@ -17,6 +17,7 @@ const ADMIN_EMAIL = "contact@faistonshow.fr";
 const FTS_PAYMENT_WORKER_URL = String((window.FTS && FTS.PAYMENT && FTS.PAYMENT.workerUrl) || window.FTS_PAYMENTS_WORKER_URL || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/, '');
 const paymentBridgeState = { orderId:'', order:null, status:'none', error:'', existingAccountHandled:false };
 const googleRegisterState = { active:false, user:null, profileChecked:false };
+const googleLoginState = { active:false };
 
 
 /* ── EMAILS AUTOMATIQUES ───────────────────────────────────────
@@ -545,8 +546,11 @@ window.addEventListener('DOMContentLoaded', async () => {
           switchTab('register');
           return;
         }
+        if (googleLoginState.active) {
+          return;
+        }
 
-        // Hors parcours Google inscription → déconnexion propre.
+        // Hors parcours Google inscription/connexion → déconnexion propre.
         await auth.signOut();
         return;
       }
@@ -990,7 +994,6 @@ function splitGoogleDisplayName(displayName) {
 function setGoogleRegisterUi(user) {
   const emailEl = document.getElementById('r-email');
   const pwdEl = document.getElementById('r-pwd');
-  const helpEl = document.getElementById('google-register-help');
   const btn = document.getElementById('btn-google-register');
 
   if (user) {
@@ -1011,10 +1014,6 @@ function setGoogleRegisterUi(user) {
       pwdEl.classList.add('auth-google-locked');
       pwdEl.placeholder = 'Compte Google utilisé';
     }
-    if (helpEl) {
-      helpEl.className = 'google-register-status';
-      helpEl.textContent = 'Compte Google sélectionné : ' + (user.email || '') + '. Complète maintenant le reste de l’inscription.';
-    }
     if (btn) btn.textContent = 'Changer de compte Google';
     renderReminderPrefs();
     return;
@@ -1028,10 +1027,6 @@ function setGoogleRegisterUi(user) {
     pwdEl.readOnly = false;
     pwdEl.classList.remove('auth-google-locked');
     pwdEl.placeholder = '8 caractères minimum';
-  }
-  if (helpEl) {
-    helpEl.className = 'google-register-help';
-    helpEl.textContent = "Google remplace uniquement l'e-mail et le mot de passe. Tu complètes ensuite le reste de l'inscription comme aujourd'hui.";
   }
   if (btn) btn.textContent = 'Continuer avec Google';
 }
@@ -1096,6 +1091,72 @@ async function doGoogleRegisterStart() {
     else if (e && e.message && msg === 'Une erreur est survenue. Réessaie.') msg = e.message;
     if (errEl) errEl.textContent = msg;
   } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+}
+
+/* ── CONNEXION GOOGLE ───────────────────────────────────────────── */
+async function doGoogleLogin() {
+  const errEl = document.getElementById('l-err');
+  const okEl  = document.getElementById('l-ok');
+  if (errEl) errEl.textContent = '';
+  if (okEl) { okEl.textContent = ''; okEl.style.display = 'none'; }
+
+  if (!firebase || !firebase.auth || !auth || !db) {
+    if (errEl) errEl.textContent = 'Connexion Google indisponible pour le moment.';
+    return;
+  }
+
+  const btn = document.getElementById('btn-google-login');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('loading');
+  }
+
+  googleLoginState.active = true;
+
+  try {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    const remember = document.getElementById('l-remember') && document.getElementById('l-remember').checked;
+    const persistence = remember
+      ? firebase.auth.Auth.Persistence.LOCAL
+      : firebase.auth.Auth.Persistence.SESSION;
+
+    await auth.setPersistence(persistence);
+    const result = await auth.signInWithPopup(provider);
+    const user = result && result.user ? result.user : auth.currentUser;
+
+    if (!user || !user.uid || !user.email) {
+      throw new Error('Compte Google invalide. Réessaie avec un autre compte.');
+    }
+
+    const snap = await db.ref('fts_users/' + user.uid).once('value');
+    const profile = snap.val();
+
+    if (!profile) {
+      await auth.signOut();
+      throw Object.assign(new Error('Aucun compte Fais Ton Show n’est encore associé à ce compte Google. Utilise d’abord l’onglet S’inscrire.'), { code: 'fts/google-profile-not-found' });
+    }
+
+    const status = String(profile.status || '').toLowerCase();
+    if (status === 'pending') { showPendingScreen(user.email, profile); return; }
+    if (status === 'refused') { showRefusedScreen(user.email); return; }
+    if (status !== 'active') { showInactiveScreen(user.email); return; }
+
+    window.location.href = 'membres.html';
+
+  } catch(e) {
+    console.error('[FTS Auth] Connexion Google impossible :', e);
+    let msg = friendlyError(e && e.code ? e.code : '');
+    if (e && e.message && msg === 'Une erreur est survenue. Réessaie.') msg = e.message;
+    if (errEl) errEl.textContent = msg;
+  } finally {
+    googleLoginState.active = false;
     if (btn) {
       btn.disabled = false;
       btn.classList.remove('loading');
@@ -1408,6 +1469,7 @@ function friendlyError(code) {
     'auth/popup-blocked':           'La fenêtre Google a été bloquée par le navigateur.',
     'auth/account-exists-with-different-credential': 'Un compte existe déjà avec cette adresse e-mail avec une autre méthode de connexion.',
     'fts/profile-already-exists':   'Un profil Fais Ton Show existe déjà pour ce compte Google.',
+    'fts/google-profile-not-found': 'Aucun compte Fais Ton Show n’est encore associé à ce compte Google. Utilise d’abord l’onglet S’inscrire.',
   };
   return map[code] || 'Une erreur est survenue. Réessaie.';
 }
@@ -1415,7 +1477,7 @@ function friendlyError(code) {
 /* FTS_AUTO_EXTRACTED_HANDLERS:auth.html */
 (function(){
   'use strict';
-  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doSignOut()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "switchTab('login')"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "switchTab('register')"}, {"selector": "[data-fts-handler-4]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-5]", "event": "keydown", "code": "if(event.key==='Enter') doLogin()"}, {"selector": "[data-fts-handler-6]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "doResetPwd()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "doLogin()"}, {"selector": "[data-fts-handler-9]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-10]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-11]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-12]", "event": "keydown", "code": "if(event.key==='Enter') doRegister()"}, {"selector": "[data-fts-handler-13]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-14]", "event": "change", "code": "toggleEnfantSection()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "addEnfantField()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "doRegister()"}, {"selector": "[data-fts-handler-17]", "event": "click", "code": "doGoogleRegisterStart()"}];
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doSignOut()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "switchTab('login')"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "switchTab('register')"}, {"selector": "[data-fts-handler-4]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-5]", "event": "keydown", "code": "if(event.key==='Enter') doLogin()"}, {"selector": "[data-fts-handler-6]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "doResetPwd()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "doLogin()"}, {"selector": "[data-fts-handler-9]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-10]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-11]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-12]", "event": "keydown", "code": "if(event.key==='Enter') doRegister()"}, {"selector": "[data-fts-handler-13]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-14]", "event": "change", "code": "toggleEnfantSection()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "addEnfantField()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "doRegister()"}, {"selector": "[data-fts-handler-17]", "event": "click", "code": "doGoogleRegisterStart()"}, {"selector": "[data-fts-handler-18]", "event": "click", "code": "doGoogleLogin()"}];
   function bindExtractedHandlers(){
     handlers.forEach(function(h){
       document.querySelectorAll(h.selector).forEach(function(el){
