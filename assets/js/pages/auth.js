@@ -16,6 +16,7 @@ const FTS_IMAGE_RIGHTS_NOTICE = 'Autorisation photos/videos FTS : cours, repetit
 const ADMIN_EMAIL = "contact@faistonshow.fr";
 const FTS_PAYMENT_WORKER_URL = String((window.FTS && FTS.PAYMENT && FTS.PAYMENT.workerUrl) || window.FTS_PAYMENTS_WORKER_URL || 'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/, '');
 const paymentBridgeState = { orderId:'', order:null, status:'none', error:'', existingAccountHandled:false };
+const googleRegisterState = { active:false, user:null, profileChecked:false };
 
 
 /* ── EMAILS AUTOMATIQUES ───────────────────────────────────────
@@ -537,7 +538,15 @@ window.addEventListener('DOMContentLoaded', async () => {
       try { if(profile && profile.status === 'active') await FTS.syncPublicProfile(db, user.uid, profile); } catch(e) { console.warn('[FTS Auth] Sync profil public non bloquant :', e); }
 
       if (!profile) {
-        // Profil introuvable → déconnexion propre
+        // Profil introuvable : cas attendu pendant une inscription Google en cours.
+        // Google a déjà créé/connecté le compte Auth, mais le profil FTS sera créé
+        // seulement quand le formulaire complet sera validé.
+        if (googleRegisterState.active && (!googleRegisterState.user || googleRegisterState.user.uid === user.uid)) {
+          switchTab('register');
+          return;
+        }
+
+        // Hors parcours Google inscription → déconnexion propre.
         await auth.signOut();
         return;
       }
@@ -967,6 +976,133 @@ function showInactiveScreen(email) {
   });
 }
 
+
+/* ── INSCRIPTION AVEC GOOGLE ───────────────────────────────────── */
+function splitGoogleDisplayName(displayName) {
+  const clean = String(displayName || '').trim();
+  if (!clean) return { first:'', last:'' };
+  const parts = clean.split(/\s+/);
+  const first = parts.shift() || '';
+  const last = parts.join(' ') || '';
+  return { first, last };
+}
+
+function setGoogleRegisterUi(user) {
+  const emailEl = document.getElementById('r-email');
+  const pwdEl = document.getElementById('r-pwd');
+  const helpEl = document.getElementById('google-register-help');
+  const btn = document.getElementById('btn-google-register');
+
+  if (user) {
+    const parts = splitGoogleDisplayName(user.displayName || '');
+    const firstEl = document.getElementById('r-first');
+    const lastEl = document.getElementById('r-last');
+
+    if (firstEl && !firstEl.value.trim()) firstEl.value = parts.first;
+    if (lastEl && !lastEl.value.trim()) lastEl.value = parts.last;
+    if (emailEl) {
+      emailEl.value = user.email || '';
+      emailEl.readOnly = true;
+      emailEl.classList.add('auth-google-locked');
+    }
+    if (pwdEl) {
+      pwdEl.value = '';
+      pwdEl.readOnly = true;
+      pwdEl.classList.add('auth-google-locked');
+      pwdEl.placeholder = 'Compte Google utilisé';
+    }
+    if (helpEl) {
+      helpEl.className = 'google-register-status';
+      helpEl.textContent = 'Compte Google sélectionné : ' + (user.email || '') + '. Complète maintenant le reste de l’inscription.';
+    }
+    if (btn) btn.textContent = 'Changer de compte Google';
+    renderReminderPrefs();
+    return;
+  }
+
+  if (emailEl) {
+    emailEl.readOnly = false;
+    emailEl.classList.remove('auth-google-locked');
+  }
+  if (pwdEl) {
+    pwdEl.readOnly = false;
+    pwdEl.classList.remove('auth-google-locked');
+    pwdEl.placeholder = '8 caractères minimum';
+  }
+  if (helpEl) {
+    helpEl.className = 'google-register-help';
+    helpEl.textContent = "Google remplace uniquement l'e-mail et le mot de passe. Tu complètes ensuite le reste de l'inscription comme aujourd'hui.";
+  }
+  if (btn) btn.textContent = 'Continuer avec Google';
+}
+
+async function doGoogleRegisterStart() {
+  const errEl = document.getElementById('r-err');
+  if (errEl) errEl.textContent = '';
+
+  if (!firebase || !firebase.auth || !auth || !db) {
+    if (errEl) errEl.textContent = 'Connexion Google indisponible pour le moment.';
+    return;
+  }
+
+  const btn = document.getElementById('btn-google-register');
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('loading');
+  }
+
+  try {
+    googleRegisterState.active = true;
+    googleRegisterState.user = null;
+    googleRegisterState.profileChecked = false;
+
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    const result = await auth.signInWithPopup(provider);
+    const user = result && result.user ? result.user : auth.currentUser;
+
+    if (!user || !user.uid || !user.email) {
+      throw new Error('Compte Google invalide. Réessaie avec un autre compte.');
+    }
+
+    googleRegisterState.user = user;
+    googleRegisterState.profileChecked = true;
+
+    const existingSnap = await db.ref('fts_users/' + user.uid).once('value');
+    if (existingSnap.exists()) {
+      const profile = existingSnap.val() || {};
+      const status = String(profile.status || '').toLowerCase();
+      if (status === 'pending') { showPendingScreen(user.email, profile); return; }
+      if (status === 'refused') { showRefusedScreen(user.email); return; }
+      if (status === 'active') { window.location.href = 'membres.html'; return; }
+      showInactiveScreen(user.email);
+      return;
+    }
+
+    switchTab('register');
+    setGoogleRegisterUi(user);
+  } catch(e) {
+    console.error('[FTS Auth] Inscription Google impossible :', e);
+    googleRegisterState.active = false;
+    googleRegisterState.user = null;
+    googleRegisterState.profileChecked = false;
+
+    let msg = friendlyError(e && e.code ? e.code : '');
+    if (e && e.code === 'auth/popup-closed-by-user') msg = 'Connexion Google annulée.';
+    else if (e && e.code === 'auth/popup-blocked') msg = 'La fenêtre Google a été bloquée par le navigateur. Autorise les pop-ups ou réessaie.';
+    else if (e && e.code === 'auth/account-exists-with-different-credential') msg = "Un compte existe déjà avec cette adresse e-mail. Connecte-toi d'abord avec ton mot de passe, puis contacte Fais Ton Show pour associer Google.";
+    else if (e && e.message && msg === 'Une erreur est survenue. Réessaie.') msg = e.message;
+    if (errEl) errEl.textContent = msg;
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.remove('loading');
+    }
+  }
+}
+
 /* ── CONNEXION ─────────────────────────────────────────────────── */
 async function doLogin() {
   const email = document.getElementById('l-email').value.trim();
@@ -1006,9 +1142,15 @@ async function doRegister() {
   const errEl     = document.getElementById('r-err');
   const hasEnfant = document.getElementById('r-has-enfant').checked;
 
+  const googleUser = googleRegisterState.active && googleRegisterState.user ? googleRegisterState.user : null;
+
   if (!first || !last) { errEl.textContent = 'Prénom et nom requis.';             return; }
   if (!email)          { errEl.textContent = 'Adresse e-mail requise.';           return; }
-  if (pwd.length < 8)  { errEl.textContent = 'Mot de passe : 8 caractères min.'; return; }
+  if (!googleUser && pwd.length < 8)  { errEl.textContent = 'Mot de passe : 8 caractères min.'; return; }
+  if (googleUser && String(email).toLowerCase() !== String(googleUser.email || '').toLowerCase()) {
+    errEl.textContent = 'L’adresse e-mail doit rester celle du compte Google sélectionné.';
+    return;
+  }
   const privacyOk = document.getElementById('r-privacy') && document.getElementById('r-privacy').checked;
   if (!privacyOk) { errEl.textContent = 'Tu dois accepter la politique de confidentialité pour créer ton compte.'; return; }
 
@@ -1059,8 +1201,29 @@ async function doRegister() {
   errEl.textContent = '';
 
   try {
-    const cred    = await auth.createUserWithEmailAndPassword(email, pwd);
-    const uid     = cred.user.uid;
+    let uid = '';
+    let authProvider = 'password';
+    let provider = 'password';
+    let emailVerified = false;
+    let photoURL = '';
+
+    if (googleUser) {
+      uid = googleUser.uid;
+      authProvider = 'google.com';
+      provider = 'google';
+      emailVerified = !!googleUser.emailVerified;
+      photoURL = googleUser.photoURL || '';
+
+      const existingSnap = await db.ref('fts_users/' + uid).once('value');
+      if (existingSnap.exists()) {
+        throw Object.assign(new Error('Un profil Fais Ton Show existe déjà pour ce compte Google.'), { code:'fts/profile-already-exists' });
+      }
+    } else {
+      const cred = await auth.createUserWithEmailAndPassword(email, pwd);
+      uid = cred.user.uid;
+      emailVerified = !!(cred.user && cred.user.emailVerified);
+    }
+
     const isAdmin = email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     const reminderPrefs = buildReminderPrefsForProfile(enfants);
@@ -1080,6 +1243,10 @@ async function doRegister() {
     const profile = {
       uid,
       email,
+      authProvider: authProvider,
+      provider: provider,
+      emailVerified: emailVerified,
+      photoURL: photoURL,
       name:        first + ' ' + last,
       firstName:   first,
       lastName:    last,
@@ -1097,19 +1264,19 @@ async function doRegister() {
       privacyAcceptedAt: Date.now(),
       privacyVersion: FTS_PRIVACY_VERSION,
       privacyParentConsent: !!hasEnfant,
-      privacySource: 'auth_register',
+      privacySource: provider === 'google' ? 'auth_register_google' : 'auth_register',
       imageRightsConsent: imageRightsConsent,
       imageRightsStatus: imageRightsConsent ? 'accepted' : 'refused',
       imageRightsAt: imageRightsAt,
       imageRightsUpdatedAt: imageRightsAt,
       imageRightsVersion: FTS_IMAGE_RIGHTS_VERSION,
       imageRightsNotice: FTS_IMAGE_RIGHTS_NOTICE,
-      imageRightsSource: 'auth_register',
+      imageRightsSource: provider === 'google' ? 'auth_register_google' : 'auth_register',
       imageRightsHistory: {
         [imageRightsAt]: {
           value: imageRightsConsent,
           status: imageRightsConsent ? 'accepted' : 'refused',
-          source: 'auth_register',
+          source: provider === 'google' ? 'auth_register_google' : 'auth_register',
           at: imageRightsAt
         }
       },
@@ -1127,7 +1294,7 @@ async function doRegister() {
       await db.ref('fts_image_rights_history/' + uid).push({
         status: imageRightsConsent ? 'accepted' : 'refused',
         value: imageRightsConsent,
-        source: 'auth_register',
+        source: provider === 'google' ? 'auth_register_google' : 'auth_register',
         version: FTS_IMAGE_RIGHTS_VERSION,
         notice: FTS_IMAGE_RIGHTS_NOTICE,
         at: firebase.database.ServerValue.TIMESTAMP
@@ -1183,6 +1350,14 @@ async function doRegister() {
       console.warn('[FTS Auth] Synchro forum différée :', syncErr);
     }
 
+    if (provider === 'google') {
+      googleRegisterState.active = false;
+      googleRegisterState.user = null;
+      googleRegisterState.profileChecked = false;
+      if (profile.status === 'active') window.location.href = 'membres.html';
+      else showPendingScreen(profile.email, profile);
+    }
+
   } catch(e) {
     setBtn('btn-register', 'Créer mon compte', false);
     errEl.textContent = friendlyError(e.code);
@@ -1228,7 +1403,11 @@ function friendlyError(code) {
     'auth/weak-password':          'Mot de passe trop faible (8 car. min).',
     'auth/too-many-requests':      'Trop de tentatives. Réessaie dans quelques minutes.',
     'auth/network-request-failed': 'Problème réseau. Vérifie ta connexion.',
-    'auth/operation-not-allowed':  'Connexion par e-mail non activée sur Firebase.',
+    'auth/operation-not-allowed':  'Connexion par e-mail ou Google non activée sur Firebase.',
+    'auth/popup-closed-by-user':    'Connexion Google annulée.',
+    'auth/popup-blocked':           'La fenêtre Google a été bloquée par le navigateur.',
+    'auth/account-exists-with-different-credential': 'Un compte existe déjà avec cette adresse e-mail avec une autre méthode de connexion.',
+    'fts/profile-already-exists':   'Un profil Fais Ton Show existe déjà pour ce compte Google.',
   };
   return map[code] || 'Une erreur est survenue. Réessaie.';
 }
@@ -1236,7 +1415,7 @@ function friendlyError(code) {
 /* FTS_AUTO_EXTRACTED_HANDLERS:auth.html */
 (function(){
   'use strict';
-  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doSignOut()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "switchTab('login')"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "switchTab('register')"}, {"selector": "[data-fts-handler-4]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-5]", "event": "keydown", "code": "if(event.key==='Enter') doLogin()"}, {"selector": "[data-fts-handler-6]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "doResetPwd()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "doLogin()"}, {"selector": "[data-fts-handler-9]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-10]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-11]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-12]", "event": "keydown", "code": "if(event.key==='Enter') doRegister()"}, {"selector": "[data-fts-handler-13]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-14]", "event": "change", "code": "toggleEnfantSection()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "addEnfantField()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "doRegister()"}];
+  var handlers = [{"selector": "[data-fts-handler-1]", "event": "click", "code": "doSignOut()"}, {"selector": "[data-fts-handler-2]", "event": "click", "code": "switchTab('login')"}, {"selector": "[data-fts-handler-3]", "event": "click", "code": "switchTab('register')"}, {"selector": "[data-fts-handler-4]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-5]", "event": "keydown", "code": "if(event.key==='Enter') doLogin()"}, {"selector": "[data-fts-handler-6]", "event": "input", "code": "clearErr('l')"}, {"selector": "[data-fts-handler-7]", "event": "click", "code": "doResetPwd()"}, {"selector": "[data-fts-handler-8]", "event": "click", "code": "doLogin()"}, {"selector": "[data-fts-handler-9]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-10]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-11]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-12]", "event": "keydown", "code": "if(event.key==='Enter') doRegister()"}, {"selector": "[data-fts-handler-13]", "event": "input", "code": "clearErr('r')"}, {"selector": "[data-fts-handler-14]", "event": "change", "code": "toggleEnfantSection()"}, {"selector": "[data-fts-handler-15]", "event": "click", "code": "addEnfantField()"}, {"selector": "[data-fts-handler-16]", "event": "click", "code": "doRegister()"}, {"selector": "[data-fts-handler-17]", "event": "click", "code": "doGoogleRegisterStart()"}];
   function bindExtractedHandlers(){
     handlers.forEach(function(h){
       document.querySelectorAll(h.selector).forEach(function(el){
