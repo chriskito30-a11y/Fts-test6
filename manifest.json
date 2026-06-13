@@ -3,7 +3,7 @@
   "short_name": "FTS",
   "description": "Le hub central des adhérents Fais Ton Show.",
   "id": "./",
-  "start_url": "./index.html",
+  "start_url": "./membres.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait-primary",

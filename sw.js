@@ -1,4 +1,4 @@
-const CACHE = 'fts-v227-slots-individual-courses-fix';
+const CACHE = 'fts-v228-pwa-start-members';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -382,4 +382,4 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-// FTS cache bump V225 — assistant repetition : voix Piper embarquees
+// FTS cache bump V228 — PWA start_url membres.html
