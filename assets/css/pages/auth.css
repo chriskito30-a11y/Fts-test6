@@ -400,3 +400,8 @@ body {
   opacity: .78;
   cursor: not-allowed;
 }
+
+.auth-google-login-btn {
+  margin-top: .75rem;
+  width: 100%;
+}
