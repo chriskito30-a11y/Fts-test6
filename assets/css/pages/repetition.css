@@ -3455,3 +3455,46 @@ body[data-rep-view="rehearse"] .rep-actions-player #repContinueBtn{
     font-size:.76rem !important;
   }
 }
+
+/* V140 — Assistant répétition : script complet visible + italienne rapide */
+body[data-rep-view="rehearse"] .rep-script-card,
+body[data-rep-view="rehearse"].rep-show-script .rep-script-card{
+  display:block!important;
+  position:relative!important;
+  z-index:auto!important;
+  left:auto!important;
+  right:auto!important;
+  bottom:auto!important;
+  max-height:none!important;
+  overflow:visible!important;
+  margin-top:14px!important;
+  margin-bottom:calc(var(--rep-control-height, 92px) + var(--rep-bottom-nav-height, 76px) + env(safe-area-inset-bottom, 0px) + 18px)!important;
+}
+body[data-rep-view="rehearse"].rep-script-collapsed .rep-script-card{display:none!important;}
+body[data-rep-view="rehearse"] .rep-script-preview{
+  max-height:none!important;
+  overflow:visible!important;
+  padding-right:0!important;
+}
+body[data-rep-view="rehearse"] .rep-line.own.is-masked .rep-line-text{
+  min-height:1.45em;
+  color:rgba(245,242,238,.68)!important;
+  font-style:italic;
+}
+body[data-rep-view="rehearse"] .rep-line.own.is-masked .rep-line-text::before{
+  content:"Réplique masquée";
+  display:inline-block;
+  margin-right:.5rem;
+  font-size:.72rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:rgba(201,168,76,.9);
+}
+@media (max-width: 640px){
+  body[data-rep-view="rehearse"] .rep-line{
+    grid-template-columns:minmax(76px,104px) minmax(0,1fr)!important;
+    gap:.55rem!important;
+    padding:.7rem .65rem!important;
+  }
+  body[data-rep-view="rehearse"] .rep-line-role{font-size:.63rem!important;}
+}
