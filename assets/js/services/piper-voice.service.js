@@ -724,7 +724,7 @@
       state.audio = audio;
       state.audioUrl = url;
       audio.src = url;
-      audio.playbackRate = clampNumber(rate, 0.75, 1.25);
+      audio.playbackRate = clampNumber(rate, 0.75, 2);
       audio.onended = () => finishAudio(token, resolve, true);
       audio.onerror = () => finishAudio(token, resolve, false);
       audio.play().catch(error => {
