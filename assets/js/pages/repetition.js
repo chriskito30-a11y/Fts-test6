@@ -66,7 +66,7 @@
   }
 
   function bindElements(){
-    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repCurrentLine','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repResumePdfBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview','repPrepPanel','repPrepTitle','repPrepBar','repPrepDetail'].forEach(id=>{
+    ['repScriptInput','repAnalyzeBtn','repClearBtn','repStats','repCharacters','repRoleSelect','repRoleReadControls','repMode','repReadSpeakerName','repOwnLines','repPause','repRate','repVoice','repStartBtn','repContinueBtn','repCueBtn','repDifficultBtn','repReviewDifficultBtn','repExitDifficultBtn','repDifficultCount','repTrainingPresets','repRestartBtn','repPrevBtn','repNextBtn','repStopBtn','repProgressText','repCounter','repMeterBar','repLineList','repSpeechStatus','repAppStatus','repResourceSelect','repLoadResourcePdfBtn','repReloadAppPdfBtn','repLocalPdfInput','repLoadLocalPdfBtn','repPdfStatus','repAppDebug','repAppDebugWrap','repResumeCard','repResumeTitle','repResumeMeta','repResumeBtn','repResumeReviewBtn','repResumeOwnBtn','repResumePdfBtn','repForgetResumeBtn','repOfflineLibrary','repOfflineCount','repOfflineList','repSectionSelect','repSectionNav','repSceneCurrent','repSceneAccordion','repScenePanel','repOpenSceneBtn','repRestartSceneBtn','repSceneOnlyToggle','repBackToLibraryBtn','repBackToRoleBtn','repBeginRehearsalBtn','repOpenSettingsBtn','repBackToLibraryFromPlayerBtn','repSettingsBtn','repToggleScriptBtn','repScriptPreview','repPrepPanel','repPrepTitle','repPrepBar','repPrepDetail'].forEach(id=>{
       els[id] = document.getElementById(id);
     });
   }
@@ -2905,13 +2905,6 @@
     const total = state.lines.length;
     const percent = total ? ((state.currentIndex + 1) / total) * 100 : 0;
     const isDifficult = state.difficultLines && state.difficultLines.has(state.currentIndex);
-    if (els.repCurrentLine) {
-      els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other') + (isDifficult ? ' is-difficult' : '') + (state.focusDifficultOnly ? ' is-focus-difficult' : '') + (state.focusOwnOnly ? ' is-focus-own' : '');
-      els.repCurrentLine.innerHTML = `
-        <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : state.focusOwnOnly ? 'Mes répliques · ' + escapeHtml(line.speaker) : isOwn ? 'À toi' : escapeHtml(line.speaker)}${isDifficult ? ' · ⭐' : ''}</p>
-        <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
-      `;
-    }
     if (els.repCounter) els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
     if (els.repMeterBar) els.repMeterBar.style.width = `${Math.max(0,Math.min(100,percent))}%`;
     updateSceneCurrentSummary();
@@ -2975,10 +2968,6 @@
   }
 
   function renderEmpty(){
-    if (els.repCurrentLine) {
-      els.repCurrentLine.className = 'rep-current';
-      els.repCurrentLine.innerHTML = '<p class="rep-current-role">En attente</p><p class="rep-current-text">Choisis un PDF, choisis ton rôle, puis appuie sur Play.</p>';
-    }
     els.repProgressText.textContent = 'Aucun texte lancé.';
     if (els.repCounter) els.repCounter.textContent = '0 / 0';
     if (els.repMeterBar) els.repMeterBar.style.width = '0%';
