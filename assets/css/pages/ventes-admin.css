@@ -92,3 +92,13 @@
 .sales-shop-empty-ok{border-color:rgba(89,240,168,.20);background:rgba(89,240,168,.07)}
 @media(max-width:860px){.sales-shop-summary{grid-template-columns:1fr}.sales-shop-block-head{display:block}.sales-shop-block-head p{margin-top:3px}.sales-shop-list.compact .sales-shop-card{grid-template-columns:1fr}.sales-shop-done-block>summary{display:grid}}
 .sales-actions a.sales-btn{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+
+/* V15 — correctif critique : les vues cachées doivent vraiment disparaître
+   Certaines règles .sales-view{display:grid} et .sales-bulk{display:flex}
+   écrasaient l'attribut hidden, ce qui affichait Pilotage / Commandes / Boutique / Échéances en même temps. */
+[hidden],
+.sales-view[hidden],
+.sales-bulk[hidden],
+.sales-shell[hidden],
+.sales-loading[hidden]{display:none!important}
+
