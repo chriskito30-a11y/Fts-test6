@@ -3498,3 +3498,8 @@ body[data-rep-view="rehearse"] .rep-line.own.is-masked .rep-line-text::before{
   }
   body[data-rep-view="rehearse"] .rep-line-role{font-size:.63rem!important;}
 }
+
+
+/* Patch V20.1 : le texte complet reste affiché, sans ancien bloc réplique-par-réplique. */
+body[data-rep-view="rehearse"] .rep-script-card{display:block!important;}
+body[data-rep-view="rehearse"].rep-script-collapsed .rep-script-card{display:block!important;}
