@@ -324,11 +324,24 @@
   function isShopPickedUp(o){
     return !!(o.shopPickedUpAt || o.pickedUpAt || (o.fulfillment && o.fulfillment.pickedUpAt) || String(o.fulfillmentStatus || '') === 'picked_up');
   }
+  function shopPickedUpDate(o){
+    const raw = o.shopPickedUpAt || o.pickedUpAt || (o.fulfillment && o.fulfillment.pickedUpAt) || '';
+    if(!raw) return '—';
+    const n = Number(raw);
+    const d = Number.isFinite(n) ? new Date(n) : new Date(raw);
+    return Number.isFinite(d.getTime()) ? d.toLocaleDateString('fr-FR') : '—';
+  }
+  function isShopLikeOrder(o){
+    return typeKey(o)==='shop_order' || (typeKey(o)==='mixed_cart' && cartShopLines(o).length > 0);
+  }
+  function shopTrackableOrders(list){
+    return list.filter(o=>statusKind(o.status)==='paid' && isShopLikeOrder(o));
+  }
   function shopTodoOrders(list){
-    return list.filter(o=>{
-      if(statusKind(o.status)!=='paid' || isShopPickedUp(o)) return false;
-      return typeKey(o)==='shop_order' || (typeKey(o)==='mixed_cart' && cartShopLines(o).length > 0);
-    });
+    return shopTrackableOrders(list).filter(o=>!isShopPickedUp(o));
+  }
+  function shopDoneOrders(list){
+    return shopTrackableOrders(list).filter(o=>isShopPickedUp(o));
   }
   function shopTodoQuantity(o){
     if(typeKey(o)==='mixed_cart') return cartShopLines(o).reduce((sum,line)=>sum + Math.max(1, Number(line.quantity || 1) || 1), 0);
@@ -385,6 +398,37 @@
   }
   function sortTypeEntries(entries){
     return entries.sort((a,b)=>TYPE_ORDER.indexOf(a[0]) - TYPE_ORDER.indexOf(b[0]));
+  }
+
+  function validSalesTab(tab){
+    return ['groups','orders','shop','installments'].includes(String(tab || '')) ? String(tab) : 'groups';
+  }
+  function requestedSalesTab(){
+    const params = new URLSearchParams(window.location.search || '');
+    const raw = params.get('tab') || String(window.location.hash || '').replace(/^#/, '');
+    return validSalesTab(raw);
+  }
+  function applyActiveTab(){
+    activeTab = validSalesTab(activeTab);
+    document.querySelectorAll('[data-sales-tab]').forEach(btn=>btn.classList.toggle('active', btn.getAttribute('data-sales-tab') === activeTab));
+    ['groups','orders','shop','installments'].forEach(name=>{
+      const el = $('sales-' + name);
+      if(el) el.hidden = name !== activeTab;
+    });
+    const shell = $('sales-shell');
+    if(shell) shell.classList.toggle('sales-shop-focus', activeTab === 'shop');
+    document.body.classList.toggle('sales-shop-focus', activeTab === 'shop');
+    updateBulkUi();
+  }
+  function setActiveTab(tab, updateUrl){
+    activeTab = validSalesTab(tab);
+    applyActiveTab();
+    if(updateUrl && window.history && window.history.replaceState){
+      const url = new URL(window.location.href);
+      if(activeTab === 'groups') url.searchParams.delete('tab');
+      else url.searchParams.set('tab', activeTab);
+      window.history.replaceState(null, '', url.toString());
+    }
   }
 
   function filteredOrders(){
@@ -645,15 +689,32 @@
     </article>`;
   }
   function renderShopTodo(list){
+    const allRows = shopTrackableOrders(list);
     const rows = shopTodoOrders(list);
-    if(!rows.length){
-      $('sales-shop').innerHTML = '<div class="sales-empty">Aucune commande boutique à traiter.</div>';
-      return;
-    }
-    const totalQty = rows.reduce((sum,o)=>sum + shopTodoQuantity(o), 0);
-    $('sales-shop').innerHTML = `<section class="sales-type-block">
-      <div class="sales-section-head"><div><h2>🛍️ Boutique à traiter</h2><p>${rows.length} commande(s) · ${totalQty} article(s) à remettre.</p></div></div>
-      <div class="sales-shop-list">${rows.map(renderShopTodoCard).join('')}</div>
+    const doneRows = shopDoneOrders(list);
+    const todoQty = rows.reduce((sum,o)=>sum + shopTodoQuantity(o), 0);
+    const doneQty = doneRows.reduce((sum,o)=>sum + shopTodoQuantity(o), 0);
+    const totalQty = allRows.reduce((sum,o)=>sum + shopTodoQuantity(o), 0);
+    const summary = `<div class="sales-shop-summary" aria-label="Résumé boutique">
+      <article class="todo"><strong>${esc(String(rows.length))}</strong><span>commande(s) à traiter</span><small>${esc(String(todoQty))} article(s) à remettre</small></article>
+      <article class="done"><strong>${esc(String(doneRows.length))}</strong><span>commande(s) récupérée(s)</span><small>${esc(String(doneQty))} article(s) déjà remis</small></article>
+      <article><strong>${esc(String(allRows.length))}</strong><span>commande(s) boutique validée(s)</span><small>${esc(String(totalQty))} article(s) au total</small></article>
+    </div>`;
+    const todoHtml = rows.length
+      ? `<div class="sales-shop-list">${rows.map(renderShopTodoCard).join('')}</div>`
+      : '<div class="sales-empty sales-shop-empty-ok">Tout est à jour : aucun article boutique à remettre.</div>';
+    const doneHtml = doneRows.length
+      ? `<div class="sales-shop-list compact">${doneRows.map(renderShopDoneCard).join('')}</div>`
+      : '<div class="sales-empty">Aucune commande boutique encore marquée comme récupérée.</div>';
+    $('sales-shop').innerHTML = `<section class="sales-type-block sales-shop-focus-view">
+      <div class="sales-section-head"><div><h2>🛍️ Boutique à traiter</h2><p>Vue dédiée aux articles boutique uniquement : ce qui reste à remettre et ce qui est déjà récupéré.</p></div></div>
+      ${summary}
+      <div class="sales-shop-block-head"><h3>À remettre</h3><p>${rows.length} commande(s) · ${todoQty} article(s)</p></div>
+      ${todoHtml}
+      <details class="sales-shop-done-block">
+        <summary><span>Déjà récupérées</span><strong>${doneRows.length} commande(s) · ${doneQty} article(s)</strong></summary>
+        ${doneHtml}
+      </details>
     </section>`;
   }
   function renderShopTodoCard(o){
@@ -672,6 +733,23 @@
         <small>${esc(shortDate(o.createdAt))}</small>
       </div>
       <button type="button" class="sales-btn small sales-pickup-btn" data-order-id="${esc(id)}">Marquer récupérée</button>
+    </article>`;
+  }
+  function renderShopDoneCard(o){
+    return `<article class="sales-shop-card is-done">
+      <div>
+        <strong>${esc(shopTodoTitle(o))}</strong>
+        <small>${esc(shopTodoDetail(o))}</small>
+      </div>
+      <div>
+        <strong>${esc(payerName(o))}</strong>
+        <small>${esc([payerEmail(o), payerPhone(o)].filter(Boolean).join(' · '))}</small>
+      </div>
+      <div>
+        <strong>${euro(amount(o))}</strong>
+        <small>Récupérée le ${esc(shopPickedUpDate(o))}</small>
+      </div>
+      <span class="sales-status paid">Récupérée</span>
     </article>`;
   }
   function ensureSalesDetailModal(){
@@ -742,9 +820,9 @@
     renderStats(list);
     renderGroups(list);
     renderOrders(list);
-    renderShopTodo(list);
+    renderShopTodo(orders);
     renderInstallments(list);
-    updateBulkUi();
+    applyActiveTab();
   }
   function fillSeasons(){
     const select = $('sales-season'); if(!select) return;
@@ -853,11 +931,9 @@
     });
     document.addEventListener('keydown', e=>{ if(e.key === 'Escape') closeSalesDetail(); });
     document.querySelectorAll('[data-sales-tab]').forEach(btn=>btn.addEventListener('click',()=>{
-      activeTab = btn.getAttribute('data-sales-tab') || 'groups';
-      document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active', b===btn));
-      ['groups','orders','shop','installments'].forEach(name=>{ const el=$('sales-'+name); if(el) el.hidden = name !== activeTab; });
-      updateBulkUi();
+      setActiveTab(btn.getAttribute('data-sales-tab') || 'groups', true);
     }));
+    setActiveTab(requestedSalesTab(), false);
   }
   function exportCsvRows(baseRows){
     const out = [];
