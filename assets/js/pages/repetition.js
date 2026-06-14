@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const REPETITION_VERSION = 'V19-clean-voice-labels';
+  const REPETITION_VERSION = 'V20-reprise-italienne-rapide';
 
   const AUTO_VOICE_PROFILES = [
     { key:'neutral', label:'naturelle', pitch:1, rate:1 },
@@ -144,6 +144,10 @@
     if (els.repBackToLibraryFromPlayerBtn) els.repBackToLibraryFromPlayerBtn.addEventListener('click', () => { stop(false); setView('library'); });
     if (els.repSettingsBtn) els.repSettingsBtn.addEventListener('click', () => setView('settings'));
     if (els.repToggleScriptBtn) els.repToggleScriptBtn.addEventListener('click', toggleScriptPanel);
+    window.addEventListener('pagehide', saveCurrentScriptSettings);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') saveCurrentScriptSettings();
+    });
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
     }
@@ -154,7 +158,7 @@
     const next = allowed.includes(view) ? view : 'library';
     state.currentView = next;
     document.body.setAttribute('data-rep-view', next);
-    document.body.classList.toggle('rep-show-script', false);
+    document.body.classList.toggle('rep-show-script', next === 'rehearse');
     document.querySelectorAll('[data-view-target]').forEach(btn => {
       const target = btn.getAttribute('data-view-target') || '';
       const active = target === next || (next === 'settings' && target === 'mode');
@@ -218,14 +222,18 @@
     }
 
     setView('rehearse');
+    document.body.classList.remove('rep-script-collapsed');
+    document.body.classList.add('rep-show-script');
     refreshPlayer();
     saveCurrentScriptSettings();
     if (autoStart) start();
   }
 
   function toggleScriptPanel(){
-    document.body.classList.toggle('rep-show-script');
-    if (document.body.classList.contains('rep-show-script')) renderLineList();
+    if (state.currentView !== 'rehearse') return;
+    document.body.classList.toggle('rep-script-collapsed');
+    document.body.classList.toggle('rep-show-script', !document.body.classList.contains('rep-script-collapsed'));
+    if (!document.body.classList.contains('rep-script-collapsed')) renderLineList();
   }
 
   function initEmbeddedVoices(){
@@ -1666,6 +1674,8 @@
     state.currentIndex = target;
     state.awaitingUser = false;
     setView('rehearse');
+    document.body.classList.remove('rep-script-collapsed');
+    document.body.classList.add('rep-show-script');
     refreshPlayer();
     updateDifficultUi();
     scrollToPlayer();
@@ -1790,8 +1800,14 @@
     const role = els.repRoleSelect.value;
     els.repLineList.innerHTML = state.lines.map((line,index)=>{
       const classes = ['rep-line'];
+      const ownDisplayMode = els.repOwnLines ? els.repOwnLines.value : 'show';
       if (index === state.currentIndex) classes.push('active');
-      if (line.speaker === role) classes.push('own');
+      if (line.kind === 'line' && line.speaker === role) {
+        classes.push('own');
+        if (ownDisplayMode === 'hide' || ownDisplayMode === 'initials') classes.push('is-masked');
+      } else if (line.kind === 'line') {
+        classes.push('other');
+      }
       if (line.kind === 'stage') classes.push('stage');
       if (line.sectionType) classes.push('section');
       if (isIgnoredSpeakerLine(line, role)) classes.push('ignored');
@@ -2054,7 +2070,7 @@
     } else {
       utterance.lang = 'fr-FR';
     }
-    utterance.rate = clampVoiceNumber((Number(els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? voiceSettings.rate : 1), .65, 1.4);
+    utterance.rate = clampVoiceNumber((Number(els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? voiceSettings.rate : 1), .65, 2);
     utterance.pitch = clampVoiceNumber(voiceSettings && voiceSettings.pitch ? voiceSettings.pitch : 1, .5, 1.8);
     utterance.onend = () => onEnd && onEnd();
     utterance.onerror = () => onEnd && onEnd();
@@ -2474,7 +2490,7 @@
     } else {
       utterance.lang = 'fr-FR';
     }
-    utterance.rate = clampVoiceNumber((Number(els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? voiceSettings.rate : 1), .65, 1.4);
+    utterance.rate = clampVoiceNumber((Number(els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? voiceSettings.rate : 1), .65, 2);
     utterance.pitch = clampVoiceNumber(voiceSettings && voiceSettings.pitch ? voiceSettings.pitch : 1, .5, 1.8);
     utterance.onend = () => onEnd && onEnd();
     utterance.onerror = () => onEnd && onEnd();
@@ -2588,7 +2604,7 @@
     const selectedVoiceId = voiceSettings && voiceSettings.voiceId ? voiceSettings.voiceId : '';
     const selectedVoiceLabel = voice && voice.label ? voice.label : selectedVoiceId;
     const modelKey = voice && voice.model ? voice.model : '';
-    const speed = clampVoiceNumber((Number(els.repRate && els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? Number(voiceSettings.rate) : 1), .65, 1.4);
+    const speed = clampVoiceNumber((Number(els.repRate && els.repRate.value) || 1) * (voiceSettings && voiceSettings.rate ? Number(voiceSettings.rate) : 1), .65, 2);
     console.info('[FTS Piper Voice Debug]', {
       selectedVoiceId,
       selectedVoiceLabel,
@@ -3303,7 +3319,7 @@
         setView('role');
       }
     }
-    else if (view === 'rehearse' && getSelectedRole()) setView('rehearse');
+    else if (view === 'rehearse' && getSelectedRole()) enterRehearsal(false);
   }
 
   function deleteCachedScript(id){
@@ -3375,12 +3391,16 @@
     }
   }
 
-  function resumeLastScript(){
+  async function resumeLastScript(){
     const cached = getLastCachedScript();
     if (!cached || !cached.text) return;
     applyExtractedText(cached.text, cached.label || 'Dernière répétition', Object.assign({}, cached.meta || {}, { id:cached.id, label:cached.label || 'Dernière répétition', fromCache:true }));
-    setPdfStatus('Texte prêt à reprendre.');
-    if (getSelectedRole()) setView('rehearse');
+    setPdfStatus('Texte prêt à reprendre depuis cet appareil.');
+    if (getSelectedRole()) {
+      await enterRehearsal(false);
+      refreshPlayer();
+      saveCurrentScriptSettings();
+    }
   }
 
   function resumeLastScriptDifficult(){
