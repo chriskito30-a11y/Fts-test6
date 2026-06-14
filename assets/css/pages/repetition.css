@@ -3503,3 +3503,40 @@ body[data-rep-view="rehearse"] .rep-line.own.is-masked .rep-line-text::before{
 /* Patch V20.1 : le texte complet reste affiché, sans ancien bloc réplique-par-réplique. */
 body[data-rep-view="rehearse"] .rep-script-card{display:block!important;}
 body[data-rep-view="rehearse"].rep-script-collapsed .rep-script-card{display:block!important;}
+
+/* Patch V20.2 : suppression réelle de l’espace réservé à l’ancien bloc réplique par réplique.
+   Le module affiche maintenant le script complet comme zone principale de repérage. */
+body[data-rep-view="rehearse"] .rep-current,
+body[data-rep-view="rehearse"] .rep-meter{
+  display:none!important;
+  visibility:hidden!important;
+  min-height:0!important;
+  height:0!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  overflow:hidden!important;
+}
+body[data-rep-view="rehearse"] .rep-player{
+  min-height:0!important;
+  height:auto!important;
+  flex:0 0 auto!important;
+  gap:.55rem!important;
+  margin-bottom:.7rem!important;
+}
+body[data-rep-view="rehearse"] .rep-script-card,
+body[data-rep-view="rehearse"].rep-show-script .rep-script-card,
+body[data-rep-view="rehearse"].rep-script-collapsed .rep-script-card{
+  display:block!important;
+  margin-top:.7rem!important;
+}
+@media (max-width:760px){
+  body[data-rep-view="rehearse"] .rep-player{
+    min-height:0!important;
+    padding:.75rem!important;
+    margin-bottom:.55rem!important;
+  }
+  body[data-rep-view="rehearse"] .rep-script-card{
+    margin-top:.55rem!important;
+  }
+}
