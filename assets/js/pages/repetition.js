@@ -230,10 +230,12 @@
   }
 
   function toggleScriptPanel(){
+    // Le script complet doit rester visible en permanence pendant l'italienne.
+    // Ancien comportement supprimé : on ne replie plus le texte.
     if (state.currentView !== 'rehearse') return;
-    document.body.classList.toggle('rep-script-collapsed');
-    document.body.classList.toggle('rep-show-script', !document.body.classList.contains('rep-script-collapsed'));
-    if (!document.body.classList.contains('rep-script-collapsed')) renderLineList();
+    document.body.classList.remove('rep-script-collapsed');
+    document.body.classList.add('rep-show-script');
+    renderLineList();
   }
 
   function initEmbeddedVoices(){
@@ -2738,16 +2740,34 @@
     if (!line || line.kind !== 'line' || !role || line.speaker !== role) return;
 
     // En cas de trou de mémoire, l'app souffle la vraie réplique sans avancer.
-    // On coupe l'avance automatique/confirmation pour laisser l'élève reprendre la main.
+    // Réaction immédiate : on évite la génération Piper live, parfois lente sur mobile.
     clearPendingTimeout();
     state.awaitingUser = true;
     setButtons();
-    speakLine(line, true, () => {
+    speakCueLineFast(line, () => {
       if (state.playing) {
         state.awaitingUser = true;
         setButtons();
       }
     });
+  }
+
+  function speakCueLineFast(line, onEnd){
+    const text = getPreparedSpeakableText(line, true);
+    if (!text) {
+      state.timeoutId = setTimeout(() => { if (onEnd) onEnd(); }, 50);
+      return;
+    }
+    try {
+      const piper = getPiperService();
+      if (piper && piper.stop) piper.stop();
+    } catch(e) {}
+    try {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    } catch(e) {}
+    const browserVoice = resolveAutomaticVoiceForSpeaker(line && line.speaker ? line.speaker : '');
+    if (els.repSpeechStatus) els.repSpeechStatus.textContent = 'Aide immédiate · voix navigateur';
+    speakWithBrowser(text, onEnd, browserVoice);
   }
 
   function continueAfterOwnLine(){
@@ -2885,13 +2905,15 @@
     const total = state.lines.length;
     const percent = total ? ((state.currentIndex + 1) / total) * 100 : 0;
     const isDifficult = state.difficultLines && state.difficultLines.has(state.currentIndex);
-    els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other') + (isDifficult ? ' is-difficult' : '') + (state.focusDifficultOnly ? ' is-focus-difficult' : '') + (state.focusOwnOnly ? ' is-focus-own' : '');
-    els.repCurrentLine.innerHTML = `
-      <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : state.focusOwnOnly ? 'Mes répliques · ' + escapeHtml(line.speaker) : isOwn ? 'À toi' : escapeHtml(line.speaker)}${isDifficult ? ' · ⭐' : ''}</p>
-      <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
-    `;
-    els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
-    els.repMeterBar.style.width = `${Math.max(0,Math.min(100,percent))}%`;
+    if (els.repCurrentLine) {
+      els.repCurrentLine.className = 'rep-current' + (isIgnored ? ' is-ignored' : isOwn ? ' is-own' : line.kind === 'stage' ? ' is-stage' : ' is-other') + (isDifficult ? ' is-difficult' : '') + (state.focusDifficultOnly ? ' is-focus-difficult' : '') + (state.focusOwnOnly ? ' is-focus-own' : '');
+      els.repCurrentLine.innerHTML = `
+        <p class="rep-current-role">${isIgnored ? 'Rôle ignoré' : state.focusOwnOnly ? 'Mes répliques · ' + escapeHtml(line.speaker) : isOwn ? 'À toi' : escapeHtml(line.speaker)}${isDifficult ? ' · ⭐' : ''}</p>
+        <p class="rep-current-text">${escapeHtml(displayTextForLine(line))}</p>
+      `;
+    }
+    if (els.repCounter) els.repCounter.textContent = `${Math.min(state.currentIndex + 1,total)} / ${total}`;
+    if (els.repMeterBar) els.repMeterBar.style.width = `${Math.max(0,Math.min(100,percent))}%`;
     updateSceneCurrentSummary();
     const mode = els.repMode.value;
     els.repProgressText.textContent = isIgnored
@@ -2901,7 +2923,7 @@
       : state.focusDifficultOnly
         ? 'Révision des répliques marquées : dis ta ligne, puis valide.'
       : isOwn
-        ? (mode === 'auto' ? 'Filage muet : dis ta ligne, l’app enchaînera automatiquement.' : 'À toi : dis ta réplique, puis valide pour continuer.')
+        ? (mode === 'auto' ? 'Filage muet : à toi de parler, l’app enchaînera automatiquement.' : 'À toi : dis ta réplique, puis valide pour continuer.')
         : (state.playing ? 'L’app donne la réplique.' : 'Prêt à lancer depuis cette réplique.');
   }
 
@@ -2953,11 +2975,13 @@
   }
 
   function renderEmpty(){
-    els.repCurrentLine.className = 'rep-current';
-    els.repCurrentLine.innerHTML = '<p class="rep-current-role">En attente</p><p class="rep-current-text">Choisis un PDF, choisis ton rôle, puis appuie sur Play.</p>';
+    if (els.repCurrentLine) {
+      els.repCurrentLine.className = 'rep-current';
+      els.repCurrentLine.innerHTML = '<p class="rep-current-role">En attente</p><p class="rep-current-text">Choisis un PDF, choisis ton rôle, puis appuie sur Play.</p>';
+    }
     els.repProgressText.textContent = 'Aucun texte lancé.';
-    els.repCounter.textContent = '0 / 0';
-    els.repMeterBar.style.width = '0%';
+    if (els.repCounter) els.repCounter.textContent = '0 / 0';
+    if (els.repMeterBar) els.repMeterBar.style.width = '0%';
     els.repLineList.innerHTML = '<div class="rep-empty">Le texte analysé apparaîtra ici.</div>';
     setButtons();
   }
