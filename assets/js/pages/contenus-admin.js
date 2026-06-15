@@ -886,7 +886,7 @@ function normalizeSeasonOfferToken(value){
     .trim();
   if(!s) return '';
   if(['loisir','loisirs','decouverte'].includes(s)) return 'loisir';
-  if(['performance','perf','perfo','scene','troupe','academy','parcours academy'].includes(s)) return 'perf';
+  if(['performance','perf','perfo','scene','troupe','academy'].includes(s)) return 'perf';
   if(['option','options'].includes(s)) return 'option';
   if(['inclus','incluse','offert','offerte'].includes(s)) return 'inclus';
   return s.replace(/\s+/g,'_');
