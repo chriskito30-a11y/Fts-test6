@@ -73,3 +73,10 @@
 .fts-linked-choice-meta{display:block;color:rgba(255,255,255,.68);font-size:.74rem;line-height:1.35;font-weight:500}
 .fts-linked-choice em{align-self:center}
 @media(max-width:520px){.fts-linked-choice{align-items:flex-start}.fts-linked-choice em{font-size:.82rem;margin-top:.08rem}}
+
+/* v174 — avertissement paiement en plusieurs fois */
+.fts-installment-notice,.fts-installment-recap{margin:.8rem 0;padding:.85rem .95rem;border-radius:16px;background:rgba(255,214,102,.11);border:1px solid rgba(255,214,102,.28);color:rgba(255,255,255,.9);font-size:.86rem;line-height:1.5}
+.fts-installment-notice strong,.fts-installment-recap strong{color:var(--gold)}
+.fts-installment-ack{display:flex;align-items:flex-start;gap:.65rem;margin:.75rem 0;padding:.85rem .95rem;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.9);font-size:.86rem;line-height:1.45;cursor:pointer}
+.fts-installment-ack input{width:auto!important;margin-top:.15rem;accent-color:var(--gold)}
+.fts-installment-notice[hidden],.fts-installment-recap[hidden],.fts-installment-ack[hidden]{display:none!important}
