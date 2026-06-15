@@ -112,7 +112,7 @@ function normalizeOfferKey(value){
     .trim();
   if(!s) return '';
   if(['loisir','loisirs','kid','kids','decouverte','parcours loisir'].includes(s)) return 'loisir';
-  if(['performance','perf','perfo','scene','troupe','avance','avancee','parcours performance'].includes(s)) return 'perf';
+  if(['performance','perf','perfo','scene','troupe','avance','avancee','academy','parcours performance','parcours academy'].includes(s)) return 'perf';
   if(['option','options'].includes(s)) return 'option';
   if(['inclus','incluse','offert','offerte'].includes(s)) return 'inclus';
   return s.replace(/\s+/g,'_');
@@ -159,27 +159,32 @@ function subcatAllowsOffer(s,offer){
 function offerLabelFromAllowed(key){
   const labels={
     loisir:'Loisir',
-    perf:'Performance',
-    performance:'Performance',
+    perf:'Academy',
+    performance:'Academy',
+    academy:'Academy',
     option:'Option',
     inclus:'Inclus',
     loisir_30:'Loisir 30 min',
     loisir_30_min:'Loisir 30 min',
     loisir_1h:'Loisir 1h',
     loisir_1_h:'Loisir 1h',
-    perf_30:'Performance 30 min',
-    perf_30_min:'Performance 30 min',
-    performance_30:'Performance 30 min',
-    performance_30_min:'Performance 30 min',
-    perf_1h:'Performance 1h',
-    perf_1_h:'Performance 1h',
-    performance_1h:'Performance 1h',
-    performance_1_h:'Performance 1h'
+    perf_30:'Academy 30 min',
+    perf_30_min:'Academy 30 min',
+    performance_30:'Academy 30 min',
+    performance_30_min:'Academy 30 min',
+    academy_30:'Academy 30 min',
+    academy_30_min:'Academy 30 min',
+    perf_1h:'Academy 1h',
+    perf_1_h:'Academy 1h',
+    performance_1h:'Academy 1h',
+    performance_1_h:'Academy 1h',
+    academy_1h:'Academy 1h',
+    academy_1_h:'Academy 1h'
   };
   if(labels[key]) return labels[key];
   return String(key||'')
     .replace(/_/g,' ')
-    .replace(/\bperf\b/gi,'Performance')
+    .replace(/\bperf\b/gi,'Academy')
     .replace(/\bloisir\b/gi,'Loisir')
     .replace(/\boption\b/gi,'Option')
     .replace(/\binclus\b/gi,'Inclus')
