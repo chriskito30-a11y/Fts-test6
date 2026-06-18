@@ -1,0 +1,138 @@
+/* Contact équipe — bouton discret + fenêtre simple */
+.fts-contact-fab{
+  position:fixed;
+  right:calc(14px + env(safe-area-inset-right));
+  bottom:calc(18px + env(safe-area-inset-bottom));
+  z-index:90;
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  min-height:42px;
+  padding:.72rem .95rem;
+  border-radius:999px;
+  border:1px solid rgba(248,231,2,.42);
+  background:rgba(12,10,8,.82);
+  color:#f8e702;
+  font-family:var(--font-body, 'DM Sans', system-ui, sans-serif);
+  font-size:.82rem;
+  font-weight:900;
+  line-height:1;
+  box-shadow:0 14px 34px rgba(0,0,0,.34), 0 0 0 1px rgba(255,255,255,.05) inset;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  cursor:pointer;
+}
+.fts-contact-fab:hover,
+.fts-contact-fab:focus-visible{
+  transform:translateY(-1px);
+  border-color:rgba(248,231,2,.72);
+  background:rgba(24,20,13,.92);
+  outline:none;
+}
+.fts-contact-fab-icon{font-size:1rem;line-height:1;}
+body.has-fts-bottom-nav .fts-contact-fab,
+.fts-contact-fab--member{
+  bottom:calc(82px + env(safe-area-inset-bottom));
+}
+.fts-contact-overlay{
+  position:fixed;
+  inset:0;
+  z-index:160;
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  padding:18px;
+  background:rgba(0,0,0,.58);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+}
+.fts-contact-overlay.is-open{display:flex;}
+.fts-contact-modal{
+  width:min(430px, 100%);
+  border-radius:28px;
+  border:1px solid rgba(255,255,255,.12);
+  background:linear-gradient(145deg, rgba(30,24,15,.96), rgba(9,8,7,.98));
+  color:#f5f2ee;
+  box-shadow:0 26px 70px rgba(0,0,0,.5);
+  padding:18px;
+}
+.fts-contact-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+  margin-bottom:14px;
+}
+.fts-contact-kicker{
+  display:inline-flex;
+  align-items:center;
+  width:max-content;
+  max-width:100%;
+  border-radius:999px;
+  padding:.32rem .62rem;
+  background:rgba(248,231,2,.12);
+  color:#f8e702;
+  font-size:.72rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+.fts-contact-title{
+  margin:.45rem 0 0;
+  font-family:var(--font-display, 'Bebas Neue', Impact, sans-serif);
+  font-size:clamp(2rem, 8vw, 2.55rem);
+  line-height:.9;
+  letter-spacing:.035em;
+}
+.fts-contact-close{
+  flex:0 0 auto;
+  width:38px;
+  height:38px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.12);
+  background:rgba(255,255,255,.06);
+  color:#f5f2ee;
+  cursor:pointer;
+  font-size:1rem;
+}
+.fts-contact-list{display:grid;gap:10px;}
+.fts-contact-card{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.09);
+  background:rgba(255,255,255,.055);
+  padding:12px;
+}
+.fts-contact-person{min-width:0;}
+.fts-contact-person strong{display:block;font-size:.98rem;}
+.fts-contact-person span{display:block;margin-top:2px;color:rgba(245,242,238,.68);font-size:.82rem;}
+.fts-contact-actions{display:flex;gap:7px;flex:0 0 auto;}
+.fts-contact-link{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:42px;
+  min-height:38px;
+  padding:0 .7rem;
+  border-radius:999px;
+  border:1px solid rgba(248,231,2,.34);
+  background:rgba(248,231,2,.12);
+  color:#f8e702;
+  text-decoration:none;
+  font-size:.9rem;
+  font-weight:900;
+}
+.fts-contact-link--mail{width:100%;justify-content:center;margin-top:2px;padding:.85rem 1rem;}
+.fts-contact-note{margin:12px 2px 0;color:rgba(245,242,238,.62);font-size:.78rem;line-height:1.4;text-align:center;}
+@media (min-width:700px){
+  .fts-contact-overlay{align-items:center;}
+}
+@media (max-width:420px){
+  .fts-contact-fab{right:12px;padding:.68rem .82rem;font-size:.78rem;}
+  .fts-contact-card{align-items:flex-start;flex-direction:column;}
+  .fts-contact-actions{width:100%;display:grid;grid-template-columns:1fr 1fr;}
+  .fts-contact-link{width:100%;}
+}
