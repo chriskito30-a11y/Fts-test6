@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="assets/css/fts-nav.css?v=103">
 <link rel="stylesheet" href="assets/css/pages/membres.css?v=224-calendar-series">
 <link rel="stylesheet" href="assets/css/fts-enjoy.css?v=6">
+<link rel="stylesheet" href="assets/css/fts-contact.css?v=1">
 </head>
 
 <body class="has-glow">
@@ -537,6 +538,49 @@
 </div>
 
 
+
+
+<button type="button" class="fts-contact-fab fts-contact-fab--member" data-fts-contact-open aria-haspopup="dialog" aria-controls="fts-contact-overlay">
+  <span class="fts-contact-fab-icon" aria-hidden="true">☎️</span>
+  <span>Nous contacter</span>
+</button>
+
+<div class="fts-contact-overlay" id="fts-contact-overlay" aria-hidden="true">
+  <div class="fts-contact-modal" role="dialog" aria-modal="true" aria-labelledby="fts-contact-title">
+    <div class="fts-contact-head">
+      <div>
+        <div class="fts-contact-kicker">Équipe Fais Ton Show</div>
+        <h2 class="fts-contact-title" id="fts-contact-title">Nous contacter</h2>
+      </div>
+      <button type="button" class="fts-contact-close" data-fts-contact-close aria-label="Fermer">✕</button>
+    </div>
+    <div class="fts-contact-list">
+      <div class="fts-contact-card">
+        <div class="fts-contact-person">
+          <strong>Virginie</strong>
+          <span>06 03 39 23 82</span>
+        </div>
+        <div class="fts-contact-actions">
+          <a class="fts-contact-link" href="tel:+33603392382" aria-label="Appeler Virginie">Appel</a>
+          <a class="fts-contact-link" href="sms:+33603392382" aria-label="Envoyer un SMS à Virginie">SMS</a>
+        </div>
+      </div>
+      <div class="fts-contact-card">
+        <div class="fts-contact-person">
+          <strong>Christophe</strong>
+          <span>06 89 20 76 26</span>
+        </div>
+        <div class="fts-contact-actions">
+          <a class="fts-contact-link" href="tel:+33689207626" aria-label="Appeler Christophe">Appel</a>
+          <a class="fts-contact-link" href="sms:+33689207626" aria-label="Envoyer un SMS à Christophe">SMS</a>
+        </div>
+      </div>
+      <a class="fts-contact-link fts-contact-link--mail" href="mailto:contact@faistonshow.fr">contact@faistonshow.fr</a>
+    </div>
+    <p class="fts-contact-note">Clique autour de cette fenêtre pour la fermer.</p>
+  </div>
+</div>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -564,6 +608,7 @@
 <script src="assets/js/pages/membres.js?v=224-calendar-series"></script>
 
 <script src="assets/js/fts-enjoy.js?v=6"></script>
+<script src="assets/js/fts-contact.js?v=1"></script>
 <script>
   window.addEventListener('load', function(){
     if (window.FTSEnjoy) {
