@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Administration des pièces — Fais Ton Show</title>
+  <link href="./manifest.json" rel="manifest"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="assets/css/fts.css" rel="stylesheet"/>
+  <link href="assets/css/pages/admin-pieces.css?v=1" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-glow pieces-admin-page">
+  <div class="pieces-admin-loading" id="pieces-admin-loading">
+    <div class="pieces-admin-logo">PIÈCES <span>ADMIN</span></div>
+    <p>Vérification de l’accès administrateur…</p>
+    <div class="pieces-admin-error" id="pieces-admin-error"></div>
+  </div>
+
+  <div class="pieces-admin-shell" id="pieces-admin-shell" hidden>
+    <header class="pieces-admin-head">
+      <div>
+        <a class="pieces-admin-back" href="admin.html">← Retour admin</a>
+        <div class="pieces-admin-kicker">Catalogue indépendant</div>
+        <h1>Pièces de théâtre</h1>
+        <p>Gérez les fiches, les offres de représentation et les commandes à envoyer manuellement.</p>
+      </div>
+      <div class="pieces-admin-actions">
+        <a class="pieces-admin-btn ghost" href="pieces.html">Voir la page publique</a>
+        <button class="pieces-admin-btn" id="pieces-new" type="button">Ajouter une pièce</button>
+      </div>
+    </header>
+
+    <nav class="pieces-admin-tabs" aria-label="Sections d’administration">
+      <button type="button" class="active" data-pieces-tab="catalog">Pièces</button>
+      <button type="button" data-pieces-tab="sales">Ventes</button>
+      <button type="button" data-pieces-tab="settings">En-tête de page</button>
+    </nav>
+
+    <main>
+      <section class="pieces-admin-view" id="pieces-view-catalog">
+        <div class="pieces-admin-layout">
+          <section class="pieces-admin-card">
+            <div class="pieces-card-head"><div><span>Catalogue</span><h2>Pièces existantes</h2></div></div>
+            <div class="pieces-admin-list" id="pieces-admin-list"><div class="pieces-admin-empty">Chargement…</div></div>
+          </section>
+
+          <section class="pieces-admin-card pieces-form-card" id="pieces-form-card">
+            <div class="pieces-card-head"><div><span>Édition</span><h2 id="pieces-form-title">Ajouter une pièce</h2></div></div>
+            <form id="pieces-form">
+              <input id="piece-id" type="hidden"/>
+              <div class="pieces-form-grid two">
+                <label>Titre de la pièce<input id="piece-title" required maxlength="180"/></label>
+                <label>Auteur<input id="piece-author" maxlength="180"/></label>
+              </div>
+              <label>Résumé court<textarea id="piece-summary" maxlength="600" placeholder="Texte visible rapidement dans la fiche"></textarea></label>
+              <label>Description complète<textarea id="piece-description" class="large"></textarea></label>
+              <div class="pieces-form-grid three">
+                <label>Genre<input id="piece-genre" maxlength="120"/></label>
+                <label>Public concerné<input id="piece-audience" maxlength="160"/></label>
+                <label>Durée approximative<input id="piece-duration" maxlength="80" placeholder="Ex : 1 h 20"/></label>
+              </div>
+              <div class="pieces-form-grid two">
+                <label>Nombre de personnages<input id="piece-characters" maxlength="100" placeholder="Ex : 8 à 12"/></label>
+                <label>Ordre d’affichage<input id="piece-order" type="number" step="1" value="999"/></label>
+              </div>
+              <label>Distribution et possibilités d’adaptation<textarea id="piece-distribution"></textarea></label>
+              <label>Contenu du pack<textarea id="piece-pack"></textarea></label>
+              <label>Droits de représentation<textarea id="piece-rights"></textarea></label>
+              <label>Conseils ou informations complémentaires<textarea id="piece-additional"></textarea></label>
+
+              <label>Image carrée — URL<input id="piece-image" type="url" placeholder="https://…"/></label>
+              <div class="pieces-image-tools">
+                <label class="pieces-file-label">Choisir une image<input id="piece-image-file" type="file" accept="image/*"/></label>
+                <button class="pieces-admin-btn ghost" id="piece-upload-image" type="button">Envoyer l’image</button>
+              </div>
+              <div class="pieces-upload-status" id="piece-upload-status" aria-live="polite"></div>
+              <div class="pieces-image-preview" id="piece-image-preview" hidden></div>
+
+              <div class="pieces-form-grid two">
+                <label>URL externe facultative<input id="piece-external-url" type="url" placeholder="https://…"/></label>
+                <label>Texte du bouton externe<input id="piece-external-label" maxlength="80" placeholder="En savoir plus"/></label>
+              </div>
+              <div class="pieces-form-grid checks">
+                <label><input id="piece-show-price" type="checkbox" checked/> Afficher les prix au public</label>
+                <label><input id="piece-active" type="checkbox" checked/> Pièce visible</label>
+              </div>
+
+              <section class="pieces-offers-editor">
+                <div class="pieces-offers-head">
+                  <div><span>Tarifs</span><h3>Offres et représentations</h3></div>
+                  <button class="pieces-admin-btn ghost" id="piece-add-offer" type="button">+ Ajouter une offre</button>
+                </div>
+                <div id="piece-offers"></div>
+              </section>
+
+              <div class="pieces-form-actions">
+                <button class="pieces-admin-btn" type="submit">Enregistrer la pièce</button>
+                <button class="pieces-admin-btn ghost" id="piece-reset" type="button">Nouveau</button>
+              </div>
+              <div class="pieces-admin-message" id="pieces-form-message" aria-live="polite"></div>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section class="pieces-admin-view" id="pieces-view-sales" hidden>
+        <section class="pieces-admin-card">
+          <div class="pieces-card-head sales-head">
+            <div><span>Commandes</span><h2>Ventes des pièces</h2><p>Paiement vérifié par le worker, envoi du pack effectué manuellement.</p></div>
+            <button class="pieces-admin-btn ghost" id="pieces-refresh-sales" type="button">Actualiser</button>
+          </div>
+          <div class="pieces-sales-list" id="pieces-sales-list"><div class="pieces-admin-empty">Ouvrez cet onglet pour charger les ventes.</div></div>
+        </section>
+      </section>
+
+      <section class="pieces-admin-view" id="pieces-view-settings" hidden>
+        <section class="pieces-admin-card settings-card">
+          <div class="pieces-card-head"><div><span>Page publique</span><h2>En-tête administrable</h2></div></div>
+          <form id="pieces-settings-form">
+            <label>Titre principal<input id="pieces-settings-title" required maxlength="180"/></label>
+            <label>Sous-titre facultatif<input id="pieces-settings-subtitle" maxlength="180"/></label>
+            <label>Texte d’introduction<textarea id="pieces-settings-description" maxlength="800"></textarea></label>
+            <label>Image ou bannière facultative — URL<input id="pieces-settings-banner" type="url" placeholder="https://…"/></label>
+            <label class="pieces-settings-published"><input id="pieces-settings-published" type="checkbox" checked/> Page publiée</label>
+            <button class="pieces-admin-btn" type="submit">Enregistrer l’en-tête</button>
+            <div class="pieces-admin-message" id="pieces-settings-message" aria-live="polite"></div>
+          </form>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="assets/js/fts-utils.js"></script>
+  <script src="assets/js/fts-firebase.js"></script>
+  <script src="assets/js/pages/admin-pieces.js?v=1"></script>
+</body>
+</html>

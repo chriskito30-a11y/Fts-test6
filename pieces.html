@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="Pièces de théâtre, ressources de mise en scène et droits de représentation proposés par Fais Ton Show."/>
+  <title>Pièces de théâtre — Fais Ton Show</title>
+  <link href="./manifest.json" rel="manifest"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link href="assets/css/fts.css" rel="stylesheet"/>
+  <link href="assets/css/pages/pieces.css?v=1" rel="stylesheet"/>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="has-noise has-glow pieces-page">
+  <main class="pieces-shell">
+    <header class="pieces-hero" id="pieces-hero">
+      <a class="pieces-back" href="index.html">← Accueil</a>
+      <div class="pieces-hero-grid">
+        <div>
+          <div class="pieces-kicker" id="pieces-subtitle"></div>
+          <h1 id="pieces-title">Nos pièces de théâtre</h1>
+          <p id="pieces-description">Des créations prêtes à jouer, avec textes, ressources de mise en scène et droits de représentation.</p>
+        </div>
+        <div class="pieces-banner" id="pieces-banner" hidden></div>
+      </div>
+    </header>
+
+    <section class="pieces-state" id="pieces-state" aria-live="polite">Chargement des pièces…</section>
+    <section class="pieces-grid" id="pieces-grid" aria-label="Catalogue des pièces" hidden></section>
+  </main>
+
+  <button class="pieces-cart-bubble" id="pieces-cart-bubble" type="button" hidden aria-label="Ouvrir le panier des pièces">
+    <span aria-hidden="true">🛒</span> Panier <strong>0</strong>
+  </button>
+
+  <div class="pieces-overlay" id="piece-detail-modal" hidden>
+    <div class="pieces-dialog pieces-detail-dialog" role="dialog" aria-modal="true" aria-labelledby="piece-detail-title">
+      <button class="pieces-modal-close" type="button" data-piece-detail-close aria-label="Fermer la fiche">×</button>
+      <div id="piece-detail-content"></div>
+    </div>
+  </div>
+
+  <div class="pieces-overlay" id="pieces-cart-modal" hidden>
+    <div class="pieces-dialog pieces-cart-dialog" role="dialog" aria-modal="true" aria-labelledby="pieces-cart-title">
+      <button class="pieces-modal-close" type="button" data-pieces-cart-close aria-label="Fermer le panier">×</button>
+      <div class="pieces-kicker">Commande sécurisée</div>
+      <h2 id="pieces-cart-title">Mon panier</h2>
+      <div id="pieces-cart-content"></div>
+    </div>
+  </div>
+
+  <script src="assets/js/fts-utils.js"></script>
+  <script src="assets/js/fts-firebase.js"></script>
+  <script src="assets/js/pages/pieces.js?v=1"></script>
+</body>
+</html>
