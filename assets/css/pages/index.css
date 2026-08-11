@@ -839,6 +839,29 @@ html, body { min-height: 100%; }
 .season-hero-copy small { color: rgba(21,17,10,.78); font-size: .76rem; line-height: 1.35; }
 .season-hero-arrow { font-weight: 900; font-size: 1.2rem; }
 
+.pieces-hero-cta {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr) auto;
+  gap: .85rem;
+  align-items: center;
+  margin-top: .75rem;
+  padding: .9rem 1rem;
+  border-radius: 20px;
+  text-decoration: none;
+  color: var(--white);
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(248,231,2,.22);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.pieces-hero-cta:hover { transform: translateY(-1px); border-color: rgba(248,231,2,.5); background: rgba(248,231,2,.075); }
+.pieces-hero-emoji { display:grid;place-items:center;width:42px;height:42px;border-radius:14px;background:rgba(248,231,2,.12);font-size:1.35rem; }
+.pieces-hero-copy { display:grid;gap:.15rem;min-width:0; }
+.pieces-hero-copy strong { font-size:.95rem;font-weight:900; }
+.pieces-hero-copy small { color:rgba(245,242,238,.66);font-size:.76rem;line-height:1.35; }
+.pieces-hero-button { color:var(--gold);font-size:.76rem;font-weight:900;white-space:nowrap; }
+
 /* Prochains événements publics */
 .upcoming-events-zone {
   grid-area: upcoming;
@@ -927,6 +950,8 @@ html, body { min-height: 100%; }
   .upcoming-event-action { width: 100%; }
   .season-hero-cta { grid-template-columns: auto 1fr; }
   .season-hero-arrow { display: none; }
+  .pieces-hero-cta { grid-template-columns:auto 1fr; }
+  .pieces-hero-button { grid-column:1/-1;text-align:center;padding-top:.25rem; }
 }
 
 /* Correctif v27 : le bloc événements reste dans le flux normal sous le questionnaire */
