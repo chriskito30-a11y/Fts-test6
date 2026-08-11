@@ -352,6 +352,19 @@
     }
   }
 
+  function isPiecesOrder(order){
+    order = order || {};
+    if(String(order.source || '').toLowerCase().indexOf('pieces') !== -1) return true;
+    const lines = [];
+    if(Array.isArray(order.cartLines)) lines.push.apply(lines, order.cartLines);
+    if(Array.isArray(order.shopLines)) lines.push.apply(lines, order.shopLines);
+    lines.push(order);
+    return lines.some(line => {
+      const variants = line && line.variants && typeof line.variants === 'object' ? line.variants : {};
+      return String(variants.Module || variants.module || '').toLowerCase().indexOf('pièce') !== -1;
+    });
+  }
+
   async function handleReturn(){
     const params = new URLSearchParams(location.search);
     const orderId = params.get('orderId') || params.get('order') || params.get('localOrderId');
@@ -392,6 +405,13 @@
           if(order.offlineMethod) detail += '<p>Mode prévu : '+esc(order.offlineMethod)+'</p>';
         }else if(status === 'offline_received' || globalStatus === 'offline_received'){
           detail = '<p>Le paiement hors ligne a été marqué comme reçu par l’administration.</p>';
+        }
+        if(isPiecesOrder(order)){
+          if(['paid','authorized','validated','success','confirmed','succeeded'].includes(status) || globalStatus === 'paid'){
+            detail = '<p><strong>Votre paiement a bien été enregistré.</strong></p><p>Après vérification de votre commande, votre pack complet et votre autorisation nominative de représentation vous seront envoyés par e-mail sous 24 à 48 heures.</p><div class="payment-return-actions"><a class="payment-secondary" href="pieces.html">Retour aux pièces</a></div>';
+          }else if(!blockedBridgeStatus(status) && !blockedBridgeStatus(globalStatus)){
+            detail = '<p>Votre commande de pièce est enregistrée. Le statut du paiement est encore en cours de vérification auprès de HelloAsso.</p><div class="payment-return-actions"><a class="payment-secondary" href="pieces.html">Retour aux pièces</a></div>';
+          }
         }
         box.innerHTML = `<div class="payment-status-pill ${cls}">${esc(statusLabel(order.status))}</div><p>${esc(itemName)}</p>${detail}<small>Référence : ${esc(order.id || orderId)}</small>`;
         if(seasonHtml || bridgeHtml){

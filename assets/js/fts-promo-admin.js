@@ -128,7 +128,7 @@
 
   function shopProductRows(state){
     const products = Array.isArray(state.products) ? state.products : [];
-    return products.filter(p => p && p.active !== false).sort((a,b) => Number(a.order || 999) - Number(b.order || 999) || String(a.name || a.title || '').localeCompare(String(b.name || b.title || ''), 'fr'));
+    return products.filter(p => p && p.active !== false && !String(p.category || '').startsWith('__PIECES__:')).sort((a,b) => Number(a.order || 999) - Number(b.order || 999) || String(a.name || a.title || '').localeCompare(String(b.name || b.title || ''), 'fr'));
   }
   function renderShopProductPicker(section, selected){
     const box = section.querySelector('.promo-products-picker');
