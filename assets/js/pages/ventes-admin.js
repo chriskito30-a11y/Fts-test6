@@ -216,8 +216,13 @@
     return out;
   }
 
+  function isPiecesLine(line){
+    const variants = line && line.variants && typeof line.variants === 'object' ? line.variants : {};
+    return String(variants.Module || variants.module || '').toLowerCase().indexOf('pièce') !== -1;
+  }
+  function isPiecesOrder(o){ return String(o && o.source || '').toLowerCase().indexOf('pieces') !== -1 || isPiecesLine(o); }
   function cartSeasonLines(o){ return Array.isArray(o && o.cartLines) ? o.cartLines.filter(l=>l && l.type === 'season_registration') : []; }
-  function cartShopLines(o){ return Array.isArray(o && o.cartLines) ? o.cartLines.filter(l=>l && l.type === 'shop_order') : []; }
+  function cartShopLines(o){ return Array.isArray(o && o.cartLines) ? o.cartLines.filter(l=>l && l.type === 'shop_order' && !isPiecesLine(l)) : []; }
   function lineStudentName(line, parent){ return [line && line.studentFirstName, line && line.studentLastName].filter(Boolean).join(' ') || (line && line.studentName) || studentName(parent || {}); }
   function lineSubcategoryDetail(line){
     const direct = String(line && line.subcategorySeasonDetail || '').trim();
@@ -296,7 +301,7 @@
     return out;
   }
   function combinedShopOrders(list){
-    return list.filter(o=>typeKey(o)==='shop_order').concat(mixedCartShopOrders(list));
+    return list.filter(o=>typeKey(o)==='shop_order' && !isPiecesOrder(o)).concat(mixedCartShopOrders(list));
   }
   function mixedCartSeasonOrders(list){
     const out = [];
@@ -332,7 +337,7 @@
     return Number.isFinite(d.getTime()) ? d.toLocaleDateString('fr-FR') : '—';
   }
   function isShopLikeOrder(o){
-    return typeKey(o)==='shop_order' || (typeKey(o)==='mixed_cart' && cartShopLines(o).length > 0);
+    return (typeKey(o)==='shop_order' && !isPiecesOrder(o)) || (typeKey(o)==='mixed_cart' && cartShopLines(o).length > 0);
   }
   function shopTrackableOrders(list){
     return list.filter(o=>statusKind(o.status)==='paid' && isShopLikeOrder(o));

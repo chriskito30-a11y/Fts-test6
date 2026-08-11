@@ -226,7 +226,7 @@
 
   async function load() {
     const data = await api('/admin/catalog', { method:'GET' });
-    products = data.products || {};
+    products = Object.fromEntries(Object.entries(data.products || {}).filter(([, p]) => !String(p && p.category || '').startsWith('__PIECES__:')));
     render();
   }
 
