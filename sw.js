@@ -1,4 +1,4 @@
-const CACHE = 'fts-v228-pwa-start-members';
+const CACHE = 'fts-v229-pieces-shop';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -23,6 +23,8 @@ const FILES = [
   './slots-admin.html',
   './boutique.html',
   './boutique-admin.html',
+  './pieces.html',
+  './admin-pieces.html',
   './xp-rewards-admin.html',
   './paiement.html',
   './paiements-admin.html',
@@ -47,6 +49,8 @@ const FILES = [
   './assets/css/pages/saison.css',
   './assets/css/pages/boutique.css',
   './assets/css/pages/boutique-admin.css',
+  './assets/css/pages/pieces.css',
+  './assets/css/pages/admin-pieces.css',
   './assets/css/pages/xp-rewards-admin.css',
   './assets/css/pages/paiement.css',
   './assets/css/pages/ventes-admin.css',
@@ -97,6 +101,8 @@ const FILES = [
   './assets/js/pages/saison.js',
   './assets/js/pages/boutique.js',
   './assets/js/pages/boutique-admin.js',
+  './assets/js/pages/pieces.js',
+  './assets/js/pages/admin-pieces.js',
   './assets/js/pages/xp-rewards-admin.js',
   './assets/js/fts-paiement.js',
   './assets/js/pages/ventes-admin.js',
