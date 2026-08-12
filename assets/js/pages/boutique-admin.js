@@ -12,6 +12,31 @@
   const EXCEPTIONAL_AMOUNTS = [50, 80, 100, 120, 150, 200];
   const DROPDOWN_CATEGORY_PREFIX = 'Liste déroulante — ';
   const EXCEPTIONAL_CATEGORY = DROPDOWN_CATEGORY_PREFIX + 'Règlement exceptionnel';
+  const SEASON_OPTION_ON_MARKER = '__FTS_SAISON_ON__';
+  const SEASON_OPTION_OFF_MARKER = '__FTS_SAISON_OFF__';
+
+  function cleanSeasonOptionMarkers(text) {
+    return String(text || '')
+      .split(/\n+/)
+      .filter(line => {
+        const value = line.trim();
+        return value !== SEASON_OPTION_ON_MARKER && value !== SEASON_OPTION_OFF_MARKER;
+      })
+      .join('\n')
+      .trim();
+  }
+
+  function seasonOptionEnabled(product) {
+    const text = String(product && product.variantsText || '');
+    if (text.split(/\n+/).some(line => line.trim() === SEASON_OPTION_ON_MARKER)) return true;
+    if (text.split(/\n+/).some(line => line.trim() === SEASON_OPTION_OFF_MARKER)) return false;
+    return String(product && product.category || '') !== EXCEPTIONAL_CATEGORY;
+  }
+
+  function variantsWithSeasonOption(text, enabled) {
+    const clean = cleanSeasonOptionMarkers(text);
+    return [clean, enabled ? SEASON_OPTION_ON_MARKER : SEASON_OPTION_OFF_MARKER].filter(Boolean).join('\n');
+  }
 
   function exceptionalPayload(amount, index) {
     const cents = Math.round(Number(amount || 0) * 100);
@@ -24,7 +49,7 @@
       category: EXCEPTIONAL_CATEGORY,
       order: 900 + Number(index || 0),
       imageUrl: '',
-      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé',
+      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé\n' + SEASON_OPTION_OFF_MARKER,
       active: true
     };
   }
@@ -40,6 +65,8 @@
       }
       for (let i = 0; i < EXCEPTIONAL_AMOUNTS.length; i += 1) {
         const payload = exceptionalPayload(EXCEPTIONAL_AMOUNTS[i], i);
+        const existing = products[payload.id];
+        if (existing) payload.variantsText = variantsWithSeasonOption(payload.variantsText, seasonOptionEnabled(existing));
         await api('/admin/catalog/product', { method:'POST', body:JSON.stringify(payload) });
       }
       msg('Règlements exceptionnels créés / mis à jour');
@@ -97,7 +124,7 @@
       category: dropdownCategoryName(listName),
       order: 900 + Math.round(price),
       imageUrl: '',
-      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé',
+      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé\n' + SEASON_OPTION_OFF_MARKER,
       active: true
     };
 
@@ -177,6 +204,7 @@
     const file = $('p-image-file');
     if (file) file.value = '';
     $('p-active').checked = true;
+    if ($('p-season-option')) $('p-season-option').checked = true;
     uploadStatus('');
     updatePreview('');
   }
@@ -190,8 +218,9 @@
     $('p-category').value = p.category || '';
     $('p-order').value = p.order || '';
     $('p-image').value = p.imageUrl || '';
-    $('p-variants').value = p.variantsText || '';
+    $('p-variants').value = cleanSeasonOptionMarkers(p.variantsText || '');
     $('p-active').checked = p.active !== false;
+    if ($('p-season-option')) $('p-season-option').checked = seasonOptionEnabled(p);
     const file = $('p-image-file');
     if (file) file.value = '';
     uploadStatus('');
@@ -215,7 +244,7 @@
         <div>
           <strong>${esc(p.name || 'Article')}</strong>
           <span>${esc(p.category || 'Boutique')} · ${euro(p.priceCents)}</span>
-          <small>${p.stock ? esc(p.stock) + ' en stock' : 'Stock non limité'}${p.active === false ? ' · masqué' : ''}</small>
+          <small>${p.stock ? esc(p.stock) + ' en stock' : 'Stock non limité'}${p.active === false ? ' · masqué' : ''}${seasonOptionEnabled(p) ? ' · Saison' : ' · hors Saison'}</small>
         </div>
       </article>`).join('');
 
@@ -278,7 +307,7 @@
       category: $('p-category').value.trim(),
       order: Number($('p-order').value || 999) || 999,
       imageUrl: $('p-image').value.trim(),
-      variantsText: $('p-variants').value.trim(),
+      variantsText: variantsWithSeasonOption($('p-variants').value.trim(), $('p-season-option') ? $('p-season-option').checked : true),
       active: $('p-active').checked
     };
 
