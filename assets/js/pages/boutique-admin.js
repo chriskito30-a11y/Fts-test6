@@ -4,6 +4,7 @@
   const FTS = window.FTS = window.FTS || {};
   let db = null;
   let products = {};
+  let seasonShopOptions = {};
 
   const $ = id => document.getElementById(id);
   const esc = v => FTS.esc ? FTS.esc(v == null ? '' : v) : String(v == null ? '' : v).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -12,30 +13,38 @@
   const EXCEPTIONAL_AMOUNTS = [50, 80, 100, 120, 150, 200];
   const DROPDOWN_CATEGORY_PREFIX = 'Liste déroulante — ';
   const EXCEPTIONAL_CATEGORY = DROPDOWN_CATEGORY_PREFIX + 'Règlement exceptionnel';
-  const SEASON_OPTION_ON_MARKER = '__FTS_SAISON_ON__';
-  const SEASON_OPTION_OFF_MARKER = '__FTS_SAISON_OFF__';
+  function seasonOptionKey(productId) {
+    return String(productId || '').replace(/[.#$\[\]\/]/g, '_');
+  }
 
-  function cleanSeasonOptionMarkers(text) {
+  function hasSeasonOption(productId) {
+    const key = seasonOptionKey(productId);
+    return !!key && Object.prototype.hasOwnProperty.call(seasonShopOptions, key);
+  }
+
+  function seasonOptionEnabled(product) {
+    const id = product && product.id;
+    const key = seasonOptionKey(id);
+    if (key && Object.prototype.hasOwnProperty.call(seasonShopOptions, key)) return seasonShopOptions[key] === true;
+    return String(product && product.category || '') !== EXCEPTIONAL_CATEGORY;
+  }
+
+  function cleanLegacySeasonMarkers(text) {
     return String(text || '')
       .split(/\n+/)
       .filter(line => {
         const value = line.trim();
-        return value !== SEASON_OPTION_ON_MARKER && value !== SEASON_OPTION_OFF_MARKER;
+        return value !== '__FTS_SAISON_ON__' && value !== '__FTS_SAISON_OFF__';
       })
       .join('\n')
       .trim();
   }
 
-  function seasonOptionEnabled(product) {
-    const text = String(product && product.variantsText || '');
-    if (text.split(/\n+/).some(line => line.trim() === SEASON_OPTION_ON_MARKER)) return true;
-    if (text.split(/\n+/).some(line => line.trim() === SEASON_OPTION_OFF_MARKER)) return false;
-    return String(product && product.category || '') !== EXCEPTIONAL_CATEGORY;
-  }
-
-  function variantsWithSeasonOption(text, enabled) {
-    const clean = cleanSeasonOptionMarkers(text);
-    return [clean, enabled ? SEASON_OPTION_ON_MARKER : SEASON_OPTION_OFF_MARKER].filter(Boolean).join('\n');
+  async function saveSeasonOption(productId, enabled) {
+    const key = seasonOptionKey(productId);
+    if (!key) throw new Error('Identifiant article introuvable pour le réglage Saison.');
+    await db.ref('fts_saison/shopOptions/' + key).set(!!enabled);
+    seasonShopOptions[key] = !!enabled;
   }
 
   function exceptionalPayload(amount, index) {
@@ -49,7 +58,7 @@
       category: EXCEPTIONAL_CATEGORY,
       order: 900 + Number(index || 0),
       imageUrl: '',
-      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé\n' + SEASON_OPTION_OFF_MARKER,
+      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé',
       active: true
     };
   }
@@ -65,9 +74,9 @@
       }
       for (let i = 0; i < EXCEPTIONAL_AMOUNTS.length; i += 1) {
         const payload = exceptionalPayload(EXCEPTIONAL_AMOUNTS[i], i);
-        const existing = products[payload.id];
-        if (existing) payload.variantsText = variantsWithSeasonOption(payload.variantsText, seasonOptionEnabled(existing));
+        const existingEnabled = hasSeasonOption(payload.id) ? seasonOptionEnabled({ id:payload.id, category:payload.category }) : false;
         await api('/admin/catalog/product', { method:'POST', body:JSON.stringify(payload) });
+        await saveSeasonOption(payload.id, existingEnabled);
       }
       msg('Règlements exceptionnels créés / mis à jour');
       await load();
@@ -124,7 +133,7 @@
       category: dropdownCategoryName(listName),
       order: 900 + Math.round(price),
       imageUrl: '',
-      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé\n' + SEASON_OPTION_OFF_MARKER,
+      variantsText: 'Motif : Complément formule spéciale, Option adulte complémentaire, Régularisation inscription, Différence tarifaire, Autre cas validé',
       active: true
     };
 
@@ -135,6 +144,7 @@
         btn.textContent = 'Ajout…';
       }
       await api('/admin/catalog/product', { method:'POST', body:JSON.stringify(payload) });
+      await saveSeasonOption(id, false);
       msg('Produit ajouté à la liste déroulante : ' + listName);
       if ($('quick-dropdown-label')) $('quick-dropdown-label').value = '';
       if ($('quick-dropdown-price')) $('quick-dropdown-price').value = '';
@@ -218,7 +228,7 @@
     $('p-category').value = p.category || '';
     $('p-order').value = p.order || '';
     $('p-image').value = p.imageUrl || '';
-    $('p-variants').value = cleanSeasonOptionMarkers(p.variantsText || '');
+    $('p-variants').value = cleanLegacySeasonMarkers(p.variantsText || '');
     $('p-active').checked = p.active !== false;
     if ($('p-season-option')) $('p-season-option').checked = seasonOptionEnabled(p);
     const file = $('p-image-file');
@@ -254,7 +264,11 @@
   }
 
   async function load() {
-    const data = await api('/admin/catalog', { method:'GET' });
+    const [data, optionSnap] = await Promise.all([
+      api('/admin/catalog', { method:'GET' }),
+      db.ref('fts_saison/shopOptions').once('value').catch(err => { console.warn('[FTS Boutique Saison options]', err); return null; })
+    ]);
+    seasonShopOptions = optionSnap && optionSnap.val ? (optionSnap.val() || {}) : {};
     products = Object.fromEntries(Object.entries(data.products || {}).filter(([, p]) => !String(p && p.category || '').startsWith('__PIECES__:')));
     render();
   }
@@ -307,12 +321,25 @@
       category: $('p-category').value.trim(),
       order: Number($('p-order').value || 999) || 999,
       imageUrl: $('p-image').value.trim(),
-      variantsText: variantsWithSeasonOption($('p-variants').value.trim(), $('p-season-option') ? $('p-season-option').checked : true),
+      variantsText: cleanLegacySeasonMarkers($('p-variants').value.trim()),
       active: $('p-active').checked
     };
+    const seasonEnabled = $('p-season-option') ? $('p-season-option').checked : true;
 
     try {
-      await api('/admin/catalog/product', { method:'POST', body:JSON.stringify(payload) });
+      const saved = await api('/admin/catalog/product', { method:'POST', body:JSON.stringify(payload) });
+      let savedId = payload.id || (saved && (saved.productId || saved.id || saved.key)) || (saved && saved.product && saved.product.id) || '';
+      if (!savedId) {
+        const refreshed = await api('/admin/catalog', { method:'GET' });
+        const matches = Object.entries(refreshed.products || {}).filter(([, p]) =>
+          String(p && p.name || '') === payload.name &&
+          String(p && p.category || '') === payload.category &&
+          Number(p && p.priceCents || 0) === payload.priceCents
+        );
+        if (matches.length === 1) savedId = matches[0][0];
+      }
+      if (savedId) await saveSeasonOption(savedId, seasonEnabled);
+      else throw new Error('Article enregistré, mais impossible d’enregistrer son affichage Saison. Rouvre l’article et réessaie.');
       msg('Article enregistré');
       reset();
       await load();
