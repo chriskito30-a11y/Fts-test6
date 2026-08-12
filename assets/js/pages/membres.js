@@ -1675,10 +1675,20 @@ function memberTicketTiers(e){
     order:Number(row && row.order || index+1) || index+1
   })).filter(row=>row.active && row.label).sort((a,b)=>a.order-b.order);
 }
-function selectedMemberTicketTier(e){
-  const tiers=memberTicketTiers(e || {}), select=document.getElementById('member-ticket-tier');
-  if(!tiers.length) return null;
-  return tiers.find(t=>String(t.id)===String(select && select.value || '')) || null;
+function memberTicketSelection(e){
+  const tiers=memberTicketTiers(e || {}), host=document.getElementById('member-ticket-tier');
+  if(!tiers.length || !host) return {lines:[],quantity:0,totalAmountCents:0};
+  const lines=Array.from(host.querySelectorAll('[data-ticket-tier-quantity]')).map(input=>{
+    const tier=tiers.find(t=>String(t.id)===String(input.dataset.tierId||''));
+    const quantity=Math.max(0,Math.min(20,Number(input.value||0)||0));
+    return tier && quantity ? {tariffId:tier.id,pricingTierId:tier.id,label:tier.label,tariffLabel:tier.label,unitPriceCents:tier.priceCents,priceCents:tier.priceCents,quantity,amountCents:tier.priceCents*quantity} : null;
+  }).filter(Boolean);
+  return {lines,quantity:lines.reduce((sum,line)=>sum+line.quantity,0),totalAmountCents:lines.reduce((sum,line)=>sum+line.amountCents,0)};
+}
+function renderMemberTicketQuantities(e){
+  const host=document.getElementById('member-ticket-tier'), tiers=memberTicketTiers(e || {});
+  if(!host) return;
+  host.innerHTML=tiers.map(t=>`<div class="member-ticket-line"><div><strong>${FTS.esc(t.label)}</strong><small>${FTS.esc(t.priceCents?eventPriceLabel(t.priceCents):'Gratuit')}</small></div><label>Quantité<input type="number" min="0" max="20" step="1" value="0" inputmode="numeric" data-ticket-tier-quantity data-tier-id="${FTS.esc(t.id)}" aria-label="Quantité pour ${FTS.esc(t.label)}"></label></div>`).join('');
 }
 function memberTicketPriceSummary(e){
   const tiers=memberTicketTiers(e || {});
@@ -1733,9 +1743,9 @@ function ensureMemberPaymentModal(){
         <label>Nom payeur<input name="lastName" required autocomplete="family-name"></label>
         <label>Email<input name="email" type="email" required autocomplete="email"></label>
         <label>Téléphone<input name="phone" type="tel" autocomplete="tel"></label>
-        <label class="full member-ticket-tier-field" id="member-ticket-tier-field" hidden>Tarif choisi<select id="member-ticket-tier" name="ticketTier"></select></label>
+        <div class="full member-ticket-tier-field" id="member-ticket-tier-field" hidden><div class="member-ticket-tier-title">Choisissez le nombre de places pour chaque tarif</div><div id="member-ticket-tier"></div></div>
         <label class="full">Nom du participant<input name="participantName" required></label>
-        <label>Nombre de places<input name="quantity" type="number" min="1" max="20" value="1" required></label>
+        <label id="member-standard-quantity-field">Nombre de places<input name="quantity" type="number" min="1" max="20" value="1" required></label>
         <label class="full">Code promo / code spécial<input name="promoCode" placeholder="Optionnel"></label>
       </div>
       <button class="evt-link member-pay-submit" type="submit">Continuer</button>
@@ -1745,14 +1755,14 @@ function ensureMemberPaymentModal(){
   document.body.appendChild(div);
   div.querySelector('[data-member-pay-close]').addEventListener('click', closeMemberEventPayment);
   document.getElementById('member-pay-form').addEventListener('submit', submitMemberEventPayment);
-  document.getElementById('member-ticket-tier').addEventListener('change', updateMemberPaymentSummary);
+  document.getElementById('member-ticket-tier').addEventListener('input', updateMemberPaymentSummary);
 }
 function closeMemberEventPayment(){ const m=document.getElementById('member-event-payment-modal'); if(m) m.classList.remove('open'); }
 function updateMemberPaymentSummary(){
   const e=currentMemberPaymentEvent; if(!e) return;
-  const tier=selectedMemberTicketTier(e);
-  const price=tier ? (tier.priceCents ? eventPriceLabel(tier.priceCents) : 'Gratuit') : memberTicketPriceSummary(e);
-  document.getElementById('member-pay-summary').textContent=(e.n || 'Événement')+' · '+(tier ? tier.label+' : ' : '')+price;
+  const selection=memberTicketSelection(e), hasTiers=memberTicketTiers(e).length>0;
+  const detail=hasTiers ? (selection.quantity ? selection.quantity+' place'+(selection.quantity>1?'s':'')+' · '+(selection.totalAmountCents?eventPriceLabel(selection.totalAmountCents):'Gratuit') : 'Choisissez vos quantités') : memberTicketPriceSummary(e);
+  document.getElementById('member-pay-summary').textContent=(e.n || 'Événement')+' · '+detail;
 }
 function openMemberEventPayment(id){
   currentMemberPaymentEvent=(allEvts||[]).find(x=>String(x.id)===String(id));
@@ -1761,9 +1771,10 @@ function openMemberEventPayment(id){
   const e=currentMemberPaymentEvent;
   document.getElementById('member-pay-title').textContent = memberEventReservationLabel(e, true);
   const form=document.getElementById('member-pay-form'); form.reset(); form.quantity.value='1';
-  const tiers=memberTicketTiers(e), tierField=document.getElementById('member-ticket-tier-field'), tierSelect=document.getElementById('member-ticket-tier');
-  tierField.hidden=!tiers.length; tierSelect.required=!!tiers.length;
-  tierSelect.innerHTML=tiers.length?'<option value="">Choisir un tarif…</option>'+tiers.map(t=>`<option value="${FTS.esc(t.id)}">${FTS.esc(t.label)} — ${FTS.esc(t.priceCents?eventPriceLabel(t.priceCents):'Gratuit')}</option>`).join(''):'';
+  const tiers=memberTicketTiers(e), tierField=document.getElementById('member-ticket-tier-field');
+  tierField.hidden=!tiers.length;
+  document.getElementById('member-standard-quantity-field').hidden=!!tiers.length;
+  renderMemberTicketQuantities(e);
   updateMemberPaymentSummary();
   try{
     const u=firebase.auth().currentUser;
@@ -1780,8 +1791,10 @@ function openMemberEventPayment(id){
 async function submitMemberEventPayment(ev){
   ev.preventDefault();
   const e=currentMemberPaymentEvent; if(!e) return;
-  const tier=selectedMemberTicketTier(e);
-  if(memberTicketTiers(e).length && !tier){ document.getElementById('member-pay-msg').textContent='Choisis un tarif.'; return; }
+  const hasTiers=memberTicketTiers(e).length>0, selection=memberTicketSelection(e);
+  if(hasTiers && !selection.quantity){ document.getElementById('member-pay-msg').textContent='Choisis au moins une place.'; return; }
+  if(hasTiers && selection.quantity>20){ document.getElementById('member-pay-msg').textContent='Tu peux réserver au maximum 20 places à la fois.'; return; }
+  const onlyLine=selection.lines.length===1 ? selection.lines[0] : null;
   const form=ev.currentTarget; const msg=document.getElementById('member-pay-msg'); const btn=form.querySelector('button[type="submit"]');
   const old=btn.textContent; btn.disabled=true; btn.textContent='Préparation…'; msg.textContent='Création du paiement sécurisé…';
   try{
@@ -1790,7 +1803,7 @@ async function submitMemberEventPayment(ev){
     if(user){ const token=await user.getIdToken(); headers.Authorization='Bearer '+token; }
     const res=await fetch(((FTS.PAYMENT&&FTS.PAYMENT.workerUrl)||'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,'') + '/checkout', {
       method:'POST', headers,
-      body:JSON.stringify({type:e.paymentType||'event_ticket',source:'membres.html',audience:'member',eventId:e.id,tariffId:tier?tier.id:'',tariffLabel:tier?tier.label:'',pricingTierId:tier?tier.id:'',priceCents:tier?tier.priceCents:memberEventPriceCents(e),quantity:Math.max(1,Math.min(20,Number(form.quantity.value||1)||1)),payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},participant:{name:form.participantName.value},promoCode:form.promoCode?form.promoCode.value:''})
+      body:JSON.stringify({type:e.paymentType||'event_ticket',source:'membres.html',audience:'member',eventId:e.id,pricingMode:hasTiers?'ticket_lines':'single_price',ticketLines:hasTiers?selection.lines:[],tariffId:onlyLine?onlyLine.tariffId:(hasTiers?'mixed':''),tariffLabel:onlyLine?onlyLine.label:(hasTiers?'Plusieurs tarifs':''),pricingTierId:onlyLine?onlyLine.tariffId:'',priceCents:hasTiers?selection.totalAmountCents:memberEventPriceCents(e),amountCents:hasTiers?selection.totalAmountCents:undefined,totalAmountCents:hasTiers?selection.totalAmountCents:undefined,quantity:hasTiers?selection.quantity:Math.max(1,Math.min(20,Number(form.quantity.value||1)||1)),payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},participant:{name:form.participantName.value},promoCode:form.promoCode?form.promoCode.value:''})
     });
     const data=await res.json().catch(()=>({}));
     if(!res.ok || (!data.redirectUrl && !data.confirmationUrl)) throw new Error(data.error || 'Erreur paiement');
