@@ -60,6 +60,30 @@ function publicEventPriceCents(v){
   }
   return moneyCents(v.priceCents || v.amountCents || 0);
 }
+function publicTicketTiers(v){
+  const raw=v && (v.ticketTiers || v.pricingTiers || v.tariffOptions || v.tarifs);
+  const rows=Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.entries(raw).map(([id,row])=>Object.assign({id},row||{})) : []);
+  return rows.map((row,index)=>({
+    id:String(row && (row.id || row.key || row.tariffId) || ('tarif_'+index)),
+    label:String(row && (row.label || row.name || row.title || row.libelle) || '').trim(),
+    priceCents:publicEventPriceCents(row || {}),
+    active:!(row && row.active === false),
+    order:Number(row && row.order || index+1) || index+1
+  })).filter(row=>row.active && row.label).sort((a,b)=>a.order-b.order);
+}
+function selectedIndexTicketTier(opt){
+  const tiers=publicTicketTiers(opt || {});
+  const select=document.getElementById('index-ticket-tier');
+  if(!tiers.length) return null;
+  return tiers.find(t=>String(t.id)===String(select && select.value || '')) || null;
+}
+function indexTicketPriceSummary(opt){
+  const tiers=publicTicketTiers(opt || {});
+  if(!tiers.length){ const cents=publicEventPriceCents(opt); return cents ? 'Tarif non-membre : '+euro(cents) : 'Gratuit'; }
+  const values=tiers.map(t=>t.priceCents);
+  const min=Math.min(...values), max=Math.max(...values);
+  return min===max ? (min ? euro(min) : 'Gratuit') : 'De '+(min ? euro(min) : 'Gratuit')+' à '+euro(max);
+}
 function euro(cents){
   const n = Number(cents || 0);
   return n ? (n / 100).toLocaleString('fr-FR', { style:'currency', currency:'EUR' }) : '';
@@ -83,6 +107,7 @@ function ensurePublicPaymentModal(){
         <label>Nom payeur<input name="lastName" required autocomplete="family-name"></label>
         <label>Email<input name="email" type="email" required autocomplete="email"></label>
         <label>Téléphone<input name="phone" type="tel" autocomplete="tel"></label>
+        <label class="full index-ticket-tier-field" id="index-ticket-tier-field" hidden>Tarif choisi<select id="index-ticket-tier" name="ticketTier"></select></label>
         <label class="full">Nom du participant<input name="participantName" required></label>
         <label>Nombre de places<input name="quantity" type="number" min="1" max="20" value="1" required></label>
         <label class="full">Code promo / code spécial<input name="promoCode" placeholder="Optionnel"></label>
@@ -93,6 +118,7 @@ function ensurePublicPaymentModal(){
   </div>`;
   document.body.appendChild(div);
   document.getElementById('index-payment-form').addEventListener('submit', submitIndexPayment);
+  document.getElementById('index-ticket-tier').addEventListener('change', updateIndexPaymentSummary);
 }
 let currentIndexPaymentOption=null;
 function indexEventReservationLabel(opt, longLabel){
@@ -103,14 +129,23 @@ function indexEventReservationLabel(opt, longLabel){
   return 'Réserver';
 }
 function closeIndexPayment(){ const m=document.getElementById('index-payment-modal'); if(m) m.classList.remove('open'); }
+function updateIndexPaymentSummary(){
+  const opt=currentIndexPaymentOption; if(!opt) return;
+  const tier=selectedIndexTicketTier(opt);
+  const price=tier ? (tier.priceCents ? euro(tier.priceCents) : 'Gratuit') : indexTicketPriceSummary(opt);
+  document.getElementById('index-payment-summary').textContent=(opt.title || 'Événement Fais Ton Show')+' · '+(tier ? tier.label+' : ' : '')+price;
+}
 function openIndexPayment(opt){
   currentIndexPaymentOption=opt;
   ensurePublicPaymentModal();
   document.getElementById('index-payment-title').textContent = indexEventReservationLabel(opt, true);
-  const nonMemberPriceCents = publicEventPriceCents(opt);
-  const price = nonMemberPriceCents ? ' · Tarif non-membre : ' + euro(nonMemberPriceCents) : ' · Gratuit';
-  document.getElementById('index-payment-summary').textContent = (opt.title || 'Événement Fais Ton Show') + price;
   const form=document.getElementById('index-payment-form'); form.reset(); form.quantity.value='1';
+  const tiers=publicTicketTiers(opt);
+  const tierField=document.getElementById('index-ticket-tier-field');
+  const tierSelect=document.getElementById('index-ticket-tier');
+  tierField.hidden=!tiers.length; tierSelect.required=!!tiers.length;
+  tierSelect.innerHTML=tiers.length?'<option value="">Choisir un tarif…</option>'+tiers.map(t=>`<option value="${FTS.esc(t.id)}">${FTS.esc(t.label)} — ${FTS.esc(t.priceCents?euro(t.priceCents):'Gratuit')}</option>`).join(''):'';
+  updateIndexPaymentSummary();
   document.getElementById('index-payment-msg').textContent='';
   document.getElementById('index-payment-modal').classList.add('open');
 }
@@ -119,6 +154,8 @@ async function submitIndexPayment(e){
   const opt=currentIndexPaymentOption;
   if(!opt) return;
   const form=e.currentTarget;
+  const tier=selectedIndexTicketTier(opt);
+  if(publicTicketTiers(opt).length && !tier){ document.getElementById('index-payment-msg').textContent='Choisis un tarif.'; return; }
   const msg=document.getElementById('index-payment-msg');
   const btn=form.querySelector('button[type="submit"]');
   const old=btn.textContent;
@@ -128,7 +165,9 @@ async function submitIndexPayment(e){
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         type: opt.paymentType || 'event_ticket',
-        source:'index.html', audience:'non_member', eventId: opt.eventId || opt.id, priceCents:publicEventPriceCents(opt),
+        source:'index.html', audience:'non_member', eventId: opt.eventId || opt.id,
+        tariffId:tier ? tier.id : '', tariffLabel:tier ? tier.label : '', pricingTierId:tier ? tier.id : '',
+        priceCents:tier ? tier.priceCents : publicEventPriceCents(opt),
         quantity: Math.max(1, Math.min(20, Number(form.quantity.value || 1) || 1)),
         payer:{ firstName:form.firstName.value, lastName:form.lastName.value, email:form.email.value, phone:form.phone.value },
         participant:{ name:form.participantName.value }, promoCode:form.promoCode?form.promoCode.value:''
@@ -155,7 +194,7 @@ function eventMetaLine(opt){
     if (key.includes('date') || key.includes('lieu')) parts.push(val);
   });
   if (!parts.length && opt && opt.date) parts.push(String(opt.date));
-  if (isPayableOption(opt)) parts.push('Tarif non-membre : ' + (publicEventPriceCents(opt) ? euro(publicEventPriceCents(opt)) : 'Gratuit'));
+  if (isPayableOption(opt)) parts.push(indexTicketPriceSummary(opt));
   return parts.slice(0, 3).join(' · ');
 }
 
@@ -304,7 +343,7 @@ async function loadUpcomingEventOptions(db) {
         icon: v.icon || (paymentType === 'stage_registration' ? '🎓' : '🎪'),
         title,
         desc: v.description || v.desc || v.type || '',
-        visibility:'public', paymentEnabled, payEnabled:paymentEnabled, paymentType, priceCents, nonMemberPriceCents, maxSeats:Number(v.maxSeats || v.capacity || 0) || 0,
+        visibility:'public', paymentEnabled, payEnabled:paymentEnabled, paymentType, priceCents, nonMemberPriceCents, ticketTiers:publicTicketTiers(v), maxSeats:Number(v.maxSeats || v.capacity || 0) || 0,
         detail,
         link,
         destTitle: title,
@@ -362,6 +401,7 @@ function buildStep3Options(rows) {
         paymentType: row.paymentType || row.saleType || 'event_ticket',
         priceCents: publicEventPriceCents(row),
         nonMemberPriceCents: publicEventPriceCents(row),
+        ticketTiers: publicTicketTiers(row),
         maxSeats: Number(row.maxSeats || row.capacity || 0) || 0,
         ts:        Number(row.dateTs || row.startTs || row.ts || 0),
         date:      row.dateLabel || row.date || row.d || ''

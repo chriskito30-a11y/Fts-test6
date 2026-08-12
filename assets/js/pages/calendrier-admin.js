@@ -36,9 +36,13 @@ function ensureEventPaymentFields(){
           <div class="field"><label>Réservation / paiement activé</label><select id="e-payment-enabled"><option value="false">Non</option><option value="true">Oui</option></select></div>
           <div class="field"><label>Nature</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option><option value="trial_lesson">Cours d’essai</option><option value="custom">Saisie manuelle</option></select></div>
           <div class="field" id="e-payment-custom-field" style="display:none"><label>Nature personnalisée</label><input id="e-payment-custom-label" placeholder="Ex : Audition, masterclass, sortie…"/></div>
-          <div class="field"><label>Tarif membre en €</label><input id="e-member-price" type="number" min="0" step="0.01" placeholder="0 = gratuit"/></div>
-          <div class="field"><label>Tarif non-membre en €</label><input id="e-non-member-price" type="number" min="0" step="0.01" placeholder="0 = gratuit"/></div>
+          <div class="field"><label>Tarif unique membre en €</label><input id="e-member-price" type="number" min="0" step="0.01" placeholder="Utilisé si aucune catégorie"/></div>
+          <div class="field"><label>Tarif unique non-membre en €</label><input id="e-non-member-price" type="number" min="0" step="0.01" placeholder="Utilisé si aucune catégorie"/></div>
           <div class="field"><label>Places max privées</label><input id="e-max-seats" type="number" min="0" step="1" placeholder="0 = illimité"/></div>
+          <div class="field full event-ticket-tiers-field">
+            <div class="event-ticket-tiers-head"><div><label>Catégories de tarif personnalisées</label><small>Optionnel — nomme librement chaque tarif (âge, placement, formule…).</small></div><button type="button" class="btn-outline event-ticket-tier-add" id="e-add-ticket-tier">+ Ajouter un tarif</button></div>
+            <div class="event-ticket-tiers" id="e-ticket-tiers"><div class="event-ticket-tiers-empty">Aucune catégorie : les tarifs uniques ci-dessus seront utilisés.</div></div>
+          </div>
         </div>
         <div class="event-promo-inline" data-admin-advanced>
           <div class="event-promo-title">
@@ -54,6 +58,7 @@ function ensureEventPaymentFields(){
   if(window.FTSPromoAdmin && typeof window.FTSPromoAdmin.init === 'function'){
     window.FTSPromoAdmin.init();
   }
+  bindTicketTierHandlers();
 }
 function currentCalendarEventId(){
   return String(($('e-key') && $('e-key').value) || selectedKey || '').trim();
@@ -97,6 +102,65 @@ function eventPriceCentsForAudience(v, audience){
   }
   return Math.max(0, Number(v.priceCents || v.amountCents || v.price || v.tarif || 0) || 0);
 }
+function ticketTierId(value, index){
+  const raw=String(value || '').trim().replace(/[^a-zA-Z0-9_-]/g,'_').slice(0,64);
+  return raw || ('tarif_' + Date.now().toString(36) + '_' + Number(index || 0));
+}
+function normalizeTicketTiers(v){
+  const raw=v && (v.ticketTiers || v.pricingTiers || v.tariffOptions || v.tarifs);
+  const rows=Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? Object.entries(raw).map(([id,row])=>Object.assign({id},row||{})) : []);
+  return rows.map((row,index)=>({
+    id:ticketTierId(row && (row.id || row.key || row.tariffId),index),
+    label:String(row && (row.label || row.name || row.title || row.libelle) || '').trim(),
+    memberPriceCents:eventPriceCentsForAudience(row || {},'member'),
+    nonMemberPriceCents:eventPriceCentsForAudience(row || {},'non_member'),
+    active:!(row && row.active === false),
+    order:Number(row && row.order || index+1) || index+1
+  })).filter(row=>row.active && row.label).sort((a,b)=>a.order-b.order);
+}
+function ticketTierPriceText(cents){
+  const n=Math.max(0,Number(cents||0)||0);
+  return n ? String((n/100).toFixed(2)).replace('.',',')+' €' : 'gratuit';
+}
+function renderTicketTiers(rows){
+  const host=$('e-ticket-tiers'); if(!host) return;
+  const tiers=Array.isArray(rows) ? rows : [];
+  if(!tiers.length){ host.innerHTML='<div class="event-ticket-tiers-empty">Aucune catégorie : les tarifs uniques ci-dessus seront utilisés.</div>'; return; }
+  host.innerHTML=tiers.map((tier,index)=>`<div class="event-ticket-tier-row" data-ticket-tier data-tier-id="${FTS.esc(ticketTierId(tier.id,index))}">
+    <div class="event-ticket-tier-index">${index+1}</div>
+    <label class="event-ticket-tier-name">Libellé libre<input type="text" data-tier-label value="${FTS.esc(tier.label||'')}" placeholder="Ex : Moins de 6 ans" maxlength="80"/></label>
+    <label>Tarif membre (€)<input type="number" data-tier-member-price min="0" step="0.01" value="${FTS.esc(euroInputFromCents(tier.memberPriceCents))}" placeholder="0 = gratuit"/></label>
+    <label>Tarif non-membre (€)<input type="number" data-tier-non-member-price min="0" step="0.01" value="${FTS.esc(euroInputFromCents(tier.nonMemberPriceCents))}" placeholder="0 = gratuit"/></label>
+    <button type="button" class="event-ticket-tier-remove" data-remove-ticket-tier aria-label="Supprimer ce tarif">×</button>
+  </div>`).join('');
+}
+function collectTicketTiersForSave(validate=true){
+  const host=$('e-ticket-tiers'); if(!host) return [];
+  const rows=Array.from(host.querySelectorAll('[data-ticket-tier]')).map((row,index)=>{
+    const label=String((row.querySelector('[data-tier-label]')||{}).value||'').trim();
+    const memberRaw=String((row.querySelector('[data-tier-member-price]')||{}).value||'').replace(',','.').trim();
+    const nonMemberRaw=String((row.querySelector('[data-tier-non-member-price]')||{}).value||'').replace(',','.').trim();
+    if(validate && !label) throw new Error('Chaque catégorie de tarif doit avoir un libellé');
+    return {id:ticketTierId(row.dataset.tierId,index),label,memberPriceCents:Math.max(0,Math.round((Number(memberRaw)||0)*100)),nonMemberPriceCents:Math.max(0,Math.round((Number(nonMemberRaw)||0)*100)),active:true,order:index+1};
+  });
+  return rows.filter(row=>row.label || !validate);
+}
+function addTicketTier(){
+  const rows=collectTicketTiersForSave(false);
+  rows.push({id:ticketTierId('',rows.length),label:'',memberPriceCents:0,nonMemberPriceCents:0,active:true,order:rows.length+1});
+  renderTicketTiers(rows);
+  const inputs=$('e-ticket-tiers') && $('e-ticket-tiers').querySelectorAll('[data-tier-label]');
+  if(inputs && inputs.length) inputs[inputs.length-1].focus();
+}
+function bindTicketTierHandlers(){
+  const add=$('e-add-ticket-tier');
+  if(add && !add.__ftsBound){ add.__ftsBound=true; add.addEventListener('click',addTicketTier); }
+  const host=$('e-ticket-tiers');
+  if(host && !host.__ftsBound){
+    host.__ftsBound=true;
+    host.addEventListener('click',e=>{ const btn=e.target.closest('[data-remove-ticket-tier]'); if(!btn) return; const row=btn.closest('[data-ticket-tier]'); if(row) row.remove(); renderTicketTiers(collectTicketTiersForSave(false)); });
+  }
+}
 function normalizePaymentTypeForCheckout(value){
   return String(value || '') === 'stage_registration' ? 'stage_registration' : 'event_ticket';
 }
@@ -132,6 +196,7 @@ function applyPaymentFieldsToForm(e){
   if($('e-member-price')) $('e-member-price').value = euroInputFromCents(eventPriceCentsForAudience(e, 'member'));
   if($('e-non-member-price')) $('e-non-member-price').value = euroInputFromCents(eventPriceCentsForAudience(e, 'non_member'));
   if($('e-max-seats')) $('e-max-seats').value = e && (e.maxSeats || e.capacity) ? String(e.maxSeats || e.capacity) : '';
+  renderTicketTiers(normalizeTicketTiers(e || {}));
 }
 function collectPaymentFieldsForSave(){
   ensureEventPaymentFields();
@@ -142,6 +207,7 @@ function collectPaymentFieldsForSave(){
   const memberPriceCents = centsFromEuroInput('e-member-price');
   const nonMemberPriceCents = centsFromEuroInput('e-non-member-price');
   const maxSeats = Math.max(0, Number(($('e-max-seats') && $('e-max-seats').value) || 0) || 0);
+  const ticketTiers = collectTicketTiersForSave(true);
   if(paymentEnabled && paymentNature === 'custom' && !customNatureLabel){
     throw new Error('Nature personnalisée requise');
   }
@@ -159,7 +225,9 @@ function collectPaymentFieldsForSave(){
     // Alias historique conservé pour les lecteurs et le service de paiement existants.
     priceCents:nonMemberPriceCents,
     maxSeats,
-    capacity:maxSeats
+    capacity:maxSeats,
+    ticketTiers,
+    pricingTiers:ticketTiers
   };
 }
 function collectEndDateForSave(){
@@ -498,6 +566,7 @@ async function loadEventsFromAllSources(){
         priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
         memberPriceCents: eventPriceCentsForAudience(v, 'member'),
         nonMemberPriceCents: eventPriceCentsForAudience(v, 'non_member'),
+        ticketTiers: normalizeTicketTiers(v),
         maxSeats: Number(v.maxSeats || v.capacity || 0) || 0,
         dateTs: v.dateTs || v.startTs || v.ts || v.order || 0,
         updatedAt: v.updatedAt || 0
@@ -554,6 +623,7 @@ function normalizeEvent(key, v){
     priceCents:Number(v.priceCents||v.amountCents||0)||0,
     memberPriceCents:eventPriceCentsForAudience(v, 'member'),
     nonMemberPriceCents:eventPriceCentsForAudience(v, 'non_member'),
+    ticketTiers:normalizeTicketTiers(v),
     maxSeats:Number(v.maxSeats||v.capacity||0)||0,
     dateTs:Number(v.dateTs||v.startTs||v.ts||0),
     updatedAt:v.updatedAt||0,
@@ -574,7 +644,7 @@ function renderList(){
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
     return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
-      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Publié':'Masqué'}</span><span class="status-pill ${e.visibility==='members'?'status-important':'status-payment'}">${e.visibility==='members'?'Membres uniquement':'Public'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-payment">Paiement</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.endDateLabel?' → '+FTS.esc(e.endDateLabel):''}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}${e.paymentEnabled?' · '+FTS.esc(e.paymentNatureLabel || paymentNatureLabel(e.paymentNature || e.paymentType, '')):''}${e.paymentEnabled?' · membre '+(e.memberPriceCents ? FTS.esc(String((Number(e.memberPriceCents)/100).toFixed(2)).replace('.',','))+' €' : 'gratuit')+' · non-membre '+(e.nonMemberPriceCents ? FTS.esc(String((Number(e.nonMemberPriceCents)/100).toFixed(2)).replace('.',','))+' €' : 'gratuit'):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
+      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Publié':'Masqué'}</span><span class="status-pill ${e.visibility==='members'?'status-important':'status-payment'}">${e.visibility==='members'?'Membres uniquement':'Public'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-payment">Paiement</span>':''}${e.ticketTiers.length?'<span class="status-pill status-payment">'+e.ticketTiers.length+' tarifs</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.endDateLabel?' → '+FTS.esc(e.endDateLabel):''}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}${e.paymentEnabled?' · '+FTS.esc(e.paymentNatureLabel || paymentNatureLabel(e.paymentNature || e.paymentType, '')):''}${e.paymentEnabled?(e.ticketTiers.length?' · '+FTS.esc(e.ticketTiers.map(t=>t.label).join(', ')):' · membre '+ticketTierPriceText(e.memberPriceCents)+' · non-membre '+ticketTierPriceText(e.nonMemberPriceCents)):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
     </div>`;
   }).join('');
 }
@@ -588,6 +658,7 @@ function newEvent(){
   if($('e-important')) $('e-important').value='false';
   if($('e-payment-enabled')) $('e-payment-enabled').value='false';
   setPaymentNatureSelect('event_ticket', '');
+  renderTicketTiers([]);
   updateCalendarPromoContext();
   resetTargetSelection();
   renderList();
@@ -649,12 +720,14 @@ function eventToQuestionnaireOption(key, data){
   const paymentNature = data.paymentNature || data.eventNature || data.paymentKind || data.paymentType || data.saleType || (String(data.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
   const paymentType = normalizePaymentTypeForCheckout(data.paymentType || data.saleType || paymentNature);
   const paymentNatureText = data.paymentNatureLabel || data.eventNatureLabel || paymentNatureLabel(paymentNature, '');
+  const publicTicketTiers=normalizeTicketTiers(data).map((tier,index)=>({id:ticketTierId(tier.id,index),label:tier.label,nonMemberPriceCents:tier.nonMemberPriceCents,priceCents:tier.nonMemberPriceCents,active:true,order:index+1}));
   const details = [];
   if(date) details.push({ key:'Date', value: hour ? date + ' · ' + hour : date });
   if(endDate) details.push({ key:'Fin', value: endDate });
   if(location) details.push({ key:'Lieu', value: location });
   if(paymentEnabled && paymentNatureText) details.push({ key:'Nature', value: paymentNatureText });
-  if(paymentEnabled) details.push({ key:'Tarif non-membre', value: priceCents ? String((priceCents/100).toFixed(2)).replace('.', ',') + ' €' : 'Gratuit' });
+  if(paymentEnabled && publicTicketTiers.length) details.push({ key:'Tarifs', value:publicTicketTiers.map(t=>t.label+' : '+ticketTierPriceText(t.priceCents)).join(' · ') });
+  else if(paymentEnabled) details.push({ key:'Tarif non-membre', value: priceCents ? String((priceCents/100).toFixed(2)).replace('.', ',') + ' €' : 'Gratuit' });
   return {
     source:'fts_events',
     eventKey:key,
@@ -695,6 +768,8 @@ function eventToQuestionnaireOption(key, data){
     eventNatureLabel:paymentNatureText,
     priceCents,
     nonMemberPriceCents,
+    ticketTiers:publicTicketTiers,
+    pricingTiers:publicTicketTiers,
     maxSeats:Number(data.maxSeats || data.capacity || 0) || 0,
     endDateLabel:endDate,
     dateEndLabel:endDate,
@@ -765,6 +840,7 @@ function eventNotifySignature(e){
     priceCents:Number(e.priceCents || 0) || 0,
     memberPriceCents:eventPriceCentsForAudience(e, 'member'),
     nonMemberPriceCents:eventPriceCentsForAudience(e, 'non_member'),
+    ticketTiers:normalizeTicketTiers(e),
     visibility:normalizeEventVisibility(e),
     endDate:String(e.endDateIso || e.dateEndIso || e.dateEndLabel || e.endDateLabel || '')
   });
