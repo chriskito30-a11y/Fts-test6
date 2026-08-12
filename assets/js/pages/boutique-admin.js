@@ -43,7 +43,8 @@
   async function saveSeasonOption(productId, enabled) {
     const key = seasonOptionKey(productId);
     if (!key) throw new Error('Identifiant article introuvable pour le réglage Saison.');
-    await db.ref('fts_saison/shopOptions/' + key).set(!!enabled);
+    await db.ref('fts_saison/config/shopOptions/' + key).set(!!enabled);
+    db.ref('fts_saison/shopOptions/' + key).set(!!enabled).catch(err => console.warn('[FTS Boutique Saison compat]', err));
     seasonShopOptions[key] = !!enabled;
   }
 
@@ -264,11 +265,17 @@
   }
 
   async function load() {
-    const [data, optionSnap] = await Promise.all([
+    const [data, configOptionSnap, legacyOptionSnap] = await Promise.all([
       api('/admin/catalog', { method:'GET' }),
-      db.ref('fts_saison/shopOptions').once('value').catch(err => { console.warn('[FTS Boutique Saison options]', err); return null; })
+      db.ref('fts_saison/config/shopOptions').once('value').catch(err => { console.warn('[FTS Boutique Saison options config]', err); return null; }),
+      db.ref('fts_saison/shopOptions').once('value').catch(err => { console.warn('[FTS Boutique Saison options compat]', err); return null; })
     ]);
-    seasonShopOptions = optionSnap && optionSnap.val ? (optionSnap.val() || {}) : {};
+    const configOptions = configOptionSnap && configOptionSnap.val ? (configOptionSnap.val() || {}) : {};
+    const legacyOptions = legacyOptionSnap && legacyOptionSnap.val ? (legacyOptionSnap.val() || {}) : {};
+    seasonShopOptions = Object.assign({}, legacyOptions, configOptions);
+    if (Object.keys(seasonShopOptions).length) {
+      db.ref('fts_saison/config/shopOptions').update(seasonShopOptions).catch(err => console.warn('[FTS Boutique Saison migration]', err));
+    }
     products = Object.fromEntries(Object.entries(data.products || {}).filter(([, p]) => !String(p && p.category || '').startsWith('__PIECES__:')));
     render();
   }
