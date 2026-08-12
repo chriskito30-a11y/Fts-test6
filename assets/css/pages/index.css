@@ -794,7 +794,8 @@ html, body { min-height: 100%; }
 .index-payment-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
 .index-payment-grid label{display:grid;gap:.32rem;font-size:.78rem;font-weight:800;color:rgba(245,242,238,.78);}
 .index-payment-grid label.full{grid-column:1/-1;}
-.index-payment-grid input{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:var(--white);padding:.7rem .8rem;font:inherit;}
+.index-payment-grid input,.index-payment-grid select{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#242424;color:var(--white);padding:.7rem .8rem;font:inherit;}
+.index-ticket-tier-field select{border-color:rgba(248,231,2,.4);box-shadow:0 0 0 3px rgba(248,231,2,.07)}
 .index-payment-card .btn-helloasso{width:100%;border:0;cursor:pointer;margin-top:1rem;color:#fff;background:var(--red);}
 .index-payment-msg{min-height:1.2rem;margin-top:.6rem;color:rgba(245,242,238,.72);font-size:.8rem;text-align:center;}
 @media(max-width:560px){.index-payment-grid{grid-template-columns:1fr}.index-payment-card{border-radius:20px;padding:1rem}.index-payment-card h2{font-size:1.8rem}}

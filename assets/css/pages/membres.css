@@ -3563,7 +3563,8 @@ button.profile-pill:focus-visible {
 .member-pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem;}
 .member-pay-grid label{display:grid;gap:.32rem;font-size:.78rem;font-weight:800;color:rgba(245,242,238,.78);}
 .member-pay-grid label.full{grid-column:1/-1;}
-.member-pay-grid input{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:rgba(255,255,255,.055);color:#fff;padding:.7rem .8rem;font:inherit;}
+.member-pay-grid input,.member-pay-grid select{min-height:44px;border-radius:14px;border:1px solid rgba(255,255,255,.11);background:#242424;color:#fff;padding:.7rem .8rem;font:inherit;}
+.member-ticket-tier-field select{border-color:rgba(248,231,2,.4);box-shadow:0 0 0 3px rgba(248,231,2,.07)}
 .member-pay-submit{width:100%;margin-top:1rem;border:0;cursor:pointer;justify-content:center;}
 .member-pay-msg{min-height:1.2rem;margin-top:.6rem;color:rgba(245,242,238,.72);font-size:.8rem;text-align:center;}
 @media(max-width:560px){.member-pay-grid{grid-template-columns:1fr}.member-pay-card{border-radius:20px;padding:1rem}.member-pay-card h2{font-size:1.8rem}}

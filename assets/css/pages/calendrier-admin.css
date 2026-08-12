@@ -313,6 +313,21 @@ html,body{max-width:100%;overflow-x:hidden}
   box-shadow:none;
   background:rgba(0,0,0,.12);
 }
+
+/* Catégories tarifaires libres pour spectacles et événements */
+.event-ticket-tiers-field{margin-top:.2rem;padding-top:.9rem;border-top:1px solid rgba(255,255,255,.07)}
+.event-ticket-tiers-head{display:flex;align-items:center;justify-content:space-between;gap:.8rem;margin-bottom:.75rem}
+.event-ticket-tiers-head small{display:block;margin-top:.28rem;color:var(--muted);font-size:.72rem;line-height:1.4}
+.event-ticket-tier-add{width:auto;min-width:max-content;border-radius:999px;padding:.6rem .85rem}
+.event-ticket-tiers{display:grid;gap:.6rem}
+.event-ticket-tiers-empty{padding:.8rem;border:1px dashed rgba(255,255,255,.13);border-radius:15px;color:var(--muted);font-size:.76rem;text-align:center}
+.event-ticket-tier-row{display:grid;grid-template-columns:28px minmax(150px,1.4fr) minmax(110px,1fr) minmax(110px,1fr) 34px;align-items:end;gap:.55rem;padding:.7rem;border:1px solid rgba(248,231,2,.15);border-radius:17px;background:rgba(5,5,5,.42)}
+.event-ticket-tier-row label{margin:0!important;color:rgba(255,255,255,.63)!important;font-size:.58rem!important}
+.event-ticket-tier-row input{margin-top:.35rem;padding:.68rem .72rem!important;border-radius:12px!important}
+.event-ticket-tier-index{width:26px;height:26px;display:grid;place-items:center;align-self:center;border-radius:999px;background:rgba(248,231,2,.12);color:var(--gold);font-size:.7rem;font-weight:700}
+.event-ticket-tier-remove{width:34px;height:38px;border:1px solid rgba(255,90,90,.3);border-radius:12px;background:rgba(255,90,90,.08);color:var(--danger);font-size:1.25rem;cursor:pointer}
+.event-ticket-tier-remove:hover{background:rgba(255,90,90,.16)}
+@media(max-width:720px){.event-ticket-tiers-head{align-items:stretch;flex-direction:column}.event-ticket-tier-add{width:100%}.event-ticket-tier-row{grid-template-columns:28px 1fr 34px}.event-ticket-tier-name{grid-column:2}.event-ticket-tier-row label:not(.event-ticket-tier-name){grid-column:2}.event-ticket-tier-remove{grid-column:3;grid-row:1;align-self:center}}
 .promo-head{
   display:flex;
   align-items:flex-start;
