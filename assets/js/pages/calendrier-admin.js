@@ -36,7 +36,8 @@ function ensureEventPaymentFields(){
           <div class="field"><label>Réservation / paiement activé</label><select id="e-payment-enabled"><option value="false">Non</option><option value="true">Oui</option></select></div>
           <div class="field"><label>Nature</label><select id="e-payment-type"><option value="event_ticket">Place spectacle / événement</option><option value="stage_registration">Stage</option><option value="trial_lesson">Cours d’essai</option><option value="custom">Saisie manuelle</option></select></div>
           <div class="field" id="e-payment-custom-field" style="display:none"><label>Nature personnalisée</label><input id="e-payment-custom-label" placeholder="Ex : Audition, masterclass, sortie…"/></div>
-          <div class="field"><label>Prix en €</label><input id="e-price" type="number" min="0" step="0.01" placeholder="0 = gratuit"/></div>
+          <div class="field"><label>Tarif membre en €</label><input id="e-member-price" type="number" min="0" step="0.01" placeholder="0 = gratuit"/></div>
+          <div class="field"><label>Tarif non-membre en €</label><input id="e-non-member-price" type="number" min="0" step="0.01" placeholder="0 = gratuit"/></div>
           <div class="field"><label>Places max privées</label><input id="e-max-seats" type="number" min="0" step="1" placeholder="0 = illimité"/></div>
         </div>
         <div class="event-promo-inline" data-admin-advanced>
@@ -82,6 +83,20 @@ function centsFromEuroInput(id){
 function euroInputFromCents(v){
   const n=Number(v||0); return n>0 ? String((n/100).toFixed(2)).replace('.',',') : '';
 }
+function normalizeEventVisibility(v){
+  const raw=String((v && (v.visibility || v.audience || v.access)) || '').toLowerCase().trim();
+  return ['members','member','members_only','member_only','membres','membres_uniquement','private'].includes(raw) ? 'members' : 'public';
+}
+function eventPriceCentsForAudience(v, audience){
+  v=v || {};
+  const keys=audience === 'member'
+    ? ['memberPriceCents','priceMemberCents','tarifMembreCents']
+    : ['nonMemberPriceCents','priceNonMemberCents','tarifNonMembreCents'];
+  for(const key of keys){
+    if(v[key] !== undefined && v[key] !== null && v[key] !== '') return Math.max(0, Number(v[key]) || 0);
+  }
+  return Math.max(0, Number(v.priceCents || v.amountCents || v.price || v.tarif || 0) || 0);
+}
 function normalizePaymentTypeForCheckout(value){
   return String(value || '') === 'stage_registration' ? 'stage_registration' : 'event_ticket';
 }
@@ -114,7 +129,8 @@ function applyPaymentFieldsToForm(e){
   if($('e-end-date')) $('e-end-date').value = e ? (e.endDateIso || e.dateEndIso || isoFromTs(e.endDateTs) || '') : '';
   if($('e-payment-enabled')) $('e-payment-enabled').value = String(!!(e && (e.paymentEnabled===true || e.payEnabled===true)));
   setPaymentNatureSelect((e && (e.paymentNature || e.eventNature || e.paymentKind || e.paymentType || e.saleType)) || (String(e && e.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket'), e && (e.paymentNatureLabel || e.eventNatureLabel || ''));
-  if($('e-price')) $('e-price').value = euroInputFromCents(e && (e.priceCents || e.amountCents || e.price || e.tarif));
+  if($('e-member-price')) $('e-member-price').value = euroInputFromCents(eventPriceCentsForAudience(e, 'member'));
+  if($('e-non-member-price')) $('e-non-member-price').value = euroInputFromCents(eventPriceCentsForAudience(e, 'non_member'));
   if($('e-max-seats')) $('e-max-seats').value = e && (e.maxSeats || e.capacity) ? String(e.maxSeats || e.capacity) : '';
 }
 function collectPaymentFieldsForSave(){
@@ -123,7 +139,8 @@ function collectPaymentFieldsForSave(){
   const paymentNature = ($('e-payment-type') && $('e-payment-type').value) || 'event_ticket';
   const customNatureLabel = ($('e-payment-custom-label') && $('e-payment-custom-label').value.trim()) || '';
   const paymentType = normalizePaymentTypeForCheckout(paymentNature);
-  const priceCents = centsFromEuroInput('e-price');
+  const memberPriceCents = centsFromEuroInput('e-member-price');
+  const nonMemberPriceCents = centsFromEuroInput('e-non-member-price');
   const maxSeats = Math.max(0, Number(($('e-max-seats') && $('e-max-seats').value) || 0) || 0);
   if(paymentEnabled && paymentNature === 'custom' && !customNatureLabel){
     throw new Error('Nature personnalisée requise');
@@ -137,7 +154,10 @@ function collectPaymentFieldsForSave(){
     eventNature: paymentNature,
     paymentNatureLabel: paymentNatureLabel(paymentNature, customNatureLabel),
     eventNatureLabel: paymentNatureLabel(paymentNature, customNatureLabel),
-    priceCents,
+    memberPriceCents,
+    nonMemberPriceCents,
+    // Alias historique conservé pour les lecteurs et le service de paiement existants.
+    priceCents:nonMemberPriceCents,
     maxSeats,
     capacity:maxSeats
   };
@@ -464,6 +484,7 @@ async function loadEventsFromAllSources(){
         location: v.location || v.l || '',
         url: v.link || v.lien || v.url || v.u || '',
         description: v.destDesc || v.dest_desc || v.description || v.desc || '',
+        visibility: v.visibility || v.audience || v.access || 'public',
         endDateIso: v.endDateIso || v.dateEndIso || '',
         endDateLabel: v.endDateLabel || v.dateEndLabel || '',
         paymentEnabled: v.paymentEnabled === true || v.payEnabled === true,
@@ -475,6 +496,8 @@ async function loadEventsFromAllSources(){
         paymentNatureLabel: v.paymentNatureLabel || v.eventNatureLabel || '',
         eventNatureLabel: v.eventNatureLabel || v.paymentNatureLabel || '',
         priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
+        memberPriceCents: eventPriceCentsForAudience(v, 'member'),
+        nonMemberPriceCents: eventPriceCentsForAudience(v, 'non_member'),
         maxSeats: Number(v.maxSeats || v.capacity || 0) || 0,
         dateTs: v.dateTs || v.startTs || v.ts || v.order || 0,
         updatedAt: v.updatedAt || 0
@@ -516,6 +539,7 @@ function normalizeEvent(key, v){
     location:v.location||v.lieu||v.l||'',
     url:v.url||v.link||v.lien||v.u||'',
     desc:v.description||v.desc||'',
+    visibility:normalizeEventVisibility(v),
     endDateIso:v.endDateIso||v.dateEndIso||'',
     endDateLabel:v.endDateLabel||v.dateEndLabel||'',
     endDateTs:Number(v.endDateTs||0),
@@ -528,6 +552,8 @@ function normalizeEvent(key, v){
     paymentNatureLabel:v.paymentNatureLabel||v.eventNatureLabel||'',
     eventNatureLabel:v.eventNatureLabel||v.paymentNatureLabel||'',
     priceCents:Number(v.priceCents||v.amountCents||0)||0,
+    memberPriceCents:eventPriceCentsForAudience(v, 'member'),
+    nonMemberPriceCents:eventPriceCentsForAudience(v, 'non_member'),
     maxSeats:Number(v.maxSeats||v.capacity||0)||0,
     dateTs:Number(v.dateTs||v.startTs||v.ts||0),
     updatedAt:v.updatedAt||0,
@@ -548,7 +574,7 @@ function renderList(){
     const month=d?d.toLocaleDateString('fr-FR',{month:'short'}).replace('.',''):'Date';
     return `<div class="evt-row${selectedKey===e.key?' sel':''}${!e.active?' evt-off':''}" data-fts-click="editEvent('${FTS.esc(e.key)}')">
       <div class="evt-date"><div class="evt-day">${day}</div><div class="evt-month">${FTS.esc(month)}</div></div>
-      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Visible':'Masqué'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-payment">Paiement</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.endDateLabel?' → '+FTS.esc(e.endDateLabel):''}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}${e.paymentEnabled?' · '+FTS.esc(e.paymentNatureLabel || paymentNatureLabel(e.paymentNature || e.paymentType, '')):''}${e.paymentEnabled?' · '+(e.priceCents ? FTS.esc(String((Number(e.priceCents)/100).toFixed(2)).replace('.',','))+' €' : 'Gratuit'):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
+      <div class="evt-info"><div class="evt-name">${FTS.esc(e.name||'Sans nom')}<span class="status-pill ${e.active?'status-on':'status-off'}">${e.active?'Publié':'Masqué'}</span><span class="status-pill ${e.visibility==='members'?'status-important':'status-payment'}">${e.visibility==='members'?'Membres uniquement':'Public'}</span>${e.important?'<span class="status-pill status-important">Important</span>':''}${e.paymentEnabled?'<span class="status-pill status-payment">Paiement</span>':''}${e.source==='questionnaire'?'<span class="status-pill status-off">À migrer</span>':''}</div><div class="evt-meta">${FTS.esc(e.dateLabel||'Date non renseignée')}${e.endDateLabel?' → '+FTS.esc(e.endDateLabel):''}${e.hour?' · '+FTS.esc(e.hour):''}${e.location?' · '+FTS.esc(e.location):''}${e.paymentEnabled?' · '+FTS.esc(e.paymentNatureLabel || paymentNatureLabel(e.paymentNature || e.paymentType, '')):''}${e.paymentEnabled?' · membre '+(e.memberPriceCents ? FTS.esc(String((Number(e.memberPriceCents)/100).toFixed(2)).replace('.',','))+' €' : 'gratuit')+' · non-membre '+(e.nonMemberPriceCents ? FTS.esc(String((Number(e.nonMemberPriceCents)/100).toFixed(2)).replace('.',','))+' €' : 'gratuit'):''}</div><div class="evt-target">👥 ${FTS.esc(eventTargetLabel(e))}</div></div>
     </div>`;
   }).join('');
 }
@@ -556,8 +582,9 @@ function renderList(){
 function newEvent(){
   selectedKey='';
   ensureEventPaymentFields();
-  ['e-key','e-name','e-type','e-date','e-end-date','e-hour','e-location','e-url','e-desc','e-price','e-max-seats','e-payment-custom-label'].forEach(id=>{ if($(id)) $(id).value=''; });
+  ['e-key','e-name','e-type','e-date','e-end-date','e-hour','e-location','e-url','e-desc','e-member-price','e-non-member-price','e-max-seats','e-payment-custom-label'].forEach(id=>{ if($(id)) $(id).value=''; });
   $('e-active').value='true';
+  if($('e-visibility')) $('e-visibility').value='public';
   if($('e-important')) $('e-important').value='false';
   if($('e-payment-enabled')) $('e-payment-enabled').value='false';
   setPaymentNatureSelect('event_ticket', '');
@@ -572,6 +599,7 @@ function editEvent(key){
   $('e-name').value=e.name||'';
   $('e-type').value=e.type||'';
   $('e-active').value=String(e.active!==false);
+  if($('e-visibility')) $('e-visibility').value=normalizeEventVisibility(e);
   $('e-date').value=isoInputFromEvent(e);
   $('e-hour').value=toInputTime(e.hour||'');
   $('e-location').value=e.location||'';
@@ -616,7 +644,8 @@ function eventToQuestionnaireOption(key, data){
   const location = data.location || data.l || '';
   const endDate = data.endDateLabel || data.dateEndLabel || '';
   const paymentEnabled = data.paymentEnabled === true || data.payEnabled === true;
-  const priceCents = Number(data.priceCents || data.amountCents || 0) || 0;
+  const nonMemberPriceCents = eventPriceCentsForAudience(data, 'non_member');
+  const priceCents = nonMemberPriceCents;
   const paymentNature = data.paymentNature || data.eventNature || data.paymentKind || data.paymentType || data.saleType || (String(data.type || '').toLowerCase().includes('stage') ? 'stage_registration' : 'event_ticket');
   const paymentType = normalizePaymentTypeForCheckout(data.paymentType || data.saleType || paymentNature);
   const paymentNatureText = data.paymentNatureLabel || data.eventNatureLabel || paymentNatureLabel(paymentNature, '');
@@ -625,11 +654,13 @@ function eventToQuestionnaireOption(key, data){
   if(endDate) details.push({ key:'Fin', value: endDate });
   if(location) details.push({ key:'Lieu', value: location });
   if(paymentEnabled && paymentNatureText) details.push({ key:'Nature', value: paymentNatureText });
-  if(paymentEnabled) details.push({ key:'Prix', value: priceCents ? String((priceCents/100).toFixed(2)).replace('.', ',') + ' €' : 'Gratuit' });
+  if(paymentEnabled) details.push({ key:'Tarif non-membre', value: priceCents ? String((priceCents/100).toFixed(2)).replace('.', ',') + ' €' : 'Gratuit' });
   return {
     source:'fts_events',
     eventKey:key,
     type:'event',
+    visibility:'public',
+    audience:'public',
     order:Number(data.dateTs || 9999999999999),
     icon:data.icon || '🎪',
     active:data.active !== false && data.status !== 'inactive',
@@ -663,6 +694,7 @@ function eventToQuestionnaireOption(key, data){
     paymentNatureLabel:paymentNatureText,
     eventNatureLabel:paymentNatureText,
     priceCents,
+    nonMemberPriceCents,
     maxSeats:Number(data.maxSeats || data.capacity || 0) || 0,
     endDateLabel:endDate,
     dateEndLabel:endDate,
@@ -676,7 +708,9 @@ function eventToQuestionnaireOption(key, data){
   };
 }
 async function syncEventToQuestionnaire(key, data){
-  await db.ref('fts_content/questionnaire/options/' + questionEventKey(key)).set(eventToQuestionnaireOption(key, data));
+  const ref=db.ref('fts_content/questionnaire/options/' + questionEventKey(key));
+  if(normalizeEventVisibility(data) === 'members') await ref.remove();
+  else await ref.set(eventToQuestionnaireOption(key, data));
 }
 async function removeEventFromQuestionnaire(key){
   await db.ref('fts_content/questionnaire/options/' + questionEventKey(key)).remove();
@@ -688,7 +722,8 @@ async function syncAllEventsToQuestionnaire(){
     const snap = await db.ref('fts_events').once('value');
     const updates = {};
     if(snap.exists()) snap.forEach(child => {
-      updates['fts_content/questionnaire/options/' + questionEventKey(child.key)] = eventToQuestionnaireOption(child.key, child.val() || {});
+      const data=child.val() || {};
+      updates['fts_content/questionnaire/options/' + questionEventKey(child.key)] = normalizeEventVisibility(data) === 'members' ? null : eventToQuestionnaireOption(child.key, data);
     });
     if(Object.keys(updates).length) await db.ref().update(updates);
   }catch(e){ console.warn('[FTS Calendrier] sync questionnaire', e); }
@@ -728,6 +763,9 @@ function eventNotifySignature(e){
     targets:eventStableTargets(e.targetGroups),
     paymentEnabled:e.paymentEnabled === true || e.payEnabled === true,
     priceCents:Number(e.priceCents || 0) || 0,
+    memberPriceCents:eventPriceCentsForAudience(e, 'member'),
+    nonMemberPriceCents:eventPriceCentsForAudience(e, 'non_member'),
+    visibility:normalizeEventVisibility(e),
     endDate:String(e.endDateIso || e.dateEndIso || e.dateEndLabel || e.endDateLabel || '')
   });
 }
@@ -827,6 +865,7 @@ async function saveEvent(){
     const selected = events.find(x => x.key === $('e-key').value || x.eventKey === $('e-key').value);
     const key = (selected && selected.eventKey) || $('e-key').value || db.ref('fts_events').push().key;
     const active=$('e-active').value==='true';
+    const visibility=normalizeEventVisibility({visibility:($('e-visibility') && $('e-visibility').value) || 'public'});
     const targets = getTargetSelection();
     const important = $('e-important') ? $('e-important').value === 'true' : false;
     const paymentFields = collectPaymentFieldsForSave();
@@ -839,6 +878,8 @@ async function saveEvent(){
       t:$('e-type').value.trim(),
       active,
       status:active?'active':'inactive',
+      visibility,
+      audience:visibility,
       dateIso:iso,
       date:frDateLabel(iso),
       dateLabel:frDateLabel(iso),
@@ -874,7 +915,7 @@ async function saveEvent(){
     }
     selectedKey=key; $('e-key').value=key;
     updateCalendarPromoContext();
-    msg('Événement enregistré — visible dans membres et dans le questionnaire');
+    msg(visibility === 'members' ? 'Événement enregistré — visible uniquement par les membres connectés' : 'Événement enregistré — visible sur l’accueil et dans l’espace membres');
   }catch(e){
     console.warn('[FTS Calendrier] saveEvent', e);
     msg('Erreur enregistrement : ' + (e && e.message ? e.message : e), false);

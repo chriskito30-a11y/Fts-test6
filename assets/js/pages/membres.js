@@ -1622,6 +1622,9 @@ async function loadEvts() {
           paymentNatureLabel: v.paymentNatureLabel || v.eventNatureLabel || '',
           eventNatureLabel: v.eventNatureLabel || v.paymentNatureLabel || '',
           priceCents: Number(v.priceCents || v.amountCents || 0) || 0,
+          memberPriceCents: memberEventPriceCents(v),
+          nonMemberPriceCents: Number(v.nonMemberPriceCents || v.priceNonMemberCents || v.tarifNonMembreCents || v.priceCents || v.amountCents || 0) || 0,
+          visibility: v.visibility || v.audience || v.access || 'public',
           maxSeats: Number(v.maxSeats || v.capacity || 0) || 0,
           eventEndDate: v.endDateLabel || v.dateEndLabel || '',
           important: v.important === true || v.priority === 'important',
@@ -1653,6 +1656,13 @@ async function loadEvts() {
 function eventPriceLabel(cents){
   const n=Number(cents||0); return n ? (n/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'}) : '';
 }
+function memberEventPriceCents(e){
+  e=e || {};
+  for(const key of ['memberPriceCents','priceMemberCents','tarifMembreCents']){
+    if(e[key] !== undefined && e[key] !== null && e[key] !== '') return Math.max(0, Number(e[key]) || 0);
+  }
+  return Math.max(0, Number(e.priceCents || e.amountCents || 0) || 0);
+}
 function memberEventReservationLabel(e, longLabel){
   const nature = String((e && (e.paymentNature || e.eventNature || e.paymentType)) || '').toLowerCase();
   const label = String((e && (e.paymentNatureLabel || e.eventNatureLabel || e.t || e.n)) || '').toLowerCase();
@@ -1668,12 +1678,13 @@ function showEvts(es) {
   }
   el.innerHTML = es.map(e => {
     const payable = !!e.paymentEnabled;
-    const priceText = e.priceCents ? eventPriceLabel(e.priceCents) : 'Gratuit';
+    const memberPriceCents = memberEventPriceCents(e);
+    const priceText = memberPriceCents ? eventPriceLabel(memberPriceCents) : 'Gratuit';
     return `
     <div class="evt" id="evt-${FTS.esc(e.id || '')}">
       <div class="evt-info">
         <div class="evt-name">${FTS.esc(e.n)}</div>
-        <div class="evt-meta">${FTS.esc(e.d)}${e.eventEndDate?' → '+FTS.esc(e.eventEndDate):''}${e.h?' — '+FTS.esc(e.h):''}${e.l?' — '+FTS.esc(e.l):''}${payable?' — '+FTS.esc(priceText):''}</div>
+        <div class="evt-meta">${FTS.esc(e.d)}${e.eventEndDate?' → '+FTS.esc(e.eventEndDate):''}${e.h?' — '+FTS.esc(e.h):''}${e.l?' — '+FTS.esc(e.l):''}${payable?' — Tarif membre : '+FTS.esc(priceText):''}</div>
       </div>
       ${e.important?`<span class="evt-type important">Important</span>`:''}
       ${e.t?`<span class="evt-type">${FTS.esc(e.t)}</span>`:''}
@@ -1719,7 +1730,8 @@ function openMemberEventPayment(id){
   ensureMemberPaymentModal();
   const e=currentMemberPaymentEvent;
   document.getElementById('member-pay-title').textContent = memberEventReservationLabel(e, true);
-  document.getElementById('member-pay-summary').textContent = (e.n || 'Événement') + (e.priceCents ? ' · ' + eventPriceLabel(e.priceCents) : '');
+  const memberPriceCents=memberEventPriceCents(e);
+  document.getElementById('member-pay-summary').textContent = (e.n || 'Événement') + ' · Tarif membre : ' + (memberPriceCents ? eventPriceLabel(memberPriceCents) : 'Gratuit');
   const form=document.getElementById('member-pay-form'); form.reset(); form.quantity.value='1';
   try{
     const u=firebase.auth().currentUser;
@@ -1744,7 +1756,7 @@ async function submitMemberEventPayment(ev){
     if(user){ const token=await user.getIdToken(); headers.Authorization='Bearer '+token; }
     const res=await fetch(((FTS.PAYMENT&&FTS.PAYMENT.workerUrl)||'https://fts-helloasso-api.gros-christophe.workers.dev').replace(/\/+$/,'') + '/checkout', {
       method:'POST', headers,
-      body:JSON.stringify({type:e.paymentType||'event_ticket',source:'membres.html',eventId:e.id,quantity:Math.max(1,Math.min(20,Number(form.quantity.value||1)||1)),payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},participant:{name:form.participantName.value},promoCode:form.promoCode?form.promoCode.value:''})
+      body:JSON.stringify({type:e.paymentType||'event_ticket',source:'membres.html',audience:'member',eventId:e.id,priceCents:memberEventPriceCents(e),quantity:Math.max(1,Math.min(20,Number(form.quantity.value||1)||1)),payer:{firstName:form.firstName.value,lastName:form.lastName.value,email:form.email.value,phone:form.phone.value},participant:{name:form.participantName.value},promoCode:form.promoCode?form.promoCode.value:''})
     });
     const data=await res.json().catch(()=>({}));
     if(!res.ok || (!data.redirectUrl && !data.confirmationUrl)) throw new Error(data.error || 'Erreur paiement');
