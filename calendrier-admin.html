@@ -24,7 +24,7 @@
 <header class="fts-admin-pagehead" aria-label="En-tête administrateur">
   <div class="fts-admin-brand">
     <div class="fts-admin-logo">ADMIN <span>CALENDRIER</span></div>
-    <div class="fts-admin-sub">Événements affichés dans l’espace membres</div>
+    <div class="fts-admin-sub">Événements publics et réservés aux membres</div>
   </div>
   <div class="fts-admin-actions"><button class="fts-admin-logout" data-fts-handler-1="">Déconnexion</button></div>
 </header>
@@ -51,13 +51,14 @@
 <div class="form-grid">
 <div class="field full field-main"><label>Nom de l’événement</label><input id="e-name" placeholder="Ex : Showcase de fin d’année"/></div>
 <div class="field"><label>Type</label><input id="e-type" placeholder="Spectacle, stage, répétition…"/></div>
-<div class="field"><label>Visible</label><select id="e-active"><option value="true">Oui</option><option value="false">Non</option></select></div>
+<div class="field"><label>État</label><select id="e-active"><option value="true">Publié</option><option value="false">Masqué partout</option></select></div>
 <div class="field"><label>Importance</label><select id="e-important"><option value="false">Normal</option><option value="true">Important</option></select></div>
+<div class="field full"><label>Visibilité de l’événement</label><select id="e-visibility"><option value="public">🌍 Public — accueil + espace membres</option><option value="members">🔒 Membres uniquement — espace connecté</option></select><div class="hint">Les anciens événements restent publics par défaut. « Membres uniquement » retire aussi l’événement de la copie publique utilisée par l’accueil.</div></div>
 </div>
 </div>
 <div class="form-section target-section" data-admin-advanced>
 <div class="section-title"><span>2</span>Groupes concernés</div>
-<div class="target-help">Aucune case cochée = visible par tout le monde. Tu peux cocher plusieurs catégories et sous-catégories.</div>
+<div class="target-help">Ces cases ciblent l’espace membre et les notifications. Aucune case cochée = tous les membres connectés. Elles ne changent pas la visibilité choisie pour l’accueil.</div>
 <div class="target-box" id="event-targets"><div class="empty">Chargement des groupes…</div></div>
 </div>
 <div class="form-section">
@@ -106,7 +107,7 @@
 <script src="assets/js/services/notifications.service.js?v=209"></script>
 <script src="assets/js/services/season.service.js?v=1"></script>
 <script src="assets/js/services/reminder-dispatcher.service.js?v=209"></script>
-<script src="assets/js/pages/calendrier-admin.js?v=212"></script>
+<script src="assets/js/pages/calendrier-admin.js?v=213-visibility-prices"></script>
 <script src="assets/js/fts-promo-admin.js?v=2"></script>
 
 <script src="assets/js/fts-enjoy.js?v=6"></script>
