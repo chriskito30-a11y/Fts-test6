@@ -74,7 +74,29 @@
       if(!Cal.memberMatchesSchedule(state.profile, state.user.uid, s)) return;
       Cal.expandSchedule(s,state.rangeStart,state.rangeEnd,500).forEach(occ => rows.push(Cal.normalizeScheduleOccurrence(id,occ,state.full)));
     });
-    state.items=rows.sort((a,b)=>a.startAt-b.startAt || a.title.localeCompare(b.title,'fr'));
+    // Évite les doublons visuels quand deux enregistrements fts_schedules
+    // décrivent exactement le même cours au même moment. On ne supprime rien
+    // dans Firebase : le dédoublonnage ne concerne que cette vue calendrier.
+    const seenScheduleItems = new Set();
+    const deduped = rows.filter(item => {
+      if(!item || item.source !== 'schedule') return true;
+      const raw = item.raw || {};
+      const key = [
+        item.individual ? 'individual' : 'group',
+        Number(item.startAt || 0),
+        Number(item.endAt || 0),
+        String(item.title || '').trim().toLowerCase(),
+        String(item.category || '').trim().toLowerCase(),
+        String(item.subcategory || '').trim().toLowerCase(),
+        item.individual ? String(raw.uid || '').trim() : '',
+        String(item.teacher || '').trim().toLowerCase(),
+        String(item.location || '').trim().toLowerCase()
+      ].join('|');
+      if(seenScheduleItems.has(key)) return false;
+      seenScheduleItems.add(key);
+      return true;
+    });
+    state.items=deduped.sort((a,b)=>a.startAt-b.startAt || a.title.localeCompare(b.title,'fr'));
     render();
   }
 
