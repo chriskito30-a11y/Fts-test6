@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Calendrier — Fais Ton Show</title>
+  <link rel="manifest" href="./manifest.json"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="assets/css/fts.css"/>
+  <link rel="stylesheet" href="assets/css/pages/calendrier.css?v=1"/>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+</head>
+<body class="calendar-page">
+  <main class="calendar-shell" id="calendar-shell" hidden>
+    <header class="calendar-topbar">
+      <div class="calendar-brand">
+        <div class="eyebrow">Mon agenda Fais Ton Show</div>
+        <h1>CALEN<span>DRIER</span></h1>
+        <div class="calendar-role" id="calendar-role">Chargement…</div>
+      </div>
+      <div class="calendar-head-actions">
+        <a class="calendar-link" href="membres.html">← Espace membres</a>
+        <a class="calendar-link" id="calendar-prof-link" href="profs.html" hidden>🎓 Espace prof</a>
+        <a class="calendar-link" id="calendar-admin-link" href="calendrier-admin.html" hidden>⚙️ Gérer les événements</a>
+        <button class="calendar-btn primary" id="calendar-export-all" type="button">⬇ Ajouter tout à mon agenda</button>
+      </div>
+    </header>
+
+    <div class="calendar-error" id="calendar-error"></div>
+
+    <section class="calendar-toolbar" aria-label="Navigation calendrier">
+      <div class="calendar-nav">
+        <button class="calendar-btn" type="button" data-cal-nav="prev">‹</button>
+        <button class="calendar-btn" type="button" data-cal-nav="today">Aujourd’hui</button>
+        <button class="calendar-btn" type="button" data-cal-nav="next">›</button>
+        <select class="calendar-filter-select" id="calendar-filter" aria-label="Filtrer le calendrier">
+          <option value="all">Tout afficher</option>
+          <option value="events">Événements</option>
+          <option value="groups">Cours collectifs</option>
+          <option value="individual">Cours individuels</option>
+        </select>
+      </div>
+      <div class="calendar-period" id="calendar-period">…</div>
+      <div class="calendar-view-tabs" role="tablist" aria-label="Type de vue">
+        <button class="calendar-btn active" type="button" data-cal-view="month">Mois</button>
+        <button class="calendar-btn" type="button" data-cal-view="week">Semaine</button>
+        <button class="calendar-btn" type="button" data-cal-view="list">Liste</button>
+      </div>
+    </section>
+
+    <div class="calendar-summary">
+      <span class="event-dot">Événements programmés</span>
+      <span class="group-dot">Cours collectifs</span>
+      <span class="individual-dot">Cours individuels</span>
+      <span id="calendar-count">0 éléments</span>
+      <span>Fuseau : Europe/Paris</span>
+    </div>
+
+    <section class="calendar-board" id="calendar-board" aria-live="polite">
+      <div class="calendar-loading">Chargement du calendrier…</div>
+    </section>
+  </main>
+
+  <div class="calendar-modal" id="calendar-modal" aria-hidden="true">
+    <div class="calendar-modal-card" role="dialog" aria-modal="true" aria-labelledby="calendar-modal-title">
+      <div class="calendar-modal-head">
+        <div><h2 id="calendar-modal-title">Événement</h2><div class="calendar-modal-type" id="calendar-modal-type"></div></div>
+        <button class="calendar-modal-close" id="calendar-modal-close" type="button" aria-label="Fermer">×</button>
+      </div>
+      <div class="calendar-detail-grid" id="calendar-modal-details"></div>
+      <div class="calendar-modal-actions" id="calendar-modal-actions"></div>
+    </div>
+  </div>
+
+  <script src="assets/js/fts-utils.js?v=209"></script>
+  <script src="assets/js/fts-firebase.js?v=209"></script>
+  <script src="assets/js/fts-pwa.js?v=43"></script>
+  <script src="assets/js/services/calendar.service.js?v=1"></script>
+  <script src="assets/js/pages/calendrier.js?v=1"></script>
+</body>
+</html>

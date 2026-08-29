@@ -1,4 +1,4 @@
-const CACHE = 'fts-v229-pieces-shop';
+const CACHE = 'fts-v230-calendar-view';
 const FILES = [
   './manifest.json',
   './index.html',
@@ -17,6 +17,7 @@ const FILES = [
   './admin.html',
   './contenus-admin.html',
   './calendrier-admin.html',
+  './calendrier.html',
   './forum-admin.html',
   './saison.html',
   './saison-admin.html',
@@ -37,6 +38,7 @@ const FILES = [
   './assets/css/pages/admin.css',
   './assets/css/pages/auth.css',
   './assets/css/pages/calendrier-admin.css',
+  './assets/css/pages/calendrier.css',
   './assets/css/pages/contenus-admin.css',
   './assets/css/pages/forum-admin.css',
   './assets/css/pages/forum.css',
@@ -82,10 +84,12 @@ const FILES = [
   './assets/js/services/schedules.service.js',
   './assets/js/services/reminder-dispatcher.service.js',
   './assets/js/services/calendar-exclusions.service.js',
+  './assets/js/services/calendar.service.js',
   './assets/js/services/piper-voice.service.js',
   './assets/js/pages/admin.js',
   './assets/js/pages/auth.js',
   './assets/js/pages/calendrier-admin.js',
+  './assets/js/pages/calendrier.js',
   './assets/js/pages/contenus-admin.js',
   './assets/js/pages/forum-admin.js',
   './assets/js/pages/forum.js',
