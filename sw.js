@@ -1,4 +1,4 @@
-const CACHE = 'fts-v230-calendar-view';
+const CACHE = 'fts-v231-calendar-view';
 const FILES = [
   './manifest.json',
   './index.html',
