@@ -246,7 +246,7 @@
     const motive = data.motives.find(function(m){return m.id === answers.motive;}) || data.motives[0];
     const proposals = recommendations();
     const parent = isParent();
-    get("resultTitle").textContent = parent ? motive.parentHeadline : motive.headline;
+    get("resultTitle").textContent = parent ? motive.parentHeadline.replace("ton enfant", noun()) : motive.headline;
     get("resultIntro").textContent = motive.intro;
     get("resultCards").innerHTML = proposals.map(function(a) {
       return '<article class="result-card"><div class="result-icon" aria-hidden="true">' + escapeHtml(a.icon) + '</div>' +
