@@ -59,6 +59,7 @@
       return true;
     }
     if(age==null || !Number.isInteger(age)) return false; // pas de lien direct pour mineur sans âge
+    if(audience==="child" && (hints.adult || hints.teen) && !hints.child) return false;
     if(hints.adult && !hints.teen) return false;
     if(hints.min != null && age < hints.min) return false;
     if(hints.max != null && age > hints.max) return false;
