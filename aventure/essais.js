@@ -68,14 +68,13 @@
   }
   function activityOk(id, name) {
     const s=norm(name);
-    if(id==="theatre79") return !/academy|academie|performance|perf/.test(s);
-    if(id==="theatrejeunesse") return !/academy|academie|performance|perf/.test(s);
-    if(id==="theatreadultes") return /\badultes?\b/.test(s) && !/academy|academie|performance|perf/.test(s);
-    if(id==="chant") return /chant|loisir/.test(s) && !/academy|academie|performance|perf/.test(s);
+    // Sans question sur le niveau, ne jamais pousser automatiquement vers un groupe avancé.
+    const advanced=/academy|academie|performance|\bperf\b|\bavance\b|\bconfirme\b|\bexpert\b|\bintermediaire\b|\bniveau\s*[234]\b/.test(s);
     if(id==="singer") return /singer\s+academy|academy|academie/.test(s);
-    if(id==="comediekids") return !/\badultes?\b/.test(s) && !/academy|academie|performance|perf/.test(s);
-    if(id==="comedie") return !/academy|academie|performance|perf/.test(s);
-    return !/academy|academie|performance|perf/.test(s);
+    if(id==="theatreadultes") return /\badultes?\b/.test(s) && !advanced;
+    if(id==="chant") return /chant|loisir/.test(s) && !advanced;
+    if(id==="comediekids") return !/\badultes?\b/.test(s) && !advanced;
+    return !advanced;
   }
   function categoryOk(activityId, category) {
     const allowed=CATEGORIES[activityId] || [];
