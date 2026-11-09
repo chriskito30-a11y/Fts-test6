@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Et si tu te surprenais toi-même ? — Fais Ton Show</title>
+<meta name="description" content="Une minute pour explorer ce qui pourrait te donner envie chez Fais Ton Show : théâtre, chant, danse, improvisation, musique et plus encore. Sans inscription.">
+<link rel="canonical" href="https://app.faistonshow.fr/aventure/">
+<link rel="icon" href="../assets/img/fts-any-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./styles.css">
+<script src="./config.js" defer></script>
+<script src="./app.js" defer></script>
+</head>
+<body>
+<div class="stage-light" aria-hidden="true"><span></span><span></span></div>
+<div class="site-shell">
+<header class="topbar">
+  <a class="brand-link" href="../index.html" aria-label="Retour à Fais Ton Show"><span class="brand-dot" aria-hidden="true">★</span><strong>FAIS TON SHOW</strong></a>
+  <span class="topbar-meta">L'AVENTURE COMMENCE ICI</span>
+</header>
+<main id="main">
+<section id="intro" class="screen intro-screen" aria-labelledby="intro-title">
+  <div class="intro-copy">
+    <p class="eyebrow" id="sourceLine">UNE ENVIE SUFFIT POUR COMMENCER</p>
+    <h1 id="intro-title">ET SI TU TE <span>SURPRENAIS</span> TOI-MÊME&nbsp;?</h1>
+    <div class="yellow-rule" aria-hidden="true"></div>
+    <p class="intro-lead">Une activité à laquelle tu n'avais jamais pensé. Des rencontres que tu n'attendais pas. Une expérience que tu pourrais adorer.</p>
+    <p class="intro-promise">Découvre ce qui pourrait te donner envie.</p>
+    <button type="button" id="startBtn" class="primary-btn">JE DÉCOUVRE MON AVENTURE <span aria-hidden="true">→</span></button>
+    <p class="microcopy">Environ 1 minute · Aucun compte · Aucun engagement</p>
+  </div>
+  <aside class="scene-art" aria-label="Une scène imaginaire éclairée">
+    <div class="scene-art-inner" aria-hidden="true"><span class="scene-art-stars">✦ &nbsp; ✳ &nbsp; ✦</span><strong>FAIS<br><span>TON</span><br>SHOW</strong><small>ET SI C'ÉTAIT TOI ?</small></div>
+    <p>La scène est une possibilité. Le plaisir de créer ensemble en est une autre.</p>
+  </aside>
+</section>
+
+<section id="journey" class="screen journey-screen" hidden aria-labelledby="stepTitle">
+  <div class="journey-top">
+    <button type="button" id="backBtn" class="text-btn">← Retour</button>
+    <span id="stepCount" class="step-count">01 / 04</span>
+  </div>
+  <div class="progress-track" role="progressbar" aria-label="Avancement du parcours" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" id="progressTrack"><span id="progressFill"></span></div>
+  <div class="question-panel">
+    <p class="eyebrow" id="stepEyebrow">POUR COMMENCER</p>
+    <h2 id="stepTitle">Cette aventure, ce serait pour qui ?</h2>
+    <p id="stepDescription" class="step-description"></p>
+    <div id="stepChoices" class="choice-grid"></div>
+    <div id="ageStep" hidden>
+      <label for="ageInput" class="age-label">Son âge en années <span>(facultatif pour explorer)</span></label>
+      <div class="age-row"><input id="ageInput" type="number" min="3" max="17" inputmode="numeric" placeholder="Ex. 8" autocomplete="off"><button type="button" id="ageContinue" class="primary-btn">CONTINUER →</button></div>
+      <p id="ageError" class="field-error" role="alert" hidden></p>
+      <button type="button" id="ageSkip" class="text-btn age-skip">Je préfère ne pas le préciser</button>
+      <p class="microcopy">Sans âge, nous montrerons seulement des pistes générales dont l'accès reste à vérifier.</p>
+    </div>
+  </div>
+  <p class="journey-note">Il n'y a pas de bonne réponse. Choisis juste ce qui te parle.</p>
+</section>
+
+<section id="result" class="screen result-screen" hidden aria-labelledby="resultTitle">
+  <div class="journey-top">
+    <button type="button" id="resultBack" class="text-btn">← Modifier mes réponses</button>
+    <span class="step-count">TON AVENTURE</span>
+  </div>
+  <div class="result-heading">
+    <p class="eyebrow">ET SI C'ÉTAIT LE DÉBUT DE QUELQUE CHOSE ?</p>
+    <h2 id="resultTitle"></h2>
+    <p id="resultIntro" class="result-lead"></p>
+  </div>
+  <h3 class="results-section-title">DEUX PISTES À EXPLORER</h3>
+  <div id="resultCards" class="result-cards"></div>
+  <p id="resultNote" class="result-note"></p>
+  <div class="result-actions">
+    <a id="mainCta" class="primary-btn" href="../saison.html"></a>
+    <a href="../saison.html" class="secondary-btn">VOIR TOUTES LES ACTIVITÉS <span aria-hidden="true">↗</span></a>
+  </div>
+  <p id="ctaNote" class="microcopy"></p>
+  <div class="apprehension">
+    <h3>QUELQUE CHOSE TE RETIENT ?</h3>
+    <p>Tu peux aussi avoir des questions avant de te lancer.</p>
+    <div id="apprehensionChoices" class="apprehension-options"></div>
+    <p id="apprehensionReply" role="status" aria-live="polite"></p>
+  </div>
+  <div class="more-actions"><button type="button" id="restartBtn" class="text-btn">↻ Recommencer avec une autre envie</button></div>
+</section>
+</main>
+<footer>
+  <p>FAIS TON SHOW · MARGUERITTES (PRÈS DE NÎMES)</p>
+  <nav aria-label="Liens de bas de page"><a href="../index.html">Accueil</a><a href="../saison.html">Activités</a><a href="../confidentialite.html">Confidentialité</a><a href="mailto:contact@faistonshow.fr">Nous contacter</a></nav>
+</footer>
+<noscript><p class="noscript">Le parcours interactif nécessite JavaScript. Vous pouvez consulter les <a href="../saison.html">activités Fais Ton Show</a> ou écrire à <a href="mailto:contact@faistonshow.fr">contact@faistonshow.fr</a>.</p></noscript>
+</div>
+</body>
+</html>

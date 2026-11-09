@@ -1,0 +1,82 @@
+/* Fais Ton Show · Aventure / données éditoriales et règles indépendantes de l'interface.
+   Aucune disponibilité n'est supposée. Les âges non confirmés sont signalés. */
+window.FTSDiscoveryConfig = Object.freeze({
+  sources: {
+    "direct": {line: "FAIS TON SHOW · L'AVENTURE COMMENCE ICI"},
+    "mamie-2026": {line: "VOUS AVEZ DÉCOUVERT MAMIE FAIT DE LA TÉLÉ ? L'AVENTURE CONTINUE."},
+    "facebook": {line: "BIENVENUE DEPUIS FACEBOOK"},
+    "instagram": {line: "BIENVENUE DEPUIS INSTAGRAM"},
+    "affiche": {line: "UNE AFFICHE, UNE ENVIE, UNE NOUVELLE AVENTURE"},
+    "festival-2027": {line: "LE FESTIVAL FAIS TON SHOW, ET APRÈS ?"}
+  },
+  motives: [
+    {id:"rire", icon:"✦", title:"Rire et partager", detail:"Passer un bon moment, rencontrer du monde, sortir du quotidien.",
+      headline:"Et si ton prochain rendez-vous préféré était une répétition ?",
+      parentHeadline:"Et si ton enfant trouvait un endroit où rire et créer avec d'autres ?",
+      intro:"On découvre des jeux, des personnages et des partenaires. Et surtout, le plaisir de partager une activité."},
+    {id:"creer", icon:"✳", title:"Inventer et créer", detail:"Imaginer des histoires, jouer, donner vie à des idées.",
+      headline:"Tu as des idées ? Ici, elles peuvent prendre vie.",
+      parentHeadline:"Et si ses idées prenaient vie autrement ?",
+      intro:"Une idée peut devenir un personnage, une chanson, un geste ou une scène à construire ensemble."},
+    {id:"nouveau", icon:"↗", title:"Essayer quelque chose de nouveau", detail:"Découvrir une activité inattendue, oser une première fois.",
+      headline:"Et si tu essayais quelque chose d'inattendu ?",
+      parentHeadline:"Et si ton enfant découvrait une nouvelle façon de s'exprimer ?",
+      intro:"Pas besoin d'avoir déjà pratiqué. L'essentiel est de pouvoir essayer à son rythme, avec un cadre adapté."},
+    {id:"collectif", icon:"◎", title:"Vivre une aventure collective", detail:"Faire partie d'un groupe, construire quelque chose ensemble.",
+      headline:"Le spectacle commence bien avant le lever de rideau.",
+      parentHeadline:"Et si ton enfant faisait partie d'une aventure collective ?",
+      intro:"Les répétitions, les échanges et les créations partagées font aussi partie de l'aventure Fais Ton Show."}
+  ],
+  worlds: [
+    {id:"jouer",icon:"🎭",title:"Jouer et improviser",detail:"Des personnages, des situations, des histoires."},
+    {id:"voix",icon:"🎤",title:"Chanter ou faire de la musique",detail:"La voix, les sons, les rythmes."},
+    {id:"danser",icon:"✹",title:"Danser et bouger",detail:"Le mouvement et l'expression corporelle."},
+    {id:"magie",icon:"✦",title:"Découvrir la magie",detail:"Des tours, des surprises, de l'imagination."},
+    {id:"surprise",icon:"?",title:"Surprenez-moi !",detail:"Je ne sais pas encore ce qui pourrait me plaire."}
+  ],
+  activities: [
+    {id:"theatre79", title:"Théâtre 7–9 ans",icon:"🎭",audiences:["child"],minAge:7,maxAge:9,worlds:["jouer"],motives:["rire","creer","collectif","nouveau"],family:"jeu",
+      detail:"Inventer des personnages, jouer des situations et découvrir le théâtre avec d'autres enfants.",
+      condition:"Parcours loisir uniquement pour les 7–9 ans."},
+    {id:"theatrejeunesse",title:"Théâtre — groupes jeunes",icon:"🎭",audiences:["child","teen"],minAge:10,worlds:["jouer"],motives:["rire","creer","collectif","nouveau"],family:"jeu",
+      detail:"Apprendre à interpréter, développer un personnage et construire des scènes en groupe.",
+      condition:"Le groupe et le parcours adaptés à l'âge sont à confirmer. Le parcours performance commence à partir de 10 ans selon les groupes."},
+    {id:"theatreadultes",title:"Théâtre loisir",icon:"🎭",audiences:["adult"],worlds:["jouer"],motives:["rire","creer","collectif","nouveau"],family:"jeu",
+      detail:"Jouer des personnages, explorer des scènes et progresser avec un groupe.",
+      condition:"Les créneaux et possibilités d'essai sont à confirmer."},
+    {id:"impro",title:"Improvisation",icon:"⚡",audiences:["adult"],worlds:["jouer"],motives:["rire","collectif","nouveau","creer"],family:"jeu",
+      detail:"Imaginer sur le moment, rebondir sur les propositions et créer à plusieurs.",
+      condition:"Les publics, niveaux et créneaux accessibles sont à confirmer."},
+    {id:"chant",title:"Chant",icon:"🎤",audiences:["adult","teen"],worlds:["voix"],motives:["nouveau","creer","rire","collectif"],family:"voix",
+      detail:"Explorer sa voix, interpréter une chanson et progresser à son rythme.",
+      condition:"Âge, formule et disponibilités à vérifier avec l'équipe."},
+    {id:"singer",title:"Singer Academy",icon:"🎶",audiences:["adult","teen"],worlds:["voix"],motives:["collectif","creer","rire","nouveau"],family:"voix",
+      detail:"Travailler la voix et l'interprétation au sein d'un projet vocal et scénique partagé.",
+      condition:"Accès, niveau éventuel et places à confirmer : aucune place n'est garantie."},
+    {id:"danseenfants",title:"Danse — groupes enfants",icon:"✹",audiences:["child"],worlds:["danser"],motives:["rire","creer","nouveau","collectif"],family:"mouvement",
+      detail:"Découvrir les mouvements, le rythme et le plaisir de s'exprimer avec le corps.",
+      condition:"Groupe et tranche d'âge à confirmer, notamment pour les plus jeunes."},
+    {id:"danseadultes",title:"Danse",icon:"✹",audiences:["adult","teen"],worlds:["danser"],motives:["rire","creer","nouveau","collectif"],family:"mouvement",
+      detail:"Bouger, explorer des chorégraphies et partager l'énergie d'un groupe.",
+      condition:"Groupe, niveau et créneau à confirmer."},
+    {id:"comediekids",title:"Comédie musicale Kids",icon:"★",audiences:["child"],worlds:["jouer","voix","danser"],motives:["collectif","creer","nouveau","rire"],family:"mixte",
+      detail:"Associer jeu, chant et mouvement dans une même découverte artistique.",
+      condition:"L'âge exact d'accès et les groupes sont à vérifier. Ne préjuge pas d'une inscription."},
+    {id:"comedie",title:"Comédie musicale",icon:"★",audiences:["adult","teen"],worlds:["jouer","voix","danser"],motives:["collectif","creer","nouveau"],family:"mixte",
+      detail:"Mêler théâtre, chant et mouvement pour construire un spectacle.",
+      condition:"Les niveaux, tranches d'âge et modalités d'accès sont à confirmer."},
+    {id:"magiejeunes",title:"Magie",icon:"✦",audiences:["child","teen"],worlds:["magie"],motives:["nouveau","creer","rire"],family:"magie",
+      detail:"Apprendre des tours, travailler la présentation et le plaisir de surprendre.",
+      condition:"Tranche d'âge et accès à valider avec l'équipe avant toute inscription."},
+    {id:"musique",title:"Musique",icon:"♫",audiences:["adult","teen"],worlds:["voix"],motives:["nouveau","creer","collectif"],family:"musique",
+      detail:"Explorer un instrument, jouer avec des sons et éventuellement partager un projet musical.",
+      condition:"Instrument, niveau, âge et accès aux ateliers à confirmer."}
+  ],
+  apprehensions: [
+    {id:"debut",label:"Je n'ai jamais fait ça",reply:"Des activités FTS accueillent aussi des débutants. Le groupe adapté est à vérifier avant un essai."},
+    {id:"timide",label:"Je suis plutôt timide",reply:"Tu peux découvrir une activité progressivement. Tu n'as pas à tout réussir ni à être à l'aise dès la première séance."},
+    {id:"seul",label:"Je ne connais personne",reply:"Les séances sont des activités de groupe : les rencontres font partie de l'expérience, sans garantie que l'on se sente immédiatement à l'aise."},
+    {id:"temps",label:"Je ne sais pas si j'aurai le temps",reply:"Les horaires sont à consulter avant de s'engager. L'équipe peut expliquer le rythme des séances et des répétitions."},
+    {id:"calme",label:"Je préfère découvrir tranquillement",reply:"Tu peux consulter les activités sans laisser de coordonnées. Rien ne t'oblige à réserver un cours."}
+  ]
+});
