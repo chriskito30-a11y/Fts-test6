@@ -1,0 +1,620 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a0a">
+<title>Et si tu te surprenais toi-même ? — Fais Ton Show</title>
+<meta name="description" content="Une minute pour explorer ce qui pourrait te donner envie chez Fais Ton Show : théâtre, chant, danse, improvisation, musique et plus encore. Sans inscription.">
+<link rel="canonical" href="https://app.faistonshow.fr/aventure/">
+<link rel="icon" href="https://app.faistonshow.fr/assets/img/fts-any-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* FTS Aventure — module autonome, palette officielle noir #0A0A0A / jaune #F8E702 / blanc #F5F2EE. */
+:root{color-scheme:dark;--bg:#0a0a0a;--ink:#f5f2ee;--accent:#f8e702;--muted:#b5b3ae;--border:#383832;--panel:#161615;--font-display:"Bebas Neue",Impact,sans-serif;--font-body:"DM Sans",Arial,sans-serif}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:var(--font-body);line-height:1.5;overflow-x:hidden}
+button,a,input{font:inherit}button{cursor:pointer}a{color:inherit}button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:4px}
+[hidden]{display:none!important}
+.stage-light{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden;background:radial-gradient(circle at 79% 10%,rgba(248,231,2,.09),transparent 33%),radial-gradient(circle at -15% 85%,rgba(248,231,2,.06),transparent 36%)}
+.stage-light span{position:absolute;display:block;width:min(40vw,480px);height:95vh;top:-38vh;background:linear-gradient(180deg,rgba(248,231,2,.12),transparent 72%);filter:blur(45px);transform:rotate(-28deg)}
+.stage-light span:nth-child(1){right:12%}.stage-light span:nth-child(2){right:-13%;transform:rotate(24deg);opacity:.5}
+.site-shell{max-width:1190px;min-height:100vh;margin:auto;padding:0 clamp(20px,4vw,48px);display:flex;flex-direction:column}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:1px solid rgba(255,255,255,.11);padding:20px 0}
+.brand-link{display:inline-flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--font-display);font-size:clamp(23px,2.2vw,31px);letter-spacing:.035em;line-height:1}
+.brand-dot{background:var(--accent);color:var(--bg);width:38px;height:38px;border-radius:5px;display:grid;place-items:center;font:24px Arial,sans-serif}
+.topbar-meta{font-size:.68rem;letter-spacing:.2em;font-weight:800;color:var(--muted);text-align:right}
+main{flex:1;display:grid;align-items:center}
+.screen{width:100%;animation:appear .33s ease both}
+.intro-screen{min-height:600px;display:grid;grid-template-columns:minmax(0,1.13fr) minmax(290px,.87fr);align-items:center;gap:clamp(28px,5vw,70px);padding:55px 0 65px}
+.eyebrow{margin:0 0 15px;color:var(--accent);font-weight:800;letter-spacing:.15em;font-size:clamp(.66rem,1.2vw,.77rem);text-transform:uppercase}
+h1,h2,h3,p{margin-top:0}
+.intro-copy h1{font-family:var(--font-display);font-weight:400;font-size:clamp(5rem,8.3vw,9.6rem);line-height:.89;letter-spacing:.014em;margin:0 0 20px;max-width:780px}
+.intro-copy h1 span{color:var(--accent)}
+.yellow-rule{height:5px;width:96px;background:var(--accent);margin:25px 0}
+.intro-lead{font-size:clamp(1.05rem,1.75vw,1.27rem);line-height:1.6;max-width:540px;color:var(--ink);margin-bottom:16px}
+.intro-promise{font-weight:800;font-size:1.05rem;margin-bottom:28px}
+.primary-btn{display:inline-flex;align-items:center;justify-content:center;gap:20px;text-align:center;background:var(--accent);color:#050505;border:2px solid var(--accent);border-radius:7px;min-height:60px;padding:15px 21px;text-decoration:none;font-weight:800;letter-spacing:.018em;line-height:1.25;box-shadow:0 14px 38px rgba(248,231,2,.15);transition:transform .2s,box-shadow .2s}
+.primary-btn:hover{transform:translateY(-2px);box-shadow:0 18px 44px rgba(248,231,2,.25)}
+.primary-btn span{font-size:1.5em;line-height:.75}
+.microcopy{color:#aaa9a3;font-size:.78rem;line-height:1.45;margin:14px 0 0}
+.scene-art{position:relative;aspect-ratio:4/5;max-height:580px;min-height:410px;border-radius:13px;border:1px solid #535140;overflow:hidden;display:flex;flex-direction:column;justify-content:end;padding:22px;background:radial-gradient(ellipse at 45% 20%,rgba(248,231,2,.22),transparent 32%),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(255,255,255,.025) 41px),#151510;box-shadow:0 25px 80px rgba(0,0,0,.5)}
+.scene-art:before,.scene-art:after{content:"";position:absolute;top:-80px;width:160px;height:100%;background:linear-gradient(180deg,rgba(248,231,2,.23),transparent 68%);filter:blur(22px);transform-origin:top}
+.scene-art:before{left:15%;transform:rotate(22deg)}.scene-art:after{right:12%;transform:rotate(-24deg)}
+.scene-art-inner{position:relative;z-index:1;margin:auto;text-align:center;transform:rotate(-6deg);width:100%}
+.scene-art-inner strong{display:block;font-family:var(--font-display);font-size:clamp(5.3rem,9vw,9rem);line-height:.73;letter-spacing:-.02em;color:var(--ink);text-shadow:6px 8px 0 rgba(0,0,0,.7)}
+.scene-art-inner strong span{color:var(--accent)}
+.scene-art-stars{color:var(--accent);display:block;margin-bottom:22px;font-size:2rem;letter-spacing:1.1rem}
+.scene-art-inner small{display:block;color:var(--accent);font-weight:800;letter-spacing:.14em;margin-top:32px;font-size:.75rem;transform:rotate(6deg)}
+.scene-art p{position:relative;z-index:1;text-align:center;font-size:.8rem;color:#cfcec7;margin:0;padding:12px 8px;border-top:1px solid rgba(255,255,255,.14)}
+.journey-screen,.result-screen{max-width:900px;margin:0 auto;padding:38px 0 65px}
+.journey-top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:20px}
+.text-btn{border:0;background:none;color:var(--ink);text-decoration:underline;text-underline-offset:5px;padding:9px 0;font-weight:700;font-size:.88rem}
+.text-btn:hover{color:var(--accent)}
+.step-count{font-size:.72rem;letter-spacing:.17em;color:var(--accent);font-weight:800}
+.progress-track{width:100%;height:4px;background:#3a3a32;border-radius:99px;overflow:hidden;margin-bottom:33px}
+.progress-track span{display:block;width:25%;height:100%;background:var(--accent);transition:width .25s}
+.question-panel{border:1px solid var(--border);border-radius:14px;background:linear-gradient(155deg,#191917,#111110);padding:clamp(25px,5vw,52px);box-shadow:0 26px 75px rgba(0,0,0,.3)}
+.question-panel h2,.result-heading h2{font-family:var(--font-display);font-weight:400;line-height:.99;letter-spacing:.01em;font-size:clamp(3.3rem,7vw,6rem);max-width:790px;margin:0 0 18px}
+.step-description,.result-lead{color:#d0cec5;font-size:1.04rem;line-height:1.6;max-width:690px}
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-top:30px}
+.choice-btn{display:flex;align-items:center;gap:18px;text-align:left;min-height:110px;width:100%;padding:17px 20px;border-radius:8px;border:1px solid #4a4940;background:#21211d;color:var(--ink);transition:background .16s,border-color .16s,transform .16s}
+.choice-btn:hover,.choice-btn:focus-visible{background:#302e1b;border-color:var(--accent);transform:translateY(-1px)}
+.choice-icon{flex:0 0 50px;width:50px;height:50px;border-radius:6px;background:rgba(248,231,2,.12);color:var(--accent);display:grid;place-items:center;font-weight:900;font-size:1.5rem}
+.choice-text strong{display:block;font-size:1.03rem;line-height:1.3}.choice-text small{display:block;color:#c0bfb7;font-size:.84rem;margin-top:5px;line-height:1.42}
+.journey-note{color:#aaa9a3;text-align:center;font-size:.82rem;margin:22px 0 0}
+.age-label{display:block;font-weight:800;margin:25px 0 10px}.age-label span{font-weight:400;color:var(--muted)}
+.age-row{display:flex;gap:10px;align-items:stretch;max-width:560px}.age-row input{background:#25251f;border:1px solid #5c5b53;border-radius:7px;width:150px;min-width:0;min-height:60px;color:var(--ink);padding:0 16px;font-size:1.15rem}
+.age-row .primary-btn{min-width:180px}
+.field-error{color:#ffb2ab;margin:10px 0 0;font-size:.85rem}.age-skip{margin:20px 0 0}
+.result-heading{margin-top:34px}.result-heading h2{max-width:850px;color:var(--accent)}.result-lead{font-size:1.13rem}
+.results-section-title,.apprehension h3{font-family:var(--font-display);font-weight:400;font-size:2rem;letter-spacing:.035em;margin:34px 0 14px}
+.result-cards{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.result-card{border:1px solid #49483b;border-radius:10px;background:#191918;padding:22px;min-height:225px;position:relative;overflow:hidden}
+.result-card:before{content:"";width:140px;height:140px;position:absolute;right:-45px;top:-45px;border-radius:50%;background:rgba(248,231,2,.07);pointer-events:none}
+.result-icon{width:48px;height:48px;background:rgba(248,231,2,.12);color:var(--accent);display:grid;place-items:center;border-radius:5px;font-size:1.7rem;margin-bottom:14px}
+.result-card h4{font-family:var(--font-display);font-weight:400;font-size:2.1rem;line-height:1;margin:0 0 12px}
+.result-card p{font-size:.9rem;color:#deddd5;margin-bottom:12px;line-height:1.55}
+.result-card small{display:block;color:#b7b4aa;line-height:1.5;font-size:.78rem;border-top:1px solid #3c3a34;padding-top:9px}
+.result-note{font-size:.86rem;color:#c1bfb3;line-height:1.55;margin:14px 0}
+.result-actions{display:flex;align-items:stretch;gap:12px;margin-top:28px;flex-wrap:wrap}
+.result-actions .primary-btn{min-width:260px}
+.secondary-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #57564e;border-radius:7px;color:var(--ink);text-decoration:none;padding:16px 20px;font-size:.9rem;font-weight:800;min-height:60px}
+.secondary-btn:hover{border-color:var(--accent);color:var(--accent)}
+.apprehension{border-top:1px solid var(--border);margin-top:42px;padding-top:4px}
+.apprehension>p{color:#bdbbb0;font-size:.9rem}
+.apprehension-options{display:flex;flex-wrap:wrap;gap:9px}
+.apprehension-options button{border:1px solid #5c5b50;border-radius:99px;padding:9px 13px;background:transparent;color:var(--ink);font-size:.85rem}
+.apprehension-options button[aria-pressed="true"],.apprehension-options button:hover{border-color:var(--accent);background:#2c2913}
+#apprehensionReply:not(:empty){background:#222115;border-left:3px solid var(--accent);padding:13px 16px;color:#f0eee6;margin-top:14px}
+.more-actions{margin:25px 0 0}
+footer{border-top:1px solid #2f2f2b;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:23px 0 30px;font-size:.72rem;color:#aaa9a3}
+footer p{margin:0;font-weight:800;letter-spacing:.08em}footer nav{display:flex;gap:17px;flex-wrap:wrap}footer a{text-decoration:none}footer a:hover{text-decoration:underline;color:var(--accent)}
+.noscript{border:1px solid var(--border);padding:20px}.noscript a{color:var(--accent)}
+@keyframes appear{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:850px){
+ .intro-screen{grid-template-columns:1fr;gap:20px;padding:46px 0}
+ .intro-copy h1{font-size:clamp(5.4rem,15vw,8rem);max-width:720px}
+ .scene-art{display:none}
+}
+@media(max-width:600px){
+ .site-shell{padding:0 18px}
+ .topbar{padding:15px 0}.brand-dot{width:30px;height:30px;font-size:19px}.brand-link{font-size:23px}
+ .topbar-meta{font-size:.54rem;letter-spacing:.1em;max-width:100px}
+ .intro-screen{min-height:calc(100svh - 145px);padding:35px 0 45px}
+ .intro-copy h1{font-size:clamp(3.1rem,14.8vw,6.8rem);line-height:.89;margin-bottom:16px}
+ .intro-lead{font-size:1rem}.intro-promise{font-size:1rem}
+ .intro-copy .primary-btn{width:100%;font-size:.87rem}
+ .journey-screen,.result-screen{padding:24px 0 48px}
+ .question-panel{padding:26px 18px}
+ .question-panel h2,.result-heading h2{font-size:clamp(3.25rem,12.5vw,4.7rem)}
+ .choice-grid,.result-cards{grid-template-columns:1fr}
+ .choice-grid{gap:10px;margin-top:24px}
+ .choice-btn{min-height:79px;padding:13px 14px;gap:13px}
+ .choice-icon{width:40px;height:40px;flex-basis:40px;font-size:1.3rem}
+ .choice-text strong{font-size:.95rem}
+ .choice-text small{font-size:.77rem}
+ .age-row{flex-wrap:wrap}.age-row input{width:100%;flex:1}.age-row .primary-btn{flex:1}
+ .result-card{min-height:0}
+ .result-actions{display:grid}.result-actions .primary-btn{min-width:0}
+ footer{gap:15px}footer nav{gap:12px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+</style>
+
+
+</head>
+<body>
+<div class="stage-light" aria-hidden="true"><span></span><span></span></div>
+<div class="site-shell">
+<header class="topbar">
+  <a class="brand-link" href="https://app.faistonshow.fr/index.html" aria-label="Retour à Fais Ton Show"><span class="brand-dot" aria-hidden="true">★</span><strong>FAIS TON SHOW</strong></a>
+  <span class="topbar-meta">L'AVENTURE COMMENCE ICI</span>
+</header>
+<main id="main">
+<section id="intro" class="screen intro-screen" aria-labelledby="intro-title">
+  <div class="intro-copy">
+    <p class="eyebrow" id="sourceLine">UNE ENVIE SUFFIT POUR COMMENCER</p>
+    <h1 id="intro-title">ET SI TU TE <span>SURPRENAIS</span> TOI-MÊME&nbsp;?</h1>
+    <div class="yellow-rule" aria-hidden="true"></div>
+    <p class="intro-lead">Une activité à laquelle tu n'avais jamais pensé. Des rencontres que tu n'attendais pas. Une expérience que tu pourrais adorer.</p>
+    <p class="intro-promise">Découvre ce qui pourrait te donner envie.</p>
+    <button type="button" id="startBtn" class="primary-btn">JE DÉCOUVRE MON AVENTURE <span aria-hidden="true">→</span></button>
+    <p class="microcopy">Environ 1 minute · Aucun compte · Aucun engagement</p>
+  </div>
+  <aside class="scene-art" aria-label="Une scène imaginaire éclairée">
+    <div class="scene-art-inner" aria-hidden="true"><span class="scene-art-stars">✦ &nbsp; ✳ &nbsp; ✦</span><strong>FAIS<br><span>TON</span><br>SHOW</strong><small>ET SI C'ÉTAIT TOI ?</small></div>
+    <p>La scène est une possibilité. Le plaisir de créer ensemble en est une autre.</p>
+  </aside>
+</section>
+
+<section id="journey" class="screen journey-screen" hidden aria-labelledby="stepTitle">
+  <div class="journey-top">
+    <button type="button" id="backBtn" class="text-btn">← Retour</button>
+    <span id="stepCount" class="step-count">01 / 04</span>
+  </div>
+  <div class="progress-track" role="progressbar" aria-label="Avancement du parcours" aria-valuemin="0" aria-valuemax="4" aria-valuenow="1" id="progressTrack"><span id="progressFill"></span></div>
+  <div class="question-panel">
+    <p class="eyebrow" id="stepEyebrow">POUR COMMENCER</p>
+    <h2 id="stepTitle">Cette aventure, ce serait pour qui ?</h2>
+    <p id="stepDescription" class="step-description"></p>
+    <div id="stepChoices" class="choice-grid"></div>
+    <div id="ageStep" hidden>
+      <label for="ageInput" class="age-label">Son âge en années <span>(facultatif pour explorer)</span></label>
+      <div class="age-row"><input id="ageInput" type="number" min="3" max="17" inputmode="numeric" placeholder="Ex. 8" autocomplete="off"><button type="button" id="ageContinue" class="primary-btn">CONTINUER →</button></div>
+      <p id="ageError" class="field-error" role="alert" hidden></p>
+      <button type="button" id="ageSkip" class="text-btn age-skip">Je préfère ne pas le préciser</button>
+      <p class="microcopy">Sans âge, nous montrerons seulement des pistes générales dont l'accès reste à vérifier.</p>
+    </div>
+  </div>
+  <p class="journey-note">Il n'y a pas de bonne réponse. Choisis juste ce qui te parle.</p>
+</section>
+
+<section id="result" class="screen result-screen" hidden aria-labelledby="resultTitle">
+  <div class="journey-top">
+    <button type="button" id="resultBack" class="text-btn">← Modifier mes réponses</button>
+    <span class="step-count">TON AVENTURE</span>
+  </div>
+  <div class="result-heading">
+    <p class="eyebrow">ET SI C'ÉTAIT LE DÉBUT DE QUELQUE CHOSE ?</p>
+    <h2 id="resultTitle"></h2>
+    <p id="resultIntro" class="result-lead"></p>
+  </div>
+  <h3 class="results-section-title">DEUX PISTES À EXPLORER</h3>
+  <div id="resultCards" class="result-cards"></div>
+  <p id="resultNote" class="result-note"></p>
+  <div class="result-actions">
+    <a id="mainCta" class="primary-btn" href="https://app.faistonshow.fr/saison.html"></a>
+    <a href="https://app.faistonshow.fr/saison.html" class="secondary-btn">VOIR TOUTES LES ACTIVITÉS <span aria-hidden="true">↗</span></a>
+  </div>
+  <p id="ctaNote" class="microcopy"></p>
+  <div class="apprehension">
+    <h3>QUELQUE CHOSE TE RETIENT ?</h3>
+    <p>Tu peux aussi avoir des questions avant de te lancer.</p>
+    <div id="apprehensionChoices" class="apprehension-options"></div>
+    <p id="apprehensionReply" role="status" aria-live="polite"></p>
+  </div>
+  <div class="more-actions"><button type="button" id="restartBtn" class="text-btn">↻ Recommencer avec une autre envie</button></div>
+</section>
+</main>
+<footer>
+  <p>FAIS TON SHOW · MARGUERITTES (PRÈS DE NÎMES)</p>
+  <nav aria-label="Liens de bas de page"><a href="https://app.faistonshow.fr/index.html">Accueil</a><a href="https://app.faistonshow.fr/saison.html">Activités</a><a href="https://app.faistonshow.fr/confidentialite.html">Confidentialité</a><a href="mailto:contact@faistonshow.fr">Nous contacter</a></nav>
+</footer>
+<noscript><p class="noscript">Le parcours interactif nécessite JavaScript. Vous pouvez consulter les <a href="https://app.faistonshow.fr/saison.html">activités Fais Ton Show</a> ou écrire à <a href="mailto:contact@faistonshow.fr">contact@faistonshow.fr</a>.</p></noscript>
+</div>
+<script>
+/* Fais Ton Show · Aventure / données éditoriales et règles indépendantes de l'interface.
+   Aucune disponibilité n'est supposée. Les âges non confirmés sont signalés. */
+window.FTSDiscoveryConfig = Object.freeze({
+  sources: {
+    "direct": {line: "FAIS TON SHOW · L'AVENTURE COMMENCE ICI"},
+    "mamie-2026": {line: "VOUS AVEZ DÉCOUVERT MAMIE FAIT DE LA TÉLÉ ? L'AVENTURE CONTINUE."},
+    "facebook": {line: "BIENVENUE DEPUIS FACEBOOK"},
+    "instagram": {line: "BIENVENUE DEPUIS INSTAGRAM"},
+    "affiche": {line: "UNE AFFICHE, UNE ENVIE, UNE NOUVELLE AVENTURE"},
+    "festival-2027": {line: "LE FESTIVAL FAIS TON SHOW, ET APRÈS ?"}
+  },
+  motives: [
+    {id:"rire", icon:"✦", title:"Rire et partager", detail:"Passer un bon moment, rencontrer du monde, sortir du quotidien.",
+      headline:"Et si ton prochain rendez-vous préféré était une répétition ?",
+      parentHeadline:"Et si ton enfant trouvait un endroit où rire et créer avec d'autres ?",
+      intro:"On découvre des jeux, des personnages et des partenaires. Et surtout, le plaisir de partager une activité."},
+    {id:"creer", icon:"✳", title:"Inventer et créer", detail:"Imaginer des histoires, jouer, donner vie à des idées.",
+      headline:"Tu as des idées ? Ici, elles peuvent prendre vie.",
+      parentHeadline:"Et si ses idées prenaient vie autrement ?",
+      intro:"Une idée peut devenir un personnage, une chanson, un geste ou une scène à construire ensemble."},
+    {id:"nouveau", icon:"↗", title:"Essayer quelque chose de nouveau", detail:"Découvrir une activité inattendue, oser une première fois.",
+      headline:"Et si tu essayais quelque chose d'inattendu ?",
+      parentHeadline:"Et si ton enfant découvrait une nouvelle façon de s'exprimer ?",
+      intro:"Pas besoin d'avoir déjà pratiqué. L'essentiel est de pouvoir essayer à son rythme, avec un cadre adapté."},
+    {id:"collectif", icon:"◎", title:"Vivre une aventure collective", detail:"Faire partie d'un groupe, construire quelque chose ensemble.",
+      headline:"Le spectacle commence bien avant le lever de rideau.",
+      parentHeadline:"Et si ton enfant faisait partie d'une aventure collective ?",
+      intro:"Les répétitions, les échanges et les créations partagées font aussi partie de l'aventure Fais Ton Show."}
+  ],
+  worlds: [
+    {id:"jouer",icon:"🎭",title:"Jouer et improviser",detail:"Des personnages, des situations, des histoires."},
+    {id:"voix",icon:"🎤",title:"Chanter ou faire de la musique",detail:"La voix, les sons, les rythmes."},
+    {id:"danser",icon:"✹",title:"Danser et bouger",detail:"Le mouvement et l'expression corporelle."},
+    {id:"magie",icon:"✦",title:"Découvrir la magie",detail:"Des tours, des surprises, de l'imagination."},
+    {id:"surprise",icon:"?",title:"Surprenez-moi !",detail:"Je ne sais pas encore ce qui pourrait me plaire."}
+  ],
+  activities: [
+    {id:"theatre79", title:"Théâtre 7–9 ans",icon:"🎭",audiences:["child"],minAge:7,maxAge:9,worlds:["jouer"],motives:["rire","creer","collectif","nouveau"],family:"jeu",
+      detail:"Inventer des personnages, jouer des situations et découvrir le théâtre avec d'autres enfants.",
+      condition:"Parcours loisir uniquement pour les 7–9 ans."},
+    {id:"theatrejeunesse",title:"Théâtre — groupes jeunes",icon:"🎭",audiences:["child","teen"],minAge:10,worlds:["jouer"],motives:["rire","creer","collectif","nouveau"],family:"jeu",
+      detail:"Apprendre à interpréter, développer un personnage et construire des scènes en groupe.",
+      condition:"Le groupe et le parcours adaptés à l'âge sont à confirmer. Le parcours performance commence à partir de 10 ans selon les groupes."},
+    {id:"theatreadultes",title:"Théâtre loisir",icon:"🎭",audiences:["adult"],worlds:["jouer"],motives:["rire","creer","collectif","nouveau"],family:"jeu",
+      detail:"Jouer des personnages, explorer des scènes et progresser avec un groupe.",
+      condition:"Les créneaux et possibilités d'essai sont à confirmer."},
+    {id:"impro",title:"Improvisation",icon:"⚡",audiences:["adult"],worlds:["jouer"],motives:["rire","collectif","nouveau","creer"],family:"jeu",
+      detail:"Imaginer sur le moment, rebondir sur les propositions et créer à plusieurs.",
+      condition:"Les publics, niveaux et créneaux accessibles sont à confirmer."},
+    {id:"chant",title:"Chant",icon:"🎤",audiences:["adult","teen"],worlds:["voix"],motives:["nouveau","creer","rire","collectif"],family:"voix",
+      detail:"Explorer sa voix, interpréter une chanson et progresser à son rythme.",
+      condition:"Âge, formule et disponibilités à vérifier avec l'équipe."},
+    {id:"singer",title:"Singer Academy",icon:"🎶",audiences:["adult","teen"],worlds:["voix"],motives:["collectif","creer","rire","nouveau"],family:"voix",
+      detail:"Travailler la voix et l'interprétation au sein d'un projet vocal et scénique partagé.",
+      condition:"Accès, niveau éventuel et places à confirmer : aucune place n'est garantie."},
+    {id:"danseenfants",title:"Danse — groupes enfants",icon:"✹",audiences:["child"],worlds:["danser"],motives:["rire","creer","nouveau","collectif"],family:"mouvement",
+      detail:"Découvrir les mouvements, le rythme et le plaisir de s'exprimer avec le corps.",
+      condition:"Groupe et tranche d'âge à confirmer, notamment pour les plus jeunes."},
+    {id:"danseadultes",title:"Danse",icon:"✹",audiences:["adult","teen"],worlds:["danser"],motives:["rire","creer","nouveau","collectif"],family:"mouvement",
+      detail:"Bouger, explorer des chorégraphies et partager l'énergie d'un groupe.",
+      condition:"Groupe, niveau et créneau à confirmer."},
+    {id:"comediekids",title:"Comédie musicale Kids",icon:"★",audiences:["child"],minAge:7,worlds:["jouer","voix","danser"],motives:["collectif","creer","nouveau","rire"],family:"mixte",
+      detail:"Associer jeu, chant et mouvement dans une même découverte artistique.",
+      condition:"L'âge exact d'accès et les groupes sont à vérifier. Ne préjuge pas d'une inscription."},
+    {id:"comedie",title:"Comédie musicale",icon:"★",audiences:["adult","teen"],worlds:["jouer","voix","danser"],motives:["collectif","creer","nouveau"],family:"mixte",
+      detail:"Mêler théâtre, chant et mouvement pour construire un spectacle.",
+      condition:"Les niveaux, tranches d'âge et modalités d'accès sont à confirmer."},
+    {id:"magiejeunes",title:"Magie",icon:"✦",audiences:["child","teen"],minAge:7,worlds:["magie"],motives:["nouveau","creer","rire"],family:"magie",
+      detail:"Apprendre des tours, travailler la présentation et le plaisir de surprendre.",
+      condition:"Âge minimal indicatif, à valider avec l'équipe avant toute inscription."},
+    {id:"musique",title:"Musique",icon:"♫",audiences:["adult","teen"],worlds:["voix"],motives:["nouveau","creer","collectif"],family:"musique",
+      detail:"Explorer un instrument, jouer avec des sons et éventuellement partager un projet musical.",
+      condition:"Instrument, niveau, âge et accès aux ateliers à confirmer."}
+  ],
+  apprehensions: [
+    {id:"debut",label:"Je n'ai jamais fait ça",reply:"Des activités FTS accueillent aussi des débutants. Le groupe adapté est à vérifier avant un essai."},
+    {id:"timide",label:"Je suis plutôt timide",reply:"Tu peux découvrir une activité progressivement. Tu n'as pas à tout réussir ni à être à l'aise dès la première séance."},
+    {id:"seul",label:"Je ne connais personne",reply:"Les séances sont des activités de groupe : les rencontres font partie de l'expérience, sans garantie que l'on se sente immédiatement à l'aise."},
+    {id:"temps",label:"Je ne sais pas si j'aurai le temps",reply:"Les horaires sont à consulter avant de s'engager. L'équipe peut expliquer le rythme des séances et des répétitions."},
+    {id:"calme",label:"Je préfère découvrir tranquillement",reply:"Tu peux consulter les activités sans laisser de coordonnées. Rien ne t'oblige à réserver un cours."}
+  ]
+});
+
+</script>
+<script>
+/* Fais Ton Show · Aventure — moteur indépendant du reste de la PWA.
+   Aucune collecte, aucun traceur, aucune prétendue disponibilité.
+   Les événements fts:discovery restent locaux tant qu'un collecteur conforme n'est pas branché. */
+(function () {
+  "use strict";
+  const data = window.FTSDiscoveryConfig;
+  if (!data) { console.error("FTS Aventure : configuration absente"); return; }
+  const get = (id) => document.getElementById(id);
+  const sourceParam = new URLSearchParams(location.search).get("source") || "direct";
+  const source = Object.prototype.hasOwnProperty.call(data.sources, sourceParam) ? sourceParam : "direct";
+  const answers = { audience: null, age: null, motive: null, world: null, timing: null };
+  let step = 0;
+  let agePhase = false;
+  const audienceChoices = [
+    {id:"adult",icon:"✦",title:"Moi !",detail:"Une petite aventure rien que pour moi."},
+    {id:"child",icon:"★",title:"Mon enfant",detail:"Une expérience à lui faire découvrir."},
+    {id:"teen",icon:"↗",title:"Mon ado",detail:"Une nouvelle façon de créer et de partager."}
+  ];
+  const timingChoices = [
+    {id:"now",icon:"↗",title:"Pourquoi pas maintenant !",detail:"J'aimerais savoir si je peux essayer."},
+    {id:"rentree",icon:"◷",title:"À la rentrée 2027/2028",detail:"Une idée à garder pour la prochaine saison."},
+    {id:"curious",icon:"✦",title:"Je suis juste curieux",detail:"Je regarde ce qui existe, sans engagement."}
+  ];
+
+  function emit(event, details) {
+    // Point d'extension uniquement : aucun envoi réseau ni persistance.
+    document.dispatchEvent(new CustomEvent("fts:discovery", {
+      detail: Object.assign({event:event, source:source}, details || {})
+    }));
+  }
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (c) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+    });
+  }
+  function isParent() { return answers.audience === "child" || answers.audience === "teen"; }
+  function noun() { return answers.audience === "teen" ? "ton ado" : "ton enfant"; }
+  function show(which) {
+    ["intro","journey","result"].forEach(function(id){ get(id).hidden = id !== which; });
+    if (which === "journey") {
+      get("stepTitle").setAttribute("tabindex", "-1");
+      get("stepTitle").focus({preventScroll:true});
+    }
+    if (which === "result") {
+      get("resultTitle").setAttribute("tabindex", "-1");
+      get("resultTitle").focus({preventScroll:true});
+    }
+    scrollToTop();
+  }
+  function scrollToTop() {
+    window.scrollTo({top:0,behavior:"instant"});
+  }
+  function start() {
+    emit("start");
+    step = 0;
+    agePhase = false;
+    renderStep();
+  }
+  function restart() {
+    Object.keys(answers).forEach(function(k){ answers[k] = null; });
+    step = 0;
+    agePhase = false;
+    emit("restart");
+    show("intro");
+    get("startBtn").focus({preventScroll:true});
+  }
+  function question() {
+    if (step === 0) return {
+      eyebrow:"01 · POUR QUI ?", title:"Cette aventure, ce serait pour qui ?",
+      description:"Peut-être pour toi, ou pour quelqu'un à qui tu as envie de faire découvrir quelque chose.",
+      choices:audienceChoices
+    };
+    if (step === 1) return {
+      eyebrow:"02 · TON ENVIE",
+      title:isParent() ? "Qu'est-ce qui pourrait donner envie à " + noun() + " ?" : "Qu'est-ce qui te ferait le plus plaisir ?",
+      description:"Oublie les disciplines pour un instant. Commence simplement par ce qui fait envie.",
+      choices:data.motives.map(function(m){return {id:m.id,icon:m.icon,title:m.title,detail:m.detail};})
+    };
+    if (step === 2) return {
+      eyebrow:"03 · LES UNIVERS",
+      title:isParent() ? "Qu'est-ce que " + noun() + " aurait envie de découvrir ?" : "Qu'est-ce qui t'intrigue le plus ?",
+      description:"Tu peux aussi choisir « Surprenez-moi ! ». Pas besoin de connaître déjà les activités.",
+      choices:data.worlds
+    };
+    return {
+      eyebrow:"04 · ET APRÈS ?",
+      title:isParent() ? "Et si vous essayiez, ce serait quand ?" : "Tu te verrais essayer quand ?",
+      description:"Aucune obligation : cela sert uniquement à proposer la suite qui te convient.",
+      choices:timingChoices
+    };
+  }
+
+  function renderStep() {
+    show("journey");
+    get("stepCount").textContent = String(step + 1).padStart(2,"0") + " / 04";
+    get("progressTrack").setAttribute("aria-valuenow",String(step + 1));
+    get("progressFill").style.width = ((step + 1) * 25) + "%";
+    const q = question();
+    get("stepEyebrow").textContent = agePhase ? "01 · L'ÂGE (FACULTATIF)" : q.eyebrow;
+    get("stepTitle").textContent = agePhase ? "Quel âge a " + noun() + " ?" : q.title;
+    get("stepDescription").textContent = agePhase ?
+      "Cela nous évite de proposer un groupe manifestement inadapté." : q.description;
+    get("stepChoices").hidden = agePhase;
+    get("ageStep").hidden = !agePhase;
+    if (agePhase) {
+      get("ageInput").value = answers.age == null ? "" : answers.age;
+      get("ageError").hidden = true;
+      return;
+    }
+    const items = q.choices;
+    get("stepChoices").innerHTML = items.map(function(c){
+      const icon = c.icon || "✦";
+      return '<button type="button" class="choice-btn" data-option="' + escapeHtml(c.id) + '">' +
+        '<span class="choice-icon" aria-hidden="true">' + escapeHtml(icon) + '</span>' +
+        '<span class="choice-text"><strong>' + escapeHtml(c.title) + '</strong>' +
+        (c.detail ? '<small>' + escapeHtml(c.detail) + '</small>' : '') + '</span></button>';
+    }).join("");
+    get("stepChoices").querySelectorAll("[data-option]").forEach(function(button) {
+      button.addEventListener("click", function(){ choose(button.dataset.option); });
+    });
+  }
+
+  function choose(value) {
+    if (step === 0) {
+      if (!audienceChoices.some(function(c){return c.id === value;})) return;
+      if (answers.audience !== value) answers.age = null;
+      answers.audience = value;
+      emit("answer", {question:"audience",value:value});
+      if (isParent()) { agePhase = true; renderStep(); return; }
+    } else if (step === 1) {
+      if (!data.motives.some(function(c){return c.id === value;})) return;
+      answers.motive = value;
+      emit("answer", {question:"motive",value:value});
+    } else if (step === 2) {
+      if (!data.worlds.some(function(c){return c.id === value;})) return;
+      answers.world = value;
+      emit("answer", {question:"world",value:value});
+    } else {
+      if (!timingChoices.some(function(c){return c.id === value;})) return;
+      answers.timing = value;
+      emit("answer", {question:"timing",value:value});
+      renderResult();
+      return;
+    }
+    step += 1;
+    agePhase = false;
+    renderStep();
+  }
+
+  function continueAge(skip) {
+    if (skip) {
+      answers.age = null;
+    } else {
+      const raw = get("ageInput").value.trim();
+      const age = Number(raw);
+      if (!raw || !Number.isInteger(age) || age < 3 || age > 17) {
+        get("ageError").textContent = "Indique un âge entier entre 3 et 17 ans, ou passe cette question.";
+        get("ageError").hidden = false;
+        get("ageInput").focus();
+        return;
+      }
+      answers.age = age;
+    }
+    emit("age_step", {provided:answers.age != null});
+    agePhase = false;
+    step = 1;
+    renderStep();
+  }
+
+  function goBack() {
+    if (agePhase) {
+      agePhase = false; step = 0;
+    } else if (step === 0) {
+      show("intro"); return;
+    } else if (step === 1 && isParent()) {
+      step = 0; agePhase = true;
+    } else {
+      step -= 1;
+    }
+    emit("back", {step:step + 1});
+    renderStep();
+  }
+
+  function permitted(activity) {
+    if (!answers.audience || !activity.audiences.includes(answers.audience)) return false;
+    if (answers.age == null) {
+      // Ne pas suggérer un groupe d'âge chiffré sans connaître l'âge.
+      return !(activity.minAge != null && activity.maxAge != null);
+    }
+    return !(activity.minAge != null && answers.age < activity.minAge) &&
+           !(activity.maxAge != null && answers.age > activity.maxAge);
+  }
+  function score(activity) {
+    const world = answers.world;
+    const motive = answers.motive;
+    let s = activity.motives.includes(motive) ? 12 : 0;
+    if (world !== "surprise" && activity.worlds.includes(world)) s += 36;
+    if (world === "surprise") {
+      if (motive === "rire" && activity.family === "jeu") s += 7;
+      if (motive === "collectif" && (activity.family === "mixte" || activity.family === "voix")) s += 7;
+      if (motive === "creer" && activity.family === "mixte") s += 7;
+      if (motive === "nouveau" && (activity.family === "magie" || activity.family === "musique")) s += 7;
+    }
+    if (answers.age != null && activity.minAge != null && activity.maxAge != null) s += 2;
+    return s;
+  }
+  function recommendations() {
+    const sorted = data.activities.filter(permitted).map(function(a,i){
+      return {activity:a,score:score(a),order:i};
+    }).sort(function(a,b){return b.score - a.score || a.order-b.order;});
+    if (!sorted.length) return [];
+    const first = sorted[0].activity;
+    // En mode surprise, la deuxième expérience doit réellement être contrastée.
+    let second = null;
+    if (answers.world === "surprise") {
+      second = sorted.find(function(row){return row.activity.id !== first.id && row.activity.family !== first.family;});
+    }
+    if (!second) second = sorted.find(function(row){return row.activity.id !== first.id;});
+    return [first].concat(second ? [second.activity] : []);
+  }
+  function messageLink(topic, proposals) {
+    const motive = data.motives.find(function(m){return m.id === answers.motive;});
+    const world = data.worlds.find(function(w){return w.id === answers.world;});
+    const forWho = answers.audience === "adult" ? "Moi-même" : (answers.audience === "teen" ? "Mon ado" : "Mon enfant");
+    const age = answers.age == null ? "Non précisé" : String(answers.age) + " ans";
+    const subject = topic === "now" ? "FTS — demande d'informations pour un essai" : "FTS — informations rentrée 2027/2028";
+    const body = [
+      "Bonjour,",
+      "",
+      topic === "now" ? "Je souhaiterais savoir s'il est possible de faire un essai." :
+        "Je souhaite être informé(e) des possibilités pour la rentrée 2027/2028.",
+      "",
+      "Pour : " + forWho,
+      "Âge (si concerné) : " + age,
+      "Ce qui m'attire : " + (motive ? motive.title : "Non précisé"),
+      "Univers : " + (world ? world.title : "Non précisé"),
+      "Activités découvertes : " + proposals.map(function(a){return a.title;}).join(", "),
+      "Origine de la découverte : " + source,
+      "",
+      "Merci pour vos renseignements.",
+      ""
+    ].join("\n");
+    return "mailto:contact@faistonshow.fr?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+  }
+  function renderResult() {
+    const motive = data.motives.find(function(m){return m.id === answers.motive;}) || data.motives[0];
+    const proposals = recommendations();
+    const parent = isParent();
+    get("resultTitle").textContent = parent ? motive.parentHeadline : motive.headline;
+    get("resultIntro").textContent = motive.intro;
+    get("resultCards").innerHTML = proposals.map(function(a) {
+      return '<article class="result-card"><div class="result-icon" aria-hidden="true">' + escapeHtml(a.icon) + '</div>' +
+        '<h4>' + escapeHtml(a.title) + '</h4><p>' + escapeHtml(a.detail) + '</p><small>' +
+        escapeHtml(a.condition || "Les conditions d'accès sont à vérifier.") + '</small></article>';
+    }).join("");
+    if (!proposals.length) {
+      get("resultCards").innerHTML = '<article class="result-card"><h4>Un groupe à confirmer avec FTS</h4>' +
+        '<p>Nous ne pouvons pas identifier avec suffisamment de certitude une activité adaptée avec ces informations.</p>' +
+        '<small>Contacte l’équipe si tu souhaites vérifier les possibilités.</small></article>';
+    }
+    const ageWarning = parent && answers.age == null ? " Sans âge renseigné, les propositions sont indicatives et nécessitent une vérification." : "";
+    get("resultNote").textContent = "Ces pistes partent de tes envies, pas d'un test de personnalité. Les places, horaires et conditions ne sont pas vérifiés ici." + ageWarning;
+    const action = get("mainCta");
+    const secondary = document.querySelector(".result-actions .secondary-btn");
+    if (answers.timing === "now") {
+      action.href = messageLink("now", proposals);
+      action.textContent = "JE VEUX ESSAYER ! ↗";
+      get("ctaNote").textContent = "Le bouton prépare un e-mail à l'équipe FTS. Rien n'est envoyé automatiquement et aucun essai n'est réservé.";
+      secondary.href = "https://app.faistonshow.fr/saison.html";
+      secondary.textContent = "VOIR LES ACTIVITÉS ACTUELLES ↗";
+    } else if (answers.timing === "rentree") {
+      action.href = messageLink("rentree", proposals);
+      action.textContent = "DEMANDER LES INFOS RENTRÉE 2027 ↗";
+      get("ctaNote").textContent = "Le bouton ouvre un e-mail prérempli. Ce n'est ni une inscription automatique ni un abonnement à une newsletter.";
+      secondary.href = "https://app.faistonshow.fr/saison.html";
+      secondary.textContent = "DÉCOUVRIR LES ACTIVITÉS ↗";
+    } else {
+      action.href = "https://app.faistonshow.fr/saison.html";
+      action.textContent = "EXPLORER LES ACTIVITÉS FTS ↗";
+      get("ctaNote").textContent = "Tu peux continuer à découvrir Fais Ton Show sans laisser de coordonnées.";
+      secondary.href = "https://app.faistonshow.fr/index.html";
+      secondary.textContent = "DÉCOUVRIR LE SITE FTS ↗";
+    }
+    get("apprehensionReply").textContent = "";
+    get("apprehensionChoices").innerHTML = data.apprehensions.map(function(item) {
+      return '<button type="button" aria-pressed="false" data-apprehension="' + escapeHtml(item.id) + '">' +
+        escapeHtml(item.label) + '</button>';
+    }).join("");
+    get("apprehensionChoices").querySelectorAll("button").forEach(function(button) {
+      button.addEventListener("click", function() {
+        const item = data.apprehensions.find(function(a){return a.id === button.dataset.apprehension;});
+        get("apprehensionChoices").querySelectorAll("button").forEach(function(b){
+          b.setAttribute("aria-pressed", String(b === button));
+        });
+        get("apprehensionReply").textContent = item ? item.reply : "";
+      });
+    });
+    emit("complete", {motive:answers.motive,world:answers.world,timing:answers.timing,recommendations:proposals.map(function(a){return a.id;})});
+    show("result");
+  }
+
+  get("sourceLine").textContent = data.sources[source].line;
+  get("startBtn").addEventListener("click", start);
+  get("backBtn").addEventListener("click", goBack);
+  get("resultBack").addEventListener("click", function(){
+    step = 3; agePhase = false; renderStep();
+  });
+  get("ageContinue").addEventListener("click", function(){ continueAge(false); });
+  get("ageSkip").addEventListener("click", function(){ continueAge(true); });
+  get("ageInput").addEventListener("keydown", function(e){
+    if (e.key === "Enter") {e.preventDefault(); continueAge(false);}
+  });
+  get("restartBtn").addEventListener("click", restart);
+  get("mainCta").addEventListener("click", function(){emit("cta_click", {timing:answers.timing});});
+  document.querySelector(".result-actions .secondary-btn").addEventListener("click", function(){emit("activities_click");});
+  window.FTSDiscovery = { // Interface de test, sans dépendance au reste de la PWA.
+    source:source,
+    getState:function(){return {step:step,agePhase:agePhase,answers:Object.assign({},answers)};},
+    getRecommendations:function(){return recommendations().map(function(a){return a.id;});}
+  };
+})();
+
+</script>
+</body>
+</html>
