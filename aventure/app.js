@@ -11,6 +11,7 @@
   const answers = { audience: null, age: null, motive: null, world: null, timing: null };
   let step = 0;
   let agePhase = false;
+  let trialResultVersion = 0;
   const audienceChoices = [
     {id:"adult",icon:"✦",title:"Moi !",detail:"Une petite aventure rien que pour moi."},
     {id:"child",icon:"★",title:"Mon enfant",detail:"Une expérience à lui faire découvrir."},
@@ -57,6 +58,7 @@
     renderStep();
   }
   function restart() {
+    trialResultVersion += 1;
     Object.keys(answers).forEach(function(k){ answers[k] = null; });
     step = 0;
     agePhase = false;
@@ -242,7 +244,65 @@
     ].join("\n");
     return "mailto:contact@faistonshow.fr?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
   }
+  async function displayPublishedTrials(proposals, version) {
+    const api = window.FTSTrials;
+    if (!api) {
+      get("ctaNote").textContent = "Les créneaux d'essai ne sont pas consultables pour l'instant. Le bouton permet de contacter FTS.";
+      return;
+    }
+    let listing;
+    try { listing = await api.load(); }
+    catch (_) { listing = {status:"unavailable",categories:[]}; }
+    if (version !== trialResultVersion || answers.timing !== "now" || get("result").hidden) return;
+    const action = get("mainCta");
+    const note = get("ctaNote");
+    const panel = get("trialMatches");
+    if (listing.status !== "ok") {
+      note.textContent = "Impossible de consulter les créneaux publiés pour le moment. Tu peux demander des renseignements à FTS par e-mail.";
+      return;
+    }
+    const available = proposals.flatMap(function(activity) {
+      return api.matches(activity, answers, listing.categories);
+    });
+    if (!available.length) {
+      note.textContent = "Aucun créneau d'essai correspondant n'est actuellement publié pour ces activités. Le bouton prépare une demande d'information, sans réservation.";
+      return;
+    }
+    panel.innerHTML = '<h3 class="results-section-title">DES ESSAIS À DÉCOUVRIR</h3>' +
+      '<p>Voici les créneaux publiés qui correspondent à ce que tu nous as indiqué. Tu accèdes directement au lien HelloAsso du créneau choisi.</p>' +
+      '<div class="trial-list">' + available.map(function(item) {
+        return '<a class="trial-link" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener noreferrer" data-activity="' + escapeHtml(item.activityId) + '">' +
+          '<span class="trial-title"><strong>' + escapeHtml(item.activityTitle) + '</strong><span>' +
+          escapeHtml(item.courseName) + (item.detail ? ' · ' + escapeHtml(item.detail) : '') +
+          '</span></span><span aria-hidden="true">↗</span></a>';
+      }).join('') + '</div>';
+    panel.hidden = false;
+    panel.querySelectorAll("[data-activity]").forEach(function(link) {
+      link.addEventListener("click", function() {
+        emit("trial_link_click", {activity:link.dataset.activity});
+      });
+    });
+    if (available.length === 1) {
+      action.href = available[0].url;
+      action.target = "_blank";
+      action.rel = "noopener noreferrer";
+      action.textContent = "VOIR CET ESSAI SUR HELLOASSO ↗";
+    } else {
+      action.href = "#trialMatches";
+      action.removeAttribute("target");
+      action.removeAttribute("rel");
+      action.textContent = "CHOISIR MON CRÉNEAU ↓";
+    }
+    note.textContent = "Les liens proviennent du site des essais FTS. Un créneau publié ne garantit pas qu'il reste une place : vérifier les conditions sur HelloAsso.";
+    emit("trial_matches", {activities:available.map(function(x){return x.activityId;}),count:available.length});
+  }
+
   function renderResult() {
+    const version = ++trialResultVersion;
+    get("trialMatches").hidden = true;
+    get("trialMatches").innerHTML = "";
+    get("mainCta").removeAttribute("target");
+    get("mainCta").removeAttribute("rel");
     const motive = data.motives.find(function(m){return m.id === answers.motive;}) || data.motives[0];
     const proposals = recommendations();
     const parent = isParent();
@@ -264,8 +324,8 @@
     const secondary = document.querySelector(".result-actions .secondary-btn");
     if (answers.timing === "now") {
       action.href = messageLink("now", proposals);
-      action.textContent = "JE VEUX ESSAYER ! ↗";
-      get("ctaNote").textContent = "Le bouton prépare un e-mail à l'équipe FTS. Rien n'est envoyé automatiquement et aucun essai n'est réservé.";
+      action.textContent = "ME RENSEIGNER SUR UN ESSAI ↗";
+      get("ctaNote").textContent = "Recherche des créneaux publiés sur le site des essais FTS…";
       secondary.href = "../saison.html";
       secondary.textContent = "VOIR LES ACTIVITÉS ACTUELLES ↗";
     } else if (answers.timing === "rentree") {
@@ -297,12 +357,14 @@
     });
     emit("complete", {motive:answers.motive,world:answers.world,timing:answers.timing,recommendations:proposals.map(function(a){return a.id;})});
     show("result");
+    if(answers.timing === "now") void displayPublishedTrials(proposals, version);
   }
 
   get("sourceLine").textContent = data.sources[source].line;
   get("startBtn").addEventListener("click", start);
   get("backBtn").addEventListener("click", goBack);
   get("resultBack").addEventListener("click", function(){
+    trialResultVersion += 1;
     step = 3; agePhase = false; renderStep();
   });
   get("ageContinue").addEventListener("click", function(){ continueAge(false); });
