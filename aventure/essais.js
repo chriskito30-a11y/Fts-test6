@@ -87,6 +87,8 @@
   }
   function matches(activity, answers, categories) {
     if(!activity || !answers || !Array.isArray(categories)) return [];
+    if(activity.id==="theatre79" && (answers.age == null || answers.age < 7 || answers.age > 9)) return [];
+    if(activity.id==="theatrejeunesse" && (answers.age == null || answers.age < 10)) return [];
     const output=[];
     categories.forEach(function(category) {
       if(!category || !categoryOk(activity.id,category) || !Array.isArray(category.courses)) return;
