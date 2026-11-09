@@ -91,7 +91,7 @@ footer p{margin:0;font-weight:800;letter-spacing:.08em}footer nav{display:flex;g
  .topbar{padding:15px 0}.brand-dot{width:30px;height:30px;font-size:19px}.brand-link{font-size:23px}
  .topbar-meta{font-size:.54rem;letter-spacing:.1em;max-width:100px}
  .intro-screen{min-height:calc(100svh - 145px);padding:35px 0 45px}
- .intro-copy h1{font-size:clamp(4.5rem,17vw,6.8rem);line-height:.89;margin-bottom:16px}
+ .intro-copy h1{font-size:clamp(3.1rem,14.8vw,6.8rem);line-height:.89;margin-bottom:16px}
  .intro-lead{font-size:1rem}.intro-promise{font-size:1rem}
  .intro-copy .primary-btn{width:100%;font-size:.87rem}
  .journey-screen,.result-screen{padding:24px 0 48px}
