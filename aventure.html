@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#05030b">
+<title>Votre prochaine aventure — Fais Ton Show</title>
+<meta name="description" content="Rire, oser, créer, partager : découvrez votre prochaine aventure avec Fais Ton Show. Un parcours ouvert à tous, toute l’année.">
+<link rel="canonical" href="https://app.faistonshow.fr/aventure.html">
+<link rel="icon" href="./assets/img/fts-any-192.png">
+<link rel="stylesheet" href="./assets/css/fts-quest.css?v=11-aventure">
+</head>
+<body class="quest-body adventure-body">
+<div class="quest-stage" aria-hidden="true"><span class="orb orb-a"></span><span class="orb orb-b"></span></div>
+<main class="quest-shell">
+<header class="quest-hero compact-hero">
+<nav class="quest-topbar" aria-label="Liens utiles">
+<a class="quest-back" href="./index.html">Fais Ton Show</a>
+<a class="quest-back" href="#contact">Nous contacter</a>
+</nav>
+<div class="hero-copy">
+<p class="quest-kicker">Une envie suffit · Ouvert à tous</p>
+<h1>Et si la prochaine<br><span>aventure était la vôtre ?</span></h1>
+<p class="hero-lead">Rire. Oser. Créer. Partager. Prenez une minute pour imaginer ce que vous aimeriez vivre avec Fais Ton Show.</p>
+<div class="hero-actions"><a class="quest-btn quest-btn-primary" href="#parcours">Je me laisse surprendre ↓</a></div>
+</div>
+</header>
+<section class="quest-dashboard" id="parcours" aria-label="Votre parcours de découverte">
+<article class="adventure-scene-card" aria-live="polite" aria-atomic="true">
+<p class="scene-chapter" id="sceneChapter">Votre envie</p>
+<h2 id="sceneTitle">Qu’aimeriez-vous vivre ?</h2>
+<div class="scene-text" id="sceneText"><p>Un instant, votre parcours se prépare… Vous pouvez aussi contacter directement l’équipe ci-dessous.</p></div>
+<div class="choice-list" id="choiceList"></div>
+</article>
+<p class="hero-lead">Votre progression reste uniquement dans ce navigateur. Aucun compte nécessaire.</p>
+<div class="hero-actions"><button class="quest-btn quest-btn-ghost" id="adventureReset" type="button">Recommencer le parcours</button></div>
+<noscript><p>Pour explorer les choix, activez JavaScript. Vous pouvez aussi écrire à contact@faistonshow.fr ou consulter les activités ci-dessous.</p></noscript>
+</section>
+<section class="quest-dashboard command-card" id="contact" aria-labelledby="contact-title">
+<p class="quest-kicker">On en parle ?</p>
+<h2 id="contact-title">Votre prochaine étape commence par un échange.</h2>
+<p class="hero-lead">Pour vous, pour votre enfant, pour maintenant ou pour la rentrée 2027/2028 : racontez-nous vos envies. Les disponibilités et les conditions sont à confirmer avec l’équipe.</p>
+<div class="hero-actions">
+<a class="quest-btn quest-btn-primary" href="mailto:contact@faistonshow.fr">Écrire à l’équipe FTS</a>
+<a class="quest-btn quest-btn-ghost" href="./saison.html">Voir les activités actuelles</a>
+</div>
+<p>contact@faistonshow.fr</p>
+</section>
+<footer class="quest-dashboard"><p>Fais Ton Show · Théâtre · Chant · Danse · Musique · Comédie musicale</p><p><a href="./index.html">Accueil</a> · <a href="./confidentialite.html">Confidentialité</a></p></footer>
+</main>
+<script>
+window.FTSQuestData = { storageKeys: { adventureState: 'ftsDiscovery.adventure.v1', log: 'ftsDiscovery.log.v1', playerProgress: 'ftsDiscovery.progress.v1', trophiesState: 'ftsDiscovery.trophies.v1' } };
+window.FTSQuestAdventureData = {
+  "title": "Et si la prochaine aventure était la vôtre ?",
+  "startScene": "depart",
+  "stats": [],
+  "chapters": {
+    "envie": "Votre envie",
+    "decouverte": "Imaginez…",
+    "suite": "À vous de jouer"
+  },
+  "scenes": {
+    "depart": {
+      "title": "Qu’aimeriez-vous vivre ?",
+      "text": [
+        "Pas besoin de choisir un cours tout de suite. Suivez simplement votre envie."
+      ],
+      "icon": "✨",
+      "choices": [
+        {
+          "label": "Rire et me surprendre",
+          "target": "rire"
+        },
+        {
+          "label": "Oser quelque chose de nouveau",
+          "target": "oser"
+        },
+        {
+          "label": "Créer et m’exprimer",
+          "target": "creer"
+        },
+        {
+          "label": "Vivre une aventure collective",
+          "target": "ensemble"
+        },
+        {
+          "label": "Faire découvrir la scène à mon enfant",
+          "target": "enfant"
+        }
+      ],
+      "chapter": "envie"
+    },
+    "rire": {
+      "title": "Et si vous entriez dans le jeu ?",
+      "text": [
+        "Imaginez : une situation inattendue, un personnage à inventer, une réplique qui fait sourire. Vous vous laissez surprendre.",
+        "Le théâtre et l’improvisation peuvent être des pistes à explorer avec l’équipe FTS."
+      ],
+      "icon": "🎭",
+      "choices": [
+        {
+          "label": "J’aimerais essayer une activité",
+          "target": "essai"
+        },
+        {
+          "label": "Je pense à la rentrée 2027/2028",
+          "target": "rentree"
+        },
+        {
+          "label": "Explorer une autre envie",
+          "resetRun": true,
+          "target": "depart"
+        }
+      ],
+      "chapter": "decouverte"
+    },
+    "oser": {
+      "title": "Un premier pas, à votre rythme",
+      "text": [
+        "Imaginez : vous essayez une voix, un geste, quelques mots. Pas besoin d’être déjà à l’aise pour avoir envie de commencer.",
+        "Chanter, danser ou jouer un personnage : l’équipe peut vous aider à trouver une première expérience adaptée."
+      ],
+      "icon": "🌟",
+      "choices": [
+        {
+          "label": "J’aimerais essayer une activité",
+          "target": "essai"
+        },
+        {
+          "label": "Je pense à la rentrée 2027/2028",
+          "target": "rentree"
+        },
+        {
+          "label": "Explorer une autre envie",
+          "resetRun": true,
+          "target": "depart"
+        }
+      ],
+      "chapter": "decouverte"
+    },
+    "creer": {
+      "title": "Donnez une forme à votre imagination",
+      "text": [
+        "Imaginez : une idée devient un personnage, un rythme, un mouvement. Vous explorez une autre façon de vous exprimer.",
+        "Théâtre, chant, danse, musique ou comédie musicale : parlons de ce qui vous attire."
+      ],
+      "icon": "🎨",
+      "choices": [
+        {
+          "label": "J’aimerais essayer une activité",
+          "target": "essai"
+        },
+        {
+          "label": "Je pense à la rentrée 2027/2028",
+          "target": "rentree"
+        },
+        {
+          "label": "Explorer une autre envie",
+          "resetRun": true,
+          "target": "depart"
+        }
+      ],
+      "chapter": "decouverte"
+    },
+    "ensemble": {
+      "title": "Une aventure à partager",
+      "text": [
+        "Imaginez : écouter les autres, répéter, avancer ensemble et voir une création prendre forme.",
+        "Si l’idée d’un spectacle vous attire, échangeons sur les activités et les projets FTS. Les possibilités dépendent des groupes et de la saison."
+      ],
+      "icon": "🤝",
+      "choices": [
+        {
+          "label": "J’aimerais essayer une activité",
+          "target": "essai"
+        },
+        {
+          "label": "Je pense à la rentrée 2027/2028",
+          "target": "rentree"
+        },
+        {
+          "label": "Explorer une autre envie",
+          "resetRun": true,
+          "target": "depart"
+        }
+      ],
+      "chapter": "decouverte"
+    },
+    "enfant": {
+      "title": "Et si votre enfant trouvait son terrain de jeu ?",
+      "text": [
+        "Imaginez un espace pour jouer, bouger, chanter et découvrir le plaisir de créer avec d’autres.",
+        "Dites-nous son âge et ses envies : l’équipe vous renseignera sur les activités et les groupes possibles."
+      ],
+      "icon": "🎈",
+      "choices": [
+        {
+          "label": "J’aimerais essayer une activité",
+          "target": "essai"
+        },
+        {
+          "label": "Je pense à la rentrée 2027/2028",
+          "target": "rentree"
+        },
+        {
+          "label": "Explorer une autre envie",
+          "resetRun": true,
+          "target": "depart"
+        }
+      ],
+      "chapter": "decouverte"
+    },
+    "essai": {
+      "title": "Envie de faire un premier pas ?",
+      "text": [
+        "Écrivez-nous pour parler de vos envies et demander si un essai est possible. L’équipe vous précisera les places, les horaires et les conditions.",
+        "Le bouton ouvre votre messagerie : vous pourrez compléter puis envoyer votre demande."
+      ],
+      "icon": "💬",
+      "choices": [
+        {
+          "label": "Écrire à FTS pour demander un essai",
+          "href": "mailto:contact@faistonshow.fr?subject=D%C3%A9couverte%20FTS%20%E2%80%94%20demande%20d%E2%80%99essai&body=Bonjour%2C%0AJ%E2%80%99ai%20d%C3%A9couvert%20votre%20parcours%20et%20je%20souhaiterais%20me%20renseigner%20sur%20un%20essai.%0AMes%20envies%20%3A%0APour%20moi%20%2F%20pour%20mon%20enfant%20(%C3%A2ge)%20%3A%0AMes%20disponibilit%C3%A9s%20%3A%0AMerci%20!"
+        },
+        {
+          "label": "Voir les activités et inscriptions actuelles",
+          "href": "./saison.html"
+        },
+        {
+          "label": "Revenir aux envies",
+          "resetRun": true,
+          "target": "depart"
+        }
+      ],
+      "chapter": "suite"
+    },
+    "rentree": {
+      "title": "Et pourquoi pas en septembre 2027 ?",
+      "text": [
+        "Vous vous projetez dans la rentrée FTS 2027/2028 ? Écrivez-nous pour demander des informations et nous dire ce qui vous intéresse.",
+        "Il s’agit d’une prise de contact, pas d’une inscription ni d’une réservation de place. Le bouton ouvre votre messagerie ; rien n’est envoyé automatiquement."
+      ],
+      "icon": "📅",
+      "choices": [
+        {
+          "label": "Écrire à FTS au sujet de la rentrée 2027/2028",
+          "href": "mailto:contact@faistonshow.fr?subject=FTS%20%E2%80%94%20d%C3%A9couverte%20rentr%C3%A9e%202027%2F2028&body=Bonjour%2C%0AJe%20souhaite%20recevoir%20des%20renseignements%20sur%20la%20rentr%C3%A9e%20FTS%202027%2F2028.%0AMes%20envies%20%3A%0APour%20moi%20%2F%20pour%20mon%20enfant%20(%C3%A2ge)%20%3A%0AMerci%20de%20me%20pr%C3%A9ciser%20comment%20%C3%AAtre%20inform%C3%A9(e)%20des%20prochaines%20inscriptions."
+        },
+        {
+          "label": "Explorer une autre envie",
+          "resetRun": true,
+          "target": "depart"
+        }
+      ],
+      "chapter": "suite"
+    }
+  }
+};
+</script>
+<script src="./assets/js/fts-quest-ui.js?v=11-aventure"></script>
+<script>
+// Cette page réutilise le moteur commun sans attribuer de progression FTS Quest.
+window.FTSQuestUI.Progress = null;
+window.FTSQuestUI.log = function () {};
+</script>
+<script src="./assets/js/fts-quest-aventure.js?v=11-aventure"></script>
+</body>
+</html>
+
