@@ -109,3 +109,16 @@ footer p{margin:0;font-weight:800;letter-spacing:.08em}footer nav{display:flex;g
  footer{gap:15px}footer nav{gap:12px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Liens vers les essais : source live du site Essais, sans réservation interne. */
+.trial-panel{border-top:1px solid var(--border);margin-top:28px;padding-top:4px}
+.trial-panel .results-section-title{margin-top:24px}
+.trial-panel>p{font-size:.89rem;line-height:1.55;color:#c9c6ba}
+.trial-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.trial-link{min-width:0;display:flex;justify-content:space-between;align-items:center;gap:14px;padding:16px;border:1px solid #6d6a47;border-radius:7px;background:#25241a;text-decoration:none}
+.trial-link:hover,.trial-link:focus-visible{border-color:var(--accent);background:#32301b}
+.trial-link>span:last-child{font-size:1.6rem;color:var(--accent);font-weight:800}
+.trial-title{min-width:0;display:flex;flex-direction:column;gap:3px}
+.trial-title strong{color:var(--ink);font-size:.96rem}
+.trial-title span{color:#c6c3b8;line-height:1.35;font-size:.79rem}
+@media(max-width:650px){.trial-list{grid-template-columns:1fr}}
