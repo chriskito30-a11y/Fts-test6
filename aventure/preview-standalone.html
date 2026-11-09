@@ -269,15 +269,15 @@ window.FTSDiscoveryConfig = Object.freeze({
     {id:"danseadultes",title:"Danse",icon:"✹",audiences:["adult","teen"],worlds:["danser"],motives:["rire","creer","nouveau","collectif"],family:"mouvement",
       detail:"Bouger, explorer des chorégraphies et partager l'énergie d'un groupe.",
       condition:"Groupe, niveau et créneau à confirmer."},
-    {id:"comediekids",title:"Comédie musicale Kids",icon:"★",audiences:["child"],minAge:7,worlds:["jouer","voix","danser"],motives:["collectif","creer","nouveau","rire"],family:"mixte",
+    {id:"comediekids",title:"Comédie musicale Kids",icon:"★",audiences:["child"],worlds:["jouer","voix","danser"],motives:["collectif","creer","nouveau","rire"],family:"mixte",
       detail:"Associer jeu, chant et mouvement dans une même découverte artistique.",
       condition:"L'âge exact d'accès et les groupes sont à vérifier. Ne préjuge pas d'une inscription."},
     {id:"comedie",title:"Comédie musicale",icon:"★",audiences:["adult","teen"],worlds:["jouer","voix","danser"],motives:["collectif","creer","nouveau"],family:"mixte",
       detail:"Mêler théâtre, chant et mouvement pour construire un spectacle.",
       condition:"Les niveaux, tranches d'âge et modalités d'accès sont à confirmer."},
-    {id:"magiejeunes",title:"Magie",icon:"✦",audiences:["child","teen"],minAge:7,worlds:["magie"],motives:["nouveau","creer","rire"],family:"magie",
+    {id:"magiejeunes",title:"Magie",icon:"✦",audiences:["child","teen"],worlds:["magie"],motives:["nouveau","creer","rire"],family:"magie",
       detail:"Apprendre des tours, travailler la présentation et le plaisir de surprendre.",
-      condition:"Âge minimal indicatif, à valider avec l'équipe avant toute inscription."},
+      condition:"Tranche d'âge et accès à valider avec l'équipe avant toute inscription."},
     {id:"musique",title:"Musique",icon:"♫",audiences:["adult","teen"],worlds:["voix"],motives:["nouveau","creer","collectif"],family:"musique",
       detail:"Explorer un instrument, jouer avec des sons et éventuellement partager un projet musical.",
       condition:"Instrument, niveau, âge et accès aux ateliers à confirmer."}
@@ -291,8 +291,7 @@ window.FTSDiscoveryConfig = Object.freeze({
   ]
 });
 
-</script>
-<script>
+</script><script>
 /* Fais Ton Show · Aventure — moteur indépendant du reste de la PWA.
    Aucune collecte, aucun traceur, aucune prétendue disponibilité.
    Les événements fts:discovery restent locaux tant qu'un collecteur conforme n'est pas branché. */
@@ -541,7 +540,7 @@ window.FTSDiscoveryConfig = Object.freeze({
     const motive = data.motives.find(function(m){return m.id === answers.motive;}) || data.motives[0];
     const proposals = recommendations();
     const parent = isParent();
-    get("resultTitle").textContent = parent ? motive.parentHeadline : motive.headline;
+    get("resultTitle").textContent = parent ? motive.parentHeadline.replace("ton enfant", noun()) : motive.headline;
     get("resultIntro").textContent = motive.intro;
     get("resultCards").innerHTML = proposals.map(function(a) {
       return '<article class="result-card"><div class="result-icon" aria-hidden="true">' + escapeHtml(a.icon) + '</div>' +
@@ -615,6 +614,5 @@ window.FTSDiscoveryConfig = Object.freeze({
   };
 })();
 
-</script>
-</body>
+</script></body>
 </html>
