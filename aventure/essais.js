@@ -35,12 +35,14 @@
   }
   function audienceHints(name) {
     const s=norm(name);
+    const raw=String(name || "").normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+      .replace(/[‐‑–—−]/g,"-").toLowerCase();
     const adult=/\badultes?\b/.test(s);
     const teen=/\bados?\b|\badolescents?\b/.test(s);
     const child=/\bkids?\b|\benfants?\b|\bce1\b|\bcm2\b/.test(s);
-    const ranges=[...s.matchAll(/(\d{1,2})\s*(?:-|a|au)\s*(\d{1,2})\s*ans?\b/g)];
-    const one=[...s.matchAll(/\b(?:des|de|dès|a partir de)\s*(\d{1,2})\s*ans?\b/g)];
-    const atLeast=[...s.matchAll(/\b(\d{1,2})\s*ans?\s*(?:et\s*\+|ou plus)/g)];
+    const ranges=[...raw.matchAll(/(\d{1,2})\s*(?:-|a|au)\s*(\d{1,2})\s*ans?\b/g)];
+    const one=[...raw.matchAll(/\b(?:des|de|a partir de)\s*(\d{1,2})\s*ans?\b/g)];
+    const atLeast=[...raw.matchAll(/\b(\d{1,2})\s*ans?\s*(?:et\s*\+|ou plus)/g)];
     let min = null,max = null;
     if(ranges.length){min=Number(ranges[0][1]);max=Number(ranges[0][2]);}
     else if(one.length){min=Number(one[0][1]);}
